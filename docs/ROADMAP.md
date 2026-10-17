@@ -97,3 +97,5 @@ Implementation khớp phạm vi đã chốt; số tạm ở config; lint/typeche
 **Feedback P4A tiếp theo:** HUD tính tổng người kể cả tài xế (xe máy trống 1/2); G làm khách bay ngang trước khi đứng lại. NPC chờ và khách không quay về đứng yên hoặc di chuyển chậm trong vòng 1,5 m, pickup/cue theo vị trí thực. Xem [P4A_PASSENGER_MOTION_REVIEW.md](P4A_PASSENGER_MOTION_REVIEW.md) cho kiểm thử; motion vẫn là primitive placeholder.
 
 **Ghi chú cho prototype sau:** tài xế văng ra cần ngã/nằm tại chỗ một nhịp, đứng dậy rồi mới chạy về xe. Giữ miễn nhiễm toàn bộ chuỗi và chỉ hồi tốc khi đã lên xe; thêm thời gian dừng vào simulation trước animation hoàn chỉnh.
+
+**Sửa hồi quy P4B:** khách ngẫu nhiên không quay lại sau tai nạn vẫn hiện/di chuyển bên đường nhưng bị khóa đón lại bằng F vĩnh viễn. Khách được chọn quay lại nhập lại xe; khách chờ thường và khách do G cho xuống vẫn theo luật đón khách bình thường.

@@ -72,7 +72,7 @@ function passengerEvent(run: Run, kind: 'passenger' | 'drop', message: string): 
 /** F is an explicit interaction, not a contact pickup. */
 export function pickUpPassenger(run: Run): Run {
   if (run.phase !== 'running' || run.crash || run.passengers >= balance.riderLimit) return run;
-  const candidate = run.world.entities.filter(e => e.kind === 'passenger' && !e.consumed && e.lastHit <= run.activeSeconds &&
+  const candidate = run.world.entities.filter(e => e.kind === 'passenger' && e.pickupable !== false && !e.consumed && e.lastHit <= run.activeSeconds &&
     Math.abs(e.distance - run.distance) <= balance.passengerReach &&
     Math.abs(e.x - run.x) <= balance.passengerLateralReach)
     .sort((a, b) => Math.abs(a.distance - run.distance) - Math.abs(b.distance - run.distance))[0];
@@ -141,6 +141,7 @@ export function stepRun(before: Run, input: Input): Run {
       for (let i = 0; i < before.crash.lostPassengers; i++) {
         const passenger = entity('passenger', `fallen-${before.runId}-${before.eventSequence}-${i}`,
           distance + 2 + i, side * balance.laneWidth);
+        passenger.pickupable = false;
         passenger.motionKey = `${before.seed}:fallen:${before.eventSequence}:${i}`;
         passenger.passengerMotion = passengerMotion(passenger, before.activeSeconds + dt);
         movedEntities.push(passenger);

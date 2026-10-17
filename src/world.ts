@@ -8,7 +8,7 @@ export interface PassengerMotion { homeX: number; homeDistance: number; startedA
 export interface Entity {
   id: string; kind: EntityKind; x: number; distance: number; width: number; length: number;
   speed: number; consumed: boolean; touching: boolean; lastHit: number;
-  passengerMotion?: PassengerMotion; motionKey?: string;
+  passengerMotion?: PassengerMotion; motionKey?: string; pickupable?: boolean;
 }
 export interface RetiredEntity { entity: Entity; route: RouteState; expireDistance: number }
 export interface World { entities: Entity[]; retired: RetiredEntity[]; nextHazard: number; nextFuel: number; nextRepair: number;

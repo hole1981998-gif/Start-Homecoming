@@ -27,6 +27,8 @@ Tên thư mục là đề xuất, không phải yêu cầu đã tồn tại. Kh�
 **P4B bản thử:** `Run` lưu `vehicleInstances` và `activeVehicleId`, các trường fuel/durability hiện tại là bản làm việc của xe đang lái và được ghi về instance sau tick/trước khi đổi xe. Tính speed, collider, tiêu hao, giới hạn pickup và HUD từ definition hiện hành. Tab không mở modal; đổi xe không đổi khách/tiền/điểm và không cấp tài nguyên miễn phí. Khi HP=0 hoặc fuel coast hết, đánh dấu xe đang lái disabled rồi chuyển xe dự phòng còn hợp lệ; không ghi kết quả ván nếu chuyển thành công. Bảo vệ ngắn sau tự chuyển, hazard đang chồng lên xe được bảo vệ tới lúc rời collider. Purchase command thuần dữ liệu đã validate slot/tiền/chọn xe bỏ, nhưng chưa nối gameplay/UI trước P5.
 
 - `occupants = 1 + riders.length`; `overload = max(0, occupants - capacity)`; tài xế không nằm trong danh sách riders.
+
+Khách bị chọn ngẫu nhiên không quay lại sau tai nạn được tạo thành NPC đường phố để giữ hình ảnh, nhưng mang `pickupable = false` vĩnh viễn. `pickUpPassenger` loại các entity này khỏi truy vấn F bất kể cooldown/vị trí hoặc tài xế đã lên xe. Khách được chọn quay lại chỉ tăng lại số `riders` khi tài xế trở về; không tạo NPC roadside cho họ. Khách chờ thường và khách G cho xuống giữ hành vi đón lại hiện tại.
 - Mỗi xe có upgrade riêng; xe bị bỏ không chuyển upgrade sang xe còn lại.
 - Tiền, nhiên liệu, độ bền hữu hạn, không âm; fuel/durability không quá max sau nâng cấp.
 - Đổi xe giữ khách, tiền, item. Xe dự phòng không tiêu hao xăng khi không chạy (đề xuất).

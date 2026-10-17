@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { balance } from '../src/config';
 import { noInput, type Input } from '../src/simulation';
-import { initialRun, stepRun, type Run } from '../src/survival';
+import { initialRun, pickUpPassenger, stepRun, type Run } from '../src/survival';
 import { entity, fillWorld, initialWorld, leavesOpenLane, sweptContact, warningDistance, type Entity } from '../src/world';
 
 function empty(entities: Entity[] = []): Run {
@@ -144,6 +144,12 @@ describe('survival, continuous hazards and crash recovery', () => {
     const stranded = withStranded.world.entities.filter(e => e.id.startsWith('fallen-'));
     expect(stranded).toHaveLength(first.crash!.lostPassengers);
     expect(stranded.every(e => e.passengerMotion && !e.consumed)).toBe(true);
+    expect(stranded.every(e => e.pickupable === false)).toBe(true);
+    const strandedInReach = { ...stranded[0], x: withStranded.x, distance: withStranded.distance,
+      passengerMotion: { ...stranded[0].passengerMotion!, homeX: withStranded.x, homeDistance: withStranded.distance } };
+    const pickupAttempt = { ...withStranded, passengers: 0,
+      world: { ...withStranded.world, entities: [strandedInReach] } };
+    expect(pickUpPassenger(pickupAttempt)).toBe(pickupAttempt);
     const returned = advance({ ...first, world: { ...first.world, entities: [car] } }, 3.2);
     expect(returned.crash).toBeNull(); expect(returned.recovering).toBe(true); expect(returned.speed).toBeGreaterThanOrEqual(0);
     const after = advance(returned, .5);
