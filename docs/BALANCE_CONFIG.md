@@ -14,7 +14,7 @@
 | initialVehicle | xe máy | 1 xe, đầy xăng và độ bền |
 | scorePerMeter | 1 | Điểm cơ bản |
 | riderScoreBonus | 0.04 | Mỗi khách +4% điểm theo quãng đường |
-| baseMoneyPerMeter | 0.02 | Thu nhập cơ bản |
+| baseMoneyPerMeter | 0.15 | Thu nhập cơ bản, chủ dự án đồng ý thử trong P2 ngày 17/10/2026; thay số cũ 0.02 |
 | riderMoneyPerMeter | 0.01 | Mỗi khách thêm thu nhập tuyến tính |
 | overloadSpeedPenalty | 0.08 | Giảm tốc độ tối đa mỗi người quá tải |
 | overloadFuelPenalty | 0.15 | Tăng tiêu hao mỗi người quá tải |
@@ -78,7 +78,13 @@ Hai rate trên tạm dùng chung; cruise thuộc từng VehicleDefinition khi c�
 
 Mục tiêu là cơ hội mua xe trong lượt chơi đại diện, tính thời gian gameplay hoạt động, không tính pause/Help/shop; không phải bảo đảm mọi seed. Các giá/thu nhập trong bảng vẫn TẠM và chưa được chỉnh để khẳng định đã đạt mục tiêu.
 
-Với số cũ, 800 - 200 = 600 tiền thiếu; thu nhập nền 0,02/m cần 30.000 m. Ở cruise xe máy tạm 14 m/s, mất khoảng 35,7 phút nếu không khách/chi phí, nên rõ ràng chưa đạt mục tiêu mới. Không tự tăng income hoặc giảm giá trong bản cập nhật tài liệu này. Khi triển khai kinh tế, mô phỏng ít nhất các chiến thuật cruise chủ yếu, giữ W nhiều, hãm S nhiều, có/không khách và chi phí tiếp tế; trình thay đổi cân bằng lớn trước khi áp dụng. Giữ công thức xăng/điểm/tiền theo distance hợp lệ, không thưởng riêng cho thời gian giữ phím và không thêm hệ số hao xăng theo tốc độ chưa được duyệt.
+Với số cũ 0,02/m cần 30.000 m để kiếm 600 tiền thiếu mua ô tô, mất khoảng 35,7 phút ở cruise 14 m/s. **Chủ dự án đã đồng ý thử 0,15/m trong P2**: lý thuyết cần 4.000 m, khoảng 4 phút 46 giây ở cruise hoặc 3 phút 20 giây ở max, trước va chạm/chi phí. Đây là số TẠM được duyệt để playtest, không phải khóa cân bằng. P2 chưa có shop/khách nên chỉ đo thời gian đủ 800 tiền, chưa gọi là mua xe thật hoặc economy đầy đủ. Khi thêm hành khách/shop, tiếp tục đo các chiến thuật và chi phí; trình đổi cân bằng lớn trước khi áp dụng. Giữ xăng/điểm/tiền theo distance hợp lệ, không thưởng riêng vì giữ phím.
+
+### Cấu hình thử P2 — không thay thế director P3
+
+P2 giữ lái P1.2, xe máy 8 L / 70 HP, 0,003 L/m; nước 0,8 L/s, ổ gà 12 HP và tối đa 10 tiền, xe 20 HP/cooldown 1 s, trôi 25 m sau cạn. TẠM: lực cản khi trôi 3 m/s², tốc độ trôi sàn 2 m/s để hoàn tất quãng trôi hữu hạn; W không cấp lực kéo khi cạn, S có thể hãm. Nhặt xăng tới +8 L, hộp sửa tới +40 HP trực tiếp trên đường; kho R/shop ở prototype sau.
+
+Đường thử seeded: hazard đầu ở 130 m, cách 90 m, chu kỳ nước/ổ gà/xe; nước và ổ gà chỉ một lane có seed, xe chạy 6 m/s ở giữa. Giữ hai biên làm lối vượt xe; chưa tăng difficulty hoặc sinh chắn cả đường. Lookahead 140 m, cảnh báo ít nhất 60 m hoặc 3,5 s theo tốc độ (lấy lớn hơn). Một bình xăng mỗi 450 m, luân phiên hai bên, hộp sửa đầu 650 m rồi mỗi 900 m. Thẻ lần đầu pause trước hazard, timeout 8 s; focus nền giữ pause. Các số này đều TẠM, chờ chơi thử.
 
 ## Nâng cấp, vật phẩm và cửa hàng — TẠM
 

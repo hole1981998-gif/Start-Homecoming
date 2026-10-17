@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
 import { expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import type { World } from '../src/world';
+vi.mock('../src/world', async importOriginal => {
+  const actual = await importOriginal<typeof import('../src/world')>();
+  // Isolate the existing input/focus regression from discovery/hazard tests below.
+  return { ...actual, fillWorld: (world: World) => ({ ...world, entities: [] }) };
+});
 
 const renderer = vi.hoisted(() => ({ draws: 0, instances: 0 }));
 vi.mock('../src/render', () => ({ RoadRenderer: class {
@@ -9,13 +16,8 @@ vi.mock('../src/render', () => ({ RoadRenderer: class {
 } }));
 
 it('real input/UI wiring: release, blur, pause button, help, focus trap and repeat restarts', async () => {
-  document.body.innerHTML = `<div id="game"><canvas id="scene" tabindex="0"></canvas>
-    <span id="speed"></span><span id="distance"></span><span id="cruise"></span><span id="drive-mode"></span>
-    <p id="release-help"></p><button id="pause" disabled>Pause</button>
-    <button id="restart" disabled>Restart</button><button id="help">Help</button>
-    <div id="modal"><h1 id="modal-title"></h1><p id="modal-description"></p><span id="modal-label"></span>
-    <div id="instructions"></div><button id="play">Play</button><button id="close-help" hidden>Close</button>
-    <button id="panel-help" hidden>Help</button><button id="panel-restart" hidden>Restart</button></div><div id="error" hidden></div></div>`;
+  document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
+  localStorage.clear();
   let now = 0;
   let nextFrame: FrameRequestCallback = () => { throw new Error('RAF not registered'); };
   vi.stubGlobal('performance', { now: () => now });
@@ -31,7 +33,7 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   expect(el('speed').textContent).toBe('50,4');
   key('keydown', 'KeyW'); tick(3); expect(el('drive-mode').textContent).toContain('Giữ W'); key('keyup', 'KeyW');
   expect(el('speed').textContent).toBe('72,0'); tick(1); expect(el('speed').textContent).toBe('57,6');
-  expect(el('drive-mode').textContent).toContain('đang hồi');
+  expect(el('drive-mode').textContent).toContain('hồi');
   tick(1); expect(el('speed').textContent).toBe('50,4');
   key('keydown', 'KeyS'); tick(2); expect(el('drive-mode').textContent).toContain('Giữ S'); key('keyup', 'KeyS'); expect(el('speed').textContent).toBe('28,8');
   // Focus moves before click in a browser: this must pause once, not pause then resume.
@@ -47,6 +49,7 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   click('help'); expect(el('modal-title').textContent).toBe('Cách cầm lái');
   const helpDistance = el('distance').textContent; tick(3); expect(el('distance').textContent).toBe(helpDistance);
   key('keydown', 'Tab'); expect(document.activeElement).toBe(el('close-help'));
+  el('flavor-toggle').focus(); key('keydown', 'Tab'); expect(document.activeElement).toBe(el('close-help'));
   key('keydown', 'Escape'); expect(el('modal').hidden).toBe(false);
   key('keydown', 'Escape'); expect(el('modal').hidden).toBe(true);
   for (let i = 0; i < 10; i++) {

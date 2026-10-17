@@ -1,8 +1,8 @@
-# Đường Về Nhà — Prototype 1
+# Đường Về Nhà — Prototype 2
 
-**P1.2 — đã triển khai cruise cho xe máy:** tự chạy ở 14 m/s (50,4 km/h); giữ W/S để chạy nhanh/chậm; thả phím hồi về mốc từ cả hai phía. Các số còn TẠM. Thiết kế đầy đủ và mục tiêu ô tô đầu tiên 3–5 phút xem [GAME_DESIGN.md](docs/GAME_DESIGN.md) và [BALANCE_CONFIG.md](docs/BALANCE_CONFIG.md).
+**P2 giữ cruise P1.2:** tự chạy ở 14 m/s (50,4 km/h), giữ W/S để nhanh/chậm, thả để hồi. Thêm xăng/HP, nước/ổ gà/xe, nhặt xăng/sửa, điểm/tiền, coasting, kết ván và restart. Chủ dự án đồng ý thử thu nhập 0,15 tiền/m để bám mục tiêu xe đầu tiên 3–5 phút. Các số còn TẠM; chưa có shop/mua xe nên mới đo khả năng đủ tiền.
 
-**Bổ sung đã chốt:** thêm khách giảm cruise kể cả chưa quá tải; mức giảm/sàn tùy xe và giới hạn tình huống, không nhất thiết luôn chạm min. Tài xế không tính là khách thêm. Chưa triển khai hệ thống hành khách hoặc luật này trong P1.
+**Bổ sung đã chốt:** thêm khách giảm cruise kể cả chưa quá tải; mức giảm/sàn tùy xe và giới hạn tình huống, không nhất thiết luôn chạm min. Tài xế không tính là khách thêm. Chưa triển khai hệ thống hành khách hoặc luật này trong P2.
 
 Three.js + TypeScript strict + Vite. Desktop, bàn phím, khung 9:16. Placeholder geometry; không có art/SFX hoàn chỉnh.
 
@@ -17,18 +17,18 @@ Three.js + TypeScript strict + Vite. Desktop, bàn phím, khung 9:16. Placeholde
 - Esc: tạm dừng/tiếp tục. Mất focus sẽ pause, phải chủ động tiếp tục.
 - Nút Hướng dẫn: xem lại input. Nút Chơi lại: reset quãng đường/vị trí và tốc độ về cruise. Pause ngừng cả quá trình hồi tốc; resume giữ vận tốc lúc pause và xóa phím cũ.
 
-Lượt này chưa có thắng/thua, chướng ngại, kinh tế, hành khách, xăng/HP hay điểm. Đường trống chỉ để đánh giá input và camera; không phải nhịp gameplay endless cuối cùng.
+Nước hao thêm xăng; ổ gà mất HP và tiền; va xe mất HP. Lái chạm bình xăng/hộp sửa để nhặt, có cảnh báo chữ và thẻ lần đầu ở khoảng cách an toàn. Hết xăng trôi thêm 25 m; HP về 0 hoặc hết đà thì kết ván, ghi kết quả local một lần. Pause/Help không hao tài nguyên hoặc cộng thu nhập. Help có thể tắt lời nhắc vui; số hậu quả vẫn hiện. Chưa có giao lộ, hành khách, nhiều xe, shop, nitro hoặc secret.
 
 ## Check
 
 Node 24.19.0, pnpm 11.25.0. Chạy `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
 `pnpm simulate` chạy lại các kịch bản mô phỏng. `pnpm preview --port 5173` phục vụ production build sau `pnpm build`.
 
-Config cân bằng duy nhất: `src/config.ts`, đơn vị m/s và m. Các số là TẠM. Simulation thuần dữ liệu trong `src/simulation.ts`; render/UI không cộng distance. Thời gian stall bị giới hạn; không fast-forward gameplay khi quay lại tab. `?diagnostics=1` bật số đo 600 frame gần nhất trong thuộc tính DOM `data-performance` của canvas (không lưu/gửi analytics).
+Config: `src/config.ts`, đơn vị m/s và m, số TẠM. Lái thuần dữ liệu: `src/simulation.ts`; sinh tồn/thứ tự collision: `src/survival.ts`; thế giới seeded: `src/world.ts`. Render/UI không cộng distance. `pnpm simulate` gồm cả mô phỏng lái và survival/economy có bot, không phải playtest người dùng. Seed P2 mặc định 17 cho các lượt chơi lại để tái hiện feedback. `?diagnostics=1` bật số đo DOM, không analytics. DEV-only QA tại dev server: `?scenario=coast` và `?scenario=supplies`; bị loại khỏi production, không phải chế độ chơi của người dùng.
 
 ## Phát triển tiếp
 
-Giữ P1 làm nền cho P2; không viết lại prototype rời. Mỗi feature có branch, check, manual review và review con người theo AGENTS.md. Chỉ mở rộng sau khi ghi nhận feedback P1 và xử lý lỗi chặn. Xăng, thu nhập và điểm P2 phải dựa trên **distance hợp lệ** này, không theo render/FPS/camera hoặc thời gian pause.
+P1.2 đã được chủ dự án chấp nhận cho chuyển P2; code tiếp tục cùng nền. P2 ở branch local riêng, chưa merge; chưa có remote để fetch/PR/CI. Mỗi feature có check, manual review và review con người theo AGENTS.md. Xăng chạy/thu nhập/điểm dùng **distance hợp lệ**; nước dùng thời gian tiếp xúc thực. Chờ feedback P2 trước P3.
 
 Mỗi lần simulation/playtest cần báo cáo kèm tự review game design và UI/UX. Thay đổi cân bằng lớn phải xin ý kiến chủ dự án. Không diễn giải simulation đường trống thành chứng minh economy cân bằng. Không tạo/tích hợp art hoặc SFX hoàn chỉnh trước gate riêng.
 

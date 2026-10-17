@@ -1,6 +1,6 @@
 {
   "name": "duong-ve-nha",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.25.0",
@@ -9,7 +9,7 @@
     "lint": "eslint src tests",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --configLoader native",
-    "simulate": "vitest run --configLoader native tests/simulation.test.ts --reporter=verbose",
+    "simulate": "vitest run --configLoader native tests/simulation.test.ts tests/playtest.test.ts --reporter=verbose",
     "build": "vite build --configLoader native",
     "preview": "vite preview --configLoader native --host 127.0.0.1"
   },
@@ -18,6 +18,7 @@
   },
   "devDependencies": {
     "@eslint/js": "9.37.0",
+    "@types/node": "24.10.0",
     "@types/three": "0.180.0",
     "eslint": "9.37.0",
     "jsdom": "26.1.0",

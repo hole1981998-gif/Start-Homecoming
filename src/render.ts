@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { balance } from './config';
-import type { State } from './simulation';
+import type { Run } from './survival';
+import type { EntityKind } from './world';
 
 export class RoadRenderer {
   private renderer: THREE.WebGLRenderer;
@@ -9,6 +10,9 @@ export class RoadRenderer {
   private bike = new THREE.Group();
   private markers: THREE.Mesh[] = [];
   private posts: THREE.Mesh[] = [];
+  private entityMeshes = new Map<string, { kind: EntityKind; mesh: THREE.Group }>();
+  private pools: Record<EntityKind, THREE.Group[]> = { water: [], pothole: [], traffic: [], fuel: [], repair: [] };
+  private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
   private observer: ResizeObserver;
   constructor(canvas: HTMLCanvasElement, host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -21,6 +25,7 @@ export class RoadRenderer {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
       parent.add(mesh); return mesh;
     };
+    this.makeBox = box;
     const ground = box(100, 0.1, 200, '#425951'); ground.position.set(0, -0.15, -70);
     const road = box(9.6, 0.1, 200, '#303e46'); road.position.set(0, -0.05, -70);
     for (const x of [-4.9, 4.9]) { const edge = box(0.12, 0.03, 200, '#d3d4bc'); edge.position.set(x, 0.02, -70); }
@@ -42,7 +47,28 @@ export class RoadRenderer {
     });
     this.observer.observe(host);
   }
-  draw(s: State, previous: State, alpha: number): void {
+  private entityMesh(kind: EntityKind): THREE.Group {
+    const pooled = this.pools[kind].pop(); if (pooled) return pooled;
+    const g = new THREE.Group(), box = this.makeBox;
+    const part = (w: number, h: number, d: number, color: string, x: number, y: number, z: number) => {
+      const m = box(w, h, d, color, g); m.position.set(x, y, z);
+    };
+    if (kind === 'water') { part(3.2, .05, 7, '#5799aa', 0, .035, 0); part(2.5, .01, .1, '#abd1d5', 0, .065, -1.5); }
+    else if (kind === 'pothole') {
+      part(1.5, .03, 1.8, '#191d23', 0, .025, 0);
+      for (const x of [-.85, .85]) part(.15, .08, 2, '#dfb357', x, .05, 0);
+    } else if (kind === 'traffic') {
+      part(1.9, .8, 3.6, '#d59561', 0, .6, 0); part(1.6, .6, 1.8, '#a9c6cb', 0, 1.3, 0);
+      for (const x of [-.65, .65]) part(.25, .18, .06, '#fa9d80', x, .65, 1.83);
+    } else {
+      const color = kind === 'fuel' ? '#82c5a0' : '#e1ded0';
+      part(.8, .8, .8, color, 0, .6, 0);
+      if (kind === 'fuel') { part(.5, .12, .2, '#e6d18f', 0, 1.1, 0); part(.18, .16, .18, '#e6d18f', .22, 1.05, .15); }
+      else { part(.48, .14, .03, '#a8423d', 0, .65, .415); part(.14, .48, .03, '#a8423d', 0, .65, .415); }
+    }
+    this.scene.add(g); return g;
+  }
+  draw(s: Run, previous: Run, alpha: number): void {
     const x = THREE.MathUtils.lerp(previous.x, s.x, alpha);
     const distance = THREE.MathUtils.lerp(previous.distance, s.distance, alpha);
     this.bike.position.x = x;
@@ -52,6 +78,17 @@ export class RoadRenderer {
     this.camera.lookAt(x, 0, -12);
     for (let i = 0; i < this.markers.length; i++) this.markers[i].position.z = 12 - ((Math.floor(i / 2) * 6 - distance % 240 + 240) % 240);
     for (let i = 0; i < this.posts.length; i++) this.posts[i].position.z = 12 - ((Math.floor(i / 2) * 9 - distance % 144 + 144) % 144);
+    const live = new Set<string>();
+    for (const e of s.world.entities) {
+      if (e.consumed) continue;
+      live.add(e.id);
+      let entry = this.entityMeshes.get(e.id);
+      if (!entry) { entry = { kind: e.kind, mesh: this.entityMesh(e.kind) }; this.entityMeshes.set(e.id, entry); }
+      entry.mesh.visible = true; entry.mesh.position.set(e.x, 0, -(e.distance - distance));
+    }
+    for (const [id, entry] of this.entityMeshes) if (!live.has(id)) {
+      entry.mesh.visible = false; this.pools[entry.kind].push(entry.mesh); this.entityMeshes.delete(id);
+    }
     this.renderer.render(this.scene, this.camera);
   }
   dispose(): void {

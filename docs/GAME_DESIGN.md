@@ -73,6 +73,8 @@ Xăng và độ bền là hai tài nguyên riêng. Nước làm hao xăng; va ch
 
 **ĐÃ CHỐT — mục tiêu economy:** người chơi có cơ hội mua ô tô đầu tiên sau khoảng **3–5 phút thời gian gameplay hoạt động** trong một lượt chơi đại diện; không tính thời gian đọc Help/pause/shop và không bảo đảm mọi seed/chiến thuật đều đạt mốc này. Đây là mục tiêu trải nghiệm, chưa phải bộ giá/thu nhập đã cân bằng. Với auto-cruise, phải đo riêng lượt chạy chủ yếu ở cruise, giữ W thường xuyên và chủ động hãm S; không cân economy chỉ theo max speed hoặc buộc luôn giữ W mới tiếp cận được xe đầu tiên. Thay đổi lớn về giá, thu nhập hay chi phí vẫn trình chủ dự án trước khi áp dụng.
 
+**ĐÃ ĐỒNG Ý THỬ trong P2 ngày 17/10/2026:** thu nhập nền 0,15 tiền/m thay số cũ 0,02, nhằm tiếp cận mốc 800 tiền sau khoảng 3–5 phút. Đây là số TẠM được phép thử, chưa khóa economy; P2 chưa có shop nên mới kiểm chứng thời gian đủ tiền, chưa thực hiện mua xe. Không thay đổi thưởng khách/giá xe trong lượt này.
+
 ## Chướng ngại và cửa hàng
 
 | Sự kiện đã chốt | Hậu quả |

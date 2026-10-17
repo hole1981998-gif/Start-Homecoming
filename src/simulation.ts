@@ -1,6 +1,6 @@
 import { balance, type Balance } from './config';
 
-export type Phase = 'ready' | 'running' | 'paused';
+export type Phase = 'ready' | 'running' | 'paused' | 'ended';
 export interface Input { accelerate: boolean; brake: boolean; left: boolean; right: boolean }
 export const noInput = (): Input => ({ accelerate: false, brake: false, left: false, right: false });
 export interface State { phase: Phase; distance: number; speed: number; x: number; lateralVelocity: number; ticks: number }
