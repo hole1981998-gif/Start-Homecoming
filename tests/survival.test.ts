@@ -138,7 +138,9 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(protectedRun.distance - first.distance).toBeCloseTo(first.speed ** 2 / (2 * balance.crashSlideDeceleration), 7);
     expect(protectedRun.score).toBe(first.score); expect(protectedRun.money).toBe(first.money);
     expect(protectedRun.durability).toBe(first.durability); expect(protectedRun.fuel).toBe(first.fuel);
-    const returned = advance({ ...first, world: { ...first.world, entities: [car] } }, 2.7);
+    const fallen = advance(first, balance.driverFallSeconds + balance.driverPauseSeconds / 2);
+    expect(fallen.crash).not.toBeNull();
+    const returned = advance({ ...first, world: { ...first.world, entities: [car] } }, 3.2);
     expect(returned.crash).toBeNull(); expect(returned.recovering).toBe(true); expect(returned.speed).toBeGreaterThanOrEqual(0);
     const after = advance(returned, .5);
     const withW = advance(returned, .5, { ...noInput(), accelerate: true });
@@ -152,6 +154,7 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(first.crash?.side).toBe(-1);
     const stopped = advance(first, balance.driverFallSeconds + balance.driverReturnSeconds);
     expect(stopped.speed).toBe(0);
+    expect(stopped.crash).not.toBeNull();
     expect(stopped.distance - first.distance).toBeCloseTo(balance.maxSpeed ** 2 / (2 * balance.crashSlideDeceleration), 7);
     expect(stopped.x).toBeLessThan(first.x);
     expect(stopped.durability).toBe(first.durability);

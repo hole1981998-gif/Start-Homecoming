@@ -1,15 +1,15 @@
 import { balance, hazardSizes } from './config';
 import { nearJunction } from './route';
 
-export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair';
+export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger';
 export interface Entity {
   id: string; kind: EntityKind; x: number; distance: number; width: number; length: number;
   speed: number; consumed: boolean; touching: boolean; lastHit: number;
 }
-export interface World { entities: Entity[]; nextHazard: number; nextFuel: number; nextRepair: number; rng: number }
-export const initialWorld = (seed: number): World => ({ entities: [], nextHazard: 0, nextFuel: 1, nextRepair: 0, rng: seed >>> 0 });
+export interface World { entities: Entity[]; nextHazard: number; nextFuel: number; nextRepair: number; nextPassenger: number; rng: number; seed: number }
+export const initialWorld = (seed: number): World => ({ entities: [], nextHazard: 0, nextFuel: 1, nextRepair: 0, nextPassenger: 0, rng: seed >>> 0, seed });
 export function entity(kind: EntityKind, id: string, distance: number, x: number): Entity {
-  const sizes: Record<EntityKind, [number, number]> = { water: [3.2, 7], pothole: [1.5, 1.8], traffic: [1.9, 3.6], fuel: [.8, .8], repair: [.8, .8] };
+  const sizes: Record<EntityKind, [number, number]> = { water: [3.2, 7], pothole: [1.5, 1.8], traffic: [1.9, 3.6], fuel: [.8, .8], repair: [.8, .8], passenger: [.7, .7] };
   return { id, kind, distance, x, width: sizes[kind][0], length: sizes[kind][1],
     speed: kind === 'traffic' ? balance.trafficSpeed : 0, consumed: false, touching: false, lastHit: -1e10 };
 }
@@ -18,6 +18,7 @@ export function warningDistance(playerSpeed: number, target: Entity): number {
 }
 
 const laneCentres = [-balance.laneWidth, 0, balance.laneWidth];
+export function passengerDistance(index: number): number { return balance.firstPassenger + index * balance.passengerInterval; }
 /** Gap eases from 90 m to 75 m over roughly the first 10 km. */
 export function hazardDistance(index: number): number {
   const rampSteps = Math.ceil(10000 / balance.hazardGap);
@@ -42,10 +43,11 @@ export function leavesOpenLane(candidate: Entity, existing: Entity[], distance: 
 }
 
 const coversRoad = (e: Entity) => e.width >= balance.laneWidth * balance.laneCount - 1e-8;
-function forcedPatchIsAffordable(e: Entity, distance: number, fuel: number, durability: number): boolean {
+function forcedPatchIsAffordable(e: Entity, distance: number, fuel: number, durability: number, fuelFactor: number): boolean {
   if (!coversRoad(e)) return true;
   if (e.kind === 'water') {
-    const cost = (e.distance - distance) * balance.fuelPerMeter +
+    // Evaluate the current load; boarding later is a player choice that changes the remaining budget.
+    const cost = (e.distance - distance) * balance.fuelPerMeter * fuelFactor +
       (e.length + balance.vehicleLength) / balance.minSpeed * balance.waterFuelPerSecond;
     return fuel >= cost + .5;
   }
@@ -67,7 +69,8 @@ function hasConcurrentCar(candidate: Entity, existing: Entity[], distance: numbe
 }
 
 /** Forced three-lane costs require a resource budget until junction branches exist. */
-export function fillWorld(world: World, distance: number, fuel: number = balance.fuelCapacity, durability: number = balance.durabilityCapacity): World {
+export function fillWorld(world: World, distance: number, fuel: number = balance.fuelCapacity,
+  durability: number = balance.durabilityCapacity, fuelFactor = 1): World {
   const w = { ...world, entities: world.entities.filter(e => e.distance + e.length / 2 > distance - 12) };
   const ahead = distance + balance.worldLookAhead;
   const random = () => {
@@ -94,7 +97,7 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
       if (coversRoad(hazard)) hazard.x = 0;
       else if (width > balance.laneWidth) hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
     }
-    if (!forcedPatchIsAffordable(hazard, distance, fuel, durability)) {
+    if (!forcedPatchIsAffordable(hazard, distance, fuel, durability, fuelFactor)) {
       hazard.width = 5.7; hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
     }
     const forced = coversRoad(hazard);
@@ -108,6 +111,11 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
   while (balance.firstRepair + w.nextRepair * balance.repairInterval <= ahead) {
     const index = w.nextRepair++;
     w.entities.push(entity('repair', `repair-${index}`, balance.firstRepair + index * balance.repairInterval, index % 2 ? -balance.laneWidth : balance.laneWidth));
+  }
+  while (passengerDistance(w.nextPassenger) <= ahead) {
+    const index = w.nextPassenger++;
+    const x = ((Math.imul(w.seed ^ (index + 1), 1103515245) >>> 0) & 1) ? balance.laneWidth : -balance.laneWidth;
+    w.entities.push(entity('passenger', `passenger-${index}`, passengerDistance(index), x));
   }
   return w;
 }

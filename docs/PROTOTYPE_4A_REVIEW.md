@@ -1,0 +1,17 @@
+# P4A — khách đi nhờ trên xe máy (17/10/2026)
+
+## Phạm vi bản thử
+
+P4A thêm người chờ đi nhờ dạng primitive đứng ven đường theo seed, F đón trong phạm vi dọc/ngang, Tab tạm dừng để xem và cho từng khách xuống. Sức chứa xe máy tính cả tài xế; vẫn cho quá tải tới trần kỹ thuật. Mỗi khách giảm mốc tự chạy, tăng điểm/tiền theo mét; quá tải còn giảm max và tăng hao xăng theo mét. Tài xế sau va chạm nằm yên thêm 0,5 s trước khi quay lại. Các số ở BALANCE_CONFIG.md là **TẠM**. Chưa có xe khác, kho hai xe, shop/mua xe hay roster hành khách theo ID; vì vậy P4 chưa hoàn tất. Chưa triển khai placeholder vùng cảnh quan theo seed; đây là lát cắt riêng trong roadmap trước art cuối.
+
+## Kết quả thực
+
+- Windows/PowerShell, pnpm 11.25.0, config `p4a-passengers-1`: `pnpm lint`, `pnpm typecheck`, `pnpm test` (46/46) và `pnpm build` đều exit 0. Build cảnh báo chunk JS 522,84 kB vượt mốc khuyến nghị 500 kB. Test P4A kiểm tra spawn lặp seed, F cần đủ gần và chỉ đón một lần, Tab/cho xuống không cấp tiền hay quãng đường, cruise giảm trước quá tải, max/fuel sau quá tải, trần kỹ thuật và khoảng dừng tài xế. Mẫu bot P3B không bấm F nên chỉ là hồi quy nền, không chứng minh cân bằng hành khách.
+- Simulation kiểm soát không hazard trong 60 s ở cruise: 0 khách đi 840 m, kiếm 420 tiền, còn 1,72 L; 1 khách đi 720,5 m, kiếm 367,455 tiền, còn 2,258 L; 2 khách đi 602 m, kiếm 313,04 tiền, còn 2,385 L. Đây là phép so sánh tải với cùng xe/tốc độ tự chạy, không phải trải nghiệm người chơi hay phân bố seed. Thưởng tiền theo mét tăng 0,50 → 0,51 → 0,52; thu nhập theo phút lại **giảm** vì xe chậm hơn. Quá tải dùng xăng/mét hơn nhưng dùng ít xăng/phút hơn do chạy chậm. Vì thế chưa thể gọi số thưởng/tải đã cân bằng hay kết luận chở thêm khách hấp dẫn.
+- Manual trong Codex in-app browser (Chromium) trên `127.0.0.1:5173/?scenario=passenger`: mở đầu, thẻ lần đầu pause, đóng thẻ, nhấn F thấy 1/2 → 2/2 người và +1 người; tốc độ từ 50,4 km/h bắt đầu hồi dần xuống. Tab mở bảng ở quãng 30 m; cho khách xuống thấy 2/2 → 1/2 mà quãng/tiền giữ nguyên khi pause; tiếp tục thì tốc độ hồi lên. Chơi lại trả khách/tiền/quãng về 1/2, 200, 0. Fixture `?scenario=crash`: xe giao thông gây 20 HP, xe trôi rồi dừng, tài xế ở ngoài xe trong trạng thái miễn nhiễm. Test mô phỏng xác nhận khoảng nằm 0,5 s; ảnh tĩnh trình duyệt không đo được chất lượng animation của pha nằm/đứng dậy. Chưa đo FPS trên thiết bị yếu, độ dễ bấm F khi chạy bình thường hoặc phản ứng của người chơi với quá tải.
+
+## Tự review gameplay và UX
+
+**Dữ kiện:** F là lựa chọn thật, không tự đón; xe có một khách đã chậm đi dù chưa quá tải. Pickup seed cố định và không lấy RNG hazard. Bot 60 s cho thấy thu nhập/phút có khách thấp hơn solo, nên động cơ đón khách hiện chưa mạnh nếu chỉ nhìn tiền/điểm. **ĐỀ XUẤT để chủ dự án nhận xét trước khi cân lớn:** thử tăng thưởng tiền/điểm mỗi khách hoặc giảm mức mất cruise của xe máy, mỗi lần chỉ đổi một tham số; đo 30 seed với chiến thuật đón/không đón, W/cruise/S, tiền ròng/phút, HP/xăng, tỷ lệ đạt mốc mua ô tô 1–1,5 phút và số lượt chết. Không tăng thưởng chỉ vì một mẫu kiểm soát.
+
+**UX tự đánh giá từ màn chơi thật:** thẻ khách an toàn, biểu tượng và F gần khách không che đường; số người nhỏ nằm dưới quãng đường. Tab pause rõ và có thể cho xuống từng người, nhưng chưa hiện được khách đã ngồi trên xe bằng silhouette riêng, chưa có danh sách ID hay xe khác để so sánh sức chứa. Cần chơi tay ở tốc độ cao để kiểm tra cửa sổ F ±12 m có đủ phản ứng, rồi mới chỉnh khoảng tương tác hoặc cue. Graphic/VFX/SFX vẫn là placeholder, art chi tiết theo gate cuối.

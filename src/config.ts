@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p3b-junctions-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p4a-passengers-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -8,9 +8,13 @@ export const balance = Object.freeze({
   fixedStep: 1 / 60, maxFrameSeconds: 0.1, maxSubsteps: 6,
   fuelCapacity: 5.5, durabilityCapacity: 70, fuelPerMeter: 0.0045,
   initialMoney: 200, scorePerMeter: 1, moneyPerMeter: 0.5,
+  riderScoreBonus: 0.04, riderMoneyPerMeter: 0.01, motorcycleCapacity: 2, riderLimit: 6,
+  riderCruiseLoss: 2, riderCruiseFloor: 8, overloadSpeedPenalty: 0.08, overloadFuelPenalty: 0.15,
+  minSpeedFactor: 0.4, maxFuelLoadFactor: 3,
+  firstPassenger: 260, passengerInterval: 400, passengerReach: 12, passengerLateralReach: 1.8,
   coastDistance: 25, coastDrag: 3, coastCrawlSpeed: 2,
   waterFuelPerSecond: 0.8, potholeImpactDamage: 6, potholeDamagePerSecond: 12, potholeMoneyLoss: 10,
-  trafficDamage: 20, trafficSpeed: 6, driverFallSeconds: 0.8, driverReturnSeconds: 1.8,
+  trafficDamage: 20, trafficSpeed: 6, driverFallSeconds: 0.8, driverPauseSeconds: 0.5, driverReturnSeconds: 1.8,
   crashSlideDeceleration: 8, crashSkidLateralMetres: 1.8,
   driverEjectionSpeedFactor: 1.5, driverEjectionLateralMetres: 2.5,
   fuelPickup: 5.5, repairPickup: 40,
@@ -33,6 +37,10 @@ export function validateConfig(c: Balance): void {
       c.fuelInterval > 500 || c.hazardGap / c.maxSpeed < c.warningSeconds ||
       c.hazardGapMin > c.hazardGap || c.hazardGapMin / c.maxSpeed < c.warningSeconds ||
       c.junctionInterval <= c.junctionClearance * 2) throw new Error('Invalid survival bounds');
+  if (c.riderCruiseFloor < c.minSpeed || c.riderCruiseFloor >= c.cruiseSpeed ||
+      c.riderCruiseLoss <= 0 || c.motorcycleCapacity < 1 || c.riderLimit < c.motorcycleCapacity - 1 ||
+      c.overloadSpeedPenalty >= 1 || c.minSpeedFactor > 1 || c.maxFuelLoadFactor < 1 ||
+      c.passengerReach >= c.passengerInterval / 2) throw new Error('Invalid passenger bounds');
 }
 validateConfig(balance);
 

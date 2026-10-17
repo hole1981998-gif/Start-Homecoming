@@ -1,7 +1,7 @@
 import type { RunResult } from './survival';
 import type { EntityKind } from './world';
 const resultsKey = 'dvn.results.v1', seenKey = 'dvn.cards.v1';
-const kinds: EntityKind[] = ['water', 'pothole', 'traffic', 'fuel', 'repair'];
+const kinds: EntityKind[] = ['water', 'pothole', 'traffic', 'fuel', 'repair', 'passenger'];
 function read(key: string): unknown {
   try { return JSON.parse(localStorage.getItem(key) ?? 'null') as unknown; } catch { return null; }
 }

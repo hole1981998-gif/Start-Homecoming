@@ -1,0 +1,78 @@
+import { describe, expect, it } from 'vitest';
+import { balance } from '../src/config';
+import { noInput } from '../src/simulation';
+import { dropPassenger, initialRun, passengerDrive, pickUpPassenger, stepRun, type Run } from '../src/survival';
+import { entity, fillWorld, initialWorld } from '../src/world';
+
+function clearRun(): Run {
+  const run = initialRun(17);
+  return { ...run, phase: 'running', world: { ...run.world, entities: [],
+    nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
+}
+
+describe('P4A passenger loop', () => {
+  it('spawns the same reachable passenger positions for a seed without consuming hazard RNG', () => {
+    const first = fillWorld(initialWorld(17), 130);
+    const again = fillWorld(initialWorld(17), 130);
+    expect(first).toEqual(again);
+    expect(first.entities.find(e => e.kind === 'passenger')).toMatchObject({ id: 'passenger-0', distance: balance.firstPassenger });
+    expect(first.rng).toBe(again.rng);
+  });
+
+  it('requires F near the person, boards once, and drops a passenger without free distance or money', () => {
+    const npc = entity('passenger', 'test-person', 10, balance.laneWidth);
+    const run = { ...clearRun(), world: { ...clearRun().world, entities: [npc] } };
+    expect(pickUpPassenger(run)).toBe(run);
+    const near = { ...run, distance: 10, x: balance.laneWidth };
+    const boarded = pickUpPassenger(near);
+    expect(boarded.passengers).toBe(1);
+    expect(boarded.world.entities[0].consumed).toBe(true);
+    expect(pickUpPassenger(boarded)).toBe(boarded);
+    const paused = { ...boarded, phase: 'paused' as const };
+    const dropped = dropPassenger(paused);
+    expect(dropped.passengers).toBe(0);
+    expect(dropped.distance).toBe(near.distance);
+    expect(dropped.money).toBe(near.money);
+    expect(dropPassenger(dropped)).toBe(dropped);
+  });
+
+  it('slows cruise before overload, then caps max speed and charges extra fuel without rewarding idle time', () => {
+    expect(passengerDrive(0)).toEqual({ cruiseSpeed: 14, maxSpeed: 20, fuelFactor: 1 });
+    expect(passengerDrive(1).cruiseSpeed).toBe(12);
+    expect(passengerDrive(2).maxSpeed).toBeLessThan(passengerDrive(1).maxSpeed);
+    const loaded = { ...clearRun(), passengers: 2 };
+    let run = loaded;
+    for (let i = 0; i < 600; i++) run = stepRun(run, noInput());
+    expect(run.speed).toBeCloseTo(10, 6);
+    expect(run.score).toBeCloseTo(run.distance * (1 + 2 * balance.riderScoreBonus), 6);
+    expect(run.money).toBeCloseTo(balance.initialMoney + run.distance * (balance.moneyPerMeter + 2 * balance.riderMoneyPerMeter), 6);
+    expect(run.fuel).toBeCloseTo(balance.fuelCapacity - run.distance * balance.fuelPerMeter * 1.15, 6);
+    expect(stepRun({ ...run, phase: 'paused' }, noInput()).money).toBe(run.money);
+    const lighter = dropPassenger(run);
+    expect(stepRun(lighter, noInput()).speed).toBeGreaterThan(lighter.speed);
+  });
+
+  it('caps boarding for performance while keeping overload allowed', () => {
+    let run = { ...clearRun(), world: { ...clearRun().world,
+      entities: Array.from({ length: balance.riderLimit + 1 }, (_, i) => entity('passenger', `npc-${i}`, 0, 0)) } };
+    for (let i = 0; i < balance.riderLimit + 1; i++) run = pickUpPassenger(run);
+    expect(run.passengers).toBe(balance.riderLimit);
+    expect(run.passengers + 1).toBeGreaterThan(balance.motorcycleCapacity);
+    expect(run.world.entities.filter(e => !e.consumed)).toHaveLength(1);
+  });
+
+  it('samples one minute of solo, full, and overloaded cruise for economy review', () => {
+    const samples = [0, 1, 2].map(passengers => {
+      let run = { ...clearRun(), passengers };
+      for (let i = 0; i < 3600; i++) run = stepRun(run, noInput());
+      return { passengers, distance: run.distance, earned: run.money - balance.initialMoney,
+        score: run.score, fuelLeft: run.fuel, phase: run.phase };
+    });
+    expect(samples.every(s => s.phase === 'running')).toBe(true);
+    expect(samples[1].earned / samples[1].distance).toBeGreaterThan(samples[0].earned / samples[0].distance);
+    expect(samples[1].earned).toBeLessThan(samples[0].earned);
+    expect((balance.fuelCapacity - samples[2].fuelLeft) / samples[2].distance)
+      .toBeGreaterThan((balance.fuelCapacity - samples[1].fuelLeft) / samples[1].distance);
+    console.log(JSON.stringify({ config: balance.version, seconds: 60, samples }));
+  });
+});

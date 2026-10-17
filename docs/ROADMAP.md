@@ -86,4 +86,6 @@ Implementation khớp phạm vi đã chốt; số tạm ở config; lint/typeche
 
 **P3B đang có bản thử:** giao lộ theo seed mỗi 800 m, Q/E chốt rẽ trong cửa sổ thời gian giảm dần theo quãng đường, đường thẳng đôi khi bị chắn, đường và camera ôm cua theo tuyến đã chọn. Mảnh đường và entity được tái dùng, khoảng hazard giảm dần 90→75 m trong khoảng 10 km; 60 m quanh giao lộ không sinh hazard để người chơi tập trung vào QTE. Xem [PROTOTYPE_3B_REVIEW.md](PROTOTYPE_3B_REVIEW.md) cho kết quả simulation, manual và giới hạn.
 
+**P4 chia lát cắt review được:** P4A thử người chờ đi nhờ seeded, F đón thủ công, Tab cho xuống, sức chứa xe máy tính cả tài xế, thưởng theo quãng đường và cruise giảm theo khách; quá tải ảnh hưởng max/fuel. P4B tiếp theo mới đưa nhiều loại xe, kho tối đa hai xe, thay xe giữ khách/tài nguyên và phần mua xe/shop phụ thuộc P5; không gọi P4 hoàn tất từ P4A. Cảnh quan seeded dạng mảng màu vẫn là hạng mục placeholder riêng của các prototype tiếp theo theo ghi chú đầu tài liệu; art chi tiết giữ ở mốc 9.
+
 **Ghi chú cho prototype sau:** tài xế văng ra cần ngã/nằm tại chỗ một nhịp, đứng dậy rồi mới chạy về xe. Giữ miễn nhiễm toàn bộ chuỗi và chỉ hồi tốc khi đã lên xe; thêm thời gian dừng vào simulation trước animation hoàn chỉnh.

@@ -19,7 +19,7 @@ export class RoadRenderer {
   private ground!: THREE.Mesh;
   private viewState!: Run;
   private entityMeshes = new Map<string, { kind: EntityKind; mesh: THREE.Group }>();
-  private pools: Record<EntityKind, THREE.Group[]> = { water: [], pothole: [], traffic: [], fuel: [], repair: [] };
+  private pools: Record<EntityKind, THREE.Group[]> = { water: [], pothole: [], traffic: [], fuel: [], repair: [], passenger: [] };
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
   private observer: ResizeObserver;
   private host: HTMLElement;
@@ -96,6 +96,10 @@ export class RoadRenderer {
       part(1.9, .8, 3.6, '#d59561', 0, .6, 0); part(1.6, .6, 1.8, '#a9c6cb', 0, 1.3, 0);
       for (const x of [-.65, .65]) part(.25, .18, .06, '#fa9d80', x, .65, 1.83);
       for (const x of [-.65, .65]) part(.25, .18, .06, '#fff0ba', x, .65, -1.83);
+    } else if (kind === 'passenger') {
+      part(.38, .7, .28, '#e2c486', 0, .92, 0);
+      part(.38, .38, .38, '#e6dbc4', 0, 1.47, 0);
+      for (const x of [-.12, .12]) part(.13, .55, .16, '#344d5a', x, .3, 0);
     } else {
       const color = kind === 'fuel' ? '#82c5a0' : '#e1ded0';
       part(.8, .8, .8, color, 0, .6, 0);
@@ -118,7 +122,7 @@ export class RoadRenderer {
     if (s.crash) {
       const { elapsed, side, originDistance, impactSpeed } = s.crash;
       const ejection = Math.min(1, elapsed / balance.driverFallSeconds);
-      const returnProgress = Math.max(0, Math.min(1, (elapsed - balance.driverFallSeconds) / balance.driverReturnSeconds));
+      const returnProgress = Math.max(0, Math.min(1, (elapsed - balance.driverFallSeconds - balance.driverPauseSeconds) / balance.driverReturnSeconds));
       const away = ejection * (1 - returnProgress);
       const ejectedDistance = originDistance + impactSpeed * balance.driverEjectionSpeedFactor *
         Math.min(elapsed, balance.driverFallSeconds);
@@ -127,7 +131,7 @@ export class RoadRenderer {
       const driverX = x + side * (.65 + balance.driverEjectionLateralMetres * away);
       this.fallenDriver.position.set(fallenPose.x + Math.cos(fallenPose.heading) * driverX, 0,
         fallenPose.z + Math.sin(fallenPose.heading) * driverX);
-      this.fallenDriver.rotation.set(0, -fallenPose.heading, side * .65 * away, 'YXZ');
+      this.fallenDriver.rotation.set(0, -fallenPose.heading, side * 1.25 * away, 'YXZ');
     }
     // Camera follows the centerline tangent, so Q/E visibly bends the road and the bike.
     this.camera.position.set(playerX - Math.sin(playerPose.heading) * 11, 7.5,
@@ -177,8 +181,8 @@ export class RoadRenderer {
       entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * e.x, 0,
         entityPose.z + Math.sin(entityPose.heading) * e.x);
       entry.mesh.rotation.y = -entityPose.heading + (e.kind === 'traffic' && e.speed < 0 ? Math.PI : 0);
-      const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : .8;
-      const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : .8;
+      const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
+      const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
       entry.mesh.scale.set(e.width / baseWidth, 1, e.length / baseLength);
     }
     for (const [id, entry] of this.entityMeshes) if (!live.has(id)) {

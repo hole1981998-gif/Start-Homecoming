@@ -1,11 +1,11 @@
-import { createElement, Waves, CircleDot, CarFront, Fuel, Wrench, ChevronDown } from 'lucide';
+import { createElement, Waves, CircleDot, CarFront, Fuel, Wrench, ChevronDown, UserRound } from 'lucide';
 import { balance } from './config';
 import { names, type Run } from './survival';
 import { warningDistance, type EntityKind } from './world';
 
 interface Projection { project(x: number, y: number, z: number): { x: number; y: number } }
-const icons = { water: Waves, pothole: CircleDot, traffic: CarFront, fuel: Fuel, repair: Wrench };
-const supplyKind = (kind: EntityKind) => kind === 'fuel' || kind === 'repair';
+const icons = { water: Waves, pothole: CircleDot, traffic: CarFront, fuel: Fuel, repair: Wrench, passenger: UserRound };
+const supplyKind = (kind: EntityKind) => kind === 'fuel' || kind === 'repair' || kind === 'passenger';
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 /** Read-only presentation: neither cue placement nor flavor changes simulation/RNG. */
@@ -27,9 +27,11 @@ export class RoadHud {
   }
   update(s: Run, projection: Projection, flavor: boolean): void {
     for (const { root } of this.cues.values()) root.hidden = true;
-    const nearby = s.world.entities.filter(e => !e.consumed && e.distance + e.length / 2 >= s.distance &&
+    const nearby = s.world.entities.filter(e => !e.consumed && (e.kind === 'passenger' ? e.distance + balance.passengerReach >= s.distance : e.distance + e.length / 2 >= s.distance) &&
       e.distance - s.distance <= warningDistance(s.speed, e)).sort((a, b) => a.distance - b.distance);
-    const hazard = nearby.find(e => !supplyKind(e.kind)), supply = nearby.find(e => supplyKind(e.kind));
+    const hazard = nearby.find(e => !supplyKind(e.kind));
+    const supply = nearby.find(e => e.kind === 'passenger' && Math.abs(e.distance - s.distance) <= balance.passengerReach &&
+      Math.abs(e.x - s.x) <= balance.passengerLateralReach) ?? nearby.find(e => supplyKind(e.kind));
     let hazardPosition: { x: number; y: number } | undefined;
     if (s.phase === 'running' && !s.crash) for (const e of [hazard, supply]) {
       if (!e) continue;
@@ -42,7 +44,8 @@ export class RoadHud {
       cue.root.hidden = false; cue.root.style.left = `${x}%`; cue.root.style.top = `${y}%`;
       cue.root.querySelector<SVGElement>('.pointer')!.style.transform = p.x < 9 ? 'rotate(90deg)' : p.x > 91 ? 'rotate(-90deg)' : '';
       const distance = Math.max(0, Math.ceil(e.distance - s.distance));
-      cue.value.textContent = `${distance} m`;
+      cue.value.textContent = e.kind === 'passenger' && Math.abs(e.distance - s.distance) <= balance.passengerReach &&
+        Math.abs(e.x - s.x) <= balance.passengerLateralReach ? 'F · ĐÓN' : `${distance} m`;
       const lane = e.x < -1 ? 'trái' : e.x > 1 ? 'phải' : 'giữa';
       if (e.kind === 'traffic') cue.root.querySelector('.traffic-direction')!.textContent = e.speed < 0 ? '↓' : '↑';
       cue.root.setAttribute('aria-label', `${names[e.kind]} · ${lane}${e.kind === 'traffic' ? e.speed < 0 ? ' · ngược chiều' : ' · cùng chiều' : ''} · ${distance} m`);
@@ -53,7 +56,7 @@ export class RoadHud {
     const crash = document.getElementById('crash-cue')!;
     crash.hidden = !s.crash || s.phase !== 'running';
     if (s.crash) {
-      const remaining = Math.max(0, balance.driverFallSeconds + balance.driverReturnSeconds - s.crash.elapsed);
+      const remaining = Math.max(0, balance.driverFallSeconds + balance.driverPauseSeconds + balance.driverReturnSeconds - s.crash.elapsed);
       document.getElementById('crash-time')!.textContent = `${remaining.toFixed(1)} s`;
     }
     const feedback = document.getElementById('feedback')!;
