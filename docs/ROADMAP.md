@@ -5,7 +5,7 @@ Roadmap là kế hoạch đề xuất, không phải báo cáo đã triển khai
 | Mốc | Phạm vi | Điều kiện nghiệm thu |
 |---|---|---|
 | 0 — Nền dự án | Vite, TS strict, Three.js, lint/typecheck/test/build, config schema, CI | Clean checkout cài được theo lockfile; cả 4 check có kết quả thật; canvas 9:16 |
-| 1 — Lái xe | Low-poly bằng code, đường 3 lane, WASD liên tục, tự chạy tối thiểu, camera, pause/focus | Không khóa lane; không lùi; resize không méo; mở tab khác không làm chết xe |
+| 1 — Lái xe | Low-poly bằng code, đường 3 lane, WASD liên tục, cruise riêng từng loại xe và hồi tốc khi thả W/S, camera, pause/focus | Không khóa lane; giữ W/S duy trì nhanh/chậm; thả tự hồi từ cả hai phía không giật/dao động; không lùi; resize không méo; mở tab khác không làm chết xe |
 | 2 — Vòng sinh tồn | Xăng/HP riêng, coasting chung, chướng ngại cơ bản, score/money theo distance, HUD, restart | Điểm không tăng khi pause; hết tài nguyên kết ván đúng; restart không rò trạng thái |
 | 3 — Tuyến endless | Chunk/pooling, giao lộ Q/E và QTE, camera rẽ, difficulty theo distance, RNG seeded | Đi thẳng/rẽ/bỏ lỡ đều đúng; xe dài có lối khả thi; seed tái hiện được |
 | 4 — Người và xe | F đón khách, capacity có tài xế, quá tải, Tab cho xuống, đủ loại xe, kho 2 xe, tự thay | Mua xe thứ ba xử lý nguyên tử; đổi xe giữ khách; upgrade riêng không mất/nhân đôi |
@@ -27,6 +27,10 @@ Sau **mỗi vòng simulation/playtest**, ghi report rồi yêu cầu review theo
 Khi UI prototype đã chạy và Product Design sẵn có, dùng audit để kiểm tra onboarding/flow qua screenshot có dẫn chứng; gameplay feel, điều khiển và balance vẫn cần playtest trực tiếp.
 
 ## Các PR gợi ý và phụ thuộc
+
+**Cập nhật thiết kế 17/10/2026:** P1 hiện tại vẫn dùng luật cũ thả W giữ tốc độ; chưa nghiệm thu luật cruise mới. Revision triển khai kế tiếp cần cập nhật simulation, config, Help/HUD và test; tự chạy lại simulation/playtest rồi review cả game design/UI/UX trước khi coi cơ chế mới đạt. Kiểm tra quá tải, đổi xe, coasting và nitro sẽ mở rộng ở prototype có các hệ thống đó. Báo cáo P1 cũ không bị viết lại thành bằng chứng cho cơ chế chưa chạy.
+
+**Mục tiêu economy đã chốt:** có cơ hội mua ô tô đầu tiên sau 3–5 phút gameplay hoạt động trong lượt đại diện. P2 bắt đầu kiểm tra quãng đường/thu nhập ở cruise, W, S; P4–P5 hoàn thiện kiểm tra cùng hành khách/shop/chi phí. Ghi median và phân bố thời gian/khả năng mua ở nhiều seed, không chỉ chọn một lượt max speed tốt nhất. Chưa tự thay giá/thu nhập lớn chỉ để đạt số mục tiêu.
 
 Khởi tạo công cụ → movement → tài nguyên/score → collision → road director/QTE → passenger → vehicle inventory/replacement → shop/upgrades → items/nitro → police → train/accident → secret → leaderboard → polish. Có thể dùng event giả trong test để phát triển system trước khi có model, nhưng không gọi đó là gameplay đã hoàn thành. Không tích hợp PR phụ thuộc trước khi base PR merge hoặc rebase lại từ main mới.
 

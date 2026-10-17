@@ -28,6 +28,9 @@ Cho `n = riders`, `o = max(0, n + 1 - capacity)`, `ds = quãng đường tiến 
 deltaScore = ds * scorePerMeter * (1 + n * riderScoreBonus)
 deltaMoney = ds * (baseMoneyPerMeter + n * riderMoneyPerMeter)
 effectiveMaxSpeed = upgradedMaxSpeed * max(minSpeedFactor, 1 - o * overloadSpeedPenalty)
+speedFactor = max(minSpeedFactor, 1 - o * overloadSpeedPenalty)
+effectiveMinSpeed = min(baseMinSpeed, effectiveMaxSpeed)
+effectiveCruiseSpeed = clamp(baseCruiseSpeed * speedFactor, effectiveMinSpeed, effectiveMaxSpeed)
 fuelUsed = ds * upgradedFuelPerMeter * min(maxFuelLoadFactor, 1 + o * overloadFuelPenalty)
 ```
 
@@ -37,18 +40,35 @@ Tích lũy tiền/điểm bằng giá trị chính xác nội bộ, chỉ làm t
 
 Capacity tính cả tài xế. Width theo số lane; length tính m. Giá xe trong ván. Không có loại nào bị khóa theo tiến trình.
 
-| Loại | Capacity | Min/Max m/s | Tank L | HP | L/m | Width lane | Length m | Giá |
+| Loại | Capacity | Min/Cruise/Max m/s | Tank L | HP | L/m | Width lane | Length m | Giá |
 |---|---:|---|---:|---:|---:|---:|---:|---:|
-| Xe máy | 2 | 8 / 20 | 8 | 70 | 0.0030 | 0.28 | 2.0 | 250 |
-| Mô tô | 2 | 9 / 28 | 10 | 85 | 0.0040 | 0.30 | 2.2 | 600 |
-| Ô tô 4 chỗ | 4 | 8 / 24 | 16 | 120 | 0.0050 | 0.58 | 4.2 | 800 |
-| Ô tô 7 chỗ | 7 | 8 / 22 | 20 | 145 | 0.0060 | 0.65 | 4.8 | 1200 |
-| Ba gác | 4 | 6 / 17 | 12 | 100 | 0.0045 | 0.55 | 3.2 | 450 |
-| Xe buýt | 25 | 6 / 19 | 35 | 210 | 0.0100 | 0.85 | 10.0 | 2400 |
-| Xe tải | 3 | 6 / 20 | 30 | 230 | 0.0090 | 0.85 | 7.0 | 1800 |
-| Container | 2 | 5 / 18 | 45 | 300 | 0.0120 | 0.90 | 15.0 | 3000 |
+| Xe máy | 2 | 8 / 14 / 20 | 8 | 70 | 0.0030 | 0.28 | 2.0 | 250 |
+| Mô tô | 2 | 9 / 18.5 / 28 | 10 | 85 | 0.0040 | 0.30 | 2.2 | 600 |
+| Ô tô 4 chỗ | 4 | 8 / 16 / 24 | 16 | 120 | 0.0050 | 0.58 | 4.2 | 800 |
+| Ô tô 7 chỗ | 7 | 8 / 15 / 22 | 20 | 145 | 0.0060 | 0.65 | 4.8 | 1200 |
+| Ba gác | 4 | 6 / 11.5 / 17 | 12 | 100 | 0.0045 | 0.55 | 3.2 | 450 |
+| Xe buýt | 25 | 6 / 12.5 / 19 | 35 | 210 | 0.0100 | 0.85 | 10.0 | 2400 |
+| Xe tải | 3 | 6 / 13 / 20 | 30 | 230 | 0.0090 | 0.85 | 7.0 | 1800 |
+| Container | 2 | 5 / 11.5 / 18 | 45 | 300 | 0.0120 | 0.90 | 15.0 | 3000 |
 
 Sức chứa ba gác/xe tải/container là quy ước game tạm, không phải số người được phép chở ngoài đời. Xe rộng nhất vẫn nhỏ hơn 1,5 lane. Độ khó rẽ dựa chủ yếu vào chiều dài; chiều rộng phải được dùng trong kiểm tra đường đi khả thi.
+
+### Auto-cruise — cơ chế ĐÃ CHỐT, thông số TẠM
+
+Mỗi loại xe có cruiseSpeed; bảng tạm lấy trung điểm Min/Max làm điểm khởi đầu, không chốt công thức trung điểm cho thiết kế cuối. Cruise không phải tốc độ trung bình thống kê của ván. Thả W/S phải tự hồi về mốc từ cả hai phía; muốn duy trì nhanh/chậm hơn phải giữ W/S.
+
+| Key đề xuất | TẠM | Đơn vị / ý nghĩa |
+|---|---:|---|
+| returnAcceleration | 3 | m/s², tự tăng tốc khi dưới effectiveCruiseSpeed |
+| returnDeceleration | 4 | m/s², tự giảm tốc khi trên effectiveCruiseSpeed |
+
+Hai rate trên tạm dùng chung; cruise thuộc từng VehicleDefinition. Có thể đề xuất rate riêng từng xe sau playtest. Với xe máy không quá tải, 20 → 14 m/s mất 1,5 s; 8 → 14 mất 2 s theo các số tạm này. Đây là phép tính thiết kế, **chưa chạy simulation cho cơ chế mới**. Gia tốc khi giữ W và lực hãm S dùng config điều khiển riêng, không suy ra từ return rates. Nâng cấp động cơ hiện chỉ tăng max theo mô tả cũ; chưa tăng baseCruiseSpeed. Khi hết xăng, auto-cruise không được tự cấp lực kéo.
+
+### Mục tiêu economy đã chốt: ô tô đầu tiên sau 3–5 phút
+
+Mục tiêu là cơ hội mua xe trong lượt chơi đại diện, tính thời gian gameplay hoạt động, không tính pause/Help/shop; không phải bảo đảm mọi seed. Các giá/thu nhập trong bảng vẫn TẠM và chưa được chỉnh để khẳng định đã đạt mục tiêu.
+
+Với số cũ, 800 - 200 = 600 tiền thiếu; thu nhập nền 0,02/m cần 30.000 m. Ở cruise xe máy tạm 14 m/s, mất khoảng 35,7 phút nếu không khách/chi phí, nên rõ ràng chưa đạt mục tiêu mới. Không tự tăng income hoặc giảm giá trong bản cập nhật tài liệu này. Khi triển khai kinh tế, mô phỏng ít nhất các chiến thuật cruise chủ yếu, giữ W nhiều, hãm S nhiều, có/không khách và chi phí tiếp tế; trình thay đổi cân bằng lớn trước khi áp dụng. Giữ công thức xăng/điểm/tiền theo distance hợp lệ, không thưởng riêng cho thời gian giữ phím và không thêm hệ số hao xăng theo tốc độ chưa được duyệt.
 
 ## Nâng cấp, vật phẩm và cửa hàng — TẠM
 

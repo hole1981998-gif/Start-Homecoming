@@ -8,6 +8,8 @@ Tài liệu tổng hợp yêu cầu của chủ dự án trong hội thoại “
 - **ĐỀ XUẤT**: cách giải quyết chỗ chưa rõ, dùng làm mặc định triển khai và có thể chỉnh sau chơi thử.
 - **TẠM**: mọi con số cân bằng trong BALANCE_CONFIG.md, chưa phải kết quả playtest.
 
+**Cập nhật đã chốt ngày 17/10/2026:** chủ dự án yêu cầu mỗi loại xe có tốc độ trung vị và tự trở về tốc độ này khi thả W/S; mục tiêu có cơ hội mua ô tô đầu tiên sau khoảng 3–5 phút. Các thay đổi này thay thế mô tả điều khiển cũ. Báo cáo P1 trước cập nhật vẫn là bằng chứng lịch sử, không chứng minh cơ chế mới đã được triển khai.
+
 ## Tầm nhìn và phạm vi
 
 **ĐÃ CHỐT:** game web 3D low-poly tạo hình bằng code, Three.js / TypeScript / Vite, chơi trên trình duyệt desktop trong khung dọc 9:16. Người đi làm về giữa mưa bão, ngập lụt; chạy càng xa càng nhiều điểm. Camera phía sau xe. Ván là endless run; không có đường vòng hay tuyến sự kiện riêng, không có mở khóa nội dung theo tiến trình. Giao lộ vẫn tồn tại: rẽ xong, hướng mới trở thành đường thẳng đang chạy. Secret ending kết thúc ván và trao badge “đã về nhà”.
@@ -22,7 +24,7 @@ Chạy → đọc cảnh báo → né hoặc rẽ → đón khách/nhặt đồ 
 
 | Phím | Hành vi |
 |---|---|
-| W / S | Tăng tốc / giảm tốc; không nhấn W xe vẫn tự chạy ở tốc độ tối thiểu |
+| W / S | Giữ W để tăng/duy trì tốc độ cao; giữ S để giảm/duy trì tốc độ thấp. Thả cả hai: tốc độ tự trở về tốc độ trung vị riêng của loại xe |
 | A / D | Lái ngang liên tục trong bề rộng đường; không khóa tâm lane |
 | Q / E | Chọn rẽ trái / phải trong cửa sổ QTE giao lộ |
 | Space | Dùng một gói nitro để lấy đà nhảy qua vật cản |
@@ -32,6 +34,16 @@ Chạy → đọc cảnh báo → né hoặc rẽ → đón khách/nhặt đồ 
 | Tab | Mở garage và danh sách hành khách |
 
 **ĐỀ XUẤT:** S hãm tới tốc độ tối thiểu, không chạy lùi. “Tự do tới lui” được hiểu là điều chỉnh tốc độ dọc và vị trí ngang, không lùi ngược đường endless. UI chỉ báo hành động khả dụng. Tab/cửa hàng tạm dừng mô phỏng trong ván đơn; đóng UI mới tiếp tục. Không cho tương tác cửa hàng từ bất cứ đâu. Space không có nitro thì không nhảy.
+
+### Tốc độ trung vị và thao tác giữ phím
+
+**ĐÃ CHỐT:** mỗi loại xe có một tốc độ trung vị (`cruiseSpeed`), là tốc độ tự chạy khi người chơi không giữ W/S. Đây là mốc điều khiển của xe, không phải trung bình thống kê của tốc độ trong ván. Nếu đang nhanh hơn mốc này, thả phím sẽ tự giảm tốc về mốc; nếu đang chậm hơn, thả phím sẽ tự tăng tốc về mốc. Người chơi phải tiếp tục giữ W hoặc S để duy trì tốc độ cao/thấp hơn mốc. Không còn cơ chế thả W để giữ nguyên tốc độ hiện tại hoặc mặc định thả phím chạy ở tốc độ tối thiểu.
+
+**ĐỀ XUẤT triển khai:** tốc độ hồi về thay đổi từ từ, có gia tốc/giảm tốc riêng; không giật tức thì, không vượt qua rồi dao động quanh mốc. W tăng tới giới hạn tối đa, S hãm tới giới hạn tối thiểu; nhấn W+S ưu tiên S. Chỉ giữ A/D vẫn được coi là thả W/S. Bắt đầu ván ở tốc độ trung vị. Pause/focus/Help không chạy quá trình hồi tốc; khi tiếp tục, input giữ cũ đã được xóa, tốc độ tiếp tục từ trạng thái đã pause và hồi về mốc nếu chưa nhấn lại W/S.
+
+**ĐỀ XUẤT tương tác hệ thống:** khi quá tải, mốc trung vị giảm theo cùng hệ số phạt tốc độ rồi nằm trong giới hạn tốc độ hiệu dụng. Nâng cấp động cơ hiện chỉ tăng max speed theo bảng đã có, chưa tự tăng cruiseSpeed. Mua/thay xe giữ tốc độ hiện tại sau khi giới hạn về khoảng hợp lệ của xe mới, rồi dùng mốc của xe mới; không cho đổi xe để nhận một cú tăng tốc miễn phí. Hết xăng/coasting và các chuyển động do QTE/nitro điều khiển có ưu tiên riêng, không bị auto-cruise cấp thêm lực kéo; phải kiểm tra chuyển tiếp khi hiệu ứng kết thúc. Các thông số cruise và tốc độ hồi trong BALANCE_CONFIG.md đều TẠM.
+
+**Mục đích thiết kế:** tạo lựa chọn tốc độ chủ động bên cạnh lái ngang: giữ W để đi nhanh, giữ S để có thêm thời gian đọc tình huống, thả để trở về nhịp chạy mặc định. Playtest phải kiểm tra tải thao tác khi phối hợp WASD với Q/E/F/C/Space; không mặc định giữ phím nhiều hơn đồng nghĩa vui hơn. HUD và Help cần giải thích rõ mốc tự chạy và hành vi hồi tốc, không chỉ hiển thị số km/h.
 
 ## Đường, giao lộ và độ khó
 
@@ -54,6 +66,8 @@ Xăng và độ bền là hai tài nguyên riêng. Nước làm hao xăng; va ch
 **ĐỀ XUẤT:** tài xế không thể bỏ xuống và không tính thưởng; dùng `riders` cho người đi nhờ, `occupants = 1 + riders` cho tổng người. Đón bằng F gần NPC; xe chết máy cho thêm khách/vật phẩm qua sự kiện va chạm riêng có giới hạn một lần. Cho khách xuống qua Tab, không nhận tiền tức thì. Hệ thống quá tải không cấm đón khách; có trần kỹ thuật để bảo vệ hiệu năng, không thay thế sức chứa thiết kế.
 
 Điểm và thu nhập chỉ cộng khi tiến thêm quãng đường hợp lệ, không cộng theo thời gian đứng trong UI, đoạn camera quay hay đổi xe. Công thức và mức phạt ở BALANCE_CONFIG.md. Bảng xếp hạng ghi điểm ngay lúc ván kết thúc, kể cả secret ending.
+
+**ĐÃ CHỐT — mục tiêu economy:** người chơi có cơ hội mua ô tô đầu tiên sau khoảng **3–5 phút thời gian gameplay hoạt động** trong một lượt chơi đại diện; không tính thời gian đọc Help/pause/shop và không bảo đảm mọi seed/chiến thuật đều đạt mốc này. Đây là mục tiêu trải nghiệm, chưa phải bộ giá/thu nhập đã cân bằng. Với auto-cruise, phải đo riêng lượt chạy chủ yếu ở cruise, giữ W thường xuyên và chủ động hãm S; không cân economy chỉ theo max speed hoặc buộc luôn giữ W mới tiếp cận được xe đầu tiên. Thay đổi lớn về giá, thu nhập hay chi phí vẫn trình chủ dự án trước khi áp dụng.
 
 ## Chướng ngại và cửa hàng
 

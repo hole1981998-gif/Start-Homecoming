@@ -33,7 +33,15 @@ Tên thư mục là đề xuất, không phải yêu cầu đã tồn tại. Kh�
 
 ## Clock, điều khiển và di chuyển
 
-Đề xuất simulation fixed step 60 Hz, render nội suy bằng requestAnimationFrame; clamp thời gian bù và số substep khi tab giật. Đổi tab/mất focus thì tạm dừng, xóa trạng thái phím bị giữ. Không tích lũy quãng đường khi pause. W/S thay đổi tốc độ, A/D thay đổi vị trí ngang với gia tốc; clamp thân xe trong biên đường. Không giả lập lùi. Chặn hành vi cuộn Space/Tab khi canvas đang có focus; UI vẫn dùng được bằng bàn phím.
+Đề xuất simulation fixed step 60 Hz, render nội suy bằng requestAnimationFrame; clamp thời gian bù và số substep khi tab giật. Đổi tab/mất focus thì tạm dừng, xóa trạng thái phím bị giữ. Không tích lũy quãng đường khi pause. W/S dùng trạng thái **giữ phím**, A/D thay đổi vị trí ngang với gia tốc; clamp thân xe trong biên đường. Không giả lập lùi. Chặn hành vi cuộn Space/Tab khi canvas đang có focus; UI vẫn dùng được bằng bàn phím.
+
+**Thiết kế mới đã chốt 17/10/2026:** VehicleDefinition có `cruiseSpeed` riêng cho từng loại xe. Giữ W/S để duy trì nhanh/chậm hơn cruise; khi cả hai được thả, simulation đưa tốc độ về `effectiveCruiseSpeed` từ cả hai phía. Không giữ tốc độ đỉnh sau một lần nhấn W. Giá trị mốc và return rates còn TẠM; validation phải kiểm tra hữu hạn, rate > 0 và `minSpeed <= cruiseSpeed <= maxSpeed`.
+
+Đề xuất luật fixed-step: S ưu tiên nếu W+S cùng giữ; S hướng tới effectiveMinSpeed bằng braking, W hướng tới effectiveMaxSpeed bằng acceleration. Không W/S: dùng returnAcceleration khi thấp hơn cruise, returnDeceleration khi cao hơn; mỗi tick dùng bước giới hạn tới target, không overshoot. Chỉ input dọc quyết định auto-cruise, nên giữ A/D không ngăn hồi tốc. Khởi tạo ván ở cruise. Pause ngừng cả clock hồi tốc; resume không reset vận tốc, không phục hồi trạng thái phím cũ.
+
+Quá tải dùng công thức hiệu dụng trong BALANCE_CONFIG.md, không tăng cruise vượt max. Đổi xe clamp tốc độ đang chạy vào khoảng xe mới rồi tiếp tục điều khiển; không gán ngay cruise nếu điều đó tạo cú tăng tốc miễn phí. Coasting khi hết xăng không nhận gia tốc từ auto-cruise; QTE/nitro dùng controller ưu tiên riêng, không cộng thêm controller cruise trong cùng tick. Cần integration test riêng cho chuyển tiếp các controller, tránh tự tăng tốc trái luật tài nguyên. Không thay đổi duration/boost nitro chỉ để hợp thức hóa auto-cruise.
+
+Test bổ sung bắt buộc khi triển khai: hồi từ trên/dưới mốc, hội tụ không dao động, giữ/thả W/S, W+S, A/D cùng lúc, tải người/upgrade/đổi xe, pause/focus/restart, hết xăng và kết thúc nitro; so sánh nhiều FPS. HUD/Help phải phản ánh cơ chế mới. Báo cáo P1 cũ và test cũ “thả W giữ tốc độ” cần được giữ như lịch sử và thay assertion trong revision implementation mới, không coi test cũ pass là nghiệm thu cơ chế mới.
 
 Q/E, F, C, Space, R dùng cạnh nhấn, không lặp do giữ phím. Input UI không xuyên xuống gameplay. QTE khóa lựa chọn đúng một lần theo intersectionId; không chấp nhận hướng không tồn tại. Camera xoay theo tuyến, không cộng chiều dài camera vào distance. Khoảng cảnh báo tính từ tốc độ và thời gian phản ứng, không chỉ khoảng cách cố định.
 

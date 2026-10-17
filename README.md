@@ -1,5 +1,7 @@
 # Đường Về Nhà — Prototype 1
 
+**Thiết kế mới ngày 17/10/2026:** mỗi loại xe có tốc độ trung vị, thả W/S tự hồi về mốc; mục tiêu có cơ hội mua ô tô đầu tiên sau 3–5 phút gameplay. Chi tiết trong [GAME_DESIGN.md](docs/GAME_DESIGN.md) và [BALANCE_CONFIG.md](docs/BALANCE_CONFIG.md). Bản P1 đang chạy **chưa triển khai** auto-cruise; hướng dẫn chơi bên dưới mô tả đúng build cũ, không phải thiết kế mới.
+
 Three.js + TypeScript strict + Vite. Desktop, bàn phím, khung 9:16. Placeholder geometry; không có art/SFX hoàn chỉnh.
 
 ## Chơi
@@ -27,4 +29,4 @@ Giữ P1 làm nền cho P2; không viết lại prototype rời. Mỗi feature c
 
 Mỗi lần simulation/playtest cần báo cáo kèm tự review game design và UI/UX. Thay đổi cân bằng lớn phải xin ý kiến chủ dự án. Không diễn giải simulation đường trống thành chứng minh economy cân bằng. Không tạo/tích hợp art hoặc SFX hoàn chỉnh trước gate riêng.
 
-Các tài liệu thiết kế trong `docs/` là bản sao nguyên trạng bộ tài liệu chủ dự án ngày 17/10/2026, không phải báo cáo đã triển khai. Nguồn đồng bộ bên ngoài không bị sửa.
+Các tài liệu thiết kế trong `docs/` xuất phát từ bộ tài liệu chủ dự án ngày 17/10/2026 và được cập nhật theo quyết định mới trong chat. Chúng mô tả đích thiết kế, không phải báo cáo đã triển khai. Báo cáo P1 giữ nguyên làm lịch sử cho build cũ. Nguồn đồng bộ bên ngoài không bị sửa.
