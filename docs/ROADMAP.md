@@ -8,7 +8,7 @@ Roadmap là kế hoạch đề xuất, không phải báo cáo đã triển khai
 | 1 — Lái xe | Low-poly bằng code, đường 3 lane, WASD liên tục, cruise riêng từng loại xe và hồi tốc khi thả W/S, camera, pause/focus | Không khóa lane; giữ W/S duy trì nhanh/chậm; thả tự hồi từ cả hai phía không giật/dao động; không lùi; resize không méo; mở tab khác không làm chết xe |
 | 2 — Vòng sinh tồn | Xăng/HP riêng, coasting chung, chướng ngại cơ bản, score/money theo distance, HUD, restart | Điểm không tăng khi pause; hết tài nguyên kết ván đúng; restart không rò trạng thái |
 | 3 — Tuyến endless | Chunk/pooling, giao lộ Q/E và QTE, camera rẽ, difficulty theo distance, RNG seeded | Đi thẳng/rẽ/bỏ lỡ đều đúng; xe dài có lối khả thi; seed tái hiện được |
-| 4 — Người và xe | F đón khách, capacity có tài xế, quá tải, Tab cho xuống, đủ loại xe, kho 2 xe, tự thay | Mua xe thứ ba xử lý nguyên tử; đổi xe giữ khách; upgrade riêng không mất/nhân đôi |
+| 4 — Người và xe | F đón khách, capacity có tài xế, cruise giảm theo số khách với mức giảm/sàn riêng từng xe, quá tải, Tab cho xuống, đủ loại xe, kho 2 xe, tự thay | Thêm khách giảm cruise kể cả chưa quá tải; đạt sàn đúng từng xe/context; bỏ khách/đổi xe tính lại không giật tốc độ; mua xe thứ ba nguyên tử; đổi xe giữ khách; upgrade riêng không mất/nhân đôi |
 | 5 — Kinh tế ven đường | C shop, mua xe, nâng cấp xe hiện tại, xăng/sửa, R item, controlled loot | Hàng không reroll; tiền không âm; hủy giao dịch không mất tiền; tiếp tế khả thi |
 | 6 — Nguy hiểm đặc biệt | Công an/dân phòng, kẹt xe, xe chết máy, tai nạn, tàu, Space nitro | Tiền phạt cố định; thiếu tiền đúng chính sách; tàu không xuyên collider; thay xe không chết dây chuyền |
 | 7 — Kết ván đặc biệt | Chuỗi secret 4 bước, badge, kết quả và leaderboard local | Đúng chuỗi thì kết secret trước HP=0; sai thứ tự không kích hoạt; ghi điểm đúng một lần |
@@ -47,7 +47,7 @@ Các mục trên đã có mặc định để triển khai prototype, không ph�
 
 - Xe nhỏ/ô tô/container: lái, phanh, rẽ cả hai phía, QTE bỏ lỡ, lane bị chặn.
 - Không có xe dự phòng/có xe hợp lệ/có xe hết xăng hoặc HP=0: hỏng, tịch thu, coast hết.
-- Đúng tải/quá tải; đổi từ xe nhiều chỗ xuống xe nhỏ; cho khách xuống và đón lại.
+- Không khách/thêm từng khách/đúng tải/quá tải; cruise giảm tới sàn theo từng loại xe, có xe chạm min và xe dừng trên min; đổi từ xe nhiều chỗ xuống xe nhỏ; cho khách xuống và đón lại; so sánh thu nhập ròng/phút với mục tiêu mua xe 3–5 phút.
 - Đủ/thiếu tiền ở cả hai lực lượng; mua xe thứ ba rồi hủy; nâng cấp chỉ xe hiện tại.
 - Có/không nitro; nhảy thiếu đà, qua tàu an toàn, chạm tàu, đâm tai nạn thường.
 - Secret đủ chuỗi, sai thứ tự, reset giữa chuỗi và hai terminal event gần nhau.

@@ -12,7 +12,15 @@ Ngày 17/10/2026. Nguồn: yêu cầu trực tiếp của chủ dự án trong c
 - Hồi tốc êm, không overshoot; giữ W+S ưu tiên S; pause không hồi, resume không dùng input giữ cũ.
 - Bảng cruise ban đầu lấy trung điểm min/max, toàn bộ còn TẠM. Ví dụ xe máy min/cruise/max = 8/14/20 m/s.
 - ReturnAcceleration 3 m/s², returnDeceleration 4 m/s² là TẠM; chưa được simulation/playtest bằng luật mới.
-- Quá tải hạ cruise cùng hệ số tốc độ, clamp đúng bounds; engine upgrade chưa tự nâng cruise. Đổi xe không tặng tăng tốc tức thì; coasting/nitro/QTE có ưu tiên riêng.
+- Đề xuất ban đầu chỉ hạ cruise theo quá tải đã được thay bằng quyết định bổ sung bên dưới. Engine upgrade chưa tự nâng cruise; đổi xe không tặng tăng tốc tức thì; coasting/nitro/QTE có ưu tiên riêng.
+
+## Bổ sung của chủ dự án: cruise giảm theo từng khách
+
+ĐÃ CHỐT: khách tăng thì cruise giảm kể cả chưa quá tải, tới sàn theo từng xe/tình huống; có thể chạm min hoặc dừng trên min. Tài xế không chịu phạt như một khách thêm. ĐỀ XUẤT: `max(riderCruiseFloorSpeed, baseCruiseSpeed - n * cruiseLossPerRider)`, sau đó clamp min/max hiệu dụng. Các hệ số riêng từng xe chưa gán số. Không nhân thêm cùng hệ số quá tải vào cruise; max/fuel vẫn theo luật quá tải cũ. Đón/bỏ khách đổi target êm, đổi xe giữ khách và recompute.
+
+Đã đồng bộ thiết kế, spec, balance và roadmap. Cần review economy theo tiền ròng/phút vì thêm thưởng mỗi mét không bảo đảm thu nhập theo phút tăng khi xe chậm đi. Giữ mục tiêu ô tô đầu tiên 3–5 phút; chưa chỉnh thu nhập/giá. UI sau này phải giải thích target theo tải, tránh người chơi tưởng phím W/S bị lỗi. Đây là tự review thiết kế của Codex, chưa có simulation/playtest cho luật tải khách mới. Bản chạy P1 chưa thay đổi; báo cáo/gates bên dưới chỉ xác nhận build cũ.
+
+Hồi quy sau bổ sung (17/10/2026, 11:26 UTC+7): lint/typecheck/tests/build đều exit 0, 8/8 tests; seed/config/kết quả simulation cũ trùng bảng bên dưới, production hash không đổi. Tự review game design của vòng này: dữ liệu xác nhận không đổi nền cũ, chưa trả lời được mức giảm theo khách hoặc mục tiêu economy; cần simulation có passenger controller khi triển khai. Tự review UI/UX: chưa có UI tải khách để audit, Help/HUD mới phải được kiểm tra bằng build và ảnh hiện tại ở lượt triển khai; không dùng ảnh P1 cũ làm bằng chứng cho luật mới. Manual luật mới vẫn CHƯA KIỂM TRA vì lượt này chỉ cập nhật tài liệu.
 
 Đã cập nhật GAME_DESIGN, TECH_SPEC, BALANCE_CONFIG, ROADMAP và README trong repo. Nguồn đồng bộ ngoài workspace không bị sửa. Báo cáo P1 và logs cũ vẫn nguyên trạng là lịch sử.
 

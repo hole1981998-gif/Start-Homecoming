@@ -2,6 +2,8 @@
 
 **Thiết kế mới ngày 17/10/2026:** mỗi loại xe có tốc độ trung vị, thả W/S tự hồi về mốc; mục tiêu có cơ hội mua ô tô đầu tiên sau 3–5 phút gameplay. Chi tiết trong [GAME_DESIGN.md](docs/GAME_DESIGN.md) và [BALANCE_CONFIG.md](docs/BALANCE_CONFIG.md). Bản P1 đang chạy **chưa triển khai** auto-cruise; hướng dẫn chơi bên dưới mô tả đúng build cũ, không phải thiết kế mới.
 
+**Bổ sung đã chốt:** thêm khách giảm cruise kể cả chưa quá tải; mức giảm/sàn tùy xe và giới hạn tình huống, không nhất thiết luôn chạm min. Tài xế không tính là khách thêm. Chưa triển khai hệ thống hành khách hoặc luật này trong P1.
+
 Three.js + TypeScript strict + Vite. Desktop, bàn phím, khung 9:16. Placeholder geometry; không có art/SFX hoàn chỉnh.
 
 ## Chơi

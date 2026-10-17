@@ -27,10 +27,11 @@ Cho `n = riders`, `o = max(0, n + 1 - capacity)`, `ds = quãng đường tiến 
 ```text
 deltaScore = ds * scorePerMeter * (1 + n * riderScoreBonus)
 deltaMoney = ds * (baseMoneyPerMeter + n * riderMoneyPerMeter)
-effectiveMaxSpeed = upgradedMaxSpeed * max(minSpeedFactor, 1 - o * overloadSpeedPenalty)
 speedFactor = max(minSpeedFactor, 1 - o * overloadSpeedPenalty)
+effectiveMaxSpeed = upgradedMaxSpeed * speedFactor
 effectiveMinSpeed = min(baseMinSpeed, effectiveMaxSpeed)
-effectiveCruiseSpeed = clamp(baseCruiseSpeed * speedFactor, effectiveMinSpeed, effectiveMaxSpeed)
+passengerCruiseSpeed = max(riderCruiseFloorSpeed, baseCruiseSpeed - n * cruiseLossPerRider)
+effectiveCruiseSpeed = clamp(passengerCruiseSpeed, effectiveMinSpeed, effectiveMaxSpeed)
 fuelUsed = ds * upgradedFuelPerMeter * min(maxFuelLoadFactor, 1 + o * overloadFuelPenalty)
 ```
 
@@ -55,14 +56,23 @@ Sức chứa ba gác/xe tải/container là quy ước game tạm, không phải
 
 ### Auto-cruise — cơ chế ĐÃ CHỐT, thông số TẠM
 
-Mỗi loại xe có cruiseSpeed; bảng tạm lấy trung điểm Min/Max làm điểm khởi đầu, không chốt công thức trung điểm cho thiết kế cuối. Cruise không phải tốc độ trung bình thống kê của ván. Thả W/S phải tự hồi về mốc từ cả hai phía; muốn duy trì nhanh/chậm hơn phải giữ W/S.
+Mỗi loại xe có cruiseSpeed cơ sở khi chỉ có tài xế; bảng tạm lấy trung điểm Min/Max làm điểm khởi đầu, không chốt công thức trung điểm cho thiết kế cuối. Cruise không phải tốc độ trung bình thống kê của ván. Thả W/S phải tự hồi về mốc hiệu dụng từ cả hai phía; muốn duy trì nhanh/chậm hơn phải giữ W/S.
+
+**ĐÃ CHỐT:** mỗi khách đi nhờ thêm làm giảm mốc trung vị trước khi chạm sàn, kể cả chưa quá tải; mức giảm và ngưỡng thấp nhất tùy xe/tình huống. **ĐỀ XUẤT công thức:** tuyến tính có sàn như ở trên; đây là một hàm giảm có kiểm soát để thử, chưa khóa đường cong cuối. Cấu hình theo từng VehicleDefinition:
+
+| Key đề xuất | Giá trị | Đơn vị / ràng buộc |
+|---|---|---|
+| cruiseLossPerRider | Chưa gán số; cần thử từng xe | m/s cho mỗi khách, hữu hạn và > 0 |
+| riderCruiseFloorSpeed | Chưa gán số; cần thử từng xe | m/s, baseMinSpeed <= floor < baseCruiseSpeed |
+
+Sàn bằng min cho phép xe giảm tới min khi đủ khách; sàn cao hơn min làm xe dừng giảm trước min nếu không có giới hạn khác. Khi quá tải ép max hiệu dụng thấp hơn sàn cruise, clamp theo khoảng tốc độ hiệu dụng vẫn có ưu tiên. Không dùng cùng một mức giảm tuyệt đối cho mọi loại xe theo mặc định: một khách trên xe máy và một khách trên xe buýt cần được thử riêng. `n` chỉ đếm khách hiện tại, không tính tài xế hay tổng lượt đón; cho khách xuống/đổi xe phải tính lại. Không nhân thêm speedFactor vào passengerCruiseSpeed; phạt quá tải đã tác động qua effectiveMaxSpeed để tránh phạt cruise hai lần.
 
 | Key đề xuất | TẠM | Đơn vị / ý nghĩa |
 |---|---:|---|
 | returnAcceleration | 3 | m/s², tự tăng tốc khi dưới effectiveCruiseSpeed |
 | returnDeceleration | 4 | m/s², tự giảm tốc khi trên effectiveCruiseSpeed |
 
-Hai rate trên tạm dùng chung; cruise thuộc từng VehicleDefinition. Có thể đề xuất rate riêng từng xe sau playtest. Với xe máy không quá tải, 20 → 14 m/s mất 1,5 s; 8 → 14 mất 2 s theo các số tạm này. Đây là phép tính thiết kế, **chưa chạy simulation cho cơ chế mới**. Gia tốc khi giữ W và lực hãm S dùng config điều khiển riêng, không suy ra từ return rates. Nâng cấp động cơ hiện chỉ tăng max theo mô tả cũ; chưa tăng baseCruiseSpeed. Khi hết xăng, auto-cruise không được tự cấp lực kéo.
+Hai rate trên tạm dùng chung; cruise thuộc từng VehicleDefinition. Có thể đề xuất rate riêng từng xe sau playtest. Với xe máy chỉ có tài xế, 20 → 14 m/s mất 1,5 s; 8 → 14 mất 2 s theo các số tạm này. Đây là phép tính thiết kế, **chưa chạy simulation cho cơ chế mới**. Gia tốc khi giữ W và lực hãm S dùng config điều khiển riêng, không suy ra từ return rates. Nâng cấp động cơ hiện chỉ tăng max theo mô tả cũ; chưa tăng baseCruiseSpeed. Khi hết xăng, auto-cruise không được tự cấp lực kéo.
 
 ### Mục tiêu economy đã chốt: ô tô đầu tiên sau 3–5 phút
 
@@ -121,3 +131,5 @@ lengthPenalty = clamp((vehicleLength - 4.2) * 0.025, 0, 0.3)
 ## Cần kiểm chứng trước khóa cân bằng
 
 Đo thời lượng ván, khoảng cách đạt tiền mua ô tô 4 chỗ, số lần tiếp tế, tỷ lệ chết theo nguyên nhân, tỷ lệ thất bại QTE theo xe, số seed bất khả thi và tỷ lệ đạt secret. Thử tải 1 người, đúng tải và quá tải; thử xe dài trên mọi mẫu giao lộ. Không tăng difficulty bằng tăng tiền phạt. Ghi seed/config version và kết quả thực, điều chỉnh một nhóm biến mỗi lần; chưa có dữ liệu đo ở bản tài liệu này.
+
+Riêng passenger cruise: thử từng n từ 0 khách tới đúng tải, quá tải và tới sàn; kiểm tra min <= effectiveCruise <= max, tăng n không tăng cruise khi giữ nguyên xe/tình huống, bỏ khách không làm giảm cruise. So sánh xe máy/ô tô/buýt/container và đổi xe giữ khách. Đo tiền ròng/phút, quãng chạy mỗi bình và thời gian mua xe đầu tiên ở cruise/W/S; xác minh còn nhiều lựa chọn chở khách có ý nghĩa, vẫn phục vụ mục tiêu 3–5 phút. Chưa gán các hệ số mới hoặc sửa income/giá cho tới vòng cân bằng triển khai.
