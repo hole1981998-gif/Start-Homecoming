@@ -16,14 +16,14 @@ describe('survival, continuous hazards and crash recovery', () => {
   it('money/score/fuel follow actual travel; pause/ready/end have no side effects', () => {
     const r = advance(empty(), 10);
     expect(r.distance).toBeCloseTo(140); expect(r.score).toBeCloseTo(140);
-    expect(r.money).toBeCloseTo(270); expect(r.fuel).toBeCloseTo(8 - 140 * balance.fuelPerMeter);
+    expect(r.money).toBeCloseTo(270); expect(r.fuel).toBeCloseTo(balance.fuelCapacity - 140 * balance.fuelPerMeter);
     for (const phase of ['ready', 'paused', 'ended'] as const) {
       const stopped = { ...r, phase }; expect(advance(stopped, 10)).toBe(stopped);
     }
   });
   it('water burns by exact contact duration, separate from HP and distance fuel', () => {
     const r = advance(empty([entity('water', 'water', 7, 0)]), 1);
-    expect(r.fuel).toBeCloseTo(8 - 14 * balance.fuelPerMeter - .8 * 9 / 14, 8);
+    expect(r.fuel).toBeCloseTo(balance.fuelCapacity - 14 * balance.fuelPerMeter - .8 * 9 / 14, 8);
     expect(r.durability).toBe(70); expect(r.money).toBeCloseTo(207);
   });
   it('pothole charges money once and hurts while touching; each traffic car hits once', () => {
@@ -56,7 +56,8 @@ describe('survival, continuous hazards and crash recovery', () => {
   });
   it('a reachable fuel pickup restarts a coasting vehicle without exceeding tank', () => {
     const r = advance({ ...empty([entity('fuel', 'gas', 4, 0)]), fuel: 0, motion: 'coasting' }, .5);
-    expect(r.motion).toBe('powered'); expect(r.fuel).toBeGreaterThan(7.9); expect(r.fuel).toBeLessThanOrEqual(8);
+    expect(r.motion).toBe('powered'); expect(r.fuel).toBeGreaterThan(balance.fuelCapacity - .1);
+    expect(r.fuel).toBeLessThanOrEqual(balance.fuelCapacity);
     expect(r.world.entities[0].consumed).toBe(true);
   });
   it('later repair/fuel events cannot rescue an earlier lethal collision', () => {
@@ -66,9 +67,9 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(r.result?.score).toBeCloseTo(.05); expect(r.distance).toBeLessThan(.333);
   });
   it('pickups apply once and clamp HP/fuel; restart discards all old entities/results', () => {
-    const r = advance({ ...empty([entity('repair', 'fix', 0, 0), entity('fuel', 'gas', 0, 0)]), durability: 60, fuel: 7 }, .1);
-    expect(r.durability).toBe(70); expect(r.fuel).toBeLessThanOrEqual(8); expect(r.eventSequence).toBe(2);
-    const restarted = initialRun(); expect(restarted.durability).toBe(70); expect(restarted.fuel).toBe(8);
+    const r = advance({ ...empty([entity('repair', 'fix', 0, 0), entity('fuel', 'gas', 0, 0)]), durability: 60, fuel: 4 }, .1);
+    expect(r.durability).toBe(70); expect(r.fuel).toBeLessThanOrEqual(balance.fuelCapacity); expect(r.eventSequence).toBe(2);
+    const restarted = initialRun(); expect(restarted.durability).toBe(70); expect(restarted.fuel).toBe(balance.fuelCapacity);
     expect(restarted.score).toBe(0); expect(restarted.money).toBe(200); expect(restarted.result).toBeNull();
   });
   it('seeded lane directions, wide and forced hazards, and accessible supplies', () => {
@@ -118,18 +119,24 @@ describe('survival, continuous hazards and crash recovery', () => {
     const lowHp = fillWorld({ ...initialWorld(holeSeed!), nextHazard: 1 }, 100, 8, 20).entities.find(e => e.kind === 'pothole')!;
     expect(lowHp.width).toBe(5.7);
   });
-  it('a crash stops the bike, protects it during driver return and then accelerates from zero', () => {
+  it('a crash slides to a stop, protects the bike and then accelerates from zero', () => {
     const car = { ...entity('traffic', 'car', 0, 0), speed: 14 };
     const hole = entity('pothole', 'hole', 0, 0); hole.length = 20;
     const first = stepRun({ ...empty([car, hole]), passengers: 3 }, noInput());
-    expect(first.crash).not.toBeNull(); expect(first.speed).toBe(0);
+    expect(first.crash).not.toBeNull(); expect(first.speed).toBeCloseTo(balance.cruiseSpeed);
     expect(first.durability).toBe(70 - balance.trafficDamage);
     expect(first.crash!.returningPassengers + first.crash!.lostPassengers).toBe(3);
     expect(first.passengers).toBe(first.crash!.returningPassengers);
     expect(first.lostPassengers).toBe(first.crash!.lostPassengers);
     expect(stepRun({ ...empty([car]), passengers: 3 }, noInput()).crash).toEqual(first.crash);
+    const sliding = advance(first, .5);
+    expect(sliding.speed).toBeGreaterThan(0); expect(sliding.speed).toBeLessThan(first.speed);
+    expect(sliding.distance).toBeGreaterThan(first.distance);
+    expect(Math.abs(sliding.x - first.x)).toBeGreaterThan(.5);
     const protectedRun = advance(first, 2.5);
-    expect(protectedRun.crash).not.toBeNull(); expect(protectedRun.distance).toBeCloseTo(first.distance);
+    expect(protectedRun.crash).not.toBeNull(); expect(protectedRun.speed).toBe(0);
+    expect(protectedRun.distance - first.distance).toBeCloseTo(first.speed ** 2 / (2 * balance.crashSlideDeceleration), 7);
+    expect(protectedRun.score).toBe(first.score); expect(protectedRun.money).toBe(first.money);
     expect(protectedRun.durability).toBe(first.durability); expect(protectedRun.fuel).toBe(first.fuel);
     const returned = advance({ ...first, world: { ...first.world, entities: [car] } }, 2.7);
     expect(returned.crash).toBeNull(); expect(returned.recovering).toBe(true); expect(returned.speed).toBeGreaterThanOrEqual(0);
@@ -138,6 +145,17 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(withW.speed).toBeGreaterThan(after.speed);
     expect(after.distance).toBeGreaterThan(returned.distance);
     expect(withW.durability).toBe(first.durability);
+  });
+  it('a max-speed crash stops before driver return and skids inward near an edge', () => {
+    const car = { ...entity('traffic', 'car', 0, 3.9), speed: balance.trafficSpeed };
+    const first = stepRun({ ...empty([car]), x: 3.9, speed: balance.maxSpeed }, { ...noInput(), accelerate: true });
+    expect(first.crash?.side).toBe(-1);
+    const stopped = advance(first, balance.driverFallSeconds + balance.driverReturnSeconds);
+    expect(stopped.speed).toBe(0);
+    expect(stopped.distance - first.distance).toBeCloseTo(balance.maxSpeed ** 2 / (2 * balance.crashSlideDeceleration), 7);
+    expect(stopped.x).toBeLessThan(first.x);
+    expect(stopped.durability).toBe(first.durability);
+    expect(stopped.fuel).toBe(first.fuel);
   });
   it('flavor rotates per kind without consuming gameplay RNG or replacing numeric consequences', () => {
     let r = empty(); const flavors: string[] = []; const rng = r.world.rng;

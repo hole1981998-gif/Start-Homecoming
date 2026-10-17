@@ -38,7 +38,7 @@ function forcedPatchIsAffordable(e: Entity, distance: number, fuel: number, dura
   if (e.kind === 'water') {
     const cost = (e.distance - distance) * balance.fuelPerMeter +
       (e.length + balance.vehicleLength) / balance.minSpeed * balance.waterFuelPerSecond;
-    return fuel >= cost + 1;
+    return fuel >= cost + .5;
   }
   if (e.kind === 'pothole') {
     const cost = balance.potholeImpactDamage +

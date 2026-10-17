@@ -2,6 +2,7 @@
 import { expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { RoadHud } from '../src/road-hud';
+import { balance } from '../src/config';
 import { initialRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 
@@ -54,7 +55,8 @@ it('oncoming warning appears earlier and exposes direction without relying on co
 });
 it('crash return cue shows remaining protection time and clears on restart', () => {
   const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
-  const run: Run = { ...initialRun(), phase: 'running', crash: { elapsed: 1, side: 1, returningPassengers: 0, lostPassengers: 0 } };
+  const run: Run = { ...initialRun(), phase: 'running', crash: { elapsed: 1, side: 1, originDistance: 0, originX: 0,
+    impactSpeed: balance.cruiseSpeed, returningPassengers: 0, lostPassengers: 0 } };
   hud.update(run, projection, true);
   const cue = document.getElementById('crash-cue')!;
   expect(cue.hidden).toBe(false); expect(cue.getAttribute('aria-label')).toContain('miễn nhiễm');

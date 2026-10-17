@@ -4,7 +4,8 @@ import { fillWorld, initialWorld, sweptContact, type EntityKind, type World } fr
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 
 export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage'; distance: number; score: number; money: number; seconds: number }
-export interface CrashState { elapsed: number; side: -1 | 1; returningPassengers: number; lostPassengers: number }
+export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
+  returningPassengers: number; lostPassengers: number }
 export interface Run extends State {
   runId: string; seed: number; fuel: number; durability: number; score: number; money: number;
   activeSeconds: number; motion: 'powered' | 'coasting'; coastRemaining: number;
@@ -27,9 +28,16 @@ export function stepRun(before: Run, input: Input): Run {
   if (before.crash) {
     const world = fillWorld(before.world, before.distance, before.fuel, before.durability);
     const elapsed = before.crash.elapsed + dt;
-    const returned = elapsed >= balance.driverFallSeconds + balance.driverReturnSeconds;
+    const slideTime = Math.min(dt, before.speed / balance.crashSlideDeceleration);
+    const speed = Math.max(0, before.speed - balance.crashSlideDeceleration * dt);
+    const distance = before.distance + before.speed * slideTime - balance.crashSlideDeceleration * slideTime * slideTime / 2;
+    const skidProgress = Math.min(1, elapsed / balance.driverFallSeconds);
+    const x = Math.max(-balance.laneWidth * 1.5 + balance.vehicleWidth / 2,
+      Math.min(balance.laneWidth * 1.5 - balance.vehicleWidth / 2,
+        before.crash.originX + before.crash.side * balance.crashSkidLateralMetres * skidProgress));
+    const returned = elapsed >= balance.driverFallSeconds + balance.driverReturnSeconds && speed === 0;
     return { ...before, world: { ...world, entities: world.entities.map(e => ({ ...e, distance: e.distance + e.speed * dt, touching: false })) },
-      ticks: before.ticks + 1, activeSeconds: before.activeSeconds + dt, speed: 0, lateralVelocity: 0,
+      ticks: before.ticks + 1, activeSeconds: before.activeSeconds + dt, distance, x, speed, lateralVelocity: 0,
       crash: returned ? null : { ...before.crash, elapsed }, recovering: returned && before.fuel > 0 };
   }
   const driven = before.recovering ? (() => {
@@ -143,8 +151,11 @@ export function stepRun(before: Run, input: Input): Run {
         rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0;
         const lost = r.passengers - returning;
         r.crashRng = rng; r.passengers = returning; r.lostPassengers += lost;
-        r.crash = { elapsed: 0, side: (rng & 1) ? 1 : -1, returningPassengers: returning, lostPassengers: lost };
-        r.speed = 0; r.recovering = false;
+        r.crash = { elapsed: 0, side: r.x > balance.laneWidth / 2 ? -1 : r.x < -balance.laneWidth / 2 ? 1 :
+          (rng & 1) ? 1 : -1, originDistance: r.distance, originX: r.x,
+          impactSpeed: before.speed + (driven.speed - before.speed) * fraction,
+          returningPassengers: returning, lostPassengers: lost };
+        r.speed = r.crash.impactSpeed; r.recovering = false;
       }
     } else if (e.kind === 'fuel') {
       const gained = Math.min(balance.fuelPickup, balance.fuelCapacity - r.fuel);

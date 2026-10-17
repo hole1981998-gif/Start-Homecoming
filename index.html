@@ -21,17 +21,17 @@
         <path class="arc-track" d="M 113 144 C 155 129 183 92 179 38" />
         <path id="hp-arc" class="arc-fill hp-fill" d="M 113 144 C 155 129 183 92 179 38" pathLength="100" />
       </svg>
-      <div class="resources"><label class="fuel-resource"><i data-lucide="fuel" aria-hidden="true"></i><b id="fuel-value">8,0 L</b><progress class="sr-only" id="fuel" aria-label="Xăng" max="8" value="8"></progress></label><label class="hp-resource"><i data-lucide="wrench" aria-hidden="true"></i><b id="hp-value">70 HP</b><progress class="sr-only" id="hp" aria-label="Độ bền" max="70" value="70"></progress></label></div>
+      <div class="resources"><label class="fuel-resource"><i data-lucide="fuel" aria-hidden="true"></i><b id="fuel-value">5,5 L</b><progress class="sr-only" id="fuel" aria-label="Xăng" max="5.5" value="5.5"></progress></label><label class="hp-resource"><i data-lucide="wrench" aria-hidden="true"></i><b id="hp-value">70 HP</b><progress class="sr-only" id="hp" aria-label="Độ bền" max="70" value="70"></progress></label></div>
       <span id="coast-cue" hidden></span>
     </div>
     <div id="world-cues" aria-label="Cảnh báo trên đường"></div>
     <div id="impact-cue" hidden><i data-lucide="circle-alert" aria-hidden="true"></i><strong id="impact-value"></strong><small id="impact-flavor"></small></div>
-    <div id="crash-cue" role="status" aria-label="Tài xế đang quay lại xe, miễn nhiễm" hidden><span aria-hidden="true">↶</span><b id="crash-time" aria-hidden="true"></b></div>
+    <div id="crash-cue" role="status" aria-label="Xe đang trôi, tài xế quay lại, miễn nhiễm" hidden><span aria-hidden="true">↶</span><b id="crash-time" aria-hidden="true"></b></div>
     <div class="sr-only" id="drive-mode"></div><div class="sr-only" id="feedback" aria-live="polite"></div>
     <footer><div class="keys"><span><kbd>W</kbd> tăng</span><span><kbd>S</kbd> hãm</span><span><kbd>A D</kbd> lái</span></div><div class="actions"><button id="pause" aria-label="Tạm dừng" title="Tạm dừng · Esc" disabled><i data-lucide="pause" aria-hidden="true"></i></button><button id="help" aria-label="Hướng dẫn" title="Hướng dẫn"><i data-lucide="circle-help" aria-hidden="true"></i></button><button id="restart" aria-label="Chơi lại" title="Chơi lại" disabled><i data-lucide="rotate-ccw" aria-hidden="true"></i></button></div></footer>
     <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="panel">
       <span class="eyebrow" id="modal-label">PROTOTYPE 03A · GIAO THÔNG</span><h1 id="modal-title">Đường về nhà</h1><p id="modal-description"></p>
-      <div id="instructions"><p><kbd>W</kbd> Giữ tăng tốc <kbd>S</kbd> Giữ hãm</p><p id="release-help"></p><p><kbd>A</kbd><kbd>D</kbd> Lái tự do <kbd>Esc</kbd> Tạm dừng</p><p class="quiet">Xe trái ngược chiều ↓, xe phải cùng chiều ↑. Nước/ổ gà có thể kéo dài hoặc phủ cả ba làn; xăng và độ bền giảm khi chạm. Va xe làm tài xế ngã rồi tự quay lại; xe tăng tốc trở lại, giữ W để nhanh hơn.</p></div>
+      <div id="instructions"><p><kbd>W</kbd> Giữ tăng tốc <kbd>S</kbd> Giữ hãm</p><p id="release-help"></p><p><kbd>A</kbd><kbd>D</kbd> Lái tự do <kbd>Esc</kbd> Tạm dừng</p><p class="quiet">Xe trái ngược chiều ↓, xe phải cùng chiều ↑. Nước/ổ gà có thể kéo dài hoặc phủ cả ba làn; xăng và độ bền giảm khi chạm. Va xe khiến xe trôi giảm tốc, tài xế văng ra rồi tự quay lại; giữ W để tăng nhanh hơn sau khi lên xe.</p></div>
       <p id="discovery-hint" class="quiet" hidden></p>
       <dl id="result-summary" hidden><div><dt>Quãng đường</dt><dd id="result-distance"></dd></div><div><dt>Điểm</dt><dd id="result-score"></dd></div><div><dt>Tiền còn</dt><dd id="result-money"></dd></div><div><dt>Thời gian chạy</dt><dd id="result-time"></dd></div></dl>
       <button class="primary" id="play">Bắt đầu lái</button><button id="close-help" hidden>Đóng hướng dẫn</button>

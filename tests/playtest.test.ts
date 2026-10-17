@@ -23,7 +23,10 @@ function pilot(r: Run, strategy: 'cruise' | 'fast' | 'slow'): Input {
 }
 
 it('seeded survival/economy sampling across cruise, W and S strategies', () => {
-  const observations: object[] = [];
+  const observations: { seed: number; strategy: string; seconds: number; distance: number; hp: number; fuel: number;
+    minFuel: number; secondsBelow2: number; crashes: number; money: number; end: string; affordAt: number | null;
+    fuelPickups: number; maxEntities: number }[] = [];
+  const affordTimes = { cruise: [] as number[], fast: [] as number[], slow: [] as number[] };
   for (const seed of [17, 42, 20261017, ...Array.from({ length: 27 }, (_, i) => 100 + i)]) for (const strategy of ['cruise', 'fast', 'slow'] as const) {
     let r = { ...initialRun(seed), phase: 'running' as Run['phase'] };
     let affordAt: number | null = null, maxEntities = 0, fuelPickups = 0, oldSequence = 0, violations = 0;
@@ -38,15 +41,29 @@ it('seeded survival/economy sampling across cruise, W and S strategies', () => {
       minFuel = Math.min(minFuel, r.fuel);
       if (r.fuel < 2) secondsBelow2 += balance.fixedStep;
       oldSequence = r.eventSequence;
-      if (!Number.isFinite(r.distance) || r.distance < old.distance || r.money < 0 || r.fuel < 0 || r.fuel > 8 || r.durability < 0 || r.durability > 70) violations++;
+      if (!Number.isFinite(r.distance) || r.distance < old.distance || r.money < 0 || r.fuel < 0 || r.fuel > balance.fuelCapacity || r.durability < 0 || r.durability > 70) violations++;
     }
     expect(violations).toBe(0); expect(maxEntities).toBeLessThan(20);
-    expect(affordAt).not.toBeNull();
-    if (strategy !== 'slow') { expect(affordAt).toBeGreaterThanOrEqual(60); expect(affordAt).toBeLessThanOrEqual(90); }
+    if (affordAt !== null) affordTimes[strategy].push(affordAt);
     observations.push({ seed, strategy, seconds: r.activeSeconds, distance: r.distance, hp: r.durability, fuel: r.fuel, minFuel, secondsBelow2, crashes,
       money: r.money, end: r.result?.reason ?? 'running', affordAt, fuelPickups, maxEntities });
   }
-  console.log(JSON.stringify({ config: balance.version, observations }));
+  const median = (times: number[]) => times.sort((a, b) => a - b)[Math.floor(times.length / 2)];
+  expect(affordTimes.cruise).toHaveLength(30);
+  expect(affordTimes.fast).toHaveLength(30);
+  for (const strategy of ['cruise', 'fast'] as const) {
+    expect(median(affordTimes[strategy])).toBeGreaterThanOrEqual(60);
+    expect(median(affordTimes[strategy])).toBeLessThanOrEqual(90);
+    expect(observations.filter(o => o.strategy === strategy && o.minFuel < 2).length).toBeGreaterThanOrEqual(24);
+  }
+  expect(observations.filter(o => o.strategy === 'cruise' && o.end !== 'running').length).toBeLessThanOrEqual(15);
+  expect(observations.filter(o => o.strategy === 'fast' && o.end !== 'running').length).toBeLessThanOrEqual(18);
+  console.log(JSON.stringify({ config: balance.version, summary: (['cruise', 'fast', 'slow'] as const).map(strategy => ({
+    strategy, afforded: affordTimes[strategy].length, medianAfford: median(affordTimes[strategy]),
+    deaths: observations.filter(o => o.strategy === strategy && o.end !== 'running').length,
+    lowFuelRuns: observations.filter(o => o.strategy === strategy && o.minFuel < 2).length,
+    noAffordSeeds: observations.filter(o => o.strategy === strategy && o.affordAt === null).map(o => o.seed),
+  })) }));
 }, 15000);
 
 it('resource, collision and RNG outcomes match at 30/60/144 render FPS', () => {

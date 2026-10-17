@@ -1,17 +1,19 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p3a-crash-hazards-2', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p3a-fuel-crash-slide-3', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
   lateralSpeed: 5, lateralAcceleration: 22, lateralBraking: 30,
   fixedStep: 1 / 60, maxFrameSeconds: 0.1, maxSubsteps: 6,
-  fuelCapacity: 8, durabilityCapacity: 70, fuelPerMeter: 0.0038,
+  fuelCapacity: 5.5, durabilityCapacity: 70, fuelPerMeter: 0.0045,
   initialMoney: 200, scorePerMeter: 1, moneyPerMeter: 0.5,
   coastDistance: 25, coastDrag: 3, coastCrawlSpeed: 2,
   waterFuelPerSecond: 0.8, potholeImpactDamage: 6, potholeDamagePerSecond: 12, potholeMoneyLoss: 10,
   trafficDamage: 20, trafficSpeed: 6, driverFallSeconds: 0.8, driverReturnSeconds: 1.8,
-  fuelPickup: 8, repairPickup: 40,
+  crashSlideDeceleration: 8, crashSkidLateralMetres: 1.8,
+  driverEjectionSpeedFactor: 1.5, driverEjectionLateralMetres: 2.5,
+  fuelPickup: 5.5, repairPickup: 40,
   firstHazard: 130, hazardGap: 90, worldLookAhead: 140,
   fuelInterval: 450, firstRepair: 650, repairInterval: 900,
   warningSeconds: 3.5, discoverySeconds: 8,

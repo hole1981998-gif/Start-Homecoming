@@ -18,6 +18,7 @@ const canvas = el<HTMLCanvasElement>('scene'), modal = el('modal');
 const play = el<HTMLButtonElement>('play'), pause = el<HTMLButtonElement>('pause'), restart = el<HTMLButtonElement>('restart');
 const closeHelp = el<HTMLButtonElement>('close-help');
 const formatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
+const fuelRateFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 });
 const speedFormatter = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const speedText = (speed: number) => speedFormatter.format(speed * 3.6);
 text('release-help', 'Thả W/S: xe tự hồi về tốc độ trung vị riêng của xe.');
@@ -75,12 +76,12 @@ function resultView(): void {
 }
 function openHelp(): void {
   pauseRun();
-  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị. Sóng: nước; vòng tròn: ổ gà; ô tô: xe giao thông. ↓ ngược chiều, ↑ cùng chiều. Nước và ổ gà có thể kéo dài hàng chục mét hoặc phủ cả ba làn; khi chưa có nhánh rẽ, đoạn phủ kín chỉ sinh nếu xe còn đủ tài nguyên để chịu. Nước: thêm ${formatter.format(balance.waterFuelPerSecond)} L/s. Ổ gà: −${balance.potholeImpactDamage} HP lúc chạm, thêm −${balance.potholeDamagePerSecond} HP/s khi còn nằm trên ổ, mất tối đa ${balance.potholeMoneyLoss} tiền một lần. Va xe: −${balance.trafficDamage} HP một lần mỗi xe; tài xế ngã, xe dừng và tự quay lại sau ${formatter.format(balance.driverFallSeconds + balance.driverReturnSeconds)} s, miễn nhiễm hậu quả khi đang ngã/quay lại. Sau đó xe tăng dần tới trung vị; giữ W để tăng nhanh hơn. Bình xăng: tới +${balance.fuelPickup} L; hộp sửa: tới +${balance.repairPickup} HP. Hết xăng trôi ${balance.coastDistance} m; HP về 0 thì kết ván.`);
+  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị. Sóng: nước; vòng tròn: ổ gà; ô tô: xe giao thông. ↓ ngược chiều, ↑ cùng chiều. Nước và ổ gà có thể kéo dài hàng chục mét hoặc phủ cả ba làn; khi chưa có nhánh rẽ, đoạn phủ kín chỉ sinh nếu xe còn đủ tài nguyên để chịu. Xe máy có bình ${formatter.format(balance.fuelCapacity)} L, hao ${fuelRateFormatter.format(balance.fuelPerMeter * 100)} L/100 m. Nước: thêm ${formatter.format(balance.waterFuelPerSecond)} L/s. Ổ gà: −${balance.potholeImpactDamage} HP lúc chạm, thêm −${balance.potholeDamagePerSecond} HP/s khi còn nằm trên ổ, mất tối đa ${balance.potholeMoneyLoss} tiền một lần. Va xe: −${balance.trafficDamage} HP một lần mỗi xe; tài xế văng ra xa, xe trôi giảm tốc rồi dừng, tự quay lại sau ít nhất ${formatter.format(balance.driverFallSeconds + balance.driverReturnSeconds)} s, miễn nhiễm hậu quả khi đang ngã/quay lại. Sau đó xe tăng dần tới trung vị; giữ W để tăng nhanh hơn. Bình xăng: tới +${balance.fuelPickup} L; hộp sửa: tới +${balance.repairPickup} HP. Hết xăng trôi ${balance.coastDistance} m; HP về 0 thì kết ván.`);
 }
 const cardDescriptions: Record<EntityKind, string> = {
   water: `Mảng nước làm hao thêm ${formatter.format(balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Có đoạn dài tới 30 m và phủ ba làn: lúc đó phải chấp nhận hao xăng cho đến khi có nhánh rẽ ở prototype sau.`,
   pothole: `Ổ gà viền vàng lấy ${balance.potholeImpactDamage} HP và tối đa ${balance.potholeMoneyLoss} tiền ở lần chạm đầu; tiếp tục lấy ${balance.potholeDamagePerSecond} HP mỗi giây xe còn chạm. Có đoạn dài tới 24 m hoặc phủ cả ba làn; chạy nhanh qua sẽ giảm thời gian chịu hại.`,
-  traffic: `Xe màu cam ở làn trái đi ngược chiều, làn phải cùng chiều, làn giữa chọn hướng khi sinh. Va chạm mất ${balance.trafficDamage} HP một lần/xe rồi tài xế ngã, xe dừng. Trong lúc tài xế tự quay lại, không bị hại hay hiệu ứng bất lợi; sau khi lên xe sẽ tăng tốc lại.`,
+  traffic: `Xe màu cam ở làn trái đi ngược chiều, làn phải cùng chiều, làn giữa chọn hướng khi sinh. Va chạm mất ${balance.trafficDamage} HP một lần/xe; xe trôi giảm tốc rồi dừng, tài xế văng xa và tự quay lại. Lúc đó không bị hại hay hiệu ứng bất lợi; lên xe xong sẽ tăng tốc lại.`,
   fuel: `Bình xăng đứng có quai: lái chạm để nhận tới ${balance.fuelPickup} L, không vượt sức chứa. Nhặt được khi đang trôi sẽ giúp xe chạy lại.`,
   repair: `Hộp trắng có dấu cộng: lái chạm để phục hồi tới ${balance.repairPickup} HP, không vượt độ bền tối đa. Đây là nhặt trực tiếp, chưa có kho vật phẩm.`,
 };
@@ -147,7 +148,8 @@ function updateHud(): void {
   el('fuel-arc').classList.toggle('critical', state.fuel < 2);
   el('hp-arc').classList.toggle('critical', state.durability < 25);
   text('drive-mode', state.phase !== 'running' ? state.phase === 'ready' ? 'Sẵn sàng' : state.phase === 'ended' ? 'Đã kết ván' : 'Đã tạm dừng' :
-    state.crash ? 'Tài xế đang quay lại xe · miễn nhiễm' : state.recovering ? 'Đang tăng tốc lại sau va chạm' :
+    state.crash ? state.speed > 0 ? 'Xe đang trôi · tài xế quay lại · miễn nhiễm' : 'Tài xế đang quay lại xe · miễn nhiễm' :
+    state.recovering ? 'Đang tăng tốc lại sau va chạm' :
     state.motion === 'coasting' ? `Hết xăng · trôi ${Math.ceil(state.coastRemaining)} m` : input.brake ? 'Giữ S · hãm' : input.accelerate ? 'Giữ W · tăng' :
       Math.abs(state.speed - balance.cruiseSpeed) > 1e-8 ? 'Đang hồi về trung vị' : 'Tự chạy trung vị');
   roadHud.update(state, graphics, flavorToggle.checked);

@@ -86,10 +86,15 @@ export class RoadRenderer {
     this.rider.visible = !s.crash; this.helmet.visible = !s.crash;
     this.fallenDriver.visible = !!s.crash;
     if (s.crash) {
-      const { elapsed, side } = s.crash;
-      const away = elapsed < balance.driverFallSeconds ? Math.min(1, elapsed / balance.driverFallSeconds) :
-        Math.max(0, 1 - (elapsed - balance.driverFallSeconds) / balance.driverReturnSeconds);
-      this.fallenDriver.position.set(x + side * (.65 + .9 * away), 0, 1.1 + .25 * away);
+      const { elapsed, side, originDistance, impactSpeed } = s.crash;
+      const ejection = Math.min(1, elapsed / balance.driverFallSeconds);
+      const returnProgress = Math.max(0, Math.min(1, (elapsed - balance.driverFallSeconds) / balance.driverReturnSeconds));
+      const away = ejection * (1 - returnProgress);
+      const ejectedDistance = originDistance + impactSpeed * balance.driverEjectionSpeedFactor *
+        Math.min(elapsed, balance.driverFallSeconds);
+      const driverDistance = THREE.MathUtils.lerp(ejectedDistance, distance, returnProgress);
+      this.fallenDriver.position.set(x + side * (.65 + balance.driverEjectionLateralMetres * away), 0,
+        -(driverDistance - distance));
       this.fallenDriver.rotation.z = side * .65 * away;
     }
     // Follow the full lateral range: partial tracking clips the bike at road edges in 9:16.
