@@ -2,11 +2,11 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#172329" /><title>Đường Về Nhà · P3A</title>
+  <meta name="theme-color" content="#172329" /><title>Đường Về Nhà · P3B</title>
 </head>
 <body>
 <main id="app">
-  <aside class="outside"><span>ĐƯỜNG VỀ NHÀ</span><p>Giữ tay lái.<br>Giữ xe còn chạy.</p><small>PROTOTYPE 03A<br>Giao thông · chướng ngại</small></aside>
+  <aside class="outside"><span>ĐƯỜNG VỀ NHÀ</span><p>Giữ tay lái.<br>Giữ xe còn chạy.</p><small>PROTOTYPE 03B<br>Giao lộ · chọn tuyến</small></aside>
   <section id="game" aria-label="Khung chơi Đường Về Nhà">
     <canvas id="scene" aria-label="Đường ba làn và xe máy, điều khiển bằng W A S D" tabindex="0"></canvas>
     <header id="hud" aria-label="Thông số chuyến đi">
@@ -25,13 +25,14 @@
       <span id="coast-cue" hidden></span>
     </div>
     <div id="world-cues" aria-label="Cảnh báo trên đường"></div>
+    <div id="junction-cue" role="status" hidden><div class="junction-options"><span id="junction-left"><kbd>Q</kbd> ↰</span><span class="junction-straight">↑</span><span id="junction-right">↱ <kbd>E</kbd></span></div><strong id="junction-message"></strong><small id="junction-distance"></small></div>
     <div id="impact-cue" hidden><i data-lucide="circle-alert" aria-hidden="true"></i><strong id="impact-value"></strong><small id="impact-flavor"></small></div>
     <div id="crash-cue" role="status" aria-label="Xe đang trôi, tài xế quay lại, miễn nhiễm" hidden><span aria-hidden="true">↶</span><b id="crash-time" aria-hidden="true"></b></div>
     <div class="sr-only" id="drive-mode"></div><div class="sr-only" id="feedback" aria-live="polite"></div>
-    <footer><div class="keys"><span><kbd>W</kbd> tăng</span><span><kbd>S</kbd> hãm</span><span><kbd>A D</kbd> lái</span></div><div class="actions"><button id="pause" aria-label="Tạm dừng" title="Tạm dừng · Esc" disabled><i data-lucide="pause" aria-hidden="true"></i></button><button id="help" aria-label="Hướng dẫn" title="Hướng dẫn"><i data-lucide="circle-help" aria-hidden="true"></i></button><button id="restart" aria-label="Chơi lại" title="Chơi lại" disabled><i data-lucide="rotate-ccw" aria-hidden="true"></i></button></div></footer>
+    <footer><div class="keys"><span><kbd>W</kbd> tăng</span><span><kbd>S</kbd> hãm</span><span><kbd>A D</kbd> lái</span><span><kbd>Q E</kbd> rẽ</span></div><div class="actions"><button id="pause" aria-label="Tạm dừng" title="Tạm dừng · Esc" disabled><i data-lucide="pause" aria-hidden="true"></i></button><button id="help" aria-label="Hướng dẫn" title="Hướng dẫn"><i data-lucide="circle-help" aria-hidden="true"></i></button><button id="restart" aria-label="Chơi lại" title="Chơi lại" disabled><i data-lucide="rotate-ccw" aria-hidden="true"></i></button></div></footer>
     <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="panel">
-      <span class="eyebrow" id="modal-label">PROTOTYPE 03A · GIAO THÔNG</span><h1 id="modal-title">Đường về nhà</h1><p id="modal-description"></p>
-      <div id="instructions"><p><kbd>W</kbd> Giữ tăng tốc <kbd>S</kbd> Giữ hãm</p><p id="release-help"></p><p><kbd>A</kbd><kbd>D</kbd> Lái tự do <kbd>Esc</kbd> Tạm dừng</p><p class="quiet">Xe trái ngược chiều ↓, xe phải cùng chiều ↑. Nước/ổ gà có thể kéo dài hoặc phủ cả ba làn; xăng và độ bền giảm khi chạm. Va xe khiến xe trôi giảm tốc, tài xế văng ra rồi tự quay lại; giữ W để tăng nhanh hơn sau khi lên xe.</p></div>
+      <span class="eyebrow" id="modal-label">PROTOTYPE 03B · GIAO LỘ</span><h1 id="modal-title">Đường về nhà</h1><p id="modal-description"></p>
+      <div id="instructions"><p><kbd>W</kbd> Giữ tăng tốc <kbd>S</kbd> Giữ hãm</p><p id="release-help"></p><p><kbd>A</kbd><kbd>D</kbd> Lái tự do <kbd>Q</kbd><kbd>E</kbd> Chọn rẽ tại giao lộ <kbd>Esc</kbd> Tạm dừng</p><p class="quiet">Biểu tượng giao lộ báo trước; khi sáng, nhấn Q/E một lần để chọn trái/phải. Không chọn sẽ đi thẳng; nếu đường thẳng bị chặn, xe va rào. Xe trái ngược chiều ↓, xe phải cùng chiều ↑. Nước/ổ gà có thể kéo dài hoặc phủ cả ba làn.</p></div>
       <p id="discovery-hint" class="quiet" hidden></p>
       <dl id="result-summary" hidden><div><dt>Quãng đường</dt><dd id="result-distance"></dd></div><div><dt>Điểm</dt><dd id="result-score"></dd></div><div><dt>Tiền còn</dt><dd id="result-money"></dd></div><div><dt>Thời gian chạy</dt><dd id="result-time"></dd></div></dl>
       <button class="primary" id="play">Bắt đầu lái</button><button id="close-help" hidden>Đóng hướng dẫn</button>

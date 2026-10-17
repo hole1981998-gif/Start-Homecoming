@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p3a-fuel-crash-slide-3', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p3b-junctions-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -15,6 +15,7 @@ export const balance = Object.freeze({
   driverEjectionSpeedFactor: 1.5, driverEjectionLateralMetres: 2.5,
   fuelPickup: 5.5, repairPickup: 40,
   firstHazard: 130, hazardGap: 90, worldLookAhead: 140,
+  hazardGapMin: 75, firstJunction: 800, junctionInterval: 800, junctionClearance: 60,
   fuelInterval: 450, firstRepair: 650, repairInterval: 900,
   warningSeconds: 3.5, discoverySeconds: 8,
 });
@@ -29,7 +30,9 @@ export function validateConfig(c: Balance): void {
       c.vehicleWidth >= c.laneWidth * 1.5 || c.laneCount !== 3 ||
       c.maxFrameSeconds > c.fixedStep * c.maxSubsteps + 1e-9) throw new Error('Invalid driving bounds');
   if (c.coastCrawlSpeed > c.minSpeed || c.trafficSpeed >= c.minSpeed ||
-      c.fuelInterval > 500 || c.hazardGap / c.maxSpeed < c.warningSeconds) throw new Error('Invalid survival bounds');
+      c.fuelInterval > 500 || c.hazardGap / c.maxSpeed < c.warningSeconds ||
+      c.hazardGapMin > c.hazardGap || c.hazardGapMin / c.maxSpeed < c.warningSeconds ||
+      c.junctionInterval <= c.junctionClearance * 2) throw new Error('Invalid survival bounds');
 }
 validateConfig(balance);
 

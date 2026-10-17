@@ -1,4 +1,5 @@
 import { balance, hazardSizes } from './config';
+import { nearJunction } from './route';
 
 export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair';
 export interface Entity {
@@ -17,6 +18,14 @@ export function warningDistance(playerSpeed: number, target: Entity): number {
 }
 
 const laneCentres = [-balance.laneWidth, 0, balance.laneWidth];
+/** Gap eases from 90 m to 75 m over roughly the first 10 km. */
+export function hazardDistance(index: number): number {
+  const rampSteps = Math.ceil(10000 / balance.hazardGap);
+  const ramped = Math.min(index, rampSteps);
+  const range = balance.hazardGap - balance.hazardGapMin;
+  const reduction = range / rampSteps * ramped * (ramped - 1) / 2 + range * Math.max(0, index - rampSteps);
+  return balance.firstHazard + balance.hazardGap * index - reduction;
+}
 const blocksLane = (e: Entity, x: number) => Math.abs(e.x - x) <= (e.width + balance.vehicleWidth) / 2;
 /** Reject a combination that closes every lane across the current speed range. */
 export function leavesOpenLane(candidate: Entity, existing: Entity[], distance: number): boolean {
@@ -66,10 +75,13 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     return w.rng >>> 16;
   };
   const kinds: EntityKind[] = ['water', 'pothole', 'traffic'];
-  while (balance.firstHazard + w.nextHazard * balance.hazardGap <= ahead) {
+  while (hazardDistance(w.nextHazard) <= ahead) {
     const index = w.nextHazard++, kind = kinds[index % kinds.length];
+    const spawnAt = hazardDistance(index);
+    // A junction is a short decision corridor, not a surprise hazard stack.
+    if (nearJunction(spawnAt)) continue;
     const lane = random() % 3 - 1;
-    const hazard = entity(kind, `hazard-${index}`, balance.firstHazard + index * balance.hazardGap, lane * balance.laneWidth);
+    const hazard = entity(kind, `hazard-${index}`, spawnAt, lane * balance.laneWidth);
     if (kind === 'traffic') {
       // Lane directions are relative to the player's current route. The middle is seeded once.
       hazard.speed = lane < 0 ? -balance.trafficSpeed : lane > 0 ? balance.trafficSpeed :

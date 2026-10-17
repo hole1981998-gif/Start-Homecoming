@@ -1,7 +1,8 @@
 import './style.css';
 import { balance } from './config';
 import { FixedClock, noInput } from './simulation';
-import { initialRun, names, stepRun } from './survival';
+import { initialRun, names, selectTurn, stepRun } from './survival';
+import { canChoose, junction } from './route';
 import { recordResult, saveSeen, seenCards, showFlavor, saveFlavor } from './persistence';
 import { RoadRenderer } from './render';
 import { warningDistance, type EntityKind } from './world';
@@ -43,7 +44,7 @@ function clearInput(): void { input = noInput(); clock.reset(); previous = state
 function show(view: Exclude<Screen, null>, title: string, description: string): void {
   screen = view; modal.hidden = false; clearInput();
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 03A · GIAO THÔNG');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 03B · GIAO LỘ');
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
   play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
@@ -65,7 +66,7 @@ function resume(): void {
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
   state = newRun(); previous = state;
-  show('start', 'Đường về nhà', `Giữ xe còn xăng và độ bền. Giữ W/S để chạy nhanh hoặc chậm; thả để xe tự hồi về tốc độ trung vị.`);
+  show('start', 'Đường về nhà', `Giữ xe còn xăng và độ bền. W/S điều tốc, A/D lái tự do. Tại giao lộ, nhấn Q/E khi tín hiệu sáng để chọn rẽ.`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
@@ -76,7 +77,7 @@ function resultView(): void {
 }
 function openHelp(): void {
   pauseRun();
-  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị. Sóng: nước; vòng tròn: ổ gà; ô tô: xe giao thông. ↓ ngược chiều, ↑ cùng chiều. Nước và ổ gà có thể kéo dài hàng chục mét hoặc phủ cả ba làn; khi chưa có nhánh rẽ, đoạn phủ kín chỉ sinh nếu xe còn đủ tài nguyên để chịu. Xe máy có bình ${formatter.format(balance.fuelCapacity)} L, hao ${fuelRateFormatter.format(balance.fuelPerMeter * 100)} L/100 m. Nước: thêm ${formatter.format(balance.waterFuelPerSecond)} L/s. Ổ gà: −${balance.potholeImpactDamage} HP lúc chạm, thêm −${balance.potholeDamagePerSecond} HP/s khi còn nằm trên ổ, mất tối đa ${balance.potholeMoneyLoss} tiền một lần. Va xe: −${balance.trafficDamage} HP một lần mỗi xe; tài xế văng ra xa, xe trôi giảm tốc rồi dừng, tự quay lại sau ít nhất ${formatter.format(balance.driverFallSeconds + balance.driverReturnSeconds)} s, miễn nhiễm hậu quả khi đang ngã/quay lại. Sau đó xe tăng dần tới trung vị; giữ W để tăng nhanh hơn. Bình xăng: tới +${balance.fuelPickup} L; hộp sửa: tới +${balance.repairPickup} HP. Hết xăng trôi ${balance.coastDistance} m; HP về 0 thì kết ván.`);
+  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị. A/D lái trong đường; Q/E chọn rẽ trái/phải khi tín hiệu giao lộ sáng, chỉ chốt một lần. Không chọn thì đi thẳng; nếu đường thẳng có rào, xe va chạm. Sóng: nước; vòng tròn: ổ gà; ô tô: xe giao thông. ↓ ngược chiều, ↑ cùng chiều. Nước và ổ gà có thể kéo dài hàng chục mét hoặc phủ cả ba làn; đoạn phủ kín chỉ sinh nếu xe còn đủ tài nguyên để chịu. Xe máy có bình ${formatter.format(balance.fuelCapacity)} L, hao ${fuelRateFormatter.format(balance.fuelPerMeter * 100)} L/100 m. Nước: thêm ${formatter.format(balance.waterFuelPerSecond)} L/s. Ổ gà: −${balance.potholeImpactDamage} HP lúc chạm, thêm −${balance.potholeDamagePerSecond} HP/s khi còn nằm trên ổ, mất tối đa ${balance.potholeMoneyLoss} tiền một lần. Va xe: −${balance.trafficDamage} HP một lần mỗi xe; tài xế văng ra xa, xe trôi giảm tốc rồi dừng, tự quay lại sau ít nhất ${formatter.format(balance.driverFallSeconds + balance.driverReturnSeconds)} s, miễn nhiễm hậu quả khi đang ngã/quay lại. Sau đó xe tăng dần tới trung vị; giữ W để tăng nhanh hơn. Bình xăng: tới +${balance.fuelPickup} L; hộp sửa: tới +${balance.repairPickup} HP. Hết xăng trôi ${balance.coastDistance} m; HP về 0 thì kết ván.`);
 }
 const cardDescriptions: Record<EntityKind, string> = {
   water: `Mảng nước làm hao thêm ${formatter.format(balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Có đoạn dài tới 30 m và phủ ba làn: lúc đó phải chấp nhận hao xăng cho đến khi có nhánh rẽ ở prototype sau.`,
@@ -125,6 +126,9 @@ window.addEventListener('keydown', event => {
   }
   if (state.phase !== 'running' || document.activeElement !== canvas) return;
   if (['Space', 'Tab'].includes(event.code)) event.preventDefault();
+  if (!event.repeat && (event.code === 'KeyQ' || event.code === 'KeyE')) {
+    event.preventDefault(); state = selectTurn(state, event.code === 'KeyQ' ? 'left' : 'right'); return;
+  }
   if (event.code in mapping) { event.preventDefault(); input[mapping[event.code as keyof typeof mapping]] = true; }
 }, { signal: listeners.signal });
 window.addEventListener('keyup', event => { if (event.code in mapping) input[mapping[event.code as keyof typeof mapping]] = false; }, { signal: listeners.signal });
@@ -136,6 +140,20 @@ canvas.addEventListener('blur', event => {
 canvas.addEventListener('click', () => { if (state.phase === 'running') canvas.focus(); }, { signal: listeners.signal });
 
 function updateHud(): void {
+  const nextJunction = junction(state.seed, state.route.index);
+  const approach = nextJunction.distance - state.distance;
+  const junctionCue = el('junction-cue');
+  junctionCue.hidden = state.phase !== 'running' || !!state.crash || approach < 0 || approach > Math.max(70, state.speed * 4);
+  if (!junctionCue.hidden) {
+    const activeChoice = canChoose(state.distance, state.speed, nextJunction);
+    junctionCue.classList.toggle('active', activeChoice);
+    junctionCue.classList.toggle('forced', nextJunction.blockedStraight);
+    text('junction-distance', activeChoice ? `${(approach / Math.max(state.speed, 1)).toFixed(1)} s` : `${Math.ceil(approach)} m`);
+    text('junction-message', state.route.choice ? state.route.choice === 'left' ? 'ĐÃ CHỌN TRÁI' : 'ĐÃ CHỌN PHẢI' :
+      !activeChoice ? 'SẮP TỚI GIAO LỘ' : nextJunction.blockedStraight ? 'RẼ NGAY · ĐƯỜNG THẲNG CHẶN' : 'CHỌN LỐI');
+    el('junction-left').classList.toggle('selected', state.route.choice === 'left');
+    el('junction-right').classList.toggle('selected', state.route.choice === 'right');
+  }
   text('speed', speedText(state.phase === 'running' ? state.speed : 0)); text('distance', `${Math.floor(state.distance + 1e-8)}`);
   text('score', `${Math.floor(state.score + 1e-8)}`); text('money', formatter.format(state.money));
   const fuel = el<HTMLProgressElement>('fuel'), hp = el<HTMLProgressElement>('hp');

@@ -1,7 +1,13 @@
 import type { Run } from './survival';
 import { entity } from './world';
+import { junction } from './route';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null): Run {
+  if (scenario === 'junction' || scenario === 'blocked-junction' || scenario === 'blocked-window') {
+    const index = scenario === 'junction' ? 0 : Array.from({ length: 20 }, (_, i) => i + 1).find(i => junction(run.seed, i).blockedStraight)!;
+    return { ...run, phase: 'ready', distance: junction(run.seed, index).distance - (scenario === 'blocked-window' ? 18 : 95),
+      route: { ...run.route, index }, world: { ...run.world, entities: [], nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9 } };
+  }
   if (scenario !== 'coast' && scenario !== 'supplies' && scenario !== 'crash') return run;
   return { ...run, fuel: scenario === 'coast' ? .006 : scenario === 'supplies' ? 0 : run.fuel,
     durability: scenario === 'supplies' ? 30 : run.durability,

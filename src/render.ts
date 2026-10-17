@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { balance } from './config';
 import type { Run } from './survival';
 import type { EntityKind } from './world';
+import { junction, pathPose } from './route';
 
 export class RoadRenderer {
   private renderer: THREE.WebGLRenderer;
@@ -11,14 +12,17 @@ export class RoadRenderer {
   private rider!: THREE.Mesh;
   private helmet!: THREE.Mesh;
   private fallenDriver = new THREE.Group();
-  private markers: THREE.Mesh[] = [];
-  private posts: THREE.Mesh[] = [];
+  private roadPieces: THREE.Group[] = [];
+  private roadSurface!: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+  private ground!: THREE.Mesh;
+  private viewState!: Run;
   private entityMeshes = new Map<string, { kind: EntityKind; mesh: THREE.Group }>();
   private pools: Record<EntityKind, THREE.Group[]> = { water: [], pothole: [], traffic: [], fuel: [], repair: [] };
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
   private observer: ResizeObserver;
   private host: HTMLElement;
   private projected = new THREE.Vector3();
+  private crossing = new THREE.Group();
   constructor(canvas: HTMLCanvasElement, host: HTMLElement) {
     this.host = host;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -32,15 +36,28 @@ export class RoadRenderer {
       parent.add(mesh); return mesh;
     };
     this.makeBox = box;
-    const ground = box(100, 0.1, 200, '#425951'); ground.position.set(0, -0.15, -70);
-    const road = box(9.6, 0.1, 200, '#303e46'); road.position.set(0, -0.05, -70);
-    for (const x of [-4.9, 4.9]) { const edge = box(0.12, 0.03, 200, '#d3d4bc'); edge.position.set(x, 0.02, -70); }
-    for (let i = 0; i < 40; i++) for (const x of [-balance.laneWidth / 2, balance.laneWidth / 2]) {
-      const m = box(0.09, 0.02, 2.5, '#9caeae'); m.position.set(x, 0.02, -i * 6); this.markers.push(m);
+    this.ground = box(260, 0.1, 260, '#425951'); this.ground.position.y = -.15;
+    const roadGeometry = new THREE.BufferGeometry();
+    roadGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(53 * 2 * 3), 3));
+    const roadIndices: number[] = [];
+    for (let i = 0; i < 52; i++) roadIndices.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
+    roadGeometry.setIndex(roadIndices);
+    this.roadSurface = new THREE.Mesh(roadGeometry, new THREE.MeshBasicMaterial({ color: '#303e46', side: THREE.DoubleSide }));
+    this.scene.add(this.roadSurface);
+    for (let i = 0; i < 52; i++) {
+      const piece = new THREE.Group(); this.scene.add(piece); this.roadPieces.push(piece);
+      for (const side of [-1, 1]) {
+        const edge = box(.12, .03, 4.5, '#d3d4bc', piece); edge.position.set(side * 4.9, .02, 0);
+        const stripe = box(.09, .02, 1.8, '#9caeae', piece); stripe.position.set(side * balance.laneWidth / 2, .02, 0);
+        const post = box(.18, .7, .18, '#b0b7ab', piece); post.position.set(side * 5.3, .35, 0);
+      }
     }
-    for (let i = 0; i < 32; i++) {
-      const m = box(0.18, 0.7, 0.18, '#b0b7ab'); m.position.set(i % 2 ? -5.3 : 5.3, 0.35, 0); this.posts.push(m);
+    this.scene.add(this.crossing);
+    const crossingRoad = box(58, .11, 10, '#33454b', this.crossing); crossingRoad.position.y = -.035;
+    for (const x of [-6, 6]) {
+      const dash = box(.12, .025, 8, '#b6b99f', this.crossing); dash.position.set(x, .03, 0);
     }
+    const barrier = box(9.2, .7, .35, '#d39468', this.crossing); barrier.name = 'blocked-straight'; barrier.position.set(0, .36, -12);
     this.scene.add(this.bike);
     const body = box(0.65, 0.42, 1.5, '#dbb55c', this.bike); body.position.y = 0.65;
     for (const z of [-0.68, 0.68]) { const wheel = box(0.22, 0.48, 0.46, '#172126', this.bike); wheel.position.set(0, 0.25, z); }
@@ -79,10 +96,14 @@ export class RoadRenderer {
     this.scene.add(g); return g;
   }
   draw(s: Run, previous: Run, alpha: number): void {
+    this.viewState = s;
     const x = THREE.MathUtils.lerp(previous.x, s.x, alpha);
     const distance = THREE.MathUtils.lerp(previous.distance, s.distance, alpha);
-    this.bike.position.x = x;
-    this.bike.rotation.z = -s.lateralVelocity * 0.035;
+    const playerPose = pathPose(distance, s.route, s.seed);
+    const playerX = playerPose.x + Math.cos(playerPose.heading) * x;
+    const playerZ = playerPose.z + Math.sin(playerPose.heading) * x;
+    this.bike.position.set(playerX, 0, playerZ);
+    this.bike.rotation.set(0, -playerPose.heading, -s.lateralVelocity * .035, 'YXZ');
     this.rider.visible = !s.crash; this.helmet.visible = !s.crash;
     this.fallenDriver.visible = !!s.crash;
     if (s.crash) {
@@ -93,23 +114,49 @@ export class RoadRenderer {
       const ejectedDistance = originDistance + impactSpeed * balance.driverEjectionSpeedFactor *
         Math.min(elapsed, balance.driverFallSeconds);
       const driverDistance = THREE.MathUtils.lerp(ejectedDistance, distance, returnProgress);
-      this.fallenDriver.position.set(x + side * (.65 + balance.driverEjectionLateralMetres * away), 0,
-        -(driverDistance - distance));
-      this.fallenDriver.rotation.z = side * .65 * away;
+      const fallenPose = pathPose(driverDistance, s.route, s.seed);
+      const driverX = x + side * (.65 + balance.driverEjectionLateralMetres * away);
+      this.fallenDriver.position.set(fallenPose.x + Math.cos(fallenPose.heading) * driverX, 0,
+        fallenPose.z + Math.sin(fallenPose.heading) * driverX);
+      this.fallenDriver.rotation.set(0, -fallenPose.heading, side * .65 * away, 'YXZ');
     }
-    // Follow the full lateral range: partial tracking clips the bike at road edges in 9:16.
-    this.camera.position.set(x, 7.5, 11);
-    this.camera.lookAt(x, 0, -12);
-    for (let i = 0; i < this.markers.length; i++) this.markers[i].position.z = 12 - ((Math.floor(i / 2) * 6 - distance % 240 + 240) % 240);
-    for (let i = 0; i < this.posts.length; i++) this.posts[i].position.z = 12 - ((Math.floor(i / 2) * 9 - distance % 144 + 144) % 144);
+    // Camera follows the centerline tangent, so Q/E visibly bends the road and the bike.
+    this.camera.position.set(playerX - Math.sin(playerPose.heading) * 11, 7.5,
+      playerZ + Math.cos(playerPose.heading) * 11);
+    this.camera.lookAt(playerX + Math.sin(playerPose.heading) * 12, 0,
+      playerZ - Math.cos(playerPose.heading) * 12);
+    this.ground.position.set(playerPose.x, -.15, playerPose.z);
+    const firstRoad = Math.floor((distance - 32) / 4) * 4;
+    const roadPositions = this.roadSurface.geometry.getAttribute('position') as THREE.BufferAttribute;
+    for (let i = 0; i <= this.roadPieces.length; i++) {
+      const edgePose = pathPose(firstRoad - 2 + i * 4, s.route, s.seed);
+      const sideX = Math.cos(edgePose.heading) * 4.8, sideZ = Math.sin(edgePose.heading) * 4.8;
+      roadPositions.setXYZ(i * 2, edgePose.x - sideX, -.045, edgePose.z - sideZ);
+      roadPositions.setXYZ(i * 2 + 1, edgePose.x + sideX, -.045, edgePose.z + sideZ);
+    }
+    roadPositions.needsUpdate = true;
+    this.roadSurface.geometry.computeBoundingSphere();
+    for (let i = 0; i < this.roadPieces.length; i++) {
+      const roadPose = pathPose(firstRoad + i * 4, s.route, s.seed);
+      this.roadPieces[i].position.set(roadPose.x, 0, roadPose.z);
+      this.roadPieces[i].rotation.y = -roadPose.heading;
+    }
+    const nextJunction = junction(s.seed, s.route.index);
+    this.crossing.visible = nextJunction.distance - distance < 120 && nextJunction.distance - distance > -8;
+    const crossingPose = pathPose(nextJunction.distance - 8, s.route, s.seed);
+    this.crossing.position.set(crossingPose.x, 0, crossingPose.z);
+    this.crossing.rotation.y = -crossingPose.heading;
+    this.crossing.getObjectByName('blocked-straight')!.visible = nextJunction.blockedStraight;
     const live = new Set<string>();
     for (const e of s.world.entities) {
       if (e.consumed) continue;
       live.add(e.id);
       let entry = this.entityMeshes.get(e.id);
       if (!entry) { entry = { kind: e.kind, mesh: this.entityMesh(e.kind) }; this.entityMeshes.set(e.id, entry); }
-      entry.mesh.visible = true; entry.mesh.position.set(e.x, 0, -(e.distance - distance));
-      entry.mesh.rotation.y = e.kind === 'traffic' && e.speed < 0 ? Math.PI : 0;
+      const entityPose = pathPose(e.distance, s.route, s.seed);
+      entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * e.x, 0,
+        entityPose.z + Math.sin(entityPose.heading) * e.x);
+      entry.mesh.rotation.y = -entityPose.heading + (e.kind === 'traffic' && e.speed < 0 ? Math.PI : 0);
       const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : .8;
       const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : .8;
       entry.mesh.scale.set(e.width / baseWidth, 1, e.length / baseLength);
@@ -123,7 +170,8 @@ export class RoadRenderer {
     this.host.style.setProperty('--bike-tail-y', `${Math.max(76, Math.min(86, tail.y))}%`);
   }
   project(x: number, y: number, z: number): { x: number; y: number } {
-    this.projected.set(x, y, z).project(this.camera);
+    const p = pathPose(this.viewState.distance - z, this.viewState.route, this.viewState.seed);
+    this.projected.set(p.x + Math.cos(p.heading) * x, y, p.z + Math.sin(p.heading) * x).project(this.camera);
     return { x: (this.projected.x + 1) * 50, y: (1 - this.projected.y) * 50 };
   }
   dispose(): void {

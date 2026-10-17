@@ -2,6 +2,7 @@ import { balance } from './config';
 import { initialState, step, type Input, type State } from './simulation';
 import { fillWorld, initialWorld, sweptContact, type EntityKind, type World } from './world';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
+import { canChoose, initialRoute, junction, type RouteState, type Turn } from './route';
 
 export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
@@ -12,6 +13,7 @@ export interface Run extends State {
   world: World; result: RunResult | null; eventSequence: number; feedback: string; feedbackAt: number;
   feedbackKind: FeedbackKind | null; feedbackFlavor: string; feedbackCounts: Record<FeedbackKind, number>;
   crash: CrashState | null; recovering: boolean; passengers: number; lostPassengers: number; crashRng: number;
+  route: RouteState;
 }
 export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initialState(),
   runId, seed, fuel: balance.fuelCapacity, durability: balance.durabilityCapacity, score: 0,
@@ -19,8 +21,15 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   world: fillWorld(initialWorld(seed), 0), result: null, eventSequence: 0, feedback: '', feedbackAt: -100,
   feedbackKind: null, feedbackFlavor: '', feedbackCounts: initialFeedbackCounts(),
   crash: null, recovering: false, passengers: 0, lostPassengers: 0, crashRng: (seed ^ 0x9e3779b9) >>> 0,
+  route: initialRoute(),
 });
 export const names: Record<EntityKind, string> = { water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa' };
+
+export function selectTurn(run: Run, turn: Turn): Run {
+  const next = junction(run.seed, run.route.index);
+  if (run.phase !== 'running' || run.crash || run.route.choice || !canChoose(run.distance, run.speed, next)) return run;
+  return { ...run, route: { ...run.route, choice: turn } };
+}
 
 export function stepRun(before: Run, input: Input): Run {
   if (before.phase !== 'running') return before;
@@ -68,6 +77,20 @@ export function stepRun(before: Run, input: Input): Run {
     r.phase = 'ended'; r.speed = 0;
     r.result = { runId: r.runId, seed: r.seed, config: balance.version, reason,
       distance: r.distance, score: r.score, money: r.money, seconds: r.activeSeconds };
+  };
+  const crashDriver = (impactSpeed: number) => {
+    let rng = r.crashRng, returning = 0;
+    for (let i = 0; i < r.passengers; i++) {
+      rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0;
+      if (rng & 0x80000000) returning++;
+    }
+    rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0;
+    const lost = r.passengers - returning;
+    r.crashRng = rng; r.passengers = returning; r.lostPassengers += lost;
+    r.crash = { elapsed: 0, side: r.x > balance.laneWidth / 2 ? -1 : r.x < -balance.laneWidth / 2 ? 1 :
+      (rng & 1) ? 1 : -1, originDistance: r.distance, originX: r.x,
+      impactSpeed, returningPassengers: returning, lostPassengers: lost };
+    r.speed = impactSpeed; r.recovering = false;
   };
   type Event = { t: number; index: number; type: 'enter-water' | 'exit-water' | 'enter-pothole' | 'exit-pothole' | 'hit' };
   const events: Event[] = [];
@@ -142,21 +165,7 @@ export function stepRun(before: Run, input: Input): Run {
       e.lastHit = r.activeSeconds;
       feedback('traffic', `${names.traffic} · −${balance.trafficDamage} HP`);
       if (r.durability === 0) finish('damage');
-      else {
-        let rng = r.crashRng, returning = 0;
-        for (let i = 0; i < r.passengers; i++) {
-          rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0;
-          if (rng & 0x80000000) returning++;
-        }
-        rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0;
-        const lost = r.passengers - returning;
-        r.crashRng = rng; r.passengers = returning; r.lostPassengers += lost;
-        r.crash = { elapsed: 0, side: r.x > balance.laneWidth / 2 ? -1 : r.x < -balance.laneWidth / 2 ? 1 :
-          (rng & 1) ? 1 : -1, originDistance: r.distance, originX: r.x,
-          impactSpeed: before.speed + (driven.speed - before.speed) * fraction,
-          returningPassengers: returning, lostPassengers: lost };
-        r.speed = r.crash.impactSpeed; r.recovering = false;
-      }
+      else crashDriver(before.speed + (driven.speed - before.speed) * fraction);
     } else if (e.kind === 'fuel') {
       const gained = Math.min(balance.fuelPickup, balance.fuelCapacity - r.fuel);
       r.fuel += gained; r.motion = 'powered'; r.coastRemaining = balance.coastDistance; e.consumed = true;
@@ -167,6 +176,20 @@ export function stepRun(before: Run, input: Input): Run {
     }
   }
   advance(1);
+  const crossing = junction(r.seed, r.route.index);
+  // Barrier sits just beyond the branch point; resolve it at its visible position.
+  if (r.phase === 'running' && !r.crash && before.distance < crossing.distance + 4 && r.distance >= crossing.distance + 4) {
+    const choice = r.route.choice ?? 'straight';
+    r.route = { ...r.route, index: r.route.index + 1, choice: null, turns: r.route.turns + Number(choice !== 'straight'),
+      lastTurn: choice, turnAt: r.activeSeconds, misses: r.route.misses + Number(choice === 'straight' && crossing.blockedStraight),
+      history: choice === 'straight' ? r.route.history : [...r.route.history, { distance: crossing.distance, turn: choice }] };
+    if (choice !== 'straight') r.world.rng = (Math.imul(r.world.rng ^ (choice === 'left' ? 0x51633e2d : 0x2734a901), 1664525) + 1013904223) >>> 0;
+    if (choice === 'straight' && crossing.blockedStraight) {
+      r.durability = Math.max(0, r.durability - balance.trafficDamage);
+      feedback('traffic', `Đường thẳng bị chắn · −${balance.trafficDamage} HP`);
+      if (r.durability === 0) finish('damage'); else crashDriver(r.speed);
+    }
+  }
   if (r.phase === 'ended' || r.crash) { r.x = before.x + (driven.x - before.x) * fraction; r.lateralVelocity = 0; }
   return r;
 }
