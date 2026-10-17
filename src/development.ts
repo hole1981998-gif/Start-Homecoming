@@ -30,6 +30,14 @@ export function developmentScenario(run: Run, scenario: string | null): Run {
       world: { ...run.world, entities: [car, water, hole],
       nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
   }
+  if (scenario === 'traffic-ram') {
+    const bus = newVehicle('bus', `${run.runId}-qa-bus`);
+    const car = entity('traffic', 'qa-small-car', 8, 0); car.speed = 0; car.baseSpeed = 0;
+    return { ...run, activeVehicleId: bus.id, vehicleInstances: [...run.vehicleInstances, bus],
+      fuel: bus.fuel, durability: bus.durability,
+      world: { ...run.world, entities: [car], nextHazard: 1e9, nextFuel: 1e9,
+        nextRepair: 1e9, nextPassenger: 1e9 } };
+  }
   if (scenario === 'branch-hazard') {
     const crossing = junction(run.seed, 1), distance = crossing.distance - 18;
     const traffic = entity('traffic', 'qa-old-branch', crossing.distance + 85, 0);

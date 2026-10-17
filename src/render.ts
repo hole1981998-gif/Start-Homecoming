@@ -229,9 +229,14 @@ export class RoadRenderer {
         entityPose.z + Math.sin(entityPose.heading) * e.x);
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && e.speed < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
+      if (e.kind === 'traffic') {
+        const body = entry.mesh.children[0] as THREE.Mesh;
+        (body.material as THREE.MeshBasicMaterial).color.set(e.wrecked ? '#4e5558' :
+          e.trafficKind === 'truck' ? '#8a879c' : e.trafficKind === 'van' ? '#88aaa3' : '#d59561');
+      }
       const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
-      entry.mesh.scale.set(e.width / baseWidth, 1, e.length / baseLength);
+      entry.mesh.scale.set(e.width / baseWidth, e.kind === 'traffic' && e.trafficKind === 'truck' ? 1.35 : 1, e.length / baseLength);
     }
     for (const [id, entry] of this.entityMeshes) if (!live.has(id)) {
       entry.mesh.visible = false; this.pools[entry.kind].push(entry.mesh); this.entityMeshes.delete(id);

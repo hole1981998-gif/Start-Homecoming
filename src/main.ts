@@ -50,7 +50,7 @@ function clearInput(): void { input = noInput(); clock.reset(); previous = state
 function show(view: Exclude<Screen, null>, title: string, description: string): void {
   screen = view; modal.hidden = false; clearInput();
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 04B · ĐỔI XE');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 04.1 · XE GIAO THÔNG');
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
   play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
@@ -72,7 +72,7 @@ function resume(): void {
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
   state = newRun(); previous = state;
-  show('start', 'Đường về nhà', `Giữ xe còn xăng và độ bền. F đón khách, G cho một khách xuống. Tab đổi nhanh sang xe dự phòng khi có xe thứ hai. W/S điều tốc, A/D lái tự do, Q/E chọn rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử này có sẵn ${vehicles[state.vehicleInstances[1].kind].name} dự phòng.` : ''}`);
+  show('start', 'Đường về nhà', `Giữ xe còn xăng và độ bền. Xe giao thông có nhiều cỡ, HP và mức sát thương riêng; xe lớn của bạn có thể húc hỏng xe nhỏ. F đón khách, G cho một khách xuống; Tab đổi xe. W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
@@ -89,7 +89,7 @@ function openHelp(): void {
 const cardDescriptions: Record<EntityKind, string> = {
   water: `Mảng nước làm hao thêm ${formatter.format(balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Có đoạn dài tới 30 m và phủ ba làn: lúc đó phải chấp nhận hao xăng cho đến khi có nhánh rẽ ở prototype sau.`,
   pothole: `Ổ gà viền vàng lấy ${balance.potholeImpactDamage} HP và tối đa ${balance.potholeMoneyLoss} tiền ở lần chạm đầu; tiếp tục lấy ${balance.potholeDamagePerSecond} HP mỗi giây xe còn chạm. Có đoạn dài tới 24 m hoặc phủ cả ba làn; chạy nhanh qua sẽ giảm thời gian chịu hại.`,
-  traffic: `Xe màu cam ở làn trái đi ngược chiều, làn phải cùng chiều, làn giữa chọn hướng khi sinh. Va chạm mất ${balance.trafficDamage} HP một lần/xe; xe trôi giảm tốc rồi dừng, tài xế văng xa và tự quay lại. Lúc đó không bị hại hay hiệu ứng bất lợi; lên xe xong sẽ tăng tốc lại.`,
+  traffic: `Xe giao thông có cỡ nhỏ, van và tải với HP/sát thương khác nhau. Làn trái ngược chiều, phải cùng chiều, giữa chọn hướng theo seed. Va xe thường làm tài xế ngã; buýt, tải và container có thể húc hỏng xe nhỏ nhưng vẫn mất HP. Xe giao thông chịu ổ gà, chậm trong nước.`,
   fuel: `Bình xăng đứng có quai: lái chạm để nhận tới ${balance.fuelPickup} L, không vượt sức chứa. Nhặt được khi đang trôi sẽ giúp xe chạy lại.`,
   repair: `Hộp trắng có dấu cộng: lái chạm để phục hồi tới ${balance.repairPickup} HP, không vượt độ bền tối đa. Đây là nhặt trực tiếp, chưa có kho vật phẩm.`,
   passenger: `Người đứng ven đường chờ đi nhờ. Lái tới gần cùng phía và nhấn F để đón; không tự lên xe khi chạm. Nhấn G cho một khách xuống ngay khi chạy. Tài xế chiếm một chỗ, khách thêm làm giảm tốc độ trung vị; quá tải còn giảm tốc tối đa và tăng hao xăng.`,

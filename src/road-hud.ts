@@ -27,7 +27,7 @@ export class RoadHud {
   }
   update(s: Run, projection: Projection, flavor: boolean): void {
     for (const { root } of this.cues.values()) root.hidden = true;
-    const nearby = s.world.entities.filter(e => !e.consumed && (e.kind !== 'passenger' ||
+    const nearby = s.world.entities.filter(e => !e.consumed && !e.wrecked && (e.kind !== 'passenger' ||
       (e.pickupable !== false && e.lastHit <= s.activeSeconds)) &&
       (e.kind === 'passenger' ? e.distance + balance.passengerReach >= s.distance : e.distance + e.length / 2 >= s.distance) &&
       e.distance - s.distance <= warningDistance(s.speed, e)).sort((a, b) => a.distance - b.distance);
@@ -50,7 +50,9 @@ export class RoadHud {
         Math.abs(e.x - s.x) <= balance.passengerLateralReach ? 'F · ĐÓN' : `${distance} m`;
       const lane = e.x < -1 ? 'trái' : e.x > 1 ? 'phải' : 'giữa';
       if (e.kind === 'traffic') cue.root.querySelector('.traffic-direction')!.textContent = e.speed < 0 ? '↓' : '↑';
-      cue.root.setAttribute('aria-label', `${names[e.kind]} · ${lane}${e.kind === 'traffic' ? e.speed < 0 ? ' · ngược chiều' : ' · cùng chiều' : ''} · ${distance} m`);
+      const label = e.kind === 'traffic' ? e.trafficKind === 'truck' ? 'Xe tải' :
+        e.trafficKind === 'van' ? 'Xe van' : 'Xe nhỏ' : names[e.kind];
+      cue.root.setAttribute('aria-label', `${label} · ${lane}${e.kind === 'traffic' ? e.speed < 0 ? ' · ngược chiều' : ' · cùng chiều' : ''} · ${distance} m`);
     }
     const coast = document.getElementById('coast-cue')!;
     coast.hidden = s.motion !== 'coasting' || s.phase !== 'running';

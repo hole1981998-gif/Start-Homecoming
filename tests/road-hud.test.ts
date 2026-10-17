@@ -49,9 +49,17 @@ it('oncoming warning appears earlier and exposes direction without relying on co
   hud.update(run, projection, true);
   const cue = document.querySelector<HTMLElement>('[data-kind="traffic"]')!;
   expect(cue.hidden).toBe(false); expect(cue.getAttribute('aria-label')).toContain('ngược chiều');
+  expect(cue.getAttribute('aria-label')).toContain('Xe nhỏ');
   expect(cue.querySelector('.traffic-direction')!.textContent).toBe('↓');
   hud.update({ ...run, world: { ...run.world, entities: [{ ...car, x: 3.2, speed: 6 }] } }, projection, true);
   expect(cue.hidden).toBe(true);
+});
+it('traffic warning names the seeded vehicle variety', () => {
+  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
+  const truck = entity('traffic', 'truck', 50, 0); truck.trafficKind = 'truck'; truck.speed = -6;
+  const run: Run = { ...initialRun(), phase: 'running', world: { ...initialRun().world, entities: [truck] } };
+  hud.update(run, projection, true);
+  expect(document.querySelector<HTMLElement>('[data-kind="traffic"]')!.getAttribute('aria-label')).toContain('Xe tải');
 });
 it('crash return cue shows remaining protection time and clears on restart', () => {
   const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
