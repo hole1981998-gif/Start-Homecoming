@@ -33,6 +33,12 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   expect(el('release-help').textContent).not.toContain('50,4');
   click('play'); tick(1); expect(el('distance').textContent).toBe('14');
   expect(el('speed').textContent).toBe('50,4');
+  const fuel = el('fuel') as HTMLProgressElement;
+  const fuelArc = el('fuel-arc') as unknown as SVGPathElement;
+  const hpArc = el('hp-arc') as unknown as SVGPathElement;
+  expect(parseFloat(fuelArc.style.strokeDasharray)).toBeCloseTo(fuel.value / fuel.max * 100, 5);
+  expect(parseFloat(fuelArc.style.strokeDasharray)).toBeLessThan(100);
+  expect(parseFloat(hpArc.style.strokeDasharray)).toBe(100);
   key('keydown', 'KeyW'); tick(3); expect(el('drive-mode').textContent).toContain('Giữ W'); key('keyup', 'KeyW');
   expect(el('speed').textContent).toBe('72,0'); tick(1); expect(el('speed').textContent).toBe('57,6');
   expect(el('drive-mode').textContent).toContain('hồi');
@@ -56,6 +62,7 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   key('keydown', 'Escape'); expect(el('modal').hidden).toBe(true);
   for (let i = 0; i < 10; i++) {
     click('restart'); tick(1); expect(el('distance').textContent).toBe('0');
+    expect(parseFloat(fuelArc.style.strokeDasharray)).toBe(100);
     click('play'); tick(1); expect(el('distance').textContent).toBe('14');
     expect(el('speed').textContent).toBe('50,4');
   }

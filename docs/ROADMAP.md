@@ -70,3 +70,5 @@ Implementation khớp phạm vi đã chốt; số tạm ở config; lint/typeche
 ## Trạng thái sau cập nhật HUD
 
 Đã triển khai phần HUD của P2.1: chỉ số overlay, thanh xăng/HP sau xe, bỏ số cruise cả intro/Help, graphic marker hazard/tiếp tế, phản hồi hậu quả ngắn và nút icon. Chưa triển khai các phần còn lại của P2.1 (thử mật độ/trang trí mới), P3A/B, hoặc VFX/SFX hoàn chỉnh. Gameplay/economy kế thừa bản 0,50/m. Chi tiết bằng chứng và tự review: [HUD_REVIEW.md](HUD_REVIEW.md). Các mô tả “chưa triển khai HUD” bên trên là trạng thái tại thời điểm ghi chú ban đầu.
+
+**Thử bố cục tài nguyên tiếp theo:** hai thanh ngang được thay bằng cung xăng trái/HP phải ôm quanh xe máy, vẫn hiện số và icon. Ảnh tham chiếu và yêu cầu popup/card hậu quả sau này ở [DESIGN_UPDATE_IMMERSION_TRAFFIC.md](DESIGN_UPDATE_IMMERSION_TRAFFIC.md). Bản thử và giới hạn kiểm tra: [ARC_HUD_REVIEW.md](ARC_HUD_REVIEW.md).

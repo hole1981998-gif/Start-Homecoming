@@ -19,6 +19,10 @@ Tốc độ hiện tại ở góc trên trái; quãng đường ở trên giữa
 
 Hai vạch ngắn có icon giọt xăng/cờ-lê ở hai bên hoặc sau đuôi xe. Neo theo tọa độ chiếu của xe, clamp vào safe area và đổi bên/thu gọn khi gần mép. Tránh vùng ngay trước mũi xe và hình chiếu collider; nếu không đủ chỗ, đưa về góc dưới ngoài hành lang lái. Kiểm tra tại hai biên, khi rẽ, khi xe dài và viewport nhỏ. Khi bình thường giữ yên; gần cạn mới tăng nhấn tương phản, không nhấp nháy liên tục.
 
+**Cập nhật theo feedback chủ dự án 17/10:** thử hai cung mảnh ôm hai bên thân/sau xe, xăng bên trái màu vàng ấm, độ bền bên phải màu xanh nhạt, icon và số L/HP sát chân cung; xem [ảnh tham chiếu](references/resource-arcs.png). Cung chỉ là HUD, không che xe hoặc vùng lái phía trước; giữ số và nhãn truy cập, trạng thái gần cạn đổi tương phản mà không nháy. Bản P2 hiện thử trên xe máy; xe kích cỡ khác và màn hẹp phải kiểm tra lại khi có trong prototype.
+
+**Tham chiếu cho popup/card và tổn thất ở prototype sau:** [ảnh feedback thứ hai](references/impact-popup.png) đặt minh họa/caption ngắn kiểu sticker ở vùng trên đường, còn số mất HP/tiền nổi nhỏ gần xe đúng thời điểm va chạm. Card giải thích cơ chế lần đầu vẫn phải pause an toàn và đủ chữ để hiểu luật; sticker không thay card này. Popup thường không che hành lang né, cảnh báo hay cung tài nguyên; mỗi biến động có số, đơn vị và tương phản đọc được, không chỉ dựa vào màu. Đây là hướng bố cục/VFX để thử về sau, chưa áp dụng art hoặc animation hoàn chỉnh trong lần đổi cung P2.
+
 | Tín hiệu | Hình thức placeholder | Luật đọc |
 |---|---|---|
 | Hazard ở phía trước | Icon theo hướng/làn + dấu viền giới hạn | Không phủ kín bề mặt nguy hiểm hoặc che vật phẩm nằm sau |

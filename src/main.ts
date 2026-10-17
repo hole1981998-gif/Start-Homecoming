@@ -10,8 +10,8 @@ import { createIcons, Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw,
 import { RoadHud } from './road-hud';
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert } });
 
-const el = <T extends HTMLElement>(id: string): T => {
-  const node = document.getElementById(id); if (!node) throw new Error(`Missing UI: ${id}`); return node as T;
+const el = <T extends Element = HTMLElement>(id: string): T => {
+  const node = document.getElementById(id); if (!node) throw new Error(`Missing UI: ${id}`); return node as unknown as T;
 };
 const text = (id: string, value: string) => { const node = el(id); if (node.textContent !== value) node.textContent = value; };
 const canvas = el<HTMLCanvasElement>('scene'), modal = el('modal');
@@ -139,9 +139,13 @@ function updateHud(): void {
   text('score', `${Math.floor(state.score + 1e-8)}`); text('money', formatter.format(state.money));
   const fuel = el<HTMLProgressElement>('fuel'), hp = el<HTMLProgressElement>('hp');
   fuel.max = balance.fuelCapacity; fuel.value = state.fuel; hp.max = balance.durabilityCapacity; hp.value = state.durability;
+  el<SVGPathElement>('fuel-arc').style.strokeDasharray = `${Math.max(0, Math.min(100, state.fuel / balance.fuelCapacity * 100))} 100`;
+  el<SVGPathElement>('hp-arc').style.strokeDasharray = `${Math.max(0, Math.min(100, state.durability / balance.durabilityCapacity * 100))} 100`;
   text('fuel-value', `${speedFormatter.format(state.fuel)} L`);
   text('hp-value', `${state.durability} HP`);
   fuel.parentElement?.classList.toggle('critical', state.fuel < 2); hp.parentElement?.classList.toggle('critical', state.durability < 25);
+  el('fuel-arc').classList.toggle('critical', state.fuel < 2);
+  el('hp-arc').classList.toggle('critical', state.durability < 25);
   text('drive-mode', state.phase !== 'running' ? state.phase === 'ready' ? 'Sẵn sàng' : state.phase === 'ended' ? 'Đã kết ván' : 'Đã tạm dừng' :
     state.motion === 'coasting' ? `Hết xăng · trôi ${Math.ceil(state.coastRemaining)} m` : input.brake ? 'Giữ S · hãm' : input.accelerate ? 'Giữ W · tăng' :
       Math.abs(state.speed - balance.cruiseSpeed) > 1e-8 ? 'Đang hồi về trung vị' : 'Tự chạy trung vị');
