@@ -160,9 +160,9 @@ function updateHud(): void {
   }
   text('speed', speedText(state.phase === 'running' ? state.speed : 0)); text('distance', `${Math.floor(state.distance + 1e-8)}`);
   text('score', `${Math.floor(state.score + 1e-8)}`); text('money', formatter.format(state.money));
-  const seatedPassengers = state.crash ? 0 : state.passengers;
-  text('rider-count', `${seatedPassengers}/${balance.motorcycleCapacity - 1}`);
-  el('rider-count').setAttribute('aria-label', `${seatedPassengers} khách trên xe, ${balance.motorcycleCapacity - 1} chỗ cho khách`);
+  const occupants = state.crash ? 0 : state.passengers + 1;
+  text('rider-count', `${occupants}/${balance.motorcycleCapacity}`);
+  el('rider-count').setAttribute('aria-label', `${occupants} người trên xe gồm tài xế, sức chứa ${balance.motorcycleCapacity}`);
   el('rider-count').classList.toggle('overloaded', state.passengers + 1 > balance.motorcycleCapacity);
   const fuel = el<HTMLProgressElement>('fuel'), hp = el<HTMLProgressElement>('hp');
   fuel.max = balance.fuelCapacity; fuel.value = state.fuel; hp.max = balance.durabilityCapacity; hp.value = state.durability;

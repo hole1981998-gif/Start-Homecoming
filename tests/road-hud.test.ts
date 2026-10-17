@@ -63,3 +63,14 @@ it('crash return cue shows remaining protection time and clears on restart', () 
   hud.update(initialRun(), projection, true);
   expect(cue.hidden).toBe(true);
 });
+it('does not invite F pickup while a kicked passenger is still locked out', () => {
+  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
+  const person = entity('passenger', 'dropped', 0, 0); person.lastHit = 2;
+  const run: Run = { ...initialRun(), phase: 'running', world: { ...initialRun().world, entities: [person] } };
+  const cue = document.querySelector<HTMLElement>('[data-kind="passenger"]')!;
+  hud.update(run, projection, true);
+  expect(cue.hidden).toBe(true);
+  hud.update({ ...run, activeSeconds: 2 }, projection, true);
+  expect(cue.hidden).toBe(false);
+  expect(cue.textContent).toContain('F · ĐÓN');
+});

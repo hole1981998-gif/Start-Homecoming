@@ -140,6 +140,10 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(protectedRun.durability).toBe(first.durability); expect(protectedRun.fuel).toBe(first.fuel);
     const fallen = advance(first, balance.driverFallSeconds + balance.driverPauseSeconds / 2);
     expect(fallen.crash).not.toBeNull();
+    const withStranded = advance(first, 3.2);
+    const stranded = withStranded.world.entities.filter(e => e.id.startsWith('fallen-'));
+    expect(stranded).toHaveLength(first.crash!.lostPassengers);
+    expect(stranded.every(e => e.passengerMotion && !e.consumed)).toBe(true);
     const returned = advance({ ...first, world: { ...first.world, entities: [car] } }, 3.2);
     expect(returned.crash).toBeNull(); expect(returned.recovering).toBe(true); expect(returned.speed).toBeGreaterThanOrEqual(0);
     const after = advance(returned, .5);

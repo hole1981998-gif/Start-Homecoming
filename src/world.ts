@@ -2,9 +2,12 @@ import { balance, hazardSizes } from './config';
 import { nearJunction } from './route';
 
 export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger';
+export interface PassengerMotion { homeX: number; homeDistance: number; startedAt: number; phase: number; idle: boolean;
+  ejectedAt?: number; fromX?: number; fromDistance?: number }
 export interface Entity {
   id: string; kind: EntityKind; x: number; distance: number; width: number; length: number;
   speed: number; consumed: boolean; touching: boolean; lastHit: number;
+  passengerMotion?: PassengerMotion; motionKey?: string;
 }
 export interface World { entities: Entity[]; nextHazard: number; nextFuel: number; nextRepair: number; nextPassenger: number; rng: number; seed: number }
 export const initialWorld = (seed: number): World => ({ entities: [], nextHazard: 0, nextFuel: 1, nextRepair: 0, nextPassenger: 0, rng: seed >>> 0, seed });
@@ -12,6 +15,39 @@ export function entity(kind: EntityKind, id: string, distance: number, x: number
   const sizes: Record<EntityKind, [number, number]> = { water: [3.2, 7], pothole: [1.5, 1.8], traffic: [1.9, 3.6], fuel: [.8, .8], repair: [.8, .8], passenger: [.7, .7] };
   return { id, kind, distance, x, width: sizes[kind][0], length: sizes[kind][1],
     speed: kind === 'traffic' ? balance.trafficSpeed : 0, consumed: false, touching: false, lastHit: -1e10 };
+}
+function passengerHash(id: string): number {
+  let hash = 2166136261;
+  for (const character of id) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0;
+  return hash >>> 0;
+}
+export function passengerMotion(e: Entity, at: number): PassengerMotion {
+  const hash = passengerHash(e.motionKey ?? e.id);
+  return { homeX: e.x, homeDistance: e.distance, startedAt: at,
+    phase: hash / 0x100000000 * Math.PI * 2, idle: hash % 3 === 0 };
+}
+/** Deterministic, slow NPC motion independent of render FPS and hazard RNG. */
+export function advancePassengers(entities: Entity[], now: number): void {
+  for (const e of entities) {
+    if (e.kind !== 'passenger' || e.consumed) continue;
+    const motion = e.passengerMotion ?? passengerMotion(e, now);
+    e.passengerMotion = motion;
+    const flight = motion.ejectedAt === undefined ? Infinity : now - motion.ejectedAt;
+    if (flight < balance.passengerKickSeconds) {
+      const progress = Math.max(0, Math.min(1, flight / balance.passengerKickSeconds));
+      const ease = 1 - (1 - progress) ** 3;
+      e.x = (motion.fromX ?? motion.homeX) + (motion.homeX - (motion.fromX ?? motion.homeX)) * ease;
+      e.distance = (motion.fromDistance ?? motion.homeDistance) +
+        (motion.homeDistance - (motion.fromDistance ?? motion.homeDistance)) * progress;
+      continue;
+    }
+    const elapsed = Math.max(0, now - motion.startedAt);
+    if (motion.idle) { e.x = motion.homeX; e.distance = motion.homeDistance; continue; }
+    const radius = balance.passengerWanderRadius / 2;
+    const angle = elapsed * balance.passengerWanderSpeed / radius + motion.phase;
+    e.x = motion.homeX + radius * (Math.cos(angle) - Math.cos(motion.phase));
+    e.distance = motion.homeDistance + radius * (Math.sin(angle) - Math.sin(motion.phase));
+  }
 }
 export function warningDistance(playerSpeed: number, target: Entity): number {
   return Math.max(60, Math.max(0, playerSpeed - target.speed) * balance.warningSeconds);
@@ -115,7 +151,9 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
   while (passengerDistance(w.nextPassenger) <= ahead) {
     const index = w.nextPassenger++;
     const x = ((Math.imul(w.seed ^ (index + 1), 1103515245) >>> 0) & 1) ? balance.laneWidth : -balance.laneWidth;
-    w.entities.push(entity('passenger', `passenger-${index}`, passengerDistance(index), x));
+    const passenger = entity('passenger', `passenger-${index}`, passengerDistance(index), x);
+    passenger.motionKey = `${w.seed}:waiting:${index}`;
+    w.entities.push(passenger);
   }
   return w;
 }

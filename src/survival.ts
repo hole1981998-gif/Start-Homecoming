@@ -1,6 +1,6 @@
 import { balance } from './config';
 import { initialState, step, type Input, type State } from './simulation';
-import { entity, fillWorld, initialWorld, sweptContact, type EntityKind, type World } from './world';
+import { advancePassengers, entity, fillWorld, initialWorld, passengerMotion, sweptContact, type EntityKind, type World } from './world';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
 
@@ -56,9 +56,14 @@ export function pickUpPassenger(run: Run): Run {
 export function dropPassenger(run: Run): Run {
   if (run.phase !== 'running' || run.passengers === 0 || run.crash) return run;
   const side = run.x >= 0 ? 1 : -1;
-  const passenger = entity('passenger', `dropped-${run.runId}-${run.eventSequence}`, run.distance - 2,
-    side * balance.laneWidth);
+  const passenger = entity('passenger', `dropped-${run.runId}-${run.eventSequence}`,
+    run.distance + run.speed * balance.passengerKickSeconds - 2,
+    side * balance.laneWidth * 1.3);
+  passenger.motionKey = `${run.seed}:dropped:${run.eventSequence}`;
   passenger.lastHit = run.activeSeconds + balance.passengerReboardDelaySeconds;
+  passenger.passengerMotion = { ...passengerMotion(passenger, run.activeSeconds + balance.passengerKickSeconds),
+    ejectedAt: run.activeSeconds, fromX: run.x, fromDistance: run.distance };
+  passenger.x = run.x; passenger.distance = run.distance;
   return passengerEvent({ ...run, passengers: run.passengers - 1,
     world: { ...run.world, entities: [...run.world.entities, passenger] } }, 'drop', 'Khách xuống xe · −1 người');
 }
@@ -101,10 +106,14 @@ export function stepRun(before: Run, input: Input): Run {
     if (returned && before.crash.lostPassengers > 0) {
       const side = before.crash.side;
       for (let i = 0; i < before.crash.lostPassengers; i++) {
-        movedEntities.push(entity('passenger', `fallen-${before.runId}-${before.eventSequence}-${i}`,
-          distance + 2 + i, side * balance.laneWidth));
+        const passenger = entity('passenger', `fallen-${before.runId}-${before.eventSequence}-${i}`,
+          distance + 2 + i, side * balance.laneWidth);
+        passenger.motionKey = `${before.seed}:fallen:${before.eventSequence}:${i}`;
+        passenger.passengerMotion = passengerMotion(passenger, before.activeSeconds + dt);
+        movedEntities.push(passenger);
       }
     }
+    advancePassengers(movedEntities, before.activeSeconds + dt);
     return { ...before, world: { ...world, entities: movedEntities }, protectedEntities: [...protectedEntities],
       ticks: before.ticks + 1, activeSeconds: before.activeSeconds + dt, distance, x, speed, lateralVelocity: 0,
       crash: returned ? null : { ...before.crash, elapsed }, recovering: returned && before.fuel > 0 };
@@ -257,6 +266,7 @@ export function stepRun(before: Run, input: Input): Run {
     const e = r.world.entities.find(entity => entity.id === id);
     return !!e && overlapsVehicle(r.x, r.distance, e);
   });
+  advancePassengers(r.world.entities, r.activeSeconds);
   r.route = compactRoute(r.route, r.distance, r.seed);
   return r;
 }

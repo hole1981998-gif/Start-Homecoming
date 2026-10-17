@@ -213,9 +213,15 @@ export class RoadRenderer {
       let entry = this.entityMeshes.get(e.id);
       if (!entry) { entry = { kind: e.kind, mesh: this.entityMesh(e.kind) }; this.entityMeshes.set(e.id, entry); }
       const entityPose = pathPose(e.distance, s.route, s.seed);
-      entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * e.x, 0,
+      const flight = e.kind === 'passenger' && e.passengerMotion?.ejectedAt !== undefined ?
+        Math.max(0, Math.min(1, (s.activeSeconds - e.passengerMotion.ejectedAt) / balance.passengerKickSeconds)) : 1;
+      const inFlight = flight < 1;
+      const height = inFlight ? (1 - flight) * 1.15 + Math.sin(Math.PI * flight) * 1.1 : 0;
+      entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * e.x, height,
         entityPose.z + Math.sin(entityPose.heading) * e.x);
-      entry.mesh.rotation.y = -entityPose.heading + (e.kind === 'traffic' && e.speed < 0 ? Math.PI : 0);
+      const kickSide = (e.passengerMotion?.homeX ?? 0) >= (e.passengerMotion?.fromX ?? 0) ? 1 : -1;
+      entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && e.speed < 0 ? Math.PI : 0),
+        inFlight ? kickSide * flight * Math.PI * 2 : 0, 'YXZ');
       const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
       entry.mesh.scale.set(e.width / baseWidth, 1, e.length / baseLength);

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { balance } from '../src/config';
 import { noInput } from '../src/simulation';
 import { dropPassenger, initialRun, passengerDrive, pickUpPassenger, stepRun, type Run } from '../src/survival';
-import { entity, fillWorld, initialWorld } from '../src/world';
+import { advancePassengers, entity, fillWorld, initialWorld } from '../src/world';
 
 function clearRun(): Run {
   const run = initialRun(17);
@@ -37,9 +37,38 @@ describe('P4A passenger loop', () => {
     expect(dropped.world.entities.find(e => e.id.startsWith('dropped-'))).toMatchObject({
       kind: 'passenger', consumed: false, lastHit: near.activeSeconds + balance.passengerReboardDelaySeconds,
     });
+    const kicked = dropped.world.entities.find(e => e.id.startsWith('dropped-'))!;
+    const otherRun = dropPassenger({ ...boarded, runId: 'different-local-save-id' });
+    expect(otherRun.world.entities.find(e => e.id.startsWith('dropped-'))!.passengerMotion)
+      .toEqual(kicked.passengerMotion);
+    expect(kicked.x).toBe(near.x);
+    const midFlight = stepRun(dropped, noInput()).world.entities.find(e => e.id === kicked.id)!;
+    expect(midFlight.x).toBeGreaterThan(kicked.x);
+    expect(midFlight.x).toBeLessThan(kicked.passengerMotion!.homeX);
     expect(pickUpPassenger(dropped)).toBe(dropped);
     expect(pickUpPassenger({ ...dropped, activeSeconds: balance.passengerReboardDelaySeconds })).not.toBe(dropped);
     expect(dropPassenger(dropped)).toBe(dropped);
+  });
+
+  it('keeps waiting and stranded people still or wandering within 1.5 m deterministically', () => {
+    const ids = ['passenger-0', 'passenger-1', 'fallen-seed-0-0', 'fallen-seed-0-1'];
+    let idle = 0, moving = 0;
+    for (const id of ids) {
+      const direct = entity('passenger', id, 100, balance.laneWidth);
+      const stepped = entity('passenger', id, 100, balance.laneWidth);
+      advancePassengers([direct, stepped], 0);
+      for (let tick = 1; tick <= 600; tick++) {
+        advancePassengers([stepped], tick * balance.fixedStep);
+        const radius = Math.hypot(stepped.x - balance.laneWidth, stepped.distance - 100);
+        expect(radius).toBeLessThanOrEqual(balance.passengerWanderRadius + 1e-9);
+      }
+      advancePassengers([direct], 10);
+      expect(stepped.x).toBeCloseTo(direct.x, 10);
+      expect(stepped.distance).toBeCloseTo(direct.distance, 10);
+      if (direct.passengerMotion!.idle) idle++; else moving++;
+    }
+    expect(idle).toBeGreaterThan(0);
+    expect(moving).toBeGreaterThan(0);
   });
 
   it('slows cruise before overload, then caps max speed and charges extra fuel without rewarding idle time', () => {
