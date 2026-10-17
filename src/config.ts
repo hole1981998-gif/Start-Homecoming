@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p4b-nonreturning-passengers-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p4b-crash-rider-roster-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -14,6 +14,7 @@ export const balance = Object.freeze({
   firstPassenger: 260, passengerInterval: 400, passengerReach: 12, passengerLateralReach: 1.8,
   passengerReboardDelaySeconds: 2,
   passengerWanderRadius: 1.5, passengerWanderSpeed: 0.45, passengerKickSeconds: 0.65,
+  passengerReturnChance: 0.5, passengerDownSeconds: 0.4, passengerStandSeconds: 0.55,
   coastDistance: 25, coastDrag: 3, coastCrawlSpeed: 2,
   waterFuelPerSecond: 0.8, potholeImpactDamage: 6, potholeDamagePerSecond: 12, potholeMoneyLoss: 10,
   trafficDamage: 20, trafficSpeed: 6, driverFallSeconds: 0.8, driverPauseSeconds: 0.5, driverReturnSeconds: 1.8,
@@ -42,7 +43,7 @@ export function validateConfig(c: Balance): void {
   if (c.riderCruiseFloor < c.minSpeed || c.riderCruiseFloor >= c.cruiseSpeed ||
       c.riderCruiseLoss <= 0 || c.motorcycleCapacity < 1 || c.riderLimit < c.motorcycleCapacity - 1 ||
       c.overloadSpeedPenalty >= 1 || c.minSpeedFactor > 1 || c.maxFuelLoadFactor < 1 ||
-      c.passengerReach >= c.passengerInterval / 2) throw new Error('Invalid passenger bounds');
+      c.passengerReach >= c.passengerInterval / 2 || c.passengerReturnChance > 1) throw new Error('Invalid passenger bounds');
 }
 validateConfig(balance);
 

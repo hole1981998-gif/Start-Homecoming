@@ -25,8 +25,13 @@ const speedFormatter = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1
 const speedText = (speed: number) => speedFormatter.format(speed * 3.6);
 text('release-help', 'Thả W/S: xe tự hồi về tốc độ trung vị riêng của xe.');
 function newRun() {
-  const run = initialRun(17, crypto.randomUUID());
-  return import.meta.env.DEV ? developmentScenario(run, new URLSearchParams(location.search).get('scenario')) : run;
+  const params = new URLSearchParams(location.search);
+  const scenario = import.meta.env.DEV ? params.get('scenario') : null;
+  const requestedSeed = import.meta.env.DEV && params.has('seed') ? Number(params.get('seed')) : NaN;
+  const seed = Number.isSafeInteger(requestedSeed) && requestedSeed >= 0 && requestedSeed <= 0xffffffff ?
+    requestedSeed : scenario?.startsWith('passenger-crash') ? 17 : crypto.getRandomValues(new Uint32Array(1))[0];
+  const run = initialRun(seed, crypto.randomUUID());
+  return import.meta.env.DEV ? developmentScenario(run, scenario) : run;
 }
 let state = newRun(), previous = state, input = noInput();
 type Screen = 'start' | 'pause' | 'help' | 'card' | 'result' | null;
@@ -95,7 +100,8 @@ function dismissCard(): void {
 }
 function discover(): void {
   if (state.phase !== 'running') return;
-  const candidate = state.world.entities.filter(e => !e.consumed && !seen.has(e.kind) && e.distance > state.distance &&
+  const candidate = state.world.entities.filter(e => !e.consumed && (e.kind !== 'passenger' || e.pickupable !== false) &&
+    !seen.has(e.kind) && e.distance > state.distance &&
     e.distance - state.distance <= warningDistance(state.speed, e)).sort((a, b) => a.distance - b.distance)[0];
   if (!candidate) return;
   discovery = candidate.kind; state = { ...state, phase: 'paused' };
@@ -163,11 +169,11 @@ function updateHud(): void {
   }
   text('speed', speedText(state.phase === 'running' ? state.speed : 0)); text('distance', `${Math.floor(state.distance + 1e-8)}`);
   text('score', `${Math.floor(state.score + 1e-8)}`); text('money', formatter.format(state.money));
-  const occupants = state.crash ? 0 : state.passengers + 1;
+  const occupants = state.crash ? 0 : state.riderIds.length + 1;
   text('rider-count', `${occupants}/${vehicle.capacity}`);
   text('vehicle-name', vehicle.name);
   el('rider-count').setAttribute('aria-label', `${occupants} người trên xe gồm tài xế, sức chứa ${vehicle.capacity}`);
-  el('rider-count').classList.toggle('overloaded', state.passengers + 1 > vehicle.capacity);
+  el('rider-count').classList.toggle('overloaded', state.riderIds.length + 1 > vehicle.capacity);
   const fuel = el<HTMLProgressElement>('fuel'), hp = el<HTMLProgressElement>('hp');
   fuel.max = vehicle.fuelCapacity; fuel.value = state.fuel; hp.max = vehicle.durabilityCapacity; hp.value = state.durability;
   el<SVGPathElement>('fuel-arc').style.strokeDasharray = `${Math.max(0, Math.min(100, state.fuel / vehicle.fuelCapacity * 100))} 100`;
@@ -181,7 +187,7 @@ function updateHud(): void {
     state.crash ? state.speed > 0 ? 'Xe đang trôi · tài xế quay lại · miễn nhiễm' : 'Tài xế đang quay lại xe · miễn nhiễm' :
     state.recovering ? 'Đang tăng tốc lại' :
     state.motion === 'coasting' ? `Hết xăng · trôi ${Math.ceil(state.coastRemaining)} m` : input.brake ? 'Giữ S · hãm' : input.accelerate ? 'Giữ W · tăng' :
-      Math.abs(state.speed - passengerDrive(state.passengers, vehicle).cruiseSpeed) > 1e-8 ? 'Đang hồi về trung vị' : 'Tự chạy trung vị');
+      Math.abs(state.speed - passengerDrive(state.riderIds.length, vehicle).cruiseSpeed) > 1e-8 ? 'Đang hồi về trung vị' : 'Tự chạy trung vị');
   roadHud.update(state, graphics, flavorToggle.checked);
   pause.disabled = state.phase === 'ready' || state.phase === 'ended'; restart.disabled = state.phase === 'ready';
   pause.setAttribute('aria-label', state.phase === 'paused' ? 'Tiếp tục' : 'Tạm dừng');

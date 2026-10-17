@@ -27,7 +27,8 @@ export class RoadHud {
   }
   update(s: Run, projection: Projection, flavor: boolean): void {
     for (const { root } of this.cues.values()) root.hidden = true;
-    const nearby = s.world.entities.filter(e => !e.consumed && (e.kind !== 'passenger' || e.lastHit <= s.activeSeconds) &&
+    const nearby = s.world.entities.filter(e => !e.consumed && (e.kind !== 'passenger' ||
+      (e.pickupable !== false && e.lastHit <= s.activeSeconds)) &&
       (e.kind === 'passenger' ? e.distance + balance.passengerReach >= s.distance : e.distance + e.length / 2 >= s.distance) &&
       e.distance - s.distance <= warningDistance(s.speed, e)).sort((a, b) => a.distance - b.distance);
     const hazard = nearby.find(e => !supplyKind(e.kind));

@@ -4,16 +4,17 @@ import { advancePassengers, entity, fillWorld, forkWorld, initialWorld, passenge
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
 import { newVehicle, vehicles, type VehicleDefinition, type VehicleInstance } from './vehicles';
+import { splitCrashRiders } from './passenger-outcomes';
 
 export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
-  returningPassengers: number; lostPassengers: number }
+  returningRiderIds: string[]; strandedRiderIds: string[] }
 export interface Run extends State {
   runId: string; seed: number; fuel: number; durability: number; score: number; money: number;
   activeSeconds: number; motion: 'powered' | 'coasting'; coastRemaining: number;
   world: World; result: RunResult | null; eventSequence: number; feedback: string; feedbackAt: number;
   feedbackKind: FeedbackKind | null; feedbackFlavor: string; feedbackCounts: Record<FeedbackKind, number>;
-  crash: CrashState | null; recovering: boolean; passengers: number; lostPassengers: number; crashRng: number;
+  crash: CrashState | null; recovering: boolean; riderIds: string[]; lostPassengers: number; crashRng: number; crashNumber: number;
   protectedEntities: string[];
   route: RouteState;
   vehicleInstances: VehicleInstance[]; activeVehicleId: string; replacementProtectedUntil: number;
@@ -23,7 +24,7 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   money: balance.initialMoney, activeSeconds: 0, motion: 'powered', coastRemaining: balance.coastDistance,
   world: fillWorld(initialWorld(seed), 0), result: null, eventSequence: 0, feedback: '', feedbackAt: -100,
   feedbackKind: null, feedbackFlavor: '', feedbackCounts: initialFeedbackCounts(),
-  crash: null, recovering: false, passengers: 0, lostPassengers: 0, crashRng: (seed ^ 0x9e3779b9) >>> 0,
+  crash: null, recovering: false, riderIds: [], lostPassengers: 0, crashRng: (seed ^ 0x9e3779b9) >>> 0, crashNumber: 0,
   protectedEntities: [],
   route: initialRoute(),
   vehicleInstances: [newVehicle('motorcycle', `${runId}-motorcycle`)],
@@ -71,28 +72,32 @@ function passengerEvent(run: Run, kind: 'passenger' | 'drop', message: string): 
 
 /** F is an explicit interaction, not a contact pickup. */
 export function pickUpPassenger(run: Run): Run {
-  if (run.phase !== 'running' || run.crash || run.passengers >= balance.riderLimit) return run;
+  if (run.phase !== 'running' || run.crash || run.riderIds.length >= balance.riderLimit) return run;
   const candidate = run.world.entities.filter(e => e.kind === 'passenger' && e.pickupable !== false && !e.consumed && e.lastHit <= run.activeSeconds &&
     Math.abs(e.distance - run.distance) <= balance.passengerReach &&
     Math.abs(e.x - run.x) <= balance.passengerLateralReach)
     .sort((a, b) => Math.abs(a.distance - run.distance) - Math.abs(b.distance - run.distance))[0];
   if (!candidate) return run;
+  const riderId = candidate.riderId ?? candidate.id;
+  if (run.riderIds.includes(riderId)) return run;
   const world = { ...run.world, entities: run.world.entities.map(e => e.id === candidate.id ? { ...e, consumed: true } : e) };
-  return passengerEvent({ ...run, world, passengers: run.passengers + 1 }, 'passenger', 'Đón khách · +1 người');
+  return passengerEvent({ ...run, world, riderIds: [...run.riderIds, riderId] }, 'passenger', 'Đón khách · +1 người');
 }
 
 export function dropPassenger(run: Run): Run {
-  if (run.phase !== 'running' || run.passengers === 0 || run.crash) return run;
+  if (run.phase !== 'running' || run.riderIds.length === 0 || run.crash) return run;
   const side = run.x >= 0 ? 1 : -1;
+  const riderId = run.riderIds[run.riderIds.length - 1];
   const passenger = entity('passenger', `dropped-${run.runId}-${run.eventSequence}`,
     run.distance + run.speed * balance.passengerKickSeconds - 2,
     side * balance.laneWidth * 1.3);
   passenger.motionKey = `${run.seed}:dropped:${run.eventSequence}`;
+  passenger.riderId = riderId;
   passenger.lastHit = run.activeSeconds + balance.passengerReboardDelaySeconds;
   passenger.passengerMotion = { ...passengerMotion(passenger, run.activeSeconds + balance.passengerKickSeconds),
     ejectedAt: run.activeSeconds, fromX: run.x, fromDistance: run.distance };
   passenger.x = run.x; passenger.distance = run.distance;
-  return passengerEvent({ ...run, passengers: run.passengers - 1,
+  return passengerEvent({ ...run, riderIds: run.riderIds.slice(0, -1),
     world: { ...run.world, entities: [...run.world.entities, passenger] } }, 'drop', 'Khách xuống xe · −1 người');
 }
 
@@ -108,7 +113,7 @@ export function selectTurn(run: Run, turn: Turn): Run {
   const forked = forkWorld(run.world, run.route, turn, next.distance);
   return { ...run, route: { ...run.route, choice: turn },
     world: fillWorld(forked, run.distance, run.fuel, run.durability,
-      passengerDrive(run.passengers, activeVehicle(run)).fuelFactor, activeVehicle(run)) };
+      passengerDrive(run.riderIds.length, activeVehicle(run)).fuelFactor, activeVehicle(run)) };
 }
 
 export function stepRun(before: Run, input: Input): Run {
@@ -117,7 +122,7 @@ export function stepRun(before: Run, input: Input): Run {
   const vehicle = activeVehicle(before);
   if (before.crash) {
     const world = fillWorld(before.world, before.distance, before.fuel, before.durability,
-      passengerDrive(before.passengers, vehicle).fuelFactor, vehicle);
+      passengerDrive(before.riderIds.length, vehicle).fuelFactor, vehicle);
     const elapsed = before.crash.elapsed + dt;
     const slideTime = Math.min(dt, before.speed / balance.crashSlideDeceleration);
     const speed = Math.max(0, before.speed - balance.crashSlideDeceleration * dt);
@@ -141,10 +146,11 @@ export function stepRun(before: Run, input: Input): Run {
       retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
       protectedEntities: [...protectedEntities],
       ticks: before.ticks + 1, activeSeconds: before.activeSeconds + dt, distance, x, speed, lateralVelocity: 0,
-      crash: returned ? null : { ...before.crash, elapsed }, recovering: returned && before.fuel > 0 };
+      crash: returned ? null : { ...before.crash, elapsed }, recovering: returned && before.fuel > 0,
+      riderIds: returned ? before.crash.returningRiderIds : before.riderIds };
     return { ...crashed, vehicleInstances: saveVehicle(crashed) };
   }
-  const drive = passengerDrive(before.passengers, vehicle);
+  const drive = passengerDrive(before.riderIds.length, vehicle);
   const driveConfig = { ...balance, minSpeed: Math.min(vehicle.minSpeed, drive.maxSpeed), cruiseSpeed: drive.cruiseSpeed,
     maxSpeed: drive.maxSpeed, vehicleWidth: vehicle.width };
   const driven = before.recovering ? (() => {
@@ -184,27 +190,24 @@ export function stepRun(before: Run, input: Input): Run {
       distance: r.distance, score: r.score, money: r.money, seconds: r.activeSeconds };
   };
   const crashDriver = (impactSpeed: number) => {
-    let rng = r.crashRng, returning = 0;
-    for (let i = 0; i < r.passengers; i++) {
-      rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0;
-      if (rng & 0x80000000) returning++;
-    }
-    rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0;
-    const lost = r.passengers - returning;
-    r.crashRng = rng; r.passengers = returning; r.lostPassengers += lost;
+    const { returning, stranded } = splitCrashRiders(r.riderIds, r.seed, r.crashNumber, balance.passengerReturnChance);
+    const rng = (Math.imul(r.crashRng, 1664525) + 1013904223) >>> 0;
+    r.crashRng = rng; r.crashNumber++; r.riderIds = []; r.lostPassengers += stranded.length;
     const crashX = before.x + (driven.x - before.x) * fraction;
     const side = crashX > balance.laneWidth / 2 ? -1 : crashX < -balance.laneWidth / 2 ? 1 : (rng & 1) ? 1 : -1;
     r.crash = { elapsed: 0, side, originDistance: r.distance, originX: crashX,
-      impactSpeed, returningPassengers: returning, lostPassengers: lost };
-    for (let i = 0; i < lost; i++) {
-      const index = returning + i;
+      impactSpeed, returningRiderIds: returning, strandedRiderIds: stranded };
+    for (let i = 0; i < stranded.length; i++) {
+      const index = returning.length + i;
       const passenger = entity('passenger', `fallen-${r.runId}-${r.eventSequence}-${i}`,
         r.distance + impactSpeed * balance.driverEjectionSpeedFactor * balance.driverFallSeconds + .7 + index * .8,
         crashX + side * (1.3 + index * .45));
       passenger.pickupable = false;
-      passenger.motionKey = `${r.seed}:fallen:${r.eventSequence}:${i}`;
-      passenger.passengerMotion = { ...passengerMotion(passenger, r.activeSeconds + balance.driverFallSeconds),
-        ejectedAt: r.activeSeconds, fromX: crashX, fromDistance: r.distance };
+      passenger.riderId = stranded[i];
+      passenger.motionKey = `${r.seed}:fallen:${r.crashNumber}:${stranded[i]}`;
+      passenger.passengerMotion = { ...passengerMotion(passenger,
+        r.activeSeconds + balance.passengerKickSeconds + balance.passengerDownSeconds + balance.passengerStandSeconds),
+        ejectedAt: r.activeSeconds, fromX: crashX, fromDistance: r.distance, crashRecovery: true };
       passenger.x = crashX; passenger.distance = r.distance;
       r.world.entities.push(passenger);
     }
@@ -245,8 +248,8 @@ export function stepRun(before: Run, input: Input): Run {
       if (fuelRate > 0) segment = Math.min(segment, r.fuel / fuelRate);
       if (damageRate > 0) segment = Math.min(segment, r.durability / damageRate);
       if (!powered && ds > 0) segment = Math.min(segment, r.coastRemaining / ds);
-      r.distance += ds * segment; r.score += ds * segment * balance.scorePerMeter * (1 + r.passengers * balance.riderScoreBonus);
-      r.money += ds * segment * (balance.moneyPerMeter + r.passengers * balance.riderMoneyPerMeter); r.activeSeconds += dt * segment;
+      r.distance += ds * segment; r.score += ds * segment * balance.scorePerMeter * (1 + r.riderIds.length * balance.riderScoreBonus);
+      r.money += ds * segment * (balance.moneyPerMeter + r.riderIds.length * balance.riderMoneyPerMeter); r.activeSeconds += dt * segment;
       if (powered) r.fuel = Math.max(0, r.fuel - fuelRate * segment);
       else r.coastRemaining = Math.max(0, r.coastRemaining - ds * segment);
       r.durability = Math.max(0, r.durability - damageRate * segment);

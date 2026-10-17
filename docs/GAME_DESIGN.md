@@ -185,4 +185,6 @@ Vai trò có thể do Codex đảm nhiệm như các góc review; phải ghi rõ
 
 **ĐÃ CHỐT theo yêu cầu chủ dự án:** HUD phủ gameplay; xăng/HP gần xe; không hiện cruise khi lái; cảnh báo/QTE dùng graphic và phản hồi tại chỗ, hạn chế bảng chữ. Traffic trái ngược chiều, phải cùng chiều, giữa chọn hướng seeded theo hệ quy chiếu người chơi; hazard nhiều size/chiều dài, có thể chiếm 2–3 lane. Traffic có loại, sát thương và HP khác nhau để xe lớn có thể húc phá. Thông số và điều kiện cụ thể còn ĐỀ XUẤT/TẠM.
 
+**ĐÃ CHỐT sau feedback P4B:** khi tai nạn, từng hành khách được quyết định quay lại hoặc ở lại; người ở lại không nhận F đón lại. Họ phải có nhịp văng/ngã, nằm ngắn rồi đứng dậy trước khi đi lững thững. HUD sức chứa, hình nhân vật và logic F phải phản ánh cùng một danh sách khách, không sinh lại khách bị bỏ sau khi tài xế lên xe. Tỷ lệ quay lại và thời lượng animation trong BALANCE_CONFIG.md là TẠM.
+
 Đặc tả, ràng buộc công bằng, phân kỳ P2.1/P3A/P3B/P4.1 và kế hoạch kiểm chứng: [DESIGN_UPDATE_IMMERSION_TRAFFIC.md](DESIGN_UPDATE_IMMERSION_TRAFFIC.md). Build P2.0 chưa triển khai các thay đổi này. Mẫu phủ kín đường cần giải pháp hợp lệ; chưa có thì cấm sinh. Không tự coi xe bị húc là tai nạn kích hoạt secret.

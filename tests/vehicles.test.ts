@@ -12,17 +12,17 @@ function twoVehicles(): Run {
 describe('P4B vehicle instances', () => {
   it('keeps each tank, HP and upgrades on its instance while Tab changes loaded cruise and capacity', () => {
     const base = twoVehicles();
-    const upgraded = { ...base, passengers: 3, fuel: 2, durability: 42,
+    const upgraded = { ...base, riderIds: ['rider-0', 'rider-1', 'rider-2'], fuel: 2, durability: 42,
       vehicleInstances: base.vehicleInstances.map(v => v.kind === 'motorcycle' ?
         { ...v, upgrades: { engine: 1, tank: 0, armour: 0 } } : v) };
     const car = switchVehicle(upgraded);
     expect(activeVehicle(car).kind).toBe('car4');
-    expect(car.passengers).toBe(3);
+    expect(car.riderIds).toEqual(upgraded.riderIds);
     expect(car.vehicleInstances[0].fuel).toBe(2);
     expect(car.vehicleInstances[0].durability).toBe(42);
     expect(car.vehicleInstances[0].upgrades.engine).toBe(1);
-    expect(passengerDrive(car.passengers, activeVehicle(car)).cruiseSpeed)
-      .toBeGreaterThan(passengerDrive(upgraded.passengers, activeVehicle(upgraded)).cruiseSpeed);
+    expect(passengerDrive(car.riderIds.length, activeVehicle(car)).cruiseSpeed)
+      .toBeGreaterThan(passengerDrive(upgraded.riderIds.length, activeVehicle(upgraded)).cruiseSpeed);
     const back = switchVehicle({ ...car, fuel: 10, durability: 90 });
     expect(back.fuel).toBe(2); expect(back.durability).toBe(42);
     expect(back.vehicleInstances[1].fuel).toBe(10);
@@ -53,7 +53,7 @@ describe('P4B vehicle instances', () => {
     expect(hit.durability).toBe(vehicles.car4.durabilityCapacity);
     const next = stepRun(hit, noInput());
     expect(next.durability).toBe(vehicles.car4.durabilityCapacity);
-    expect(next.passengers).toBe(hit.passengers);
+    expect(next.riderIds).toEqual(hit.riderIds);
     expect(switchVehicle(hit)).toBe(hit);
   });
 
@@ -101,7 +101,7 @@ describe('P4B vehicle instances', () => {
     const samples = [];
     for (const definition of Object.values(vehicles)) for (const passengers of [0, Math.min(3, definition.capacity - 1)]) {
       const initial = initialRun(17, `${definition.kind}-${passengers}`);
-      let run: Run = { ...initial, phase: 'running', passengers,
+      let run: Run = { ...initial, phase: 'running', riderIds: Array.from({ length: passengers }, (_, i) => `rider-${i}`),
         vehicleInstances: [newVehicle(definition.kind, initial.activeVehicleId)],
         fuel: definition.fuelCapacity, durability: definition.durabilityCapacity,
         speed: definition.cruiseSpeed,

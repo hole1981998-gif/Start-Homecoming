@@ -122,17 +122,19 @@ describe('survival, continuous hazards and crash recovery', () => {
   it('a crash slides to a stop, protects the bike and then accelerates from zero', () => {
     const car = { ...entity('traffic', 'car', 0, 0), speed: 14 };
     const hole = entity('pothole', 'hole', 0, 0); hole.length = 20;
-    const first = stepRun({ ...empty([car, hole]), passengers: 3 }, noInput());
+    const riderIds = ['rider-0', 'rider-1', 'rider-2'];
+    const first = stepRun({ ...empty([car, hole]), riderIds }, noInput());
     expect(first.crash).not.toBeNull(); expect(first.speed).toBeCloseTo(balance.cruiseSpeed);
     expect(first.durability).toBe(70 - balance.trafficDamage);
-    expect(first.crash!.returningPassengers + first.crash!.lostPassengers).toBe(3);
-    expect(first.crash!.lostPassengers).toBe(2);
-    expect(first.passengers).toBe(first.crash!.returningPassengers);
-    expect(first.lostPassengers).toBe(first.crash!.lostPassengers);
+    expect([...first.crash!.returningRiderIds, ...first.crash!.strandedRiderIds].sort()).toEqual(riderIds);
+    expect(first.riderIds).toEqual([]);
+    expect(first.lostPassengers).toBe(first.crash!.strandedRiderIds.length);
     const fallenAtImpact = first.world.entities.filter(e => e.id.startsWith('fallen-'));
-    expect(fallenAtImpact).toHaveLength(first.crash!.lostPassengers);
+    expect(fallenAtImpact).toHaveLength(first.crash!.strandedRiderIds.length);
+    expect(fallenAtImpact.length).toBeGreaterThan(0);
+    expect(fallenAtImpact.map(e => e.riderId)).toEqual(first.crash!.strandedRiderIds);
     expect(fallenAtImpact.every(e => e.pickupable === false && e.passengerMotion?.ejectedAt !== undefined)).toBe(true);
-    expect(stepRun({ ...empty([car]), passengers: 3 }, noInput()).crash).toEqual(first.crash);
+    expect(stepRun({ ...empty([car]), riderIds }, noInput()).crash).toEqual(first.crash);
     const sliding = advance(first, .5);
     expect(sliding.speed).toBeGreaterThan(0); expect(sliding.speed).toBeLessThan(first.speed);
     expect(sliding.distance).toBeGreaterThan(first.distance);
@@ -146,17 +148,18 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(fallen.crash).not.toBeNull();
     const withStranded = advance(first, 3.2);
     const stranded = withStranded.world.entities.filter(e => e.id.startsWith('fallen-'));
-    expect(stranded).toHaveLength(first.crash!.lostPassengers);
+    expect(stranded).toHaveLength(first.crash!.strandedRiderIds.length);
     expect(stranded.every(e => e.passengerMotion && !e.consumed)).toBe(true);
     expect(stranded.every(e => e.pickupable === false)).toBe(true);
     expect(stranded.map(e => e.id)).toEqual(fallenAtImpact.map(e => e.id));
     const strandedInReach = { ...stranded[0], x: withStranded.x, distance: withStranded.distance,
       passengerMotion: { ...stranded[0].passengerMotion!, homeX: withStranded.x, homeDistance: withStranded.distance } };
-    const pickupAttempt = { ...withStranded, passengers: 0,
+    const pickupAttempt = { ...withStranded, riderIds: [],
       world: { ...withStranded.world, entities: [strandedInReach] } };
     expect(pickUpPassenger(pickupAttempt)).toBe(pickupAttempt);
     const returned = advance(first, 3.2);
     expect(returned.crash).toBeNull(); expect(returned.recovering).toBe(true); expect(returned.speed).toBeGreaterThanOrEqual(0);
+    expect(returned.riderIds).toEqual(first.crash!.returningRiderIds);
     const afterReboard = returned.world.entities.filter(e => e.id.startsWith('fallen-'));
     expect(afterReboard.map(e => e.id)).toEqual(stranded.map(e => e.id));
     expect(afterReboard.map(e => [e.x, e.distance])).toEqual(stranded.map(e => [e.x, e.distance]));
@@ -177,6 +180,23 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(stopped.x).toBeLessThan(first.x);
     expect(stopped.durability).toBe(first.durability);
     expect(stopped.fuel).toBe(first.fuel);
+  });
+  it('a later crash rolls only riders who actually reboarded', () => {
+    const firstCar = { ...entity('traffic', 'first-car', 0, 0), speed: 14 };
+    const first = stepRun({ ...empty([firstCar]), riderIds: ['rider-0', 'rider-1', 'rider-2'] }, noInput());
+    const reboarded = advance(first, 3.2);
+    expect(reboarded.riderIds.length).toBeGreaterThan(0);
+    const secondCar = entity('traffic', 'second-car', reboarded.distance, reboarded.x);
+    secondCar.speed = 0;
+    const again = stepRun({ ...reboarded, world: { ...reboarded.world,
+      entities: [secondCar, ...reboarded.world.entities.filter(e => e.id.startsWith('fallen-'))] } }, noInput());
+    expect(again.crash).not.toBeNull();
+    expect([...again.crash!.returningRiderIds, ...again.crash!.strandedRiderIds].sort())
+      .toEqual([...reboarded.riderIds].sort());
+    expect(again.riderIds).toEqual([]);
+    expect(again.lostPassengers).toBe(first.lostPassengers + again.crash!.strandedRiderIds.length);
+    expect(new Set(again.world.entities.filter(e => e.id.startsWith('fallen-')).map(e => e.id)).size)
+      .toBe(first.lostPassengers + again.crash!.strandedRiderIds.length);
   });
   it('does not apply water or pothole effects landed in during the fall or immediately after boarding', () => {
     const car = { ...entity('traffic', 'car', 0, 0), speed: balance.cruiseSpeed };
@@ -203,7 +223,7 @@ describe('survival, continuous hazards and crash recovery', () => {
     const car = { ...entity('traffic', 'qa-traffic', 8, 0), speed: 0 };
     const water = entity('water', 'qa-water', 16, 0); water.width = 9.6; water.length = 10;
     const hole = entity('pothole', 'qa-hole', 15, 0); hole.width = 9.6; hole.length = 8;
-    let run = { ...empty([car, water, hole]), passengers: 3 };
+    let run = { ...empty([car, water, hole]), riderIds: ['rider-0', 'rider-1', 'rider-2'] };
     for (let i = 0; i < 240 && !run.crash; i++) run = stepRun(run, noInput());
     expect(run.crash).not.toBeNull();
     const landed = advance(run, 2.5);

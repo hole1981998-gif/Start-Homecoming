@@ -19,11 +19,15 @@ export function developmentScenario(run: Run, scenario: string | null): Run {
   }
   if (scenario === 'passenger') return { ...run, world: { ...run.world, entities: [entity('passenger', 'qa-passenger', 5, 0)],
     nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
-  if (scenario === 'passenger-crash') {
+  if (scenario === 'passenger-crash' || scenario === 'passenger-crash-car') {
     const car = { ...entity('traffic', 'qa-traffic', 8, 0), speed: 0 };
     const water = entity('water', 'qa-water', 16, 0); water.width = 9.6; water.length = 10;
     const hole = entity('pothole', 'qa-hole', 15, 0); hole.width = 9.6; hole.length = 8;
-    return { ...run, passengers: 3, world: { ...run.world, entities: [car, water, hole],
+    const qaCar = newVehicle('car4', `${run.runId}-qa-car4`);
+    return { ...run, riderIds: ['qa-rider-0', 'qa-rider-1', 'qa-rider-2'],
+      ...(scenario === 'passenger-crash-car' ? { vehicleInstances: [...run.vehicleInstances, qaCar], activeVehicleId: qaCar.id,
+        fuel: vehicles.car4.fuelCapacity, durability: vehicles.car4.durabilityCapacity } : {}),
+      world: { ...run.world, entities: [car, water, hole],
       nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
   }
   if (scenario === 'branch-hazard') {

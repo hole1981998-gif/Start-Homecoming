@@ -25,13 +25,14 @@ describe('P4A passenger loop', () => {
     expect(pickUpPassenger(run)).toBe(run);
     const near = { ...run, distance: 10, x: balance.laneWidth };
     const boarded = pickUpPassenger(near);
-    expect(boarded.passengers).toBe(1);
+    expect(boarded.riderIds).toEqual(['test-person']);
     expect(boarded.world.entities[0].consumed).toBe(true);
     expect(pickUpPassenger(boarded)).toBe(boarded);
     const paused = { ...boarded, phase: 'paused' as const };
     expect(dropPassenger(paused)).toBe(paused);
     const dropped = dropPassenger(boarded);
-    expect(dropped.passengers).toBe(0);
+    expect(dropped.riderIds).toEqual([]);
+    expect(dropped.world.entities.find(e => e.id.startsWith('dropped-'))?.riderId).toBe('test-person');
     expect(dropped.distance).toBe(near.distance);
     expect(dropped.money).toBe(near.money);
     expect(dropped.world.entities.find(e => e.id.startsWith('dropped-'))).toMatchObject({
@@ -75,7 +76,7 @@ describe('P4A passenger loop', () => {
     expect(passengerDrive(0)).toEqual({ cruiseSpeed: 14, maxSpeed: 20, fuelFactor: 1 });
     expect(passengerDrive(1).cruiseSpeed).toBe(12);
     expect(passengerDrive(2).maxSpeed).toBeLessThan(passengerDrive(1).maxSpeed);
-    const loaded = { ...clearRun(), passengers: 2 };
+    const loaded = { ...clearRun(), riderIds: ['rider-0', 'rider-1'] };
     let run = loaded;
     for (let i = 0; i < 600; i++) run = stepRun(run, noInput());
     expect(run.speed).toBeCloseTo(10, 6);
@@ -91,14 +92,14 @@ describe('P4A passenger loop', () => {
     let run = { ...clearRun(), world: { ...clearRun().world,
       entities: Array.from({ length: balance.riderLimit + 1 }, (_, i) => entity('passenger', `npc-${i}`, 0, 0)) } };
     for (let i = 0; i < balance.riderLimit + 1; i++) run = pickUpPassenger(run);
-    expect(run.passengers).toBe(balance.riderLimit);
-    expect(run.passengers + 1).toBeGreaterThan(balance.motorcycleCapacity);
+    expect(run.riderIds).toHaveLength(balance.riderLimit);
+    expect(run.riderIds.length + 1).toBeGreaterThan(balance.motorcycleCapacity);
     expect(run.world.entities.filter(e => !e.consumed)).toHaveLength(1);
   });
 
   it('samples one minute of solo, full, and overloaded cruise for economy review', () => {
     const samples = [0, 1, 2].map(passengers => {
-      let run = { ...clearRun(), passengers };
+      let run = { ...clearRun(), riderIds: Array.from({ length: passengers }, (_, i) => `rider-${i}`) };
       for (let i = 0; i < 3600; i++) run = stepRun(run, noInput());
       return { passengers, distance: run.distance, earned: run.money - balance.initialMoney,
         score: run.score, fuelLeft: run.fuel, phase: run.phase };

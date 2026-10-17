@@ -4,11 +4,11 @@ import { vehicles, type VehicleDefinition } from './vehicles';
 
 export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger';
 export interface PassengerMotion { homeX: number; homeDistance: number; startedAt: number; phase: number; idle: boolean;
-  ejectedAt?: number; fromX?: number; fromDistance?: number }
+  ejectedAt?: number; fromX?: number; fromDistance?: number; crashRecovery?: boolean }
 export interface Entity {
   id: string; kind: EntityKind; x: number; distance: number; width: number; length: number;
   speed: number; consumed: boolean; touching: boolean; lastHit: number;
-  passengerMotion?: PassengerMotion; motionKey?: string; pickupable?: boolean;
+  passengerMotion?: PassengerMotion; motionKey?: string; pickupable?: boolean; riderId?: string;
 }
 export interface RetiredEntity { entity: Entity; route: RouteState; expireDistance: number }
 export interface World { entities: Entity[]; retired: RetiredEntity[]; nextHazard: number; nextFuel: number; nextRepair: number;
@@ -49,6 +49,18 @@ export function passengerMotion(e: Entity, at: number): PassengerMotion {
   const hash = passengerHash(e.motionKey ?? e.id);
   return { homeX: e.x, homeDistance: e.distance, startedAt: at,
     phase: hash / 0x100000000 * Math.PI * 2, idle: hash % 3 === 0 };
+}
+export function passengerPose(e: Entity, now: number): { height: number; roll: number } {
+  const motion = e.passengerMotion;
+  if (e.kind !== 'passenger' || motion?.ejectedAt === undefined) return { height: 0, roll: 0 };
+  const flight = Math.max(0, Math.min(1, (now - motion.ejectedAt) / balance.passengerKickSeconds));
+  const side = motion.homeX >= (motion.fromX ?? motion.homeX) ? 1 : -1;
+  const height = flight < 1 ? (1 - flight) * 1.15 + Math.sin(Math.PI * flight) * 1.1 : 0;
+  if (!motion.crashRecovery) return { height, roll: flight < 1 ? side * flight * Math.PI * 2 : 0 };
+  if (flight < 1) return { height, roll: side * flight * (Math.PI * 2 + 1.2) };
+  const standing = Math.max(0, Math.min(1, (now - motion.ejectedAt - balance.passengerKickSeconds -
+    balance.passengerDownSeconds) / balance.passengerStandSeconds));
+  return { height: 0, roll: side * 1.2 * (1 - standing) };
 }
 /** Deterministic, slow NPC motion independent of render FPS and hazard RNG. */
 export function advancePassengers(entities: Entity[], now: number): void {

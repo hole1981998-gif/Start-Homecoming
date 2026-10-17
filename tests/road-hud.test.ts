@@ -56,7 +56,7 @@ it('oncoming warning appears earlier and exposes direction without relying on co
 it('crash return cue shows remaining protection time and clears on restart', () => {
   const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
   const run: Run = { ...initialRun(), phase: 'running', crash: { elapsed: 1, side: 1, originDistance: 0, originX: 0,
-    impactSpeed: balance.cruiseSpeed, returningPassengers: 0, lostPassengers: 0 } };
+    impactSpeed: balance.cruiseSpeed, returningRiderIds: [], strandedRiderIds: [] } };
   hud.update(run, projection, true);
   const cue = document.getElementById('crash-cue')!;
   expect(cue.hidden).toBe(false); expect(cue.getAttribute('aria-label')).toContain('miễn nhiễm');
@@ -73,4 +73,11 @@ it('does not invite F pickup while a kicked passenger is still locked out', () =
   hud.update({ ...run, activeSeconds: 2 }, projection, true);
   expect(cue.hidden).toBe(false);
   expect(cue.textContent).toContain('F · ĐÓN');
+});
+it('does not invite F pickup for a crash rider who refuses to reboard', () => {
+  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
+  const person = entity('passenger', 'stranded', 0, 0); person.pickupable = false;
+  const run: Run = { ...initialRun(), phase: 'running', world: { ...initialRun().world, entities: [person] } };
+  hud.update(run, projection, true);
+  expect(document.querySelector<HTMLElement>('[data-kind="passenger"]')!.hidden).toBe(true);
 });

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { balance } from './config';
 import { activeVehicle, type Run } from './survival';
-import type { EntityKind } from './world';
+import { passengerPose, type EntityKind } from './world';
 import { junction, pathPose } from './route';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh }
@@ -142,7 +142,7 @@ export class RoadRenderer {
     this.bike.rotation.set(0, -playerPose.heading, -s.lateralVelocity * .035, 'YXZ');
     this.rider.visible = !s.crash && open; this.helmet.visible = !s.crash && open;
     this.bikePassengers.forEach((person, i) => {
-      person.visible = !s.crash && open && i < s.passengers;
+      person.visible = !s.crash && open && i < s.riderIds.length;
       person.position.set((i % 2 ? 1 : -1) * (.15 + Math.floor(i / 2) * .09),
         1.15 + Math.floor(i / 2) * .38, .65 + Math.floor(i / 2) * .32);
       person.rotation.z = (i % 2 ? -1 : 1) * .16;
@@ -150,7 +150,7 @@ export class RoadRenderer {
     this.fallenDriver.visible = !!s.crash;
     this.fallenPassengers.forEach(person => { person.visible = false; });
     if (s.crash) {
-      const { elapsed, side, originDistance, impactSpeed, returningPassengers } = s.crash;
+      const { elapsed, side, originDistance, impactSpeed, returningRiderIds } = s.crash;
       const ejection = Math.min(1, elapsed / balance.driverFallSeconds);
       const returnProgress = Math.max(0, Math.min(1, (elapsed - balance.driverFallSeconds - balance.driverPauseSeconds) / balance.driverReturnSeconds));
       const away = ejection * (1 - returnProgress);
@@ -163,7 +163,7 @@ export class RoadRenderer {
         fallenPose.z + Math.sin(fallenPose.heading) * driverX);
       this.fallenDriver.rotation.set(0, -fallenPose.heading, side * 1.25 * away, 'YXZ');
       // Lost passengers already exist as roadside entities; only animate those returning to the vehicle.
-      for (let i = 0; i < returningPassengers && i < this.fallenPassengers.length; i++) {
+      for (let i = 0; i < returningRiderIds.length && i < this.fallenPassengers.length; i++) {
         const person = this.fallenPassengers[i];
         person.visible = true;
         const passengerReturn = returnProgress;
@@ -224,15 +224,11 @@ export class RoadRenderer {
       let entry = this.entityMeshes.get(e.id);
       if (!entry) { entry = { kind: e.kind, mesh: this.entityMesh(e.kind) }; this.entityMeshes.set(e.id, entry); }
       const entityPose = pathPose(e.distance, route, s.seed);
-      const flight = e.kind === 'passenger' && e.passengerMotion?.ejectedAt !== undefined ?
-        Math.max(0, Math.min(1, (s.activeSeconds - e.passengerMotion.ejectedAt) / balance.passengerKickSeconds)) : 1;
-      const inFlight = flight < 1;
-      const height = inFlight ? (1 - flight) * 1.15 + Math.sin(Math.PI * flight) * 1.1 : 0;
-      entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * e.x, height,
+      const pose = passengerPose(e, s.activeSeconds);
+      entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * e.x, pose.height,
         entityPose.z + Math.sin(entityPose.heading) * e.x);
-      const kickSide = (e.passengerMotion?.homeX ?? 0) >= (e.passengerMotion?.fromX ?? 0) ? 1 : -1;
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && e.speed < 0 ? Math.PI : 0),
-        inFlight ? kickSide * flight * Math.PI * 2 : 0, 'YXZ');
+        pose.roll, 'YXZ');
       const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
       entry.mesh.scale.set(e.width / baseWidth, 1, e.length / baseLength);
