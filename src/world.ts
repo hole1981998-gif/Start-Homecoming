@@ -1,4 +1,4 @@
-import { balance } from './config';
+import { balance, hazardSizes } from './config';
 
 export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair';
 export interface Entity {
@@ -12,21 +12,51 @@ export function entity(kind: EntityKind, id: string, distance: number, x: number
   return { id, kind, distance, x, width: sizes[kind][0], length: sizes[kind][1],
     speed: kind === 'traffic' ? balance.trafficSpeed : 0, consumed: false, touching: false, lastHit: -1e10 };
 }
-/** P2 deliberately uses one-lane encounters; moving traffic stays in the middle.
- * No junctions or difficulty director yet. Both outer lanes remain alternatives to traffic.
- */
+export function warningDistance(playerSpeed: number, target: Entity): number {
+  return Math.max(60, Math.max(0, playerSpeed - target.speed) * balance.warningSeconds);
+}
+
+const laneCentres = [-balance.laneWidth, 0, balance.laneWidth];
+const blocksLane = (e: Entity, x: number) => Math.abs(e.x - x) <= (e.width + balance.vehicleWidth) / 2;
+/** Reject a combination that closes every lane across the current speed range. */
+export function leavesOpenLane(candidate: Entity, existing: Entity[], distance: number): boolean {
+  for (let speed = balance.minSpeed; speed <= balance.maxSpeed; speed += 1) {
+    const closing = speed - candidate.speed;
+    if (closing <= 0) continue;
+    const time = Math.max(0, (candidate.distance - distance) / closing);
+    const candidateAt = candidate.distance + candidate.speed * time;
+    const concurrent = existing.filter(e => !e.consumed && (e.kind === 'traffic' || e.kind === 'pothole') &&
+      Math.abs(e.distance + e.speed * time - candidateAt) <= (e.length + candidate.length + balance.vehicleLength) / 2 + 4);
+    if (!laneCentres.some(x => !blocksLane(candidate, x) && concurrent.every(e => !blocksLane(e, x)))) return false;
+  }
+  return true;
+}
+
+/** P3A: keep each encounter independently avoidable while direction and size vary by seed. */
 export function fillWorld(world: World, distance: number): World {
   const w = { ...world, entities: world.entities.filter(e => e.distance + e.length / 2 > distance - 12) };
   const ahead = distance + balance.worldLookAhead;
-  const randomLane = () => {
+  const random = () => {
     w.rng = (Math.imul(w.rng, 1664525) + 1013904223) >>> 0;
-    return ((w.rng >>> 16) % 3 - 1) * balance.laneWidth;
+    return w.rng >>> 16;
   };
   const kinds: EntityKind[] = ['water', 'pothole', 'traffic'];
   while (balance.firstHazard + w.nextHazard * balance.hazardGap <= ahead) {
     const index = w.nextHazard++, kind = kinds[index % kinds.length];
-    const x = randomLane();
-    w.entities.push(entity(kind, `hazard-${index}`, balance.firstHazard + index * balance.hazardGap, kind === 'traffic' ? 0 : x));
+    const lane = random() % 3 - 1;
+    const hazard = entity(kind, `hazard-${index}`, balance.firstHazard + index * balance.hazardGap, lane * balance.laneWidth);
+    if (kind === 'traffic') {
+      // Lane directions are relative to the player's current route. The middle is seeded once.
+      hazard.speed = lane < 0 ? -balance.trafficSpeed : lane > 0 ? balance.trafficSpeed :
+        random() % 2 ? balance.trafficSpeed : -balance.trafficSpeed;
+    } else if (kind === 'water' || kind === 'pothole') {
+      const variants = hazardSizes[kind];
+      const [width, length] = variants[random() % variants.length];
+      hazard.width = width; hazard.length = length;
+      // A two-lane patch sits between lane centres and always leaves the opposite edge open.
+      if (width > balance.laneWidth) hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
+    }
+    if (kind === 'water' || leavesOpenLane(hazard, w.entities, distance)) w.entities.push(hazard);
   }
   while (w.nextFuel * balance.fuelInterval <= ahead) {
     const index = w.nextFuel++;

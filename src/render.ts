@@ -63,6 +63,7 @@ export class RoadRenderer {
     } else if (kind === 'traffic') {
       part(1.9, .8, 3.6, '#d59561', 0, .6, 0); part(1.6, .6, 1.8, '#a9c6cb', 0, 1.3, 0);
       for (const x of [-.65, .65]) part(.25, .18, .06, '#fa9d80', x, .65, 1.83);
+      for (const x of [-.65, .65]) part(.25, .18, .06, '#fff0ba', x, .65, -1.83);
     } else {
       const color = kind === 'fuel' ? '#82c5a0' : '#e1ded0';
       part(.8, .8, .8, color, 0, .6, 0);
@@ -88,6 +89,10 @@ export class RoadRenderer {
       let entry = this.entityMeshes.get(e.id);
       if (!entry) { entry = { kind: e.kind, mesh: this.entityMesh(e.kind) }; this.entityMeshes.set(e.id, entry); }
       entry.mesh.visible = true; entry.mesh.position.set(e.x, 0, -(e.distance - distance));
+      entry.mesh.rotation.y = e.kind === 'traffic' && e.speed < 0 ? Math.PI : 0;
+      const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : .8;
+      const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : .8;
+      entry.mesh.scale.set(e.width / baseWidth, 1, e.length / baseLength);
     }
     for (const [id, entry] of this.entityMeshes) if (!live.has(id)) {
       entry.mesh.visible = false; this.pools[entry.kind].push(entry.mesh); this.entityMeshes.delete(id);

@@ -18,3 +18,5 @@ Game design: cung không đổi xăng/HP nên không đổi nhịp và kinh tế
 UI/UX: cấu trúc gần ảnh tham chiếu, có hai hình dạng đối xứng và nhãn số nên không chỉ dựa vào màu. Vị trí dùng neo đuôi xe hiện có và kích thước cố định 200×170 px; với xe lớn và cửa sổ quá hẹp cần kiểm lại tỷ lệ. Popup dạng sticker ở vùng trên và số tổn thất gần xe cần được kiểm tra cùng warning/QTE khi triển khai sau; tránh chồng cue hoặc che hướng né.
 
 Không có remote cấu hình, nên chưa push, tạo PR hoặc chạy CI. Chưa có review con người và chưa merge.
+
+**Feedback chủ dự án sau khi chơi thử:** hai cung xăng/độ bền còn nhọn, chưa thành vòng cung tròn mềm. P2 được chấp nhận để chuyển P3; chỉnh hình cung ở lượt HUD sau P3A, không trộn vào vòng thử giao thông.

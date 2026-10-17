@@ -1,7 +1,6 @@
 import { createElement, Waves, CircleDot, CarFront, Fuel, Wrench, ChevronDown } from 'lucide';
-import { balance } from './config';
 import { names, type Run } from './survival';
-import type { EntityKind } from './world';
+import { warningDistance, type EntityKind } from './world';
 
 interface Projection { project(x: number, y: number, z: number): { x: number; y: number } }
 const icons = { water: Waves, pothole: CircleDot, traffic: CarFront, fuel: Fuel, repair: Wrench };
@@ -18,13 +17,17 @@ export class RoadHud {
       root.setAttribute('role', 'img');
       root.append(createElement([icons[kind][0], { ...icons[kind][1], 'aria-hidden': 'true' }, icons[kind][2]]), value,
         createElement([ChevronDown[0], { ...ChevronDown[1], class: 'pointer', 'aria-hidden': 'true' }, ChevronDown[2]]));
+      if (kind === 'traffic') {
+        const direction = document.createElement('em'); direction.className = 'traffic-direction'; direction.setAttribute('aria-hidden', 'true');
+        root.append(direction);
+      }
       host.append(root); this.cues.set(kind, { root, value });
     }
   }
   update(s: Run, projection: Projection, flavor: boolean): void {
     for (const { root } of this.cues.values()) root.hidden = true;
     const nearby = s.world.entities.filter(e => !e.consumed && e.distance + e.length / 2 >= s.distance &&
-      e.distance - s.distance <= Math.max(60, s.speed * balance.warningSeconds)).sort((a, b) => a.distance - b.distance);
+      e.distance - s.distance <= warningDistance(s.speed, e)).sort((a, b) => a.distance - b.distance);
     const hazard = nearby.find(e => !supplyKind(e.kind)), supply = nearby.find(e => supplyKind(e.kind));
     let hazardPosition: { x: number; y: number } | undefined;
     if (s.phase === 'running') for (const e of [hazard, supply]) {
@@ -36,11 +39,12 @@ export class RoadHud {
       if (!supplyKind(e.kind)) hazardPosition = { x, y };
       const cue = this.cues.get(e.kind)!;
       cue.root.hidden = false; cue.root.style.left = `${x}%`; cue.root.style.top = `${y}%`;
-      (cue.root.lastElementChild as SVGElement).style.transform = p.x < 9 ? 'rotate(90deg)' : p.x > 91 ? 'rotate(-90deg)' : '';
+      cue.root.querySelector<SVGElement>('.pointer')!.style.transform = p.x < 9 ? 'rotate(90deg)' : p.x > 91 ? 'rotate(-90deg)' : '';
       const distance = Math.max(0, Math.ceil(e.distance - s.distance));
       cue.value.textContent = `${distance} m`;
       const lane = e.x < -1 ? 'trái' : e.x > 1 ? 'phải' : 'giữa';
-      cue.root.setAttribute('aria-label', `${names[e.kind]} · ${lane} · ${distance} m`);
+      if (e.kind === 'traffic') cue.root.querySelector('.traffic-direction')!.textContent = e.speed < 0 ? '↓' : '↑';
+      cue.root.setAttribute('aria-label', `${names[e.kind]} · ${lane}${e.kind === 'traffic' ? e.speed < 0 ? ' · ngược chiều' : ' · cùng chiều' : ''} · ${distance} m`);
     }
     const coast = document.getElementById('coast-cue')!;
     coast.hidden = s.motion !== 'coasting' || s.phase !== 'running';

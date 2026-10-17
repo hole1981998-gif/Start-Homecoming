@@ -4,7 +4,7 @@ import { FixedClock, noInput } from './simulation';
 import { initialRun, names, stepRun } from './survival';
 import { recordResult, saveSeen, seenCards, showFlavor, saveFlavor } from './persistence';
 import { RoadRenderer } from './render';
-import type { EntityKind } from './world';
+import { warningDistance, type EntityKind } from './world';
 import { developmentScenario } from './development';
 import { createIcons, Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert } from 'lucide';
 import { RoadHud } from './road-hud';
@@ -42,7 +42,7 @@ function clearInput(): void { input = noInput(); clock.reset(); previous = state
 function show(view: Exclude<Screen, null>, title: string, description: string): void {
   screen = view; modal.hidden = false; clearInput();
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 02 · SINH TỒN');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 03A · GIAO THÔNG');
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
   play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
@@ -75,12 +75,12 @@ function resultView(): void {
 }
 function openHelp(): void {
   pauseRun();
-  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị. Biểu tượng sóng: nước; vòng tròn: ổ gà; ô tô: xe giao thông; bình xăng/cờ-lê: tiếp tế. Số cạnh biểu tượng là khoảng cách, hướng chỉ vị trí trên đường. Nước: thêm ${formatter.format(balance.waterFuelPerSecond)} L/s. Ổ gà: −${balance.potholeDamage} HP, tối đa −${balance.potholeMoneyLoss} tiền. Va xe: −${balance.trafficDamage} HP, cùng xe cách ${balance.trafficCooldown} giây. Bình xăng: tới +${balance.fuelPickup} L; hộp sửa: tới +${balance.repairPickup} HP. Hết xăng trôi thêm ${balance.coastDistance} m. Hết đà hoặc HP về 0 thì kết ván.`);
+  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị. Sóng: nước; vòng tròn: ổ gà; ô tô: xe giao thông. Mũi tên ↓ là xe ngược chiều, ↑ là cùng chiều. Làn trái ngược chiều, phải cùng chiều, giữa thay đổi theo seed. Nước và ổ gà có nhiều cỡ, đôi khi chiếm hai làn; luôn nhìn vùng trống. Số cạnh biểu tượng là khoảng cách. Nước: thêm ${formatter.format(balance.waterFuelPerSecond)} L/s. Ổ gà: −${balance.potholeDamage} HP, tối đa −${balance.potholeMoneyLoss} tiền. Va xe: −${balance.trafficDamage} HP, cùng xe cách ${balance.trafficCooldown} giây. Bình xăng: tới +${balance.fuelPickup} L; hộp sửa: tới +${balance.repairPickup} HP. Hết xăng trôi thêm ${balance.coastDistance} m. Hết đà hoặc HP về 0 thì kết ván.`);
 }
 const cardDescriptions: Record<EntityKind, string> = {
   water: `Mảng nước phẳng trên đường làm hao thêm ${formatter.format(balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Né sang làn còn trống; nước không trực tiếp trừ độ bền.`,
   pothole: `Ổ gà có viền vàng làm mất ${balance.potholeDamage} HP và tối đa ${balance.potholeMoneyLoss} tiền khi chạm. Một ổ chỉ gây hậu quả một lần; nhìn trước và lái sang khoảng trống.`,
-  traffic: `Xe màu cam đang chạy ở làn giữa. Va chạm mất ${balance.trafficDamage} HP, cùng xe có hồi chiêu ${balance.trafficCooldown} giây. Hai bên đường còn lối để vượt.`,
+  traffic: `Xe màu cam có thể chạy ở cả ba làn. Làn trái ngược chiều, phải cùng chiều, làn giữa chọn hướng khi sinh. Mũi tên ↓/↑ trên cảnh báo cho biết hướng; xe ngược chiều khép khoảng cách nhanh hơn. Va chạm mất ${balance.trafficDamage} HP, cùng xe có hồi chiêu ${balance.trafficCooldown} giây.`,
   fuel: `Bình xăng đứng có quai: lái chạm để nhận tới ${balance.fuelPickup} L, không vượt sức chứa. Nhặt được khi đang trôi sẽ giúp xe chạy lại.`,
   repair: `Hộp trắng có dấu cộng: lái chạm để phục hồi tới ${balance.repairPickup} HP, không vượt độ bền tối đa. Đây là nhặt trực tiếp, chưa có kho vật phẩm.`,
 };
@@ -91,7 +91,7 @@ function dismissCard(): void {
 function discover(): void {
   if (state.phase !== 'running') return;
   const candidate = state.world.entities.filter(e => !e.consumed && !seen.has(e.kind) && e.distance > state.distance &&
-    e.distance - state.distance <= Math.max(60, state.speed * balance.warningSeconds)).sort((a, b) => a.distance - b.distance)[0];
+    e.distance - state.distance <= warningDistance(state.speed, e)).sort((a, b) => a.distance - b.distance)[0];
   if (!candidate) return;
   discovery = candidate.kind; state = { ...state, phase: 'paused' };
   show('card', names[candidate.kind], cardDescriptions[candidate.kind]);

@@ -2,13 +2,15 @@ import { expect, it } from 'vitest';
 import { balance } from '../src/config';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { FixedClock, type Input } from '../src/simulation';
+import { warningDistance } from '../src/world';
 
 function pilot(r: Run, strategy: 'cruise' | 'fast' | 'slow'): Input {
-  const nearby = r.world.entities.filter(e => !e.consumed && e.distance - r.distance > -6 && e.distance - r.distance < 80);
+  const nearby = r.world.entities.filter(e => !e.consumed && e.distance + e.length / 2 - r.distance > -6 &&
+    e.distance - r.distance < Math.max(80, warningDistance(r.speed, e)));
   const target = [-balance.laneWidth, 0, balance.laneWidth].map(x => {
     let cost = Math.abs(x - r.x) * .08;
     for (const e of nearby) {
-      if (Math.abs(x - e.x) > 1) continue;
+      if (Math.abs(x - e.x) > (e.width + balance.vehicleWidth) / 2) continue;
       const weight = 1 / Math.max(1, (e.distance - r.distance) / 12);
       if (e.kind === 'fuel' && r.fuel < 6) cost -= 6 * weight;
       else if (e.kind === 'repair' && r.durability < 55) cost -= 5 * weight;

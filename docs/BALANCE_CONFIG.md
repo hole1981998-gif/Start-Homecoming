@@ -146,4 +146,6 @@ Chi tiết [DESIGN_UPDATE_IMMERSION_TRAFFIC.md](DESIGN_UPDATE_IMMERSION_TRAFFIC.
 
 Size/length hazard và HP/damage từng loại traffic chưa gán số. Nước dài dùng exposure time và ngân sách xăng hiện có; ổ gà dài một hit/entity; không tự nhân damage theo size hoặc mỗi frame. Chặn cứng 3 lane cần phương án khả dụng; nếu không thì loại mẫu. Húc phá không thưởng tiền/điểm riêng, có chi phí HP/đà/sửa cần thử; không đổi thu nhập bù ngầm va chạm tăng.
 
+**P3A cập nhật số thử đã áp dụng:** `src/config.ts` có bốn biến thể nước (2,4×4; 3,2×7; 3,2×14; 5,7×9 m) và ổ gà (1,1×1,2; 1,5×1,8; 2,3×4; 5,7×5 m). Bản rộng 5,7 m chiếm hai làn, luôn để một làn biên; director bỏ mẫu nếu xe cứng cùng lúc khóa làn còn lại. Traffic vẫn rộng 1,9 dài 3,6 m, tốc độ độ lớn 6 m/s: làn trái −6, phải +6, giữa chọn dấu seeded. Warning có sàn 60 m và thêm cửa sổ 3,5 s theo tốc độ khép khoảng cách. Đây là số tạm P3A; câu “chưa gán số” bên trên là trạng thái trước vòng thử. HP/damage theo **loại** traffic và húc phá vẫn chưa có (P4.1); gap 75/70 m và mẫu cứng 3 lane vẫn chưa áp dụng.
+
 Báo cáo xác suất sống tới đủ 800, phân bố thời gian đạt mốc kèm lượt chết/censored, thu nhập ròng, HP/xăng mất, tiếp tế cho cruise/W/S nhiều seed. Kết quả P2.0 không nghiệm thu mật độ/traffic mới.

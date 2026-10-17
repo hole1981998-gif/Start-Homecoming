@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p2.0-economy-2', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p3a-traffic-geometry-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -30,3 +30,14 @@ export function validateConfig(c: Balance): void {
       c.fuelInterval > 500 || c.hazardGap / c.maxSpeed < c.warningSeconds) throw new Error('Invalid survival bounds');
 }
 validateConfig(balance);
+
+/** P3A geometry candidates, in metres. All are temporary playtest values. */
+export const hazardSizes = Object.freeze({
+  water: [[2.4, 4], [3.2, 7], [3.2, 14], [5.7, 9]] as const,
+  pothole: [[1.1, 1.2], [1.5, 1.8], [2.3, 4], [5.7, 5]] as const,
+});
+for (const variants of Object.values(hazardSizes)) for (const [width, length] of variants) {
+  if (width <= 0 || length <= 0 || width + balance.vehicleWidth >= balance.laneWidth * 3) {
+    throw new Error('Invalid P3A hazard geometry');
+  }
+}

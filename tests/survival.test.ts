@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { balance } from '../src/config';
 import { noInput, type Input } from '../src/simulation';
 import { initialRun, stepRun, type Run } from '../src/survival';
-import { entity, fillWorld, initialWorld, sweptContact, type Entity } from '../src/world';
+import { entity, fillWorld, initialWorld, leavesOpenLane, sweptContact, warningDistance, type Entity } from '../src/world';
 
 function empty(entities: Entity[] = []): Run {
   const r = initialRun();
@@ -69,13 +69,38 @@ describe('P2 survival and chronological consequences', () => {
     const restarted = initialRun(); expect(restarted.durability).toBe(70); expect(restarted.fuel).toBe(8);
     expect(restarted.score).toBe(0); expect(restarted.money).toBe(200); expect(restarted.result).toBeNull();
   });
-  it('seeded one-lane encounters and accessible supply gaps are reproducible', () => {
+  it('seeded lane directions and wide hazards retain an open lane and accessible supplies', () => {
     expect(fillWorld(initialWorld(42), 1000)).toEqual(fillWorld(initialWorld(42), 1000));
     expect(fillWorld(initialWorld(42), 1000)).not.toEqual(fillWorld(initialWorld(17), 1000));
     const world = fillWorld(initialWorld(42), 5000);
     const fuels = world.entities.filter(e => e.kind === 'fuel');
     expect(fuels.every((e, i) => i === 0 || e.distance - fuels[i - 1].distance <= 500)).toBe(true);
-    expect(world.entities.filter(e => e.kind === 'traffic').every(e => e.x === 0 && e.width < balance.laneWidth)).toBe(true);
+    const hazards = world.entities.filter(e => e.kind === 'water' || e.kind === 'pothole');
+    expect(hazards.some(e => e.width > balance.laneWidth)).toBe(true);
+    expect(hazards.some(e => e.length > 7)).toBe(true);
+    for (const e of hazards) expect([-balance.laneWidth, 0, balance.laneWidth].some(x =>
+      Math.abs(x - e.x) > (e.width + balance.vehicleWidth) / 2)).toBe(true);
+    const traffic = world.entities.filter(e => e.kind === 'traffic');
+    expect(traffic.some(e => e.x < 0)).toBe(true);
+    expect(traffic.some(e => e.x > 0)).toBe(true);
+    expect(traffic.every(e => e.x < 0 ? e.speed < 0 : e.x > 0 ? e.speed > 0 : Math.abs(e.speed) === balance.trafficSpeed)).toBe(true);
+    expect(warningDistance(20, traffic.find(e => e.speed < 0)!)).toBeGreaterThan(warningDistance(20, traffic.find(e => e.speed > 0)!));
+  });
+  it('opposing traffic reaches the player sooner and long potholes still hit only once', () => {
+    const toward = entity('traffic', 'toward', 20, 0); toward.speed = -balance.trafficSpeed;
+    const away = entity('traffic', 'away', 20, 0); away.speed = balance.trafficSpeed;
+    const hitToward = advance(empty([toward]), 1);
+    const hitAway = advance(empty([away]), 1);
+    expect(hitToward.durability).toBeLessThan(hitAway.durability);
+    const long = entity('pothole', 'long', 7, 0); long.length = 12;
+    const r = advance(empty([long]), 2);
+    expect(r.durability).toBe(70 - balance.potholeDamage);
+  });
+  it('director rejects a hard two-lane patch when a car closes the remaining lane', () => {
+    const patch = entity('pothole', 'wide', 100, 1.6); patch.width = 5.7;
+    const car = entity('traffic', 'car', 143, -3.2); car.speed = -6;
+    expect(leavesOpenLane(patch, [car], 0)).toBe(false);
+    expect(leavesOpenLane(patch, [{ ...car, distance: 200 }], 0)).toBe(true);
   });
   it('flavor rotates per kind without consuming gameplay RNG or replacing numeric consequences', () => {
     let r = empty(); const flavors: string[] = []; const rng = r.world.rng;
