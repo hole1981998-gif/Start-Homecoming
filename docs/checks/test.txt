@@ -12,4 +12,3 @@ stdout | tests/simulation.test.ts > P1 gameplay and future economy invariants > 
       Tests  8 passed (8)
    Start at  10:57:50
    Duration  1.09s (transform 89ms, setup 0ms, collect 80ms, tests 139ms, environment 499ms, prepare 388ms)
-
