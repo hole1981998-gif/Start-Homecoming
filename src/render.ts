@@ -14,6 +14,8 @@ export class RoadRenderer {
   private rider!: THREE.Mesh;
   private helmet!: THREE.Mesh;
   private fallenDriver = new THREE.Group();
+  private bikePassengers: THREE.Group[] = [];
+  private fallenPassengers: THREE.Group[] = [];
   private roadPieces: THREE.Group[] = [];
   private roadSurface!: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   private ground!: THREE.Mesh;
@@ -72,6 +74,17 @@ export class RoadRenderer {
     for (const z of [-0.68, 0.68]) { const wheel = box(0.22, 0.48, 0.46, '#172126', this.bike); wheel.position.set(0, 0.25, z); }
     this.rider = box(0.5, 0.75, 0.45, '#7dabb3', this.bike); this.rider.position.set(0, 1.2, 0.1);
     this.helmet = box(0.4, 0.35, 0.4, '#e4d9c2', this.bike); this.helmet.position.set(0, 1.75, 0.06);
+    for (let i = 0; i < balance.riderLimit; i++) {
+      const onBike = new THREE.Group(); this.bike.add(onBike);
+      const color = i % 2 ? '#d59b79' : '#9cb7a6';
+      const body = box(.45, .65, .4, color, onBike); body.position.y = .34;
+      const head = box(.34, .34, .34, '#e6d8bd', onBike); head.position.y = .82;
+      this.bikePassengers.push(onBike);
+      const fallen = new THREE.Group(); this.scene.add(fallen);
+      const fallenBody = box(.45, .65, .4, color, fallen); fallenBody.position.y = .34;
+      const fallenHead = box(.34, .34, .34, '#e6d8bd', fallen); fallenHead.position.y = .82;
+      this.fallenPassengers.push(fallen);
+    }
     this.scene.add(this.fallenDriver);
     const fallenBody = box(0.5, 0.75, 0.45, '#7dabb3', this.fallenDriver); fallenBody.position.y = .55;
     const fallenHelmet = box(.4, .35, .4, '#e4d9c2', this.fallenDriver); fallenHelmet.position.y = 1.15;
@@ -118,9 +131,16 @@ export class RoadRenderer {
     this.bike.position.set(playerX, 0, playerZ);
     this.bike.rotation.set(0, -playerPose.heading, -s.lateralVelocity * .035, 'YXZ');
     this.rider.visible = !s.crash; this.helmet.visible = !s.crash;
+    this.bikePassengers.forEach((person, i) => {
+      person.visible = !s.crash && i < s.passengers;
+      person.position.set((i % 2 ? 1 : -1) * (.15 + Math.floor(i / 2) * .09),
+        1.15 + Math.floor(i / 2) * .38, .65 + Math.floor(i / 2) * .32);
+      person.rotation.z = (i % 2 ? -1 : 1) * .16;
+    });
     this.fallenDriver.visible = !!s.crash;
+    this.fallenPassengers.forEach(person => { person.visible = false; });
     if (s.crash) {
-      const { elapsed, side, originDistance, impactSpeed } = s.crash;
+      const { elapsed, side, originDistance, impactSpeed, returningPassengers, lostPassengers } = s.crash;
       const ejection = Math.min(1, elapsed / balance.driverFallSeconds);
       const returnProgress = Math.max(0, Math.min(1, (elapsed - balance.driverFallSeconds - balance.driverPauseSeconds) / balance.driverReturnSeconds));
       const away = ejection * (1 - returnProgress);
@@ -132,6 +152,21 @@ export class RoadRenderer {
       this.fallenDriver.position.set(fallenPose.x + Math.cos(fallenPose.heading) * driverX, 0,
         fallenPose.z + Math.sin(fallenPose.heading) * driverX);
       this.fallenDriver.rotation.set(0, -fallenPose.heading, side * 1.25 * away, 'YXZ');
+      for (let i = 0; i < returningPassengers + lostPassengers && i < this.fallenPassengers.length; i++) {
+        const person = this.fallenPassengers[i];
+        const returns = i < returningPassengers;
+        person.visible = true;
+        const passengerReturn = returns ? returnProgress : 0;
+        const passengerDistance = THREE.MathUtils.lerp(ejectedDistance + .7 + i * .8, distance,
+          passengerReturn);
+        const pose = pathPose(passengerDistance, s.route, s.seed);
+        const lateral = x + side * (1.3 + i * .45) * (1 - passengerReturn);
+        person.position.set(pose.x + Math.cos(pose.heading) * lateral, 0,
+          pose.z + Math.sin(pose.heading) * lateral);
+        const topple = returns ? 1 - passengerReturn : Math.max(0, 1 -
+          Math.max(0, elapsed - balance.driverFallSeconds) / balance.driverPauseSeconds);
+        person.rotation.set(0, -pose.heading, -side * .85 * Math.min(1, ejection) * topple, 'YXZ');
+      }
     }
     // Camera follows the centerline tangent, so Q/E visibly bends the road and the bike.
     this.camera.position.set(playerX - Math.sin(playerPose.heading) * 11, 7.5,

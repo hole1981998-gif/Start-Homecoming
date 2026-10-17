@@ -29,10 +29,16 @@ describe('P4A passenger loop', () => {
     expect(boarded.world.entities[0].consumed).toBe(true);
     expect(pickUpPassenger(boarded)).toBe(boarded);
     const paused = { ...boarded, phase: 'paused' as const };
-    const dropped = dropPassenger(paused);
+    expect(dropPassenger(paused)).toBe(paused);
+    const dropped = dropPassenger(boarded);
     expect(dropped.passengers).toBe(0);
     expect(dropped.distance).toBe(near.distance);
     expect(dropped.money).toBe(near.money);
+    expect(dropped.world.entities.find(e => e.id.startsWith('dropped-'))).toMatchObject({
+      kind: 'passenger', consumed: false, lastHit: near.activeSeconds + balance.passengerReboardDelaySeconds,
+    });
+    expect(pickUpPassenger(dropped)).toBe(dropped);
+    expect(pickUpPassenger({ ...dropped, activeSeconds: balance.passengerReboardDelaySeconds })).not.toBe(dropped);
     expect(dropPassenger(dropped)).toBe(dropped);
   });
 

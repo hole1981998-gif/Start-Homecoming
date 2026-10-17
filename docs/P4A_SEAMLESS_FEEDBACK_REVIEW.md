@@ -1,0 +1,15 @@
+# P4A — feedback thao tác khách và ngã xe (17/10/2026)
+
+**Revision kiểm tra:** branch `feature-p4a-seamless-passenger-actions`, cấu hình `p4a-passengers-1`, seed 17. Đây là tự đánh giá của Codex từ test và thao tác trình duyệt, không phải review độc lập.
+
+**Đã áp dụng:** F đón; G cho đúng một khách xuống ngay trong lúc chạy, tạo NPC bên đường với khoảng chờ 2 s để tránh F nhặt lại trong cùng nhịp. Tab dành cho đổi xe không mở popup; P4A chỉ có một xe nên chưa đổi được. Số khách có icon bên cạnh điểm/tiền. Xe mở xếp người thành cụm primitive tăng theo tải. Khi va xe, tài xế và khách văng ra; khách quay lại/ở lại theo seeded RNG, người ở lại đứng bên đường sau pha ngã. Chướng ngại xe lướt/chạm trong pha crash được miễn tác động đến khi rời collider sau khi tài xế lên lại.
+
+**Simulation:** `pnpm test` chạy 48 test/9 file. Kịch bản va xe cùng hai hazard có độ dài và phủ ba làn: HP chỉ giảm 20 tại va xe, xăng không hao khi trôi/ngã; sau khi trở lại xe, hazard đang đè lên xe không tính lại HP, tiền hay lượng xăng thêm. Test dùng 60 Hz cố định và hai bố trí va chạm. Sampling 60 s không hazard cho 0/1/2 khách: lần lượt 840/720,5/602 m; thu nhập 420/367,455/313,04. Test playtest 30 seed: không khách, chạy trung vị đạt ngưỡng 600 tiền thêm ở median ~85,7 s. Các con số không chứng minh cảm giác lái hoặc phân bố cân bằng với shop chưa có.
+
+**Manual (ChatGPT in-app browser, localhost):** `?scenario=passenger`: bắt đầu, nhấn F gần NPC được 1/1 trên HUD, nhấn G xuống 0/1 và có NPC xuất hiện; tốc độ/quãng đường tiếp tục, Tab không mở menu. `?scenario=passenger-crash`: cụm 3 khách đọc được trước va chạm; va xe còn 50 HP, 5,47 L; trong pha trôi trên nước/ổ gà, tốc độ về 0, vẫn 50 HP và ~5,47 L. Sau khi lên lại/ra khỏi hazard, HP vẫn 50; xăng giảm theo quãng đường chạy bình thường. Khách không quay lại đứng bên đường, icon F hiện khi gần. Chơi lại đặt lại trạng thái/HP/xăng. Screenshot được quan sát trong lượt manual, không dùng làm bằng chứng riêng cho input.
+
+**Game design — dữ kiện/ý kiến:** Với thông số tạm, thưởng khách theo mét chưa bù tốc độ giảm: trong mẫu sạch, một và hai khách kiếm ít tiền hơn theo phút so với đi một mình. Đây là một lựa chọn chiến thuật có thể thú vị nếu khách đem giá trị khác ở mốc tiếp theo; hiện tại G sẽ được dùng để bỏ khách nhằm tối đa tiền/phút. **ĐỀ XUẤT, chưa áp dụng:** khi P4B có nhiều xe/shop, mô phỏng 30 seed theo số khách và thời gian mua ô tô; nếu chở khách hiếm khi có lợi, thử tăng riderMoneyPerMeter hoặc tạo lợi ích khác có điều kiện, rồi kiểm tra lại xăng/độ khó. Không tăng thưởng chỉ từ một mẫu không hazard.
+
+**UI/UX — tự đánh giá:** Ưu tiên 1: kiểm tra trực tiếp khả năng đọc icon khách 15 px và nhắc phím G/Tab ở viewport nhỏ; footer có thể quá nhỏ. Ưu tiên 2: placeholder khách quay lại đang trượt theo quỹ đạo đơn giản, chưa thể hiện leo lên xe rõ như animation hoàn chỉnh; chỉ hoàn thiện ở art/animation gate. Giữ cue tai nạn gần xe và không che corridor; không thêm popup chữ.
+
+**Giới hạn:** chưa có xe thứ hai nên chưa thể kiểm chứng hành vi chuyển xe bằng Tab. Chưa có difficulty curve/shop. Đồ họa vẫn là placeholder, không chấm art direction cuối. Không có remote/CI/PR trong repo này.

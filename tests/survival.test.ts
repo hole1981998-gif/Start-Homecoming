@@ -160,6 +160,45 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(stopped.durability).toBe(first.durability);
     expect(stopped.fuel).toBe(first.fuel);
   });
+  it('does not apply water or pothole effects landed in during the fall or immediately after boarding', () => {
+    const car = { ...entity('traffic', 'car', 0, 0), speed: balance.cruiseSpeed };
+    const water = entity('water', 'landing-water', 14, 0); water.width = 9.6; water.length = 10;
+    const hole = entity('pothole', 'landing-hole', 13, 0); hole.width = 9.6; hole.length = 8;
+    const first = stepRun(empty([car, water, hole]), noInput());
+    expect(first.crash).not.toBeNull();
+    const landed = advance(first, 2.5);
+    expect(landed.protectedEntities).toContain('landing-water');
+    expect(landed.protectedEntities).toContain('landing-hole');
+    expect(landed.fuel).toBe(first.fuel);
+    expect(landed.durability).toBe(first.durability);
+    const returned = advance(landed, 1);
+    expect(returned.crash).toBeNull();
+    const withoutHazards = { ...returned, world: { ...returned.world, entities: returned.world.entities.filter(e =>
+      e.id !== 'landing-water' && e.id !== 'landing-hole') } };
+    const next = stepRun(returned, noInput());
+    const baseline = stepRun(withoutHazards, noInput());
+    expect(next.fuel).toBeCloseTo(baseline.fuel, 8);
+    expect(next.durability).toBe(baseline.durability);
+    expect(next.money).toBeCloseTo(baseline.money, 8);
+  });
+  it('protects both hazards at the actual P4A passenger crash position', () => {
+    const car = { ...entity('traffic', 'qa-traffic', 8, 0), speed: 0 };
+    const water = entity('water', 'qa-water', 16, 0); water.width = 9.6; water.length = 10;
+    const hole = entity('pothole', 'qa-hole', 15, 0); hole.width = 9.6; hole.length = 8;
+    let run = { ...empty([car, water, hole]), passengers: 3 };
+    for (let i = 0; i < 240 && !run.crash; i++) run = stepRun(run, noInput());
+    expect(run.crash).not.toBeNull();
+    const landed = advance(run, 2.5);
+    expect(landed.protectedEntities).toContain('qa-water');
+    expect(landed.protectedEntities).toContain('qa-hole');
+    const returned = advance(landed, 1);
+    expect(returned.crash).toBeNull();
+    const baseline = { ...returned, world: { ...returned.world, entities: returned.world.entities.filter(e =>
+      e.id !== 'qa-water' && e.id !== 'qa-hole') } };
+    const next = advance(returned, .5), clean = advance(baseline, .5);
+    expect(next.fuel).toBeCloseTo(clean.fuel, 8);
+    expect(next.durability).toBe(clean.durability);
+  });
   it('flavor rotates per kind without consuming gameplay RNG or replacing numeric consequences', () => {
     let r = empty(); const flavors: string[] = []; const rng = r.world.rng;
     for (let i = 0; i < 3; i++) {

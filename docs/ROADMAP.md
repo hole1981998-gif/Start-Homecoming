@@ -10,7 +10,7 @@ Roadmap là kế hoạch đề xuất, không phải báo cáo đã triển khai
 | 2.1 — HUD và nhịp chơi (bổ sung đề xuất) | Overlay, resource gần xe, graphic cue, mốc ven đường primitive; thử mật độ tách vòng | Không che đường, không cruise HUD; so sánh baseline và giữ mục tiêu economy |
 | 3A — Traffic/hazard (chia nhỏ P3) | Hướng theo làn, size/chiều dài hazard, director khả thi | Relative speed warning, sweep, không spawn bẫy; chưa có lối giải thì không chặn kín |
 | 3B — Tuyến endless | Chunk/pooling, giao lộ Q/E và QTE, camera rẽ, difficulty theo distance, RNG seeded | Đi thẳng/rẽ/bỏ lỡ đều đúng; xe dài có lối khả thi; seed tái hiện được |
-| 4 — Người và xe | F đón khách, capacity có tài xế, cruise giảm theo số khách với mức giảm/sàn riêng từng xe, quá tải, Tab cho xuống, đủ loại xe, kho 2 xe, tự thay | Thêm khách giảm cruise kể cả chưa quá tải; đạt sàn đúng từng xe/context; bỏ khách/đổi xe tính lại không giật tốc độ; mua xe thứ ba nguyên tử; đổi xe giữ khách; upgrade riêng không mất/nhân đôi |
+| 4 — Người và xe | F đón khách, G cho một khách xuống ngay, capacity có tài xế, cruise giảm theo số khách với mức giảm/sàn riêng từng xe, quá tải, Tab đổi nhanh xe, đủ loại xe, kho 2 xe, tự thay | Thêm khách giảm cruise kể cả chưa quá tải; đạt sàn đúng từng xe/context; bỏ khách/đổi xe tính lại không giật tốc độ; mua xe thứ ba nguyên tử; đổi xe giữ khách; upgrade riêng không mất/nhân đôi |
 | 4.1 — Traffic có HP và tương tác thế giới | HP/damage theo loại traffic; xe lớn phá xe yếu; traffic chịu nước/ổ gà như xe người chơi ở phần tài nguyên áp dụng được | HP thay đổi đúng theo thời gian tiếp xúc, không hit lặp/farm; chi phí húc có ý nghĩa, không kích hoạt nhầm secret |
 | 4.2 — Hành khách từ xe giao thông hỏng | Xe giao thông HP=0 để lại hành khách bên cạnh; người chơi có thể đón bằng F | Sinh khách đúng một lần, vị trí an toàn/tiếp cận được; không thưởng tự động; capacity/cruise/thu nhập cập nhật sau khi đón |
 | 5 — Kinh tế ven đường | C shop, mua xe, nâng cấp xe hiện tại, xăng/sửa, R item, controlled loot | Hàng không reroll; tiền không âm; hủy giao dịch không mất tiền; tiếp tế khả thi |
@@ -46,7 +46,7 @@ Khởi tạo công cụ → movement → tài nguyên/score → collision → ro
 
 1. Công an thiếu tiền: mặc định đề xuất mất nửa xăng xe dự phòng; dân phòng lấy tới 0.
 2. Secret yêu cầu giữ đúng xe 4 chỗ và đủ 3 khách; đổi xe/giảm khách reset.
-3. Tab/shop pause; S chỉ hãm, không lùi; hết xăng hết coast thử xe dự phòng.
+3. Tab đổi nhanh xe khi có xe dự phòng; shop pause; S chỉ hãm, không lùi; hết xăng hết coast thử xe dự phòng.
 4. Tiền/nâng cấp chỉ trong ván; leaderboard MVP cục bộ; không có vũ khí MVP.
 
 Các mục trên đã có mặc định để triển khai prototype, không phải cớ dừng mọi công việc chờ xác nhận. Nếu thay đổi tác động lớn, cập nhật tài liệu và test trước PR.
@@ -86,6 +86,6 @@ Implementation khớp phạm vi đã chốt; số tạm ở config; lint/typeche
 
 **P3B đang có bản thử:** giao lộ theo seed mỗi 800 m, Q/E chốt rẽ trong cửa sổ thời gian giảm dần theo quãng đường, đường thẳng đôi khi bị chắn, đường và camera ôm cua theo tuyến đã chọn. Mảnh đường và entity được tái dùng, khoảng hazard giảm dần 90→75 m trong khoảng 10 km; 60 m quanh giao lộ không sinh hazard để người chơi tập trung vào QTE. Xem [PROTOTYPE_3B_REVIEW.md](PROTOTYPE_3B_REVIEW.md) cho kết quả simulation, manual và giới hạn.
 
-**P4 chia lát cắt review được:** P4A thử người chờ đi nhờ seeded, F đón thủ công, Tab cho xuống, sức chứa xe máy tính cả tài xế, thưởng theo quãng đường và cruise giảm theo khách; quá tải ảnh hưởng max/fuel. P4B tiếp theo mới đưa nhiều loại xe, kho tối đa hai xe, thay xe giữ khách/tài nguyên và phần mua xe/shop phụ thuộc P5; không gọi P4 hoàn tất từ P4A. Cảnh quan seeded dạng mảng màu vẫn là hạng mục placeholder riêng của các prototype tiếp theo theo ghi chú đầu tài liệu; art chi tiết giữ ở mốc 9.
+**P4 chia lát cắt review được:** P4A thử người chờ đi nhờ seeded, F đón thủ công, G cho từng khách xuống trong khi lái, sức chứa xe máy tính cả tài xế, thưởng theo quãng đường và cruise giảm theo khách; quá tải ảnh hưởng max/fuel. Khách văng/ngồi lại hoặc đứng lại sau va chạm có placeholder chuyển động; xe mở xếp nhân vật thành cụm lớn dần theo số khách. HUD đếm khách có icon cạnh điểm/tiền. Tab được giữ cho đổi nhanh xe; P4A chỉ có một xe nên chưa có tác dụng. P4B tiếp theo mới đưa nhiều loại xe, kho tối đa hai xe, thay xe giữ khách/tài nguyên và phần mua xe/shop phụ thuộc P5; không gọi P4 hoàn tất từ P4A. Cảnh quan seeded dạng mảng màu vẫn là hạng mục placeholder riêng của các prototype tiếp theo theo ghi chú đầu tài liệu; art chi tiết giữ ở mốc 9.
 
 **Ghi chú cho prototype sau:** tài xế văng ra cần ngã/nằm tại chỗ một nhịp, đứng dậy rồi mới chạy về xe. Giữ miễn nhiễm toàn bộ chuỗi và chỉ hồi tốc khi đã lên xe; thêm thời gian dừng vào simulation trước animation hoàn chỉnh.

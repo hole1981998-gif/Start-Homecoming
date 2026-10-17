@@ -12,6 +12,7 @@ export const balance = Object.freeze({
   riderCruiseLoss: 2, riderCruiseFloor: 8, overloadSpeedPenalty: 0.08, overloadFuelPenalty: 0.15,
   minSpeedFactor: 0.4, maxFuelLoadFactor: 3,
   firstPassenger: 260, passengerInterval: 400, passengerReach: 12, passengerLateralReach: 1.8,
+  passengerReboardDelaySeconds: 2,
   coastDistance: 25, coastDrag: 3, coastCrawlSpeed: 2,
   waterFuelPerSecond: 0.8, potholeImpactDamage: 6, potholeDamagePerSecond: 12, potholeMoneyLoss: 10,
   trafficDamage: 20, trafficSpeed: 6, driverFallSeconds: 0.8, driverPauseSeconds: 0.5, driverReturnSeconds: 1.8,

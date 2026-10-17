@@ -29,11 +29,12 @@ Chạy → đọc cảnh báo → né hoặc rẽ → đón khách/nhặt đồ 
 | Q / E | Chọn rẽ trái / phải trong cửa sổ QTE giao lộ |
 | Space | Dùng một gói nitro để lấy đà nhảy qua vật cản |
 | R | Dùng vật phẩm hỗ trợ đang chọn; không dùng thay Space cho nitro |
-| F | Tương tác NPC đủ gần |
+| F | Đón/tương tác hành khách đủ gần |
+| G | Cho đúng một khách đang đi nhờ xuống xe, không mở menu và không dừng ván |
 | C | Vào cửa hàng ven đường khi đủ điều kiện |
-| Tab | Mở garage và danh sách hành khách |
+| Tab | Đổi nhanh xe đang chạy khi có xe dự phòng, không mở popup |
 
-**ĐỀ XUẤT:** S hãm tới tốc độ tối thiểu, không chạy lùi. “Tự do tới lui” được hiểu là điều chỉnh tốc độ dọc và vị trí ngang, không lùi ngược đường endless. UI chỉ báo hành động khả dụng. Tab/cửa hàng tạm dừng mô phỏng trong ván đơn; đóng UI mới tiếp tục. Không cho tương tác cửa hàng từ bất cứ đâu. Space không có nitro thì không nhảy.
+**ĐỀ XUẤT:** S hãm tới tốc độ tối thiểu, không chạy lùi. “Tự do tới lui” được hiểu là điều chỉnh tốc độ dọc và vị trí ngang, không lùi ngược đường endless. UI chỉ báo hành động khả dụng. Cửa hàng tạm dừng mô phỏng trong ván đơn; Tab đổi nhanh xe hợp lệ, không mở UI. Không cho tương tác cửa hàng từ bất cứ đâu. Space không có nitro thì không nhảy.
 
 ### Tốc độ trung vị và thao tác giữ phím
 
@@ -77,7 +78,7 @@ Xăng và độ bền là hai tài nguyên riêng. Nước làm hao xăng; va ch
 
 **ĐÃ CHỐT bổ sung:** chở thêm khách giảm tốc độ trung vị ngay cả trong sức chứa; quá tải tiếp tục chịu hậu quả đã có. Người chơi cân nhắc thưởng/thu nhập theo quãng đường so với nhịp di chuyển chậm hơn. Giữ W vẫn có thể tăng khỏi mốc trung vị đang chịu tải, tới max hiệu dụng; chưa bổ sung phạt max speed khi xe còn trong sức chứa. Cân bằng phải kiểm tra thu nhập ròng theo phút và xăng trên quãng đường, không chỉ nhìn thưởng mỗi mét; không mặc định càng đông khách càng lời hoặc càng ít khách càng tốt.
 
-**ĐỀ XUẤT:** tài xế không thể bỏ xuống và không tính thưởng; dùng `riders` cho người đi nhờ, `occupants = 1 + riders` cho tổng người. Đón bằng F gần NPC; xe chết máy cho thêm khách/vật phẩm qua sự kiện va chạm riêng có giới hạn một lần. Cho khách xuống qua Tab, không nhận tiền tức thì. Hệ thống quá tải không cấm đón khách; có trần kỹ thuật để bảo vệ hiệu năng, không thay thế sức chứa thiết kế.
+**ĐÃ CHỐT bổ sung:** F đón khách đủ gần; G cho đúng một khách xuống ngay trong lúc lái, không mở menu và không nhận tiền tức thì. Tab đổi nhanh giữa xe đang chạy và xe dự phòng hợp lệ khi hệ nhiều xe được triển khai; P4A chỉ có một xe nên Tab chưa có tác dụng. Tài xế không thể bỏ xuống và không tính thưởng; dùng `riders` cho người đi nhờ, `occupants = 1 + riders` cho tổng người. Hệ thống quá tải không cấm đón khách; có trần kỹ thuật để bảo vệ hiệu năng. Khi va xe, cả tài xế và khách đều văng ra. Khách quay lại theo RNG phải có chuyển động leo lại; khách không quay lại đứng bên đường để có thể đón lại. Trên xe mở như xe máy, mô tô, ba gác, nhân vật được xếp thành cụm lớn dần theo số khách để tạo nét hài hước, nhưng phải giữ silhouette xe và khả năng đọc đường. HUD đếm khách nằm cùng cụm điểm/tiền, dùng biểu tượng người thay chữ “người”.
 
 **ĐÃ CHỐT cho prototype sau:** xe giao thông có nhiều chủng loại và HP riêng cũng tương tác với chướng ngại môi trường như xe người chơi. Ví dụ, đi qua ổ gà làm xe giao thông mất HP theo luật tiếp xúc của ổ gà dài. Khi HP xe giao thông về 0, hành khách xuất hiện bên cạnh xe để người chơi tới đón bằng thao tác đón khách thông thường. Xe chết máy sinh sẵn vẫn là loại sự kiện riêng; không sinh trùng hành khách nếu cùng một xe vừa chịu damage vừa chuyển sang trạng thái hỏng. **ĐỀ XUẤT triển khai:** số người xuất hiện dựa trên người đang ở xe và giới hạn cân bằng, chỉ sinh một lần tại vị trí an toàn có thể tiếp cận; không tự cộng tiền/điểm khi xe hỏng. Tính lại tốc độ trung vị, tải và thu nhập chỉ khi người chơi thực sự đón họ.
 

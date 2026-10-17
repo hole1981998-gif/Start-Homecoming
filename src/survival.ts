@@ -1,6 +1,6 @@
 import { balance } from './config';
 import { initialState, step, type Input, type State } from './simulation';
-import { fillWorld, initialWorld, sweptContact, type EntityKind, type World } from './world';
+import { entity, fillWorld, initialWorld, sweptContact, type EntityKind, type World } from './world';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
 
@@ -13,6 +13,7 @@ export interface Run extends State {
   world: World; result: RunResult | null; eventSequence: number; feedback: string; feedbackAt: number;
   feedbackKind: FeedbackKind | null; feedbackFlavor: string; feedbackCounts: Record<FeedbackKind, number>;
   crash: CrashState | null; recovering: boolean; passengers: number; lostPassengers: number; crashRng: number;
+  protectedEntities: string[];
   route: RouteState;
 }
 export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initialState(),
@@ -21,6 +22,7 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   world: fillWorld(initialWorld(seed), 0), result: null, eventSequence: 0, feedback: '', feedbackAt: -100,
   feedbackKind: null, feedbackFlavor: '', feedbackCounts: initialFeedbackCounts(),
   crash: null, recovering: false, passengers: 0, lostPassengers: 0, crashRng: (seed ^ 0x9e3779b9) >>> 0,
+  protectedEntities: [],
   route: initialRoute(),
 });
 export const names: Record<EntityKind, string> = { water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ' };
@@ -42,7 +44,7 @@ function passengerEvent(run: Run, kind: 'passenger' | 'drop', message: string): 
 /** F is an explicit interaction, not a contact pickup. */
 export function pickUpPassenger(run: Run): Run {
   if (run.phase !== 'running' || run.crash || run.passengers >= balance.riderLimit) return run;
-  const candidate = run.world.entities.filter(e => e.kind === 'passenger' && !e.consumed &&
+  const candidate = run.world.entities.filter(e => e.kind === 'passenger' && !e.consumed && e.lastHit <= run.activeSeconds &&
     Math.abs(e.distance - run.distance) <= balance.passengerReach &&
     Math.abs(e.x - run.x) <= balance.passengerLateralReach)
     .sort((a, b) => Math.abs(a.distance - run.distance) - Math.abs(b.distance - run.distance))[0];
@@ -52,8 +54,19 @@ export function pickUpPassenger(run: Run): Run {
 }
 
 export function dropPassenger(run: Run): Run {
-  if (run.passengers === 0 || run.crash || run.phase === 'ended') return run;
-  return passengerEvent({ ...run, passengers: run.passengers - 1 }, 'drop', 'Cho khách xuống · −1 người');
+  if (run.phase !== 'running' || run.passengers === 0 || run.crash) return run;
+  const side = run.x >= 0 ? 1 : -1;
+  const passenger = entity('passenger', `dropped-${run.runId}-${run.eventSequence}`, run.distance - 2,
+    side * balance.laneWidth);
+  passenger.lastHit = run.activeSeconds + balance.passengerReboardDelaySeconds;
+  return passengerEvent({ ...run, passengers: run.passengers - 1,
+    world: { ...run.world, entities: [...run.world.entities, passenger] } }, 'drop', 'Khách xuống xe · −1 người');
+}
+
+const harmful = (kind: EntityKind) => kind === 'water' || kind === 'pothole' || kind === 'traffic';
+function overlapsVehicle(x: number, distance: number, e: World['entities'][number]): boolean {
+  return Math.abs(x - e.x) <= (balance.vehicleWidth + e.width) / 2 &&
+    Math.abs(distance - e.distance) <= (balance.vehicleLength + e.length) / 2;
 }
 
 export function selectTurn(run: Run, turn: Turn): Run {
@@ -76,7 +89,23 @@ export function stepRun(before: Run, input: Input): Run {
       Math.min(balance.laneWidth * 1.5 - balance.vehicleWidth / 2,
         before.crash.originX + before.crash.side * balance.crashSkidLateralMetres * skidProgress));
     const returned = elapsed >= balance.driverFallSeconds + balance.driverPauseSeconds + balance.driverReturnSeconds && speed === 0;
-    return { ...before, world: { ...world, entities: world.entities.map(e => ({ ...e, distance: e.distance + e.speed * dt, touching: false })) },
+    const movedEntities = world.entities.map(e => ({ ...e, distance: e.distance + e.speed * dt, touching: false }));
+    const protectedEntities = new Set(before.protectedEntities);
+    for (let i = 0; i < movedEntities.length; i++) {
+      const e = movedEntities[i], previousEntity = world.entities[i];
+      if (!e.consumed && harmful(e.kind) && sweptContact(before.x - previousEntity.x, before.distance - previousEntity.distance,
+        x - e.x, distance - e.distance, (balance.vehicleWidth + e.width) / 2, (balance.vehicleLength + e.length) / 2)) {
+        protectedEntities.add(e.id);
+      }
+    }
+    if (returned && before.crash.lostPassengers > 0) {
+      const side = before.crash.side;
+      for (let i = 0; i < before.crash.lostPassengers; i++) {
+        movedEntities.push(entity('passenger', `fallen-${before.runId}-${before.eventSequence}-${i}`,
+          distance + 2 + i, side * balance.laneWidth));
+      }
+    }
+    return { ...before, world: { ...world, entities: movedEntities }, protectedEntities: [...protectedEntities],
       ticks: before.ticks + 1, activeSeconds: before.activeSeconds + dt, distance, x, speed, lateralVelocity: 0,
       crash: returned ? null : { ...before.crash, elapsed }, recovering: returned && before.fuel > 0 };
   }
@@ -133,7 +162,7 @@ export function stepRun(before: Run, input: Input): Run {
     const contact = !e.consumed && e.kind !== 'passenger' && sweptContact(before.x - e.x, before.distance - e.distance,
       driven.x - e.x, driven.distance - endDistance, (balance.vehicleWidth + e.width) / 2, (balance.vehicleLength + e.length) / 2);
     e.distance = endDistance;
-    if (!contact) { e.touching = false; continue; }
+    if (!contact || before.protectedEntities.includes(e.id)) { e.touching = false; continue; }
     const [enter, exit] = contact;
     if (e.kind === 'water') {
       events.push({ t: enter, index, type: 'enter-water' }, { t: exit, index, type: 'exit-water' });
@@ -224,6 +253,10 @@ export function stepRun(before: Run, input: Input): Run {
     }
   }
   if (r.phase === 'ended' || r.crash) { r.x = before.x + (driven.x - before.x) * fraction; r.lateralVelocity = 0; }
+  if (!r.crash) r.protectedEntities = r.protectedEntities.filter(id => {
+    const e = r.world.entities.find(entity => entity.id === id);
+    return !!e && overlapsVehicle(r.x, r.distance, e);
+  });
   r.route = compactRoute(r.route, r.distance, r.seed);
   return r;
 }

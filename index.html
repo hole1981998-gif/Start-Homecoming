@@ -11,8 +11,8 @@
     <canvas id="scene" aria-label="Đường ba làn và xe máy, điều khiển bằng W A S D" tabindex="0"></canvas>
     <header id="hud" aria-label="Thông số chuyến đi">
       <div class="metric speed"><strong id="speed">0,0</strong><span>km/h</span></div>
-      <div class="metric distance"><strong id="distance">0</strong><span>m</span></div><div id="rider-count" aria-label="Số người trên xe">1/2 người</div>
-      <div class="totals"><div><i data-lucide="trophy" aria-hidden="true"></i><strong id="score">0</strong><span class="sr-only">điểm</span></div><div><i data-lucide="coins" aria-hidden="true"></i><strong id="money">200</strong><span class="sr-only">tiền</span></div></div>
+      <div class="metric distance"><strong id="distance">0</strong><span>m</span></div>
+      <div class="totals"><div><i data-lucide="trophy" aria-hidden="true"></i><strong id="score">0</strong><span class="sr-only">điểm</span></div><div><i data-lucide="coins" aria-hidden="true"></i><strong id="money">200</strong><span class="sr-only">tiền</span></div><div id="rider-indicator"><i data-lucide="users-round" aria-hidden="true"></i><strong id="rider-count" aria-label="0 khách trên xe, 1 chỗ cho khách">0/1</strong></div></div>
     </header>
     <div id="resource-anchor" aria-label="Tài nguyên xe">
       <svg class="resource-arcs" viewBox="0 0 200 170" aria-hidden="true">
@@ -29,13 +29,13 @@
     <div id="impact-cue" hidden><i data-lucide="circle-alert" aria-hidden="true"></i><strong id="impact-value"></strong><small id="impact-flavor"></small></div>
     <div id="crash-cue" role="status" aria-label="Xe đang trôi, tài xế quay lại, miễn nhiễm" hidden><span aria-hidden="true">↶</span><b id="crash-time" aria-hidden="true"></b></div>
     <div class="sr-only" id="drive-mode"></div><div class="sr-only" id="feedback" aria-live="polite"></div>
-    <footer><div class="keys"><span><kbd>W/S</kbd> tốc độ</span><span><kbd>A/D</kbd> lái</span><span><kbd>Q/E</kbd> rẽ</span><span><kbd>F</kbd> đón</span><span><kbd>Tab</kbd> khách</span></div><div class="actions"><button id="pause" aria-label="Tạm dừng" title="Tạm dừng · Esc" disabled><i data-lucide="pause" aria-hidden="true"></i></button><button id="help" aria-label="Hướng dẫn" title="Hướng dẫn"><i data-lucide="circle-help" aria-hidden="true"></i></button><button id="restart" aria-label="Chơi lại" title="Chơi lại" disabled><i data-lucide="rotate-ccw" aria-hidden="true"></i></button></div></footer>
+    <footer><div class="keys"><span><kbd>W/S</kbd> tốc độ</span><span><kbd>A/D</kbd> lái</span><span><kbd>Q/E</kbd> rẽ</span><span><kbd>F</kbd> đón</span><span><kbd>G</kbd> cho xuống</span><span><kbd>Tab</kbd> đổi xe</span></div><div class="actions"><button id="pause" aria-label="Tạm dừng" title="Tạm dừng · Esc" disabled><i data-lucide="pause" aria-hidden="true"></i></button><button id="help" aria-label="Hướng dẫn" title="Hướng dẫn"><i data-lucide="circle-help" aria-hidden="true"></i></button><button id="restart" aria-label="Chơi lại" title="Chơi lại" disabled><i data-lucide="rotate-ccw" aria-hidden="true"></i></button></div></footer>
     <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="panel">
       <span class="eyebrow" id="modal-label">PROTOTYPE 04A · HÀNH KHÁCH</span><h1 id="modal-title">Đường về nhà</h1><p id="modal-description"></p>
-      <div id="instructions"><p><kbd>W</kbd> Giữ tăng tốc <kbd>S</kbd> Giữ hãm</p><p id="release-help"></p><p><kbd>A</kbd><kbd>D</kbd> Lái tự do <kbd>Q</kbd><kbd>E</kbd> Rẽ <kbd>F</kbd> Đón khách <kbd>Tab</kbd> Xem khách <kbd>Esc</kbd> Tạm dừng</p><p class="quiet">Người chờ đi nhờ có biểu tượng riêng. Lái tới gần cùng phía và nhấn F; xe máy đủ tải gồm tài xế và một khách, có thể chở quá tải. Tab mở danh sách để cho từng khách xuống. Giao lộ Q/E vẫn cần chọn kịp khi đường thẳng bị chắn.</p></div>
+      <div id="instructions"><p><kbd>W</kbd> Giữ tăng tốc <kbd>S</kbd> Giữ hãm</p><p id="release-help"></p><p><kbd>A</kbd><kbd>D</kbd> Lái tự do <kbd>Q</kbd><kbd>E</kbd> Rẽ <kbd>F</kbd> Đón <kbd>G</kbd> Cho xuống <kbd>Tab</kbd> Đổi xe <kbd>Esc</kbd> Tạm dừng</p><p class="quiet">Người chờ đi nhờ có biểu tượng riêng. Lái tới gần cùng phía và nhấn F; nhấn G để một khách xuống ngay mà không dừng cuộc chạy. Tab đổi xe khi có xe thứ hai; bản này mới có xe máy. Giao lộ Q/E vẫn cần chọn kịp khi đường thẳng bị chắn.</p></div>
       <p id="discovery-hint" class="quiet" hidden></p>
       <dl id="result-summary" hidden><div><dt>Quãng đường</dt><dd id="result-distance"></dd></div><div><dt>Điểm</dt><dd id="result-score"></dd></div><div><dt>Tiền còn</dt><dd id="result-money"></dd></div><div><dt>Thời gian chạy</dt><dd id="result-time"></dd></div></dl>
-      <button id="drop-passenger" hidden>Cho 1 khách xuống</button><button class="primary" id="play">Bắt đầu lái</button><button id="close-help" hidden>Đóng hướng dẫn</button>
+      <button class="primary" id="play">Bắt đầu lái</button><button id="close-help" hidden>Đóng hướng dẫn</button>
       <div class="panel-actions"><button id="panel-help" hidden>Xem hướng dẫn</button><button id="panel-restart" hidden>Chơi lại từ đầu</button></div>
       <label id="feedback-options" hidden><input id="flavor-toggle" type="checkbox" checked /> Popup vui (luôn giữ phản hồi tài nguyên)</label>
     </div></div>
