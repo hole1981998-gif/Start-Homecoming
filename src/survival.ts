@@ -291,7 +291,7 @@ export function stepRun(before: Run, input: Input): Run {
       const target = trafficTypes[e.trafficKind ?? 'car4'];
       const ram = vehicleRam[vehicle.kind];
       e.hp = Math.max(0, (e.hp ?? target.hp) - ram.damage);
-      if (e.hp === 0) { e.wrecked = true; e.wreckAge = 0; e.speed = 0; }
+      if (e.hp === 0) { e.wrecked = true; e.wreckedByPlayer = true; e.wreckAge = 0; e.speed = 0; }
       const impactDamage = ram.breaksThrough && e.wrecked ? Math.ceil(target.damage * balance.trafficHeavySelfDamageFactor) : target.damage;
       r.durability = Math.max(0, r.durability - impactDamage);
       e.lastHit = r.activeSeconds;

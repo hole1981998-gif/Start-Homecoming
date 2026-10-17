@@ -12,7 +12,7 @@ export interface Entity {
   speed: number; consumed: boolean; touching: boolean; lastHit: number;
   passengerMotion?: PassengerMotion; motionKey?: string; pickupable?: boolean; riderId?: string;
   trafficKind?: TrafficKind; hp?: number; wrecked?: boolean; wreckAge?: number; trafficContacts?: string[]; baseSpeed?: number;
-  wreckPassengersSpawned?: boolean;
+  wreckPassengersSpawned?: boolean; wreckedByPlayer?: boolean;
 }
 export interface RetiredEntity { entity: Entity; route: RouteState; expireDistance: number }
 export interface World { entities: Entity[]; retired: RetiredEntity[]; nextHazard: number; nextFuel: number; nextRepair: number;
@@ -108,7 +108,7 @@ export function spawnWreckPassengers(world: World, now: number, vehicle: Vehicle
     for (let i = 0; i < safe.length; i++) {
       const point = safe[i], npc = entity('passenger', `wreck-rider:${car.id}:${i}`, point.distance, point.x);
       npc.motionKey = `${world.seed}:${npc.id}`; npc.riderId = npc.id;
-      npc.pickupable = true;
+      npc.pickupable = car.wreckedByPlayer !== true;
       // Remain in the checked safe pocket; wandering could carry them back into the patch.
       npc.passengerMotion = { ...passengerMotion(npc, now), idle: true };
       additions.push(npc);

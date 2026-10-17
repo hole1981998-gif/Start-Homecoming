@@ -46,3 +46,13 @@ Theo nhịp review prototype đã thống nhất, chỉ xem luồng/input, khôn
 ## Git / bàn giao
 
 Remote URL đã xác nhận: `https://github.com/hole1981998-gif/Start-Homecoming.git`. `ls-remote --symref` trả HEAD là branch P4.1, không có main/master. Vì thiếu main, đây là patch/branch review dựa P4.1 đã duyệt, chưa có PR theo base main và chưa merge. Không tạo main hoặc giả vờ đã cập nhật main. CI/review người thật trên revision cuối: chưa có.
+
+## Cập nhật lượt 2 — khách từ xe bị húc từ chối người chơi
+
+Parent `60137b5`, cùng branch P4.2 chưa merge; config `p4-2-traffic-passengers-2`. Theo yêu cầu chủ dự án, cú húc đưa HP traffic về 0 ghi `wreckedByPlayer=true`; NPC của nguồn đó có `pickupable=false`, vẫn hiện nhưng không có cue F và không thể đón lại. Nguyên nhân được quyết định ở hit làm xe hỏng, không phải mọi va chạm nhỏ trước đó. Khách từ xe bị môi trường phá vẫn đón được. Ghi chú đón khách bị húc ở bản đầu phía trên là lịch sử.
+
+Kiểm tra Windows/pnpm: lint, typecheck, 76/76 tests và production build đều exit 0; build còn cảnh báo chunk >500 kB. Test sửa bảo vệ cả F ngay sau sinh và sau khi xác hết hạn, giữ NPC trong data window; trường hợp ổ gà vẫn F được. Sampling 30 seed húc xe vẫn sinh 61 NPC, nhưng đây là 61 người từ chối, không còn là cơ hội kiếm khách. Các simulation economy trong full test pass; chưa đo lại pilot cứu khách chủ động, không suy balance từ pilot né đường.
+
+Manual IAB seed 17 trên code lượt 2: scenario traffic-passengers, W húc xe rồi A/F ba lần gần 60 m, HP 202 và HUD vẫn 1/25, cue F không hiện. Scenario traffic-passengers-pothole, A né/S giảm tốc/F gần 44 m, HUD tăng 1/25→3/25 và HP vẫn 210. Không dùng screenshot để chứng minh timing. Chưa kiểm tra thủ công các loại xe/seed khác.
+
+Tự review gameplay: thay đổi loại bỏ lợi ích thu khách trực tiếp từ việc chủ động húc phá; chưa đổi giá/damage/thu nhập. ĐỀ XUẤT lượt sau đo chi phí HP/km của chiến thuật húc để đảm bảo xe lớn vẫn có lợi ích mở đường, không mặc định bỏ mọi cú húc là tối ưu. Chưa áp dụng thay đổi cân bằng nào. Tự review UX: input F và cue cùng dùng pickupable, tránh báo thao tác không thực hiện được; chưa có cue phân biệt tâm trạng từ chối, có thể khó hiểu nếu người chơi chưa đọc hướng dẫn. Giữ đây là ghi chú cho lượt UX/visual phù hợp, chưa thêm popup/menu hay art.

@@ -189,3 +189,5 @@ Damage húc của xe người chơi theo cùng thứ tự loại trên: 14/18/24
 
 ## P4.2 — Thông số thử đã áp dụng
 Config `p4-2-traffic-passengers-1`: số khách xe hỏng là 1..min(capacity − 1, 3), seeded theo ID xe và seed ván; tài xế traffic không tạo thêm khách. Clearance chỗ đón 0,5 m ngoài footprint xe người chơi/hazard, NPC đứng yên. Chưa thay đổi tiền/m, thưởng khách, giá xe, spawn traffic, nhiên liệu hoặc damage. Không cộng tiền/điểm khi phá xe. Đo cơ hội đón, lượng khách thực đón và thu nhập/phút trước khi tăng cap hoặc cân chi phí húc. Những đoạn P4.2 chưa áp dụng ở trên là lịch sử.
+
+**P4.2 lượt 2:** config `p4-2-traffic-passengers-2`, không đổi số cân bằng. Khách từ xe bị người chơi húc hỏng không thể đón; 61 NPC sinh trong fixture 30 seed là người ở lại, không còn là 61 cơ hội đón. Không dùng kết quả fixture lượt đầu để suy thu nhập cứu khách.

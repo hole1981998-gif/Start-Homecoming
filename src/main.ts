@@ -72,7 +72,7 @@ function resume(): void {
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
   state = newRun(); previous = state;
-  show('start', 'Đường về nhà', `Giữ xe còn xăng và độ bền. Xe giao thông có nhiều cỡ, HP và mức sát thương riêng; xe lớn của bạn có thể húc hỏng xe nhỏ. Xe hỏng có thể để lại khách bên cạnh nếu có chỗ an toàn. F đón khách, G cho một khách xuống; Tab đổi xe. W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
+  show('start', 'Đường về nhà', `Giữ xe còn xăng và độ bền. Xe giao thông có nhiều cỡ, HP và mức sát thương riêng; xe lớn của bạn có thể húc hỏng xe nhỏ. Xe hỏng có thể để lại khách bên cạnh nếu có chỗ an toàn. Khách từ xe bị bạn húc hỏng sẽ từ chối lên xe. F đón khách, G cho một khách xuống; Tab đổi xe. W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
@@ -89,7 +89,7 @@ function openHelp(): void {
 const cardDescriptions: Record<EntityKind, string> = {
   water: `Mảng nước làm hao thêm ${formatter.format(balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Có đoạn dài tới 30 m và phủ ba làn: lúc đó phải chấp nhận hao xăng cho đến khi có nhánh rẽ ở prototype sau.`,
   pothole: `Ổ gà viền vàng lấy ${balance.potholeImpactDamage} HP và tối đa ${balance.potholeMoneyLoss} tiền ở lần chạm đầu; tiếp tục lấy ${balance.potholeDamagePerSecond} HP mỗi giây xe còn chạm. Có đoạn dài tới 24 m hoặc phủ cả ba làn; chạy nhanh qua sẽ giảm thời gian chịu hại.`,
-  traffic: `Xe giao thông có đủ loại từ xe máy, ô tô, ba gác tới buýt, tải và container; mỗi loại có HP, kích cỡ và sát thương riêng. Làn trái ngược chiều, phải cùng chiều, giữa chọn hướng theo seed. Va xe thường làm tài xế ngã; buýt, tải và container có thể húc hỏng xe yếu nhưng vẫn mất HP. Xe giao thông chịu ổ gà, chậm trong nước. Khi xe hỏng, khách xuất hiện bên cạnh nếu có chỗ an toàn; nhấn F khi đủ gần để đón, không tự nhận khách hay thưởng.`,
+  traffic: `Xe giao thông có đủ loại từ xe máy, ô tô, ba gác tới buýt, tải và container; mỗi loại có HP, kích cỡ và sát thương riêng. Làn trái ngược chiều, phải cùng chiều, giữa chọn hướng theo seed. Va xe thường làm tài xế ngã; buýt, tải và container có thể húc hỏng xe yếu nhưng vẫn mất HP. Xe giao thông chịu ổ gà, chậm trong nước. Khi xe hỏng, khách xuất hiện bên cạnh nếu có chỗ an toàn; nhấn F khi đủ gần để đón nếu xe tự hỏng vì ổ gà. Khách từ xe bị bạn húc hỏng từ chối lên xe; không tự nhận khách hay thưởng.`,
   fuel: `Bình xăng đứng có quai: lái chạm để nhận tới ${balance.fuelPickup} L, không vượt sức chứa. Nhặt được khi đang trôi sẽ giúp xe chạy lại.`,
   repair: `Hộp trắng có dấu cộng: lái chạm để phục hồi tới ${balance.repairPickup} HP, không vượt độ bền tối đa. Đây là nhặt trực tiếp, chưa có kho vật phẩm.`,
   passenger: `Người đứng ven đường chờ đi nhờ. Lái tới gần cùng phía và nhấn F để đón; không tự lên xe khi chạm. Nhấn G cho một khách xuống ngay khi chạy. Tài xế chiếm một chỗ, khách thêm làm giảm tốc độ trung vị; quá tải còn giảm tốc tối đa và tăng hao xăng.`,

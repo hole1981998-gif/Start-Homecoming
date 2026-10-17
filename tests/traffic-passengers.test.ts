@@ -81,7 +81,7 @@ it('blocked exits defer spawning until a safe side opens, without consuming haza
   expect(world.rng).toBe(17);
 });
 
-it('ram and pothole destruction create pickupable NPCs, no immediate reward or duplicate pickup', () => {
+it('ram victims refuse F permanently while pothole victims accept; neither grants instant rewards', () => {
   for (const scenario of ['traffic-passengers', 'traffic-passengers-pothole']) {
     let run = developmentScenario(initialRun(17), scenario); run.phase = 'running';
     for (let tick = 0; tick < 360 && !run.world.entities.some(e => e.kind === 'passenger'); tick++) run = stepRun(run, noInput());
@@ -91,6 +91,21 @@ it('ram and pothole destruction create pickupable NPCs, no immediate reward or d
     expect(run.score).toBeCloseTo(run.distance * balance.scorePerMeter);
     const at = { ...run, crash: null, x: npc.x, distance: npc.distance };
     const picked = pickUpPassenger(at);
+    if (scenario === 'traffic-passengers') {
+      expect(run.world.entities.find(e => e.kind === 'traffic')?.wreckedByPlayer).toBe(true);
+      expect(run.world.entities.filter(e => e.kind === 'passenger').every(e => e.pickupable === false)).toBe(true);
+      expect(picked.riderIds).toHaveLength(0);
+      let later: typeof run = { ...at, fuel: 0, motion: 'coasting', coastRemaining: 25, speed: 0 };
+      for (let i = 0; i < 240; i++) later = stepRun(later, noInput());
+      const stranded = later.world.entities.find(e => e.id === npc.id);
+      // Retest F after the wreck expires, keeping the NPC within the data window.
+      expect(stranded).toBeDefined();
+      expect(stranded!.pickupable).toBe(false);
+      expect(later.world.entities.find(e => e.kind === 'traffic')?.consumed).toBe(true);
+      expect(pickUpPassenger({ ...later, x: stranded!.x, distance: stranded!.distance }).riderIds).toHaveLength(0);
+      continue;
+    }
+    expect(npc.pickupable).toBe(true);
     expect(picked.riderIds).toEqual([npc.riderId]);
     expect(picked.money).toBe(at.money); expect(picked.score).toBe(at.score);
     const othersGone = { ...picked, world: { ...picked.world, entities: picked.world.entities.filter(e => e.id === npc.id) } };

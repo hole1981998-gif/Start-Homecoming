@@ -193,3 +193,5 @@ Vai trò có thể do Codex đảm nhiệm như các góc review; phải ghi rõ
 
 ## P4.2 — Trạng thái bản thử
 Đã có NPC từ traffic hỏng do húc/ổ gà; F đón thủ công, không tự thêm khách hoặc thưởng. Bản thử dùng số khách seeded giới hạn tối đa 3 và không vượt sức chứa trừ tài xế; đây là mặc định bảo thủ TẠM cho economy, không phải mô hình đầy xe buýt. Chỉ xuất hiện nếu có chỗ bên cạnh ngoài hazard, có thể trì hoãn/bỏ qua khi không tìm được chỗ trước lúc thu hồi dữ liệu. Khách này đứng yên ở chỗ đã kiểm tra; visual/animation hoàn chỉnh tiếp tục để giai đoạn cuối.
+
+**Cập nhật chủ dự án — P4.2 lượt 2:** khách từ traffic bị cú húc của người chơi làm HP về 0 được gắn `pickupable=false` vĩnh viễn cho NPC đó. Họ vẫn xuất hiện bên đường nhưng F và cue đón bỏ qua. Xe hỏng do môi trường vẫn sinh khách đón được. Chốt theo nguyên nhân gây hỏng: cú húc chỉ làm mất HP nhưng sau đó ổ gà mới làm HP=0 thì vẫn thuộc môi trường. Không áp dụng cho khách chờ thường/G cho xuống. Thay thế luật đón mọi khách từ xe hỏng ở bản P4.2 đầu.
