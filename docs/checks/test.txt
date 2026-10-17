@@ -1,0 +1,15 @@
+$ vitest run --configLoader native
+
+ RUN  v3.2.4 C:/Users/Admin/Documents/Codex/2026-10-17/c-to-n-b-b-t/outputs/duong-ve-nha
+
+stdout | tests/simulation.test.ts > P1 gameplay and future economy invariants > seeded 20 minute input simulation stays finite and reproducible
+{"config":"p1.1","durationPerSeed":"1200s","results":[{"seed":17,"result":{"phase":"running","distance":14075.808333330953,"speed":10.500000000000044,"x":-3.6292222222222223,"lateralVelocity":5,"ticks":72000}},{"seed":42,"result":{"phase":"running","distance":14121.99305555342,"speed":8,"x":2.8979999999999992,"lateralVelocity":0,"ticks":72000}},{"seed":20261017,"result":{"phase":"running","distance":14463.002777776137,"speed":10.500000000000098,"x":-2.5285555555555566,"lateralVelocity":0,"ticks":72000}}]}
+
+ ✓ tests/simulation.test.ts (7 tests) 43ms
+ ✓ tests/ui.test.ts (1 test) 96ms
+
+ Test Files  2 passed (2)
+      Tests  8 passed (8)
+   Start at  10:57:50
+   Duration  1.09s (transform 89ms, setup 0ms, collect 80ms, tests 139ms, environment 499ms, prepare 388ms)
+
