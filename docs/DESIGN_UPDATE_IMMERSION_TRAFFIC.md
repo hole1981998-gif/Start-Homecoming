@@ -53,7 +53,7 @@ Vũng nước trải dài tính hao xăng theo thời gian tiếp xúc; ổ gà 
 
 **Cập nhật theo yêu cầu chủ dự án sau P3A:** luật ổ gà dài “một hit” ở đoạn trên đã được thay thế: có một cú impact/tiền lúc chạm lần đầu, sau đó mất HP theo thời gian còn tiếp xúc, không lấy lại tiền mỗi frame. Cho thêm nước/ổ gà dài hàng chục mét và mẫu phủ cả ba làn. Khi P3B chưa có nhánh rẽ, chỉ sinh mẫu phủ kín nếu xăng/HP còn đủ để chịu toàn bộ đoạn theo tốc độ thấp nhất và có dự phòng; nếu thiếu tài nguyên thì thu về hai làn. Mẫu phủ kín là chi phí buộc chấp nhận, không gọi là lối né được. Xe cứng không thể xuyên vẫn cấm khóa kín ba làn trước khi có đường rẽ hợp lệ.
 
-Xe có HP không đồng nghĩa mọi xe chạm nhau đều cho thêm khách/loot: quy tắc xe chết máy cũ là event riêng. Xe bị phá không tự biến thành collider tai nạn chí tử hoặc bước secret. Trong prototype húc phá, đề xuất xe HP=0 rời collider ngay, văng chỉ là hiệu ứng; chưa mô phỏng dây chuyền xe va nhau. Không thưởng tiền/điểm farm từ húc; điểm/thu nhập vẫn theo quãng đường và khách. Xe lớn chịu hao HP/đà hoặc chi phí sửa có thể đo được; không mặc định húc miễn phí.
+**Cập nhật cho P4.1–P4.2:** xe giao thông nhiều loại có HP riêng, cũng chịu tác động từ chướng ngại môi trường. Ổ gà gây HP theo thời gian tiếp xúc; nước gây hao nhiên liệu nếu loại xe giao thông có nhiên liệu được mô phỏng. Tiền rơi ở ổ gà là hậu quả riêng của người chơi, không trừ “tiền” của traffic. Khi HP về 0, xe ngừng hoạt động và hành khách xuất hiện bên cạnh để người chơi đón; một xe chỉ phát sinh nhóm hành khách một lần. Quy tắc xe chết máy cũ vẫn là event riêng, không nhân đôi nguồn khách. Xe bị phá không tự biến thành collider tai nạn chí tử hoặc bước secret. Đề xuất vô hiệu collider xe hỏng sau khi xử lý va chạm, nhưng giữ cue/hình xe hỏng đủ để người chơi nhận ra nguồn khách; chưa mô phỏng dây chuyền xe va nhau. Không thưởng tiền/điểm trực tiếp từ húc; điểm/thu nhập theo quãng đường và khách đã đón. Xe lớn chịu hao HP/đà hoặc chi phí sửa có thể đo được; không mặc định húc miễn phí.
 
 ## Chia prototype và tiêu chí nghiệm thu
 
@@ -64,11 +64,14 @@ Xe có HP không đồng nghĩa mọi xe chạm nhau đều cho thêm khách/loo
 | P3A — traffic và hình học hazard | Trái ngược/phải cùng/giữa seeded; biến thể nhỏ/dài/2 làn; director kiểm tra đường đi | Cửa sổ phản ứng theo tốc độ tương đối, không xuyên collider, không có tổ hợp bẫy; xe dài có lối đi |
 | P3B — tuyến/giao lộ | Chunk, difficulty, QTE graphic, rẽ và cập nhật hệ quy chiếu; mở mẫu 3 làn có phương án hợp lệ | Không bắt buộc giải pháp chưa sở hữu; cảnh báo/QTE không chồng nhau gây mất input |
 | P4 — người và nhiều xe | Kế thừa luật tải/cruise, giới hạn kho, thay xe; dựng danh mục traffic | Xem cruise tại kho/mua; giữ hành khách và tài nguyên đúng; xe to không mặc định tối ưu |
-| P4.1 — húc phá (bổ sung) | HP/sát thương theo loại traffic; buýt/container húc phá; cue impact tối giản | Thiệt hại hai phía theo thứ tự event ổn định, không hit lặp theo FPS, không farm, không chạm logic secret sai |
+| P4.1 — traffic có HP/tương tác | HP/sát thương theo loại traffic; buýt/container húc phá; traffic chịu hazard theo thời gian tiếp xúc | Thiệt hại theo thứ tự event ổn định, không hit lặp theo FPS; ổ gà dài trừ HP đúng theo thời gian; không chạm logic secret sai |
+| P4.2 — khách từ xe hỏng | Traffic HP=0 dừng và sinh khách bên cạnh, tái dùng luật đón khách P4 | Mỗi xe sinh một lần; điểm đón an toàn/tiếp cận được; không tự thưởng; không nhân đôi event xe chết máy |
 | P5 và P6 | Shop/chi phí sửa xăng và nguy hiểm đặc biệt | Cân lại lợi ích húc/né, xe dài, mua xe và tiếp tế; xác minh tàu/tai nạn vẫn giữ luật riêng |
 | P8/P9 | Hoàn thiện VFX/SFX/UI/art sau duyệt cuối | Thể hiện nước bắn/impact/“OH MY XE!” mà vẫn rõ, tiết chế chữ và giữ hiệu năng |
 
 Không tăng mật độ, thêm hướng traffic, đổi damage và thay economy cùng một vòng; mỗi vòng cần seed/config và baseline đối chiếu. P2.1 là bước đề xuất kế tiếp, không được coi là build đã cập nhật. P3A/B là cách chia nhỏ P3, các mốc P5–P9 giữ tên cũ.
+
+**Cân nhặt tài nguyên ở vòng sau:** P3A hiện cho xe máy nhặt xăng bằng cả bình và sửa hơn nửa độ bền. Thử giảm từng lượng hồi riêng, theo dung tích/HP của từng xe, rồi so sánh thời gian chạy với xăng thấp, tỷ lệ hết xăng/hỏng xe, số nguồn nhặt đến được và tỷ lệ đủ tiền mua ô tô đầu. Nguồn nhặt phải tạo cảm giác nhẹ nhõm mà không xóa căng thẳng trong phần đường tiếp theo. Kiểm tra khách từ xe hỏng theo nhiều seed: nguyên nhân hỏng (người chơi/ổ gà/nguồn khác), số khách xuất hiện, tỷ lệ tới đón được và ảnh hưởng economy; không dùng khách rơi ra làm cách farm không giới hạn.
 
 ## Kế hoạch simulation và playtest
 
