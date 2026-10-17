@@ -1,0 +1,9 @@
+# P3B — giữ giao lộ sau khi rẽ (17/10/2026)
+
+Khi người chơi chọn Q/E, nhánh thẳng giờ vẫn hiện cùng đường ngang của giao lộ. Renderer giữ cả giao lộ sắp tới và giao lộ vừa đi qua bằng hai nhóm mesh tái sử dụng. Nhánh cũ chỉ rời cảnh sau khi mốc giao lộ ở sau xe hơn 64 m. Lịch sử góc rẽ trong simulation cũng chỉ được rút gọn lúc đó; một pose gốc giữ tọa độ đường mới liên tục. Chưa thêm ngã ba, phần thưởng tuyến hay thay đổi cân bằng.
+
+Kiểm chứng trên branch `fix-p3b-persistent-junctions`: `pnpm lint`, `pnpm typecheck`, `pnpm test` (41/41), `pnpm build` đều exit 0 trên Windows/PowerShell, pnpm 11.25.0. Build vẫn cảnh báo chunk JS 518,47 kB. Test mới xác nhận dữ liệu rẽ còn ở ngưỡng 64 m và sau khi rút gọn, các pose phía trước không đổi. Simulation hiện có: 30 seed QTE rẽ đúng đều tránh va rào; economy 30 seed × 3 chiến thuật giữ kết quả như trước.
+
+Manual qua Codex in-app browser trên dev server `127.0.0.1:5173`, fixture `?scenario=blocked-window`: bắt đầu ván, nhấn Q trong cửa sổ, thấy “ĐÃ CHỌN TRÁI”, đường thẳng và đường ngang cùng hiện trước khi qua giao lộ, sau đó xe tiếp tục trên nhánh mới với 70 HP. Thử bỏ lỡ Q/E: rào gây một lần 20 HP và pha ngã/trôi. Ảnh chụp sau khi xe đã đi 25 m qua giao lộ chỉ xác nhận đường mới liền mạch; góc camera sau xe không cho thấy chính xác thời điểm giao lộ cũ khuất ở 64 m. Chưa đo FPS/đánh giá cảm giác rẽ trên nhiều thiết bị.
+
+Tự review gameplay: thay đổi hình học giúp người chơi thấy giao lộ còn nguyên khi quyết định; không thay đổi độ khó, nhịp hazard hay economy. Đề xuất lần sau thử riêng ngã ba và phân biệt rủi ro hai nhánh sau khi kiểm tra khả năng đọc cảnh báo. Tự review UX: nhánh cũ không biến mất ngay, nhưng mặt đường ngang vẫn dùng placeholder phẳng; cần người chơi đánh giá góc nhìn rẽ và khoảng nhìn về phía sau trước khi làm art cuối.

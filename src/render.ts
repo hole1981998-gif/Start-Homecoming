@@ -4,6 +4,8 @@ import type { Run } from './survival';
 import type { EntityKind } from './world';
 import { junction, pathPose } from './route';
 
+interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh }
+
 export class RoadRenderer {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
@@ -22,7 +24,7 @@ export class RoadRenderer {
   private observer: ResizeObserver;
   private host: HTMLElement;
   private projected = new THREE.Vector3();
-  private crossing = new THREE.Group();
+  private crossings: JunctionView[] = [];
   constructor(canvas: HTMLCanvasElement, host: HTMLElement) {
     this.host = host;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -52,12 +54,19 @@ export class RoadRenderer {
         const post = box(.18, .7, .18, '#b0b7ab', piece); post.position.set(side * 5.3, .35, 0);
       }
     }
-    this.scene.add(this.crossing);
-    const crossingRoad = box(58, .11, 10, '#33454b', this.crossing); crossingRoad.position.y = -.035;
-    for (const x of [-6, 6]) {
-      const dash = box(.12, .025, 8, '#b6b99f', this.crossing); dash.position.set(x, .03, 0);
+    for (let i = 0; i < 2; i++) {
+      const group = new THREE.Group(), straightStub = new THREE.Group();
+      this.scene.add(group); group.add(straightStub);
+      // The cross street meets the outgoing road at the end of the quarter turn.
+      const crossStreet = box(90, .07, 9.6, '#33454b', group); crossStreet.position.set(0, -.055, -10.2);
+      const oldRoad = box(9.6, .04, 92, '#303e46', straightStub); oldRoad.position.set(0, -.08, -46);
+      for (const side of [-1, 1]) {
+        const edge = box(.12, .025, 70, '#d3d4bc', straightStub); edge.position.set(side * 4.9, -.035, -54);
+        const stripe = box(.09, .025, 70, '#9caeae', straightStub); stripe.position.set(side * balance.laneWidth / 2, -.035, -54);
+      }
+      const barrier = box(9.2, .7, .35, '#d39468', group); barrier.position.set(0, .36, -12);
+      this.crossings.push({ group, straightStub, barrier });
     }
-    const barrier = box(9.2, .7, .35, '#d39468', this.crossing); barrier.name = 'blocked-straight'; barrier.position.set(0, .36, -12);
     this.scene.add(this.bike);
     const body = box(0.65, 0.42, 1.5, '#dbb55c', this.bike); body.position.y = 0.65;
     for (const z of [-0.68, 0.68]) { const wheel = box(0.22, 0.48, 0.46, '#172126', this.bike); wheel.position.set(0, 0.25, z); }
@@ -137,16 +146,27 @@ export class RoadRenderer {
     roadPositions.needsUpdate = true;
     this.roadSurface.geometry.computeBoundingSphere();
     for (let i = 0; i < this.roadPieces.length; i++) {
-      const roadPose = pathPose(firstRoad + i * 4, s.route, s.seed);
+      const roadDistance = firstRoad + i * 4;
+      const roadPose = pathPose(roadDistance, s.route, s.seed);
       this.roadPieces[i].position.set(roadPose.x, 0, roadPose.z);
       this.roadPieces[i].rotation.y = -roadPose.heading;
+      // No dashed lane markers or roadside posts across the middle of a junction.
+      this.roadPieces[i].visible = [s.route.index - 1, s.route.index].every(index =>
+        index < 0 || Math.abs(roadDistance - junction(s.seed, index).distance) >= 13);
     }
-    const nextJunction = junction(s.seed, s.route.index);
-    this.crossing.visible = nextJunction.distance - distance < 120 && nextJunction.distance - distance > -8;
-    const crossingPose = pathPose(nextJunction.distance - 8, s.route, s.seed);
-    this.crossing.position.set(crossingPose.x, 0, crossingPose.z);
-    this.crossing.rotation.y = -crossingPose.heading;
-    this.crossing.getObjectByName('blocked-straight')!.visible = nextJunction.blockedStraight;
+    for (let slot = 0; slot < this.crossings.length; slot++) {
+      const index = s.route.index - 1 + slot, view = this.crossings[slot];
+      if (index < 0) { view.group.visible = false; continue; }
+      const cross = junction(s.seed, index), offset = cross.distance - distance;
+      view.group.visible = offset <= 120 && offset >= -64;
+      if (!view.group.visible) continue;
+      const crossingPose = pathPose(cross.distance - 8, s.route, s.seed);
+      view.group.position.set(crossingPose.x, 0, crossingPose.z);
+      view.group.rotation.y = -crossingPose.heading;
+      view.barrier.visible = cross.blockedStraight;
+      view.straightStub.visible = index === s.route.index ? s.route.choice !== null :
+        s.route.history.some(turn => turn.distance === cross.distance);
+    }
     const live = new Set<string>();
     for (const e of s.world.entities) {
       if (e.consumed) continue;

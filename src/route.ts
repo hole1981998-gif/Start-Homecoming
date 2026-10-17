@@ -3,8 +3,9 @@ import { balance } from './config';
 export type Turn = 'left' | 'right';
 export interface Junction { index: number; distance: number; blockedStraight: boolean; windowSeconds: number }
 export interface RouteState { index: number; choice: Turn | null; turns: number; lastTurn: Turn | 'straight' | null; turnAt: number; misses: number;
-  history: { distance: number; turn: Turn }[] }
-export const initialRoute = (): RouteState => ({ index: 0, choice: null, turns: 0, lastTurn: null, turnAt: -1e9, misses: 0, history: [] });
+  history: { distance: number; turn: Turn }[]; origin: PathPose & { distance: number } }
+export const initialRoute = (): RouteState => ({ index: 0, choice: null, turns: 0, lastTurn: null, turnAt: -1e9, misses: 0, history: [],
+  origin: { distance: 0, x: 0, z: 0, heading: 0 } });
 
 /** Pure world schedule; the same run seed always exposes the same junctions. */
 export function junction(seed: number, index: number): Junction {
@@ -29,7 +30,7 @@ export interface PathPose { x: number; z: number; heading: number }
 export function pathPose(distance: number, route: RouteState, seed: number): PathPose {
   const active = route.choice ? [{ distance: junction(seed, route.index).distance, turn: route.choice }] : [];
   const turns = [...route.history, ...active];
-  let pose: PathPose = { x: 0, z: 0, heading: 0 }, cursor = 0;
+  let pose: PathPose = route.origin, cursor = route.origin.distance;
   for (const event of turns) {
     const start = event.distance - 8;
     if (distance <= start) break;
@@ -47,4 +48,14 @@ export function pathPose(distance: number, route: RouteState, seed: number): Pat
   const remaining = distance - cursor;
   return { x: pose.x + Math.sin(pose.heading) * remaining,
     z: pose.z - Math.cos(pose.heading) * remaining, heading: pose.heading };
+}
+
+/** Discard turns only after their junction has moved outside the rear view. */
+export function compactRoute(route: RouteState, distance: number, seed: number): RouteState {
+  const retained = route.history.filter(event => event.distance + 64 >= distance);
+  if (retained.length === route.history.length) return route;
+  const lastRemoved = route.history[route.history.length - retained.length - 1];
+  const anchorDistance = lastRemoved.distance + 8;
+  const pose = pathPose(anchorDistance, route, seed);
+  return { ...route, history: retained, origin: { distance: anchorDistance, ...pose } };
 }

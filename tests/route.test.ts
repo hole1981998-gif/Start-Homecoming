@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { balance } from '../src/config';
 import { initialRun, selectTurn, stepRun, type Run } from '../src/survival';
 import { noInput } from '../src/simulation';
-import { canChoose, junction, nearJunction, pathPose } from '../src/route';
+import { canChoose, compactRoute, junction, nearJunction, pathPose } from '../src/route';
 import { hazardDistance } from '../src/world';
 
 function atJunction(index: number, seed = 17): Run {
@@ -66,6 +66,22 @@ describe('P3B junction decisions', () => {
     expect(carried.z).toBeCloseTo(before.z, 8);
     expect(pathPose(j.distance + 8, after.route, r.seed).heading).toBeCloseTo(-Math.PI / 2);
     expect(pathPose(j.distance + 8, cross(selectTurn(r, 'right')).route, r.seed).heading).toBeCloseTo(Math.PI / 2);
+  });
+
+  it('retains the old branch through the rear view, then retires its turn without moving the road', () => {
+    const seed = 17, first = junction(seed, 0).distance;
+    const route = { ...initialRun(seed).route, index: 1,
+      history: [{ distance: first, turn: 'left' as const }] };
+    expect(compactRoute(route, first + 64, seed).history).toHaveLength(1);
+    const ahead = [first + 65, first + 90, junction(seed, 1).distance];
+    const compacted = compactRoute(route, first + 65, seed);
+    expect(compacted.history).toHaveLength(0);
+    for (const distance of ahead) {
+      const before = pathPose(distance, route, seed), after = pathPose(distance, compacted, seed);
+      expect(after.x).toBeCloseTo(before.x, 8);
+      expect(after.z).toBeCloseTo(before.z, 8);
+      expect(after.heading).toBeCloseTo(before.heading, 8);
+    }
   });
 
   it('seeded QTE sampling separates a missed blocked route from a timely turn', () => {

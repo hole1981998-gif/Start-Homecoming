@@ -2,7 +2,7 @@ import { balance } from './config';
 import { initialState, step, type Input, type State } from './simulation';
 import { fillWorld, initialWorld, sweptContact, type EntityKind, type World } from './world';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
-import { canChoose, initialRoute, junction, type RouteState, type Turn } from './route';
+import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
 
 export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
@@ -191,5 +191,6 @@ export function stepRun(before: Run, input: Input): Run {
     }
   }
   if (r.phase === 'ended' || r.crash) { r.x = before.x + (driven.x - before.x) * fraction; r.lateralVelocity = 0; }
+  r.route = compactRoute(r.route, r.distance, r.seed);
   return r;
 }
