@@ -14,7 +14,10 @@ export class RoadRenderer {
   private pools: Record<EntityKind, THREE.Group[]> = { water: [], pothole: [], traffic: [], fuel: [], repair: [] };
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
   private observer: ResizeObserver;
+  private host: HTMLElement;
+  private projected = new THREE.Vector3();
   constructor(canvas: HTMLCanvasElement, host: HTMLElement) {
+    this.host = host;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.scene.background = new THREE.Color('#566770');
@@ -90,6 +93,13 @@ export class RoadRenderer {
       entry.mesh.visible = false; this.pools[entry.kind].push(entry.mesh); this.entityMeshes.delete(id);
     }
     this.renderer.render(this.scene, this.camera);
+    const tail = this.project(x, 0, 1.9);
+    this.host.style.setProperty('--bike-x', `${Math.max(30, Math.min(70, tail.x))}%`);
+    this.host.style.setProperty('--bike-tail-y', `${Math.max(76, Math.min(86, tail.y))}%`);
+  }
+  project(x: number, y: number, z: number): { x: number; y: number } {
+    this.projected.set(x, y, z).project(this.camera);
+    return { x: (this.projected.x + 1) * 50, y: (1 - this.projected.y) * 50 };
   }
   dispose(): void {
     this.observer.disconnect();

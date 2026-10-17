@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { expect, it, vi } from 'vitest';
-vi.mock('../src/render', () => ({ RoadRenderer: class { draw() {} dispose() {} } }));
+vi.mock('../src/render', () => ({ RoadRenderer: class { draw() {} project() { return { x: 50, y: 40 }; } dispose() {} } }));
 it('first discovery pauses before danger, closes safely, and result/restart cannot revive an old run', async () => {
   document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
   localStorage.clear();
@@ -31,7 +31,7 @@ it('first discovery pauses before danger, closes safely, and result/restart cann
   const saved = JSON.parse(localStorage.getItem('dvn.results.v1') ?? '[]') as unknown[];
   expect(saved).toHaveLength(1);
   el('play').click(); tick(1); expect(el('result-summary').hidden).toBe(true);
-  expect(el('hp-value').textContent).toBe('70 / 70 HP'); expect(el('score').textContent).toBe('14');
+  expect(el('hp-value').textContent).toBe('70 HP'); expect(el('score').textContent).toBe('14');
   expect(JSON.parse(localStorage.getItem('dvn.results.v1') ?? '[]')).toHaveLength(1);
   vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers();
 });

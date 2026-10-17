@@ -12,6 +12,7 @@ const renderer = vi.hoisted(() => ({ draws: 0, instances: 0 }));
 vi.mock('../src/render', () => ({ RoadRenderer: class {
   constructor() { renderer.instances++; }
   draw() { renderer.draws++; }
+  project() { return { x: 50, y: 40 }; }
   dispose() { /* no WebGL context in DOM tests */ }
 } }));
 
@@ -28,7 +29,8 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   const key = (type: string, code: string, extra: KeyboardEventInit = {}) => window.dispatchEvent(new KeyboardEvent(type, { code, bubbles: true, cancelable: true, ...extra }));
   const click = (id: string) => { el(id).focus(); el(id).click(); };
   expect(el('release-help').textContent).toContain('Thả W/S');
-  expect(el('cruise').textContent).toContain('50,4');
+  expect(document.getElementById('cruise')).toBeNull();
+  expect(el('release-help').textContent).not.toContain('50,4');
   click('play'); tick(1); expect(el('distance').textContent).toBe('14');
   expect(el('speed').textContent).toBe('50,4');
   key('keydown', 'KeyW'); tick(3); expect(el('drive-mode').textContent).toContain('Giữ W'); key('keyup', 'KeyW');

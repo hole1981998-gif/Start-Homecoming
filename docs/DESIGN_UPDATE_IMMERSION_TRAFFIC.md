@@ -85,3 +85,7 @@ Tự review game design sau sampling: bot W luôn còn 70 HP ở các seed mẫu
 ## Mục tiêu economy được thay thế sau ghi chú này
 
 Chủ dự án yêu cầu mua ô tô đầu tiên trong 1–1,5 phút thay 3–5 phút. Baseline economy kế tiếp dùng 0,50 tiền/m, giữ tiền đầu 200/giá 800; các ghi nhận 0,15 và số simulation P2.0 bên trên là lịch sử. Khi thử mật độ P2.1 dùng baseline mới, không đổi đồng thời economy. Xem ECONOMY_60_90_REVIEW.md.
+
+## Trạng thái sau cập nhật HUD
+
+Đã triển khai phần HUD của P2.1: chỉ số overlay, thanh xăng/HP sau xe, bỏ số cruise cả intro/Help, graphic marker hazard/tiếp tế, phản hồi hậu quả ngắn và nút icon. Chưa triển khai các phần còn lại của P2.1 (thử mật độ/trang trí mới), P3A/B, hoặc VFX/SFX hoàn chỉnh. Gameplay/economy kế thừa bản 0,50/m. Chi tiết bằng chứng và tự review: [HUD_REVIEW.md](HUD_REVIEW.md). Các mô tả “chưa triển khai HUD” bên trên là trạng thái tại thời điểm ghi chú ban đầu.

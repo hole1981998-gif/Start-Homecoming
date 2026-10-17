@@ -1,4 +1,4 @@
-# Đường Về Nhà — Prototype 2
+# Đường Về Nhà — Prototype 2 · HUD overlay
 
 **P2 giữ cruise P1.2:** tự chạy ở 14 m/s (50,4 km/h), giữ W/S để nhanh/chậm, thả để hồi. Thêm xăng/HP, nước/ổ gà/xe, nhặt xăng/sửa, điểm/tiền, coasting, kết ván và restart. Theo yêu cầu mới, thử thu nhập **0,50 tiền/m** để bám mục tiêu ô tô đầu tiên **1–1,5 phút**, thay mốc cũ 3–5 phút/0,15 tiền/m. Giữ tiền đầu 200 và giá ô tô 800. Các số còn TẠM; chưa có shop/mua xe nên mới đo khả năng đủ tiền.
 
@@ -37,3 +37,7 @@ Các tài liệu thiết kế trong `docs/` xuất phát từ bộ tài liệu c
 ## Feedback thiết kế sau P2
 
 Đã cập nhật [UI/nhịp chơi/traffic và phân kỳ prototype](docs/DESIGN_UPDATE_IMMERSION_TRAFFIC.md), cùng GDD/spec/roadmap/balance. Đây là design kế tiếp, chưa đổi P2.0 đang chạy. Đề xuất P2.1 cho HUD overlay/cue/mốc ven đường và thử nhịp; P3A/B cho traffic nhiều hướng/hazard rộng/QTE; P4.1 cho HP traffic/húc phá sau hệ thống nhiều xe.
+
+## HUD mới đã triển khai
+
+Chỉ số phủ lên gameplay, tài nguyên gọn sau đuôi xe, không hiển thị số cruise/target; nút điều khiển dạng icon. Cảnh báo hazard/tiếp tế có icon, khoảng cách và vị trí theo thế giới; số hậu quả ngắn tại xe thay bảng log. Help/discovery/kết quả giữ phần giải thích an toàn. Giữ economy 0,50/m và gameplay; chưa tăng mật độ, thêm QTE hoặc VFX/SFX hoàn chỉnh. Xem [HUD_REVIEW.md](docs/HUD_REVIEW.md) cho kiểm tra và giới hạn.

@@ -66,3 +66,7 @@ Implementation khớp phạm vi đã chốt; số tạm ở config; lint/typeche
 ## Feedback P2: kế hoạch kế tiếp
 
 Đọc [DESIGN_UPDATE_IMMERSION_TRAFFIC.md](DESIGN_UPDATE_IMMERSION_TRAFFIC.md) trước P2.1. P2.0 giữ nguyên làm baseline. P2.1 ưu tiên UI và mốc tốc độ thị giác rồi thử gap 75/70 m từng vòng, chưa áp dụng số. P3A làm traffic trái ngược/phải cùng/giữa seeded và hazard nhiều size; P3B thêm QTE/tuyến và mẫu phủ kín có phương án hợp lệ. P4.1 chỉ sau P4 có xe người chơi khác nhau. Cân lợi ích húc với chi phí sửa/đổi xe ở P5; xe lớn không bất tử. Các mốc P5–P9 giữ tên; SFX/art hoàn chỉnh vẫn ở gate cuối.
+
+## Trạng thái sau cập nhật HUD
+
+Đã triển khai phần HUD của P2.1: chỉ số overlay, thanh xăng/HP sau xe, bỏ số cruise cả intro/Help, graphic marker hazard/tiếp tế, phản hồi hậu quả ngắn và nút icon. Chưa triển khai các phần còn lại của P2.1 (thử mật độ/trang trí mới), P3A/B, hoặc VFX/SFX hoàn chỉnh. Gameplay/economy kế thừa bản 0,50/m. Chi tiết bằng chứng và tự review: [HUD_REVIEW.md](HUD_REVIEW.md). Các mô tả “chưa triển khai HUD” bên trên là trạng thái tại thời điểm ghi chú ban đầu.

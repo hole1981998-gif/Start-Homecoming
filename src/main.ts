@@ -4,8 +4,11 @@ import { FixedClock, noInput } from './simulation';
 import { initialRun, names, stepRun } from './survival';
 import { recordResult, saveSeen, seenCards, showFlavor, saveFlavor } from './persistence';
 import { RoadRenderer } from './render';
-import type { Entity, EntityKind } from './world';
+import type { EntityKind } from './world';
 import { developmentScenario } from './development';
+import { createIcons, Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert } from 'lucide';
+import { RoadHud } from './road-hud';
+createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert } });
 
 const el = <T extends HTMLElement>(id: string): T => {
   const node = document.getElementById(id); if (!node) throw new Error(`Missing UI: ${id}`); return node as T;
@@ -17,8 +20,7 @@ const closeHelp = el<HTMLButtonElement>('close-help');
 const formatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
 const speedFormatter = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const speedText = (speed: number) => speedFormatter.format(speed * 3.6);
-const cruiseLabel = `${speedText(balance.cruiseSpeed)} km/h`;
-text('cruise', `Trung vị · ${cruiseLabel}`); text('release-help', `Thả W/S: tự hồi về ${cruiseLabel}.`);
+text('release-help', 'Thả W/S: xe tự hồi về tốc độ trung vị riêng của xe.');
 function newRun() {
   const run = initialRun(17, crypto.randomUUID());
   return import.meta.env.DEV ? developmentScenario(run, new URLSearchParams(location.search).get('scenario')) : run;
@@ -31,6 +33,7 @@ let savedRunId = '';
 const seen = seenCards(), clock = new FixedClock(), listeners = new AbortController();
 const flavorToggle = el<HTMLInputElement>('flavor-toggle'); flavorToggle.checked = showFlavor();
 flavorToggle.addEventListener('change', () => saveFlavor(flavorToggle.checked), { signal: listeners.signal });
+const roadHud = new RoadHud(el('world-cues'));
 let graphics: RoadRenderer;
 try { graphics = new RoadRenderer(canvas, el('game')); }
 catch (error) { el('error').hidden = false; modal.hidden = true; throw error; }
@@ -61,7 +64,7 @@ function resume(): void {
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
   state = newRun(); previous = state;
-  show('start', 'Đường về nhà', `Giữ xe còn xăng và độ bền. Xe tự chạy ở ${cruiseLabel}; giữ W/S để chạy nhanh hoặc chậm hơn.`);
+  show('start', 'Đường về nhà', `Giữ xe còn xăng và độ bền. Giữ W/S để chạy nhanh hoặc chậm; thả để xe tự hồi về tốc độ trung vị.`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
@@ -72,7 +75,7 @@ function resultView(): void {
 }
 function openHelp(): void {
   pauseRun();
-  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm hơn ${cruiseLabel}; thả hồi về mốc. Nước: thêm ${formatter.format(balance.waterFuelPerSecond)} L/s. Ổ gà: −${balance.potholeDamage} HP, tối đa −${balance.potholeMoneyLoss} tiền. Va xe: −${balance.trafficDamage} HP, cùng xe cách ${balance.trafficCooldown} giây. Bình xăng: tới +${balance.fuelPickup} L; hộp sửa: tới +${balance.repairPickup} HP. Hết xăng trôi thêm ${balance.coastDistance} m. Hết đà hoặc HP về 0 thì kết ván.`);
+  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị. Biểu tượng sóng: nước; vòng tròn: ổ gà; ô tô: xe giao thông; bình xăng/cờ-lê: tiếp tế. Số cạnh biểu tượng là khoảng cách, hướng chỉ vị trí trên đường. Nước: thêm ${formatter.format(balance.waterFuelPerSecond)} L/s. Ổ gà: −${balance.potholeDamage} HP, tối đa −${balance.potholeMoneyLoss} tiền. Va xe: −${balance.trafficDamage} HP, cùng xe cách ${balance.trafficCooldown} giây. Bình xăng: tới +${balance.fuelPickup} L; hộp sửa: tới +${balance.repairPickup} HP. Hết xăng trôi thêm ${balance.coastDistance} m. Hết đà hoặc HP về 0 thì kết ván.`);
 }
 const cardDescriptions: Record<EntityKind, string> = {
   water: `Mảng nước phẳng trên đường làm hao thêm ${formatter.format(balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Né sang làn còn trống; nước không trực tiếp trừ độ bền.`,
@@ -131,26 +134,21 @@ canvas.addEventListener('blur', event => {
 }, { signal: listeners.signal });
 canvas.addEventListener('click', () => { if (state.phase === 'running') canvas.focus(); }, { signal: listeners.signal });
 
-const laneName = (x: number) => x < -1 ? 'trái' : x > 1 ? 'phải' : 'giữa';
-const describe = (entity: Entity) => `${names[entity.kind]} · ${laneName(entity.x)} · ${Math.max(0, Math.ceil(entity.distance - state.distance))} m`;
 function updateHud(): void {
   text('speed', speedText(state.phase === 'running' ? state.speed : 0)); text('distance', `${Math.floor(state.distance + 1e-8)}`);
   text('score', `${Math.floor(state.score + 1e-8)}`); text('money', formatter.format(state.money));
   const fuel = el<HTMLProgressElement>('fuel'), hp = el<HTMLProgressElement>('hp');
   fuel.max = balance.fuelCapacity; fuel.value = state.fuel; hp.max = balance.durabilityCapacity; hp.value = state.durability;
-  text('fuel-value', `${speedFormatter.format(state.fuel)} / ${balance.fuelCapacity} L`);
-  text('hp-value', `${state.durability} / ${balance.durabilityCapacity} HP`);
+  text('fuel-value', `${speedFormatter.format(state.fuel)} L`);
+  text('hp-value', `${state.durability} HP`);
   fuel.parentElement?.classList.toggle('critical', state.fuel < 2); hp.parentElement?.classList.toggle('critical', state.durability < 25);
   text('drive-mode', state.phase !== 'running' ? state.phase === 'ready' ? 'Sẵn sàng' : state.phase === 'ended' ? 'Đã kết ván' : 'Đã tạm dừng' :
     state.motion === 'coasting' ? `Hết xăng · trôi ${Math.ceil(state.coastRemaining)} m` : input.brake ? 'Giữ S · hãm' : input.accelerate ? 'Giữ W · tăng' :
       Math.abs(state.speed - balance.cruiseSpeed) > 1e-8 ? 'Đang hồi về trung vị' : 'Tự chạy trung vị');
-  const nearby = state.world.entities.filter(e => !e.consumed && e.distance + e.length / 2 >= state.distance && e.distance - state.distance <= Math.max(60, state.speed * balance.warningSeconds)).sort((a, b) => a.distance - b.distance);
-  const hazard = nearby.find(e => !['fuel', 'repair'].includes(e.kind)), supply = nearby.find(e => ['fuel', 'repair'].includes(e.kind));
-  text('warning-main', hazard ? describe(hazard) : 'Đường thoáng · quan sát phía trước');
-  text('warning-supply', supply ? describe(supply) : '');
-  text('feedback', state.activeSeconds - state.feedbackAt < 3 ? `${state.feedback}${flavorToggle.checked ? ` · ${state.feedbackFlavor}` : ''}` : '');
+  roadHud.update(state, graphics, flavorToggle.checked);
   pause.disabled = state.phase === 'ready' || state.phase === 'ended'; restart.disabled = state.phase === 'ready';
-  pause.textContent = state.phase === 'paused' ? 'Tiếp tục' : 'Tạm dừng';
+  pause.setAttribute('aria-label', state.phase === 'paused' ? 'Tiếp tục' : 'Tạm dừng');
+  pause.title = state.phase === 'paused' ? 'Tiếp tục · Esc' : 'Tạm dừng · Esc';
 }
 let last = performance.now(), animation = 0;
 const diagnostics = new URLSearchParams(location.search).has('diagnostics');

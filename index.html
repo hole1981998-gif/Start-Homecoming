@@ -9,15 +9,19 @@
   <aside class="outside"><span>ĐƯỜNG VỀ NHÀ</span><p>Giữ tay lái.<br>Giữ xe còn chạy.</p><small>PROTOTYPE 02<br>Xăng · độ bền · sinh tồn</small></aside>
   <section id="game" aria-label="Khung chơi Đường Về Nhà">
     <canvas id="scene" aria-label="Đường ba làn và xe máy, điều khiển bằng W A S D" tabindex="0"></canvas>
-    <header id="hud">
-      <div class="hud-title"><span>ĐƯỜNG VỀ NHÀ</span><span class="tag">P2 · BẢN THỬ</span></div>
-      <div class="metrics"><div><strong id="speed">0,0</strong><span>km/h</span></div><div><strong id="distance">0</strong><span>m</span></div><div><strong id="score">0</strong><span>điểm</span></div><div><strong id="money">200</strong><span>tiền</span></div></div>
-      <div class="resources"><label>XĂNG <b id="fuel-value">8,0 / 8 L</b><progress id="fuel" max="8" value="8"></progress></label><label>ĐỘ BỀN <b id="hp-value">70 / 70 HP</b><progress id="hp" max="70" value="70"></progress></label></div>
-      <div id="notice"><span id="cruise"></span><span id="drive-mode">Sẵn sàng</span></div>
-      <div class="warnings"><div id="warning-main">Đường thoáng · quan sát phía trước</div><div id="warning-supply">Nhặt bình xăng và hộp sửa trên đường</div></div>
-      <div id="feedback" aria-live="polite"></div>
+    <header id="hud" aria-label="Thông số chuyến đi">
+      <div class="metric speed"><strong id="speed">0,0</strong><span>km/h</span></div>
+      <div class="metric distance"><strong id="distance">0</strong><span>m</span></div>
+      <div class="totals"><div><i data-lucide="trophy" aria-hidden="true"></i><strong id="score">0</strong><span class="sr-only">điểm</span></div><div><i data-lucide="coins" aria-hidden="true"></i><strong id="money">200</strong><span class="sr-only">tiền</span></div></div>
     </header>
-    <footer><div class="keys"><span><kbd>W</kbd> Giữ tăng</span><span><kbd>S</kbd> Giữ hãm</span><span><kbd>A</kbd><kbd>D</kbd> Lái</span><span><kbd>Esc</kbd> Dừng</span></div><div class="actions"><button id="pause" disabled>Tạm dừng</button><button id="help">Hướng dẫn</button><button id="restart" disabled>Chơi lại</button></div></footer>
+    <div id="resource-anchor" aria-label="Tài nguyên xe">
+      <div class="resources"><label><i data-lucide="fuel" aria-hidden="true"></i><span class="sr-only">Xăng</span><b id="fuel-value">8,0 L</b><progress id="fuel" aria-label="Xăng" max="8" value="8"></progress></label><label><i data-lucide="wrench" aria-hidden="true"></i><span class="sr-only">Độ bền</span><b id="hp-value">70 HP</b><progress id="hp" aria-label="Độ bền" max="70" value="70"></progress></label></div>
+      <span id="coast-cue" hidden></span>
+    </div>
+    <div id="world-cues" aria-label="Cảnh báo trên đường"></div>
+    <div id="impact-cue" hidden><i data-lucide="circle-alert" aria-hidden="true"></i><strong id="impact-value"></strong><small id="impact-flavor"></small></div>
+    <div class="sr-only" id="drive-mode"></div><div class="sr-only" id="feedback" aria-live="polite"></div>
+    <footer><div class="keys"><span><kbd>W</kbd> tăng</span><span><kbd>S</kbd> hãm</span><span><kbd>A D</kbd> lái</span></div><div class="actions"><button id="pause" aria-label="Tạm dừng" title="Tạm dừng · Esc" disabled><i data-lucide="pause" aria-hidden="true"></i></button><button id="help" aria-label="Hướng dẫn" title="Hướng dẫn"><i data-lucide="circle-help" aria-hidden="true"></i></button><button id="restart" aria-label="Chơi lại" title="Chơi lại" disabled><i data-lucide="rotate-ccw" aria-hidden="true"></i></button></div></footer>
     <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="panel">
       <span class="eyebrow" id="modal-label">PROTOTYPE 02 · SINH TỒN</span><h1 id="modal-title">Đường về nhà</h1><p id="modal-description"></p>
       <div id="instructions"><p><kbd>W</kbd> Giữ tăng tốc <kbd>S</kbd> Giữ hãm</p><p id="release-help"></p><p><kbd>A</kbd><kbd>D</kbd> Lái tự do <kbd>Esc</kbd> Tạm dừng</p><p class="quiet">Né ổ gà và xe. Nước hao xăng. Lái chạm bình xăng / hộp sửa để nhặt. Cửa hàng, hành khách và đổi xe sẽ có ở prototype sau.</p></div>
@@ -25,7 +29,7 @@
       <dl id="result-summary" hidden><div><dt>Quãng đường</dt><dd id="result-distance"></dd></div><div><dt>Điểm</dt><dd id="result-score"></dd></div><div><dt>Tiền còn</dt><dd id="result-money"></dd></div><div><dt>Thời gian chạy</dt><dd id="result-time"></dd></div></dl>
       <button class="primary" id="play">Bắt đầu lái</button><button id="close-help" hidden>Đóng hướng dẫn</button>
       <div class="panel-actions"><button id="panel-help" hidden>Xem hướng dẫn</button><button id="panel-restart" hidden>Chơi lại từ đầu</button></div>
-      <label id="feedback-options" hidden><input id="flavor-toggle" type="checkbox" checked /> Lời nhắc vui (luôn giữ thông báo hậu quả)</label>
+      <label id="feedback-options" hidden><input id="flavor-toggle" type="checkbox" checked /> Popup vui (luôn giữ phản hồi tài nguyên)</label>
     </div></div>
     <div id="error" role="alert" hidden>Không khởi tạo được đồ họa 3D. Hãy bật WebGL hoặc thử trình duyệt khác.</div>
   </section>

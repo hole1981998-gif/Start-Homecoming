@@ -1,0 +1,43 @@
+// @vitest-environment jsdom
+import { expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { RoadHud } from '../src/road-hud';
+import { initialRun, type Run } from '../src/survival';
+import { entity } from '../src/world';
+
+function setup() {
+  document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
+  return new RoadHud(document.getElementById('world-cues')!);
+}
+it('spatial warnings choose imminent objects, preserve hazard priority and never mutate a run', () => {
+  const hud = setup();
+  const run: Run = { ...initialRun(), phase: 'running' };
+  run.world.entities = [entity('water', 'near', 35, 3.2), entity('pothole', 'far', 120, 0), entity('fuel', 'fuel', 40, 3.2)];
+  const snapshot = structuredClone(run);
+  const projection = { project: () => ({ x: 120, y: -20 }) };
+  hud.update(run, projection, true);
+  const water = document.querySelector<HTMLElement>('[data-kind="water"]')!;
+  expect(water.hidden).toBe(false); expect(water.getAttribute('aria-label')).toContain('phải · 35 m');
+  expect(water.style.left).toBe('91%'); expect(water.style.top).toBe('24%');
+  expect(document.querySelector<HTMLElement>('[data-kind="fuel"]')!.hidden).toBe(true);
+  expect(document.querySelector<HTMLElement>('[data-kind="pothole"]')!.hidden).toBe(true);
+  expect(run).toEqual(snapshot);
+  hud.update({ ...run, phase: 'paused' }, projection, false);
+  expect(water.hidden).toBe(true);
+});
+it('disabling flavor keeps numeric consequences; expired/restarted feedback clears; coast stays readable', () => {
+  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
+  const run: Run = { ...initialRun(), phase: 'running', feedbackKind: 'pothole', feedbackAt: 0, activeSeconds: 1,
+    feedback: 'Ổ gà · −12 HP · −10.0 tiền', motion: 'coasting', coastRemaining: 18 };
+  hud.update(run, projection, false);
+  expect(document.getElementById('impact-value')!.textContent).toContain('−12 HP');
+  expect(document.getElementById('impact-flavor')!.textContent).toBe('');
+  expect(document.getElementById('coast-cue')!.textContent).toBe('Trôi 18 m');
+  hud.update(run, projection, true);
+  expect(document.getElementById('impact-flavor')!.textContent).toBe('OH MY XE!');
+  hud.update({ ...run, activeSeconds: 3 }, projection, true);
+  expect(document.getElementById('impact-cue')!.hidden).toBe(true);
+  hud.update(initialRun(), projection, true);
+  expect(document.getElementById('feedback')!.textContent).toBe('');
+  expect(document.getElementById('coast-cue')!.hidden).toBe(true);
+});
