@@ -14,7 +14,7 @@
 | initialVehicle | xe máy | 1 xe, đầy xăng và độ bền |
 | scorePerMeter | 1 | Điểm cơ bản |
 | riderScoreBonus | 0.04 | Mỗi khách +4% điểm theo quãng đường |
-| baseMoneyPerMeter | 0.15 | Thu nhập cơ bản, chủ dự án đồng ý thử trong P2 ngày 17/10/2026; thay số cũ 0.02 |
+| baseMoneyPerMeter | 0.50 | Thử theo mục tiêu mới 1–1,5 phút; thay 0.15, giữ tiền đầu 200 và ô tô 800 |
 | riderMoneyPerMeter | 0.01 | Mỗi khách thêm thu nhập tuyến tính |
 | overloadSpeedPenalty | 0.08 | Giảm tốc độ tối đa mỗi người quá tải |
 | overloadFuelPenalty | 0.15 | Tăng tiêu hao mỗi người quá tải |
@@ -74,11 +74,11 @@ Sàn bằng min cho phép xe giảm tới min khi đủ khách; sàn cao hơn mi
 
 Hai rate trên tạm dùng chung; cruise thuộc từng VehicleDefinition khi có hệ thống nhiều xe. Có thể đề xuất rate riêng từng xe sau playtest. Với xe máy chỉ có tài xế, 20 → 14 m/s mất 1,5 s; 8 → 14 mất 2 s theo các số tạm này. **P1.2 đã triển khai và chạy simulation cho trường hợp xe máy này**; không suy ra các xe/tải khách khác đã được kiểm chứng hoặc số đã khóa cân bằng. Gia tốc khi giữ W và lực hãm S dùng config điều khiển riêng, không suy ra từ return rates. Nâng cấp động cơ hiện chỉ tăng max theo mô tả cũ; chưa tăng baseCruiseSpeed. Khi hết xăng, auto-cruise không được tự cấp lực kéo (kiểm tra trong prototype có fuel/coasting).
 
-### Mục tiêu economy đã chốt: ô tô đầu tiên sau 3–5 phút
+### Mục tiêu economy đã chốt: ô tô đầu tiên sau 1–1,5 phút
 
 Mục tiêu là cơ hội mua xe trong lượt chơi đại diện, tính thời gian gameplay hoạt động, không tính pause/Help/shop; không phải bảo đảm mọi seed. Các giá/thu nhập trong bảng vẫn TẠM và chưa được chỉnh để khẳng định đã đạt mục tiêu.
 
-Với số cũ 0,02/m cần 30.000 m để kiếm 600 tiền thiếu mua ô tô, mất khoảng 35,7 phút ở cruise 14 m/s. **Chủ dự án đã đồng ý thử 0,15/m trong P2**: lý thuyết cần 4.000 m, khoảng 4 phút 46 giây ở cruise hoặc 3 phút 20 giây ở max, trước va chạm/chi phí. Đây là số TẠM được duyệt để playtest, không phải khóa cân bằng. P2 chưa có shop/khách nên chỉ đo thời gian đủ 800 tiền, chưa gọi là mua xe thật hoặc economy đầy đủ. Khi thêm hành khách/shop, tiếp tục đo các chiến thuật và chi phí; trình đổi cân bằng lớn trước khi áp dụng. Giữ xăng/điểm/tiền theo distance hợp lệ, không thưởng riêng vì giữ phím.
+Theo yêu cầu mới, thử **0,50 tiền/m** thay 0,15, giữ tiền đầu 200 và ô tô 800. Cần kiếm thêm 600 tiền, tương đương 1.200 m nếu chưa mất tiền: ~85,7 giây ở cruise 14 m/s, ~60 giây ở max 20 m/s, ~150 giây ở min 8 m/s. Chuyển tiếp tốc độ và va chạm có thể làm khác số lý thuyết. Giữ S liên tục là lượt đối chiếu, không buộc mọi chiến thuật đều đạt 60–90 giây. P2 chỉ đo đủ tiền, chưa có mua xe/shop. Mốc cũ 3–5 phút và thu nhập 0,15 thuộc lịch sử P2.0. Đây là số thử, chưa khóa economy các xe sau/chi phí shop.
 
 ### Cấu hình thử P2 — không thay thế director P3
 
@@ -138,11 +138,11 @@ lengthPenalty = clamp((vehicleLength - 4.2) * 0.025, 0, 0.3)
 
 Đo thời lượng ván, khoảng cách đạt tiền mua ô tô 4 chỗ, số lần tiếp tế, tỷ lệ chết theo nguyên nhân, tỷ lệ thất bại QTE theo xe, số seed bất khả thi và tỷ lệ đạt secret. Thử tải 1 người, đúng tải và quá tải; thử xe dài trên mọi mẫu giao lộ. Không tăng difficulty bằng tăng tiền phạt. Ghi seed/config version và kết quả thực, điều chỉnh một nhóm biến mỗi lần; chưa có dữ liệu đo ở bản tài liệu này.
 
-Riêng passenger cruise: thử từng n từ 0 khách tới đúng tải, quá tải và tới sàn; kiểm tra min <= effectiveCruise <= max, tăng n không tăng cruise khi giữ nguyên xe/tình huống, bỏ khách không làm giảm cruise. So sánh xe máy/ô tô/buýt/container và đổi xe giữ khách. Đo tiền ròng/phút, quãng chạy mỗi bình và thời gian mua xe đầu tiên ở cruise/W/S; xác minh còn nhiều lựa chọn chở khách có ý nghĩa, vẫn phục vụ mục tiêu 3–5 phút. Chưa gán các hệ số mới hoặc sửa income/giá cho tới vòng cân bằng triển khai.
+Riêng passenger cruise: thử từng n từ 0 khách tới đúng tải, quá tải và tới sàn; kiểm tra min <= effectiveCruise <= max, tăng n không tăng cruise khi giữ nguyên xe/tình huống, bỏ khách không làm giảm cruise. So sánh xe máy/ô tô/buýt/container và đổi xe giữ khách. Đo tiền ròng/phút, quãng chạy mỗi bình và thời gian mua xe đầu tiên ở cruise/W/S; xác minh còn nhiều lựa chọn chở khách có ý nghĩa, vẫn phục vụ mục tiêu 1–1,5 phút. Chưa gán các hệ số mới hoặc sửa income/giá cho tới vòng cân bằng triển khai.
 
 ## Thử nghiệm nhịp sau feedback P2 — CHƯA ÁP DỤNG
 
-Chi tiết [DESIGN_UPDATE_IMMERSION_TRAFFIC.md](DESIGN_UPDATE_IMMERSION_TRAFFIC.md). Baseline gap 90 m (~6,43 s cruise / 4,5 s max với hazard tĩnh); đề xuất thử riêng 75 m (~5,36 / 3,75 s), rồi 70 m (5 / 3,5 s). Giữ tốc độ, damage, 0,15 tiền/m, tiếp tế và warning >=3,5 s trong phép so sánh. Gap không tự chứng minh đường khả thi; xét footprint, vị trí ngang, hazard cũ và tiếp tế. Traffic ngược chiều cần warning theo relative speed.
+Chi tiết [DESIGN_UPDATE_IMMERSION_TRAFFIC.md](DESIGN_UPDATE_IMMERSION_TRAFFIC.md). Baseline gap 90 m (~6,43 s cruise / 4,5 s max với hazard tĩnh); đề xuất thử riêng 75 m (~5,36 / 3,75 s), rồi 70 m (5 / 3,5 s). Giữ tốc độ, damage, 0,50 tiền/m, tiếp tế và warning >=3,5 s trong phép so sánh. Gap không tự chứng minh đường khả thi; xét footprint, vị trí ngang, hazard cũ và tiếp tế. Traffic ngược chiều cần warning theo relative speed.
 
 Size/length hazard và HP/damage từng loại traffic chưa gán số. Nước dài dùng exposure time và ngân sách xăng hiện có; ổ gà dài một hit/entity; không tự nhân damage theo size hoặc mỗi frame. Chặn cứng 3 lane cần phương án khả dụng; nếu không thì loại mẫu. Húc phá không thưởng tiền/điểm riêng, có chi phí HP/đà/sửa cần thử; không đổi thu nhập bù ngầm va chạm tăng.
 

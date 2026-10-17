@@ -22,7 +22,7 @@ function pilot(r: Run, strategy: 'cruise' | 'fast' | 'slow'): Input {
 
 it('seeded survival/economy sampling across cruise, W and S strategies', () => {
   const observations: object[] = [];
-  for (const seed of [17, 42, 20261017]) for (const strategy of ['cruise', 'fast', 'slow'] as const) {
+  for (const seed of [17, 42, 20261017, ...Array.from({ length: 27 }, (_, i) => 100 + i)]) for (const strategy of ['cruise', 'fast', 'slow'] as const) {
     let r = { ...initialRun(seed), phase: 'running' as Run['phase'] };
     let affordAt: number | null = null, maxEntities = 0, fuelPickups = 0, oldSequence = 0, violations = 0;
     for (let tick = 0; tick < 60 * 600 && r.phase === 'running'; tick++) {
@@ -36,11 +36,11 @@ it('seeded survival/economy sampling across cruise, W and S strategies', () => {
     }
     expect(violations).toBe(0); expect(maxEntities).toBeLessThan(20);
     expect(affordAt).not.toBeNull();
-    if (strategy !== 'slow') { expect(affordAt).toBeGreaterThanOrEqual(180); expect(affordAt).toBeLessThanOrEqual(300); }
+    if (strategy !== 'slow') { expect(affordAt).toBeGreaterThanOrEqual(60); expect(affordAt).toBeLessThanOrEqual(90); }
     observations.push({ seed, strategy, seconds: r.activeSeconds, distance: r.distance, hp: r.durability, fuel: r.fuel, money: r.money, end: r.result?.reason ?? 'running', affordAt, fuelPickups, maxEntities });
   }
   console.log(JSON.stringify({ config: balance.version, observations }));
-});
+}, 15000);
 
 it('resource, collision and RNG outcomes match at 30/60/144 render FPS', () => {
   const outcomes = [30, 60, 144].map(fps => {

@@ -54,7 +54,7 @@ Xe có HP không đồng nghĩa mọi xe chạm nhau đều cho thêm khách/loo
 | Bước | Phạm vi đề xuất | Điều cần chứng minh |
 |---|---|---|
 | P2.1 — đọc đường và cảm giác tốc độ | HUD overlay, thanh xăng/HP gần xe, bỏ cruise HUD, cue graphic cho hazard P2, feedback tại chỗ, mốc ven đường primitive/pooling | Không che hành lang lái; mute/reduced motion vẫn hiểu; thông số gameplay không đổi trong lượt so sánh UI |
-| P2.1 — thử nhịp riêng | So sánh gap 90 m hiện tại với 75 m rồi 70 m, vẫn hazard một làn và tốc độ cũ | Giữ cảnh báo >=3,5 s; lối né/tới tiếp tế khả thi; đủ tiền xe đầu trong mục tiêu 3–5 phút ở lượt đại diện; các số mới chưa áp dụng |
+| P2.1 — thử nhịp riêng | So sánh gap 90 m hiện tại với 75 m rồi 70 m, vẫn hazard một làn và tốc độ cũ | Giữ cảnh báo >=3,5 s; lối né/tới tiếp tế khả thi; đủ tiền xe đầu trong mục tiêu 1–1,5 phút ở lượt đại diện; các số mới chưa áp dụng |
 | P3A — traffic và hình học hazard | Trái ngược/phải cùng/giữa seeded; biến thể nhỏ/dài/2 làn; director kiểm tra đường đi | Cửa sổ phản ứng theo tốc độ tương đối, không xuyên collider, không có tổ hợp bẫy; xe dài có lối đi |
 | P3B — tuyến/giao lộ | Chunk, difficulty, QTE graphic, rẽ và cập nhật hệ quy chiếu; mở mẫu 3 làn có phương án hợp lệ | Không bắt buộc giải pháp chưa sở hữu; cảnh báo/QTE không chồng nhau gây mất input |
 | P4 — người và nhiều xe | Kế thừa luật tải/cruise, giới hạn kho, thay xe; dựng danh mục traffic | Xem cruise tại kho/mua; giữ hành khách và tài nguyên đúng; xe to không mặc định tối ưu |
@@ -81,3 +81,7 @@ Base local fd43510, branch docs/immersive-ui-traffic-design. Không có remote n
 Windows, Node 24.19.0, pnpm 11.25.0; chạy thực trong lượt này: `pnpm lint` exit 0, `pnpm typecheck` exit 0, `pnpm test` exit 0 (26/26, 6 file), `pnpm build` exit 0 (JS 496,58 kB / gzip 128,51 kB). Bộ test chạy lại sampling P2.0: seed 17/42/20261017, cruise/W/S, 9 lượt × 600 s; đủ 800 ở cruise 285,72–290,48 s, W 200,18 s, S 499,78 s; 9/9 bot sống hết mẫu. Đây là hồi quy baseline, không test luật mới.
 
 Tự review game design sau sampling: bot W luôn còn 70 HP ở các seed mẫu, phù hợp giả thuyết đường hiện tại dễ lặp nhưng không chứng minh người chơi thấy vui/chán. Giữ baseline để so sánh; thử nhịp sau UI, không tăng damage đồng thời. Tự review UI/UX: feedback chủ dự án là bằng chứng ưu tiên giảm bảng và chuyển cue vào gameplay; khả năng đọc bố cục mới chưa được xác minh. Lượt này chỉ chỉnh tài liệu nên không có manual gameplay mới và không audit screenshot mới; evidence P2 cũ chỉ thuộc báo cáo P2.0. Manual/UI audit và simulation luật mới còn phải thực hiện khi triển khai từng bước.
+
+## Mục tiêu economy được thay thế sau ghi chú này
+
+Chủ dự án yêu cầu mua ô tô đầu tiên trong 1–1,5 phút thay 3–5 phút. Baseline economy kế tiếp dùng 0,50 tiền/m, giữ tiền đầu 200/giá 800; các ghi nhận 0,15 và số simulation P2.0 bên trên là lịch sử. Khi thử mật độ P2.1 dùng baseline mới, không đổi đồng thời economy. Xem ECONOMY_60_90_REVIEW.md.

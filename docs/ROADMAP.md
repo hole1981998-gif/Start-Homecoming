@@ -33,9 +33,9 @@ Khi UI prototype đã chạy và Product Design sẵn có, dùng audit để ki�
 
 **P1.2 ngày 17/10/2026:** đã áp dụng cruise xe máy 14 m/s và hồi từ cả hai phía; cập nhật simulation, config, Help/HUD và test. Bằng chứng simulation/playtest và tự review xem PROTOTYPE_1_2_REVIEW.md; vẫn chờ feedback chủ dự án để khóa cảm giác lái/các số tạm. Kiểm tra giảm cruise theo khách, quá tải, đổi xe, coasting và nitro sẽ mở rộng ở prototype có các hệ thống đó. Báo cáo P1 cũ giữ nguyên làm lịch sử cho luật cũ.
 
-**Cập nhật P2:** chủ dự án đã nhận xét P1.2 ổn và cho chuyển P2. P2 kế thừa nền lái, bổ sung xăng/HP, coasting 25 m, chướng ngại một lane, nhặt tiếp tế, điểm/tiền, kết ván/restart và hướng dẫn an toàn. Đã được phép thử 0,15 tiền/m. Xem PROTOTYPE_2_REVIEW.md cho kết quả thực và giới hạn; chưa gọi P3, shop hoặc hành khách hoàn thành. P2 ở nhánh local riêng từ P1.2 được chấp nhận để tiếp tục; không tự merge main khi chưa có remote/CI và các điều kiện còn thiếu.
+**Cập nhật P2:** chủ dự án đã nhận xét P1.2 ổn và cho chuyển P2. P2 kế thừa nền lái, bổ sung xăng/HP, coasting 25 m, chướng ngại một lane, nhặt tiếp tế, điểm/tiền, kết ván/restart và hướng dẫn an toàn. Trước đây thử 0,15 tiền/m; bản cân lại theo mục tiêu mới thử 0,50 tiền/m (xem ECONOMY_60_90_REVIEW.md). Xem PROTOTYPE_2_REVIEW.md cho kết quả thực và giới hạn; chưa gọi P3, shop hoặc hành khách hoàn thành. P2 ở nhánh local riêng từ P1.2 được chấp nhận để tiếp tục; không tự merge main khi chưa có remote/CI và các điều kiện còn thiếu.
 
-**Mục tiêu economy đã chốt:** có cơ hội mua ô tô đầu tiên sau 3–5 phút gameplay hoạt động trong lượt đại diện. P2 bắt đầu kiểm tra quãng đường/thu nhập ở cruise, W, S; P4–P5 hoàn thiện kiểm tra cùng hành khách/shop/chi phí. Ghi median và phân bố thời gian/khả năng mua ở nhiều seed, không chỉ chọn một lượt max speed tốt nhất. Chưa tự thay giá/thu nhập lớn chỉ để đạt số mục tiêu.
+**Mục tiêu economy đã chốt:** có cơ hội mua ô tô đầu tiên sau 1–1,5 phút gameplay hoạt động trong lượt đại diện. P2 bắt đầu kiểm tra quãng đường/thu nhập ở cruise, W, S; P4–P5 hoàn thiện kiểm tra cùng hành khách/shop/chi phí. Ghi median và phân bố thời gian/khả năng mua ở nhiều seed, không chỉ chọn một lượt max speed tốt nhất. Chưa tự thay giá/thu nhập lớn chỉ để đạt số mục tiêu.
 
 Khởi tạo công cụ → movement → tài nguyên/score → collision → road director/QTE → passenger → vehicle inventory/replacement → shop/upgrades → items/nitro → police → train/accident → secret → leaderboard → polish. Có thể dùng event giả trong test để phát triển system trước khi có model, nhưng không gọi đó là gameplay đã hoàn thành. Không tích hợp PR phụ thuộc trước khi base PR merge hoặc rebase lại từ main mới.
 
@@ -52,7 +52,7 @@ Các mục trên đã có mặc định để triển khai prototype, không ph�
 
 - Xe nhỏ/ô tô/container: lái, phanh, rẽ cả hai phía, QTE bỏ lỡ, lane bị chặn.
 - Không có xe dự phòng/có xe hợp lệ/có xe hết xăng hoặc HP=0: hỏng, tịch thu, coast hết.
-- Không khách/thêm từng khách/đúng tải/quá tải; cruise giảm tới sàn theo từng loại xe, có xe chạm min và xe dừng trên min; đổi từ xe nhiều chỗ xuống xe nhỏ; cho khách xuống và đón lại; so sánh thu nhập ròng/phút với mục tiêu mua xe 3–5 phút.
+- Không khách/thêm từng khách/đúng tải/quá tải; cruise giảm tới sàn theo từng loại xe, có xe chạm min và xe dừng trên min; đổi từ xe nhiều chỗ xuống xe nhỏ; cho khách xuống và đón lại; so sánh thu nhập ròng/phút với mục tiêu mua xe 1–1,5 phút.
 - Đủ/thiếu tiền ở cả hai lực lượng; mua xe thứ ba rồi hủy; nâng cấp chỉ xe hiện tại.
 - Có/không nitro; nhảy thiếu đà, qua tàu an toàn, chạm tàu, đâm tai nạn thường.
 - Secret đủ chuỗi, sai thứ tự, reset giữa chuỗi và hai terminal event gần nhau.

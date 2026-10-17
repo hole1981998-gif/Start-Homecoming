@@ -8,7 +8,7 @@ Tài liệu tổng hợp yêu cầu của chủ dự án trong hội thoại “
 - **ĐỀ XUẤT**: cách giải quyết chỗ chưa rõ, dùng làm mặc định triển khai và có thể chỉnh sau chơi thử.
 - **TẠM**: mọi con số cân bằng trong BALANCE_CONFIG.md, chưa phải kết quả playtest.
 
-**Cập nhật đã chốt ngày 17/10/2026:** chủ dự án yêu cầu mỗi loại xe có tốc độ trung vị và tự trở về tốc độ này khi thả W/S; mục tiêu có cơ hội mua ô tô đầu tiên sau khoảng 3–5 phút. Các thay đổi này thay thế mô tả điều khiển cũ. Báo cáo P1 trước cập nhật vẫn là bằng chứng lịch sử, không chứng minh cơ chế mới đã được triển khai.
+**Cập nhật đã chốt ngày 17/10/2026:** chủ dự án yêu cầu mỗi loại xe có tốc độ trung vị và tự trở về tốc độ này khi thả W/S; mục tiêu có cơ hội mua ô tô đầu tiên sau khoảng 1–1,5 phút. Các thay đổi này thay thế mô tả điều khiển cũ. Báo cáo P1 trước cập nhật vẫn là bằng chứng lịch sử, không chứng minh cơ chế mới đã được triển khai.
 
 ## Tầm nhìn và phạm vi
 
@@ -71,9 +71,9 @@ Xăng và độ bền là hai tài nguyên riêng. Nước làm hao xăng; va ch
 
 Điểm và thu nhập chỉ cộng khi tiến thêm quãng đường hợp lệ, không cộng theo thời gian đứng trong UI, đoạn camera quay hay đổi xe. Công thức và mức phạt ở BALANCE_CONFIG.md. Bảng xếp hạng ghi điểm ngay lúc ván kết thúc, kể cả secret ending.
 
-**ĐÃ CHỐT — mục tiêu economy:** người chơi có cơ hội mua ô tô đầu tiên sau khoảng **3–5 phút thời gian gameplay hoạt động** trong một lượt chơi đại diện; không tính thời gian đọc Help/pause/shop và không bảo đảm mọi seed/chiến thuật đều đạt mốc này. Đây là mục tiêu trải nghiệm, chưa phải bộ giá/thu nhập đã cân bằng. Với auto-cruise, phải đo riêng lượt chạy chủ yếu ở cruise, giữ W thường xuyên và chủ động hãm S; không cân economy chỉ theo max speed hoặc buộc luôn giữ W mới tiếp cận được xe đầu tiên. Thay đổi lớn về giá, thu nhập hay chi phí vẫn trình chủ dự án trước khi áp dụng.
+**ĐÃ CHỐT — mục tiêu economy:** người chơi có cơ hội mua ô tô đầu tiên sau khoảng **1–1,5 phút thời gian gameplay hoạt động** trong một lượt chơi đại diện; không tính thời gian đọc Help/pause/shop và không bảo đảm mọi seed/chiến thuật đều đạt mốc này. Đây là mục tiêu trải nghiệm, chưa phải bộ giá/thu nhập đã cân bằng. Với auto-cruise, phải đo riêng lượt chạy chủ yếu ở cruise, giữ W thường xuyên và chủ động hãm S; không cân economy chỉ theo max speed hoặc buộc luôn giữ W mới tiếp cận được xe đầu tiên. Thay đổi lớn về giá, thu nhập hay chi phí vẫn trình chủ dự án trước khi áp dụng.
 
-**ĐÃ ĐỒNG Ý THỬ trong P2 ngày 17/10/2026:** thu nhập nền 0,15 tiền/m thay số cũ 0,02, nhằm tiếp cận mốc 800 tiền sau khoảng 3–5 phút. Đây là số TẠM được phép thử, chưa khóa economy; P2 chưa có shop nên mới kiểm chứng thời gian đủ tiền, chưa thực hiện mua xe. Không thay đổi thưởng khách/giá xe trong lượt này.
+**Cập nhật economy theo yêu cầu mới 17/10/2026:** mục tiêu 1–1,5 phút thay thế mốc 3–5 phút trước đó. P2 thử thu nhập nền **0,50 tiền/m** thay 0,15; giữ tiền đầu 200 và giá ô tô 4 chỗ 800. Cần thêm 600 tiền (~1.200 m khi chưa mất tiền): khoảng 85,7 giây ở cruise hoặc 60 giây ở max sau khi đạt tốc độ đó. Số TẠM; P2 chưa có shop nên chỉ đo đủ tiền, chưa mua thật. Thời gian tính gameplay hoạt động; khách, chi phí và cơ hội gặp shop sẽ được kiểm chứng lại ở P4–P5.
 
 ## Chướng ngại và cửa hàng
 

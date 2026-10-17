@@ -1,6 +1,6 @@
 # Đường Về Nhà — Prototype 2
 
-**P2 giữ cruise P1.2:** tự chạy ở 14 m/s (50,4 km/h), giữ W/S để nhanh/chậm, thả để hồi. Thêm xăng/HP, nước/ổ gà/xe, nhặt xăng/sửa, điểm/tiền, coasting, kết ván và restart. Chủ dự án đồng ý thử thu nhập 0,15 tiền/m để bám mục tiêu xe đầu tiên 3–5 phút. Các số còn TẠM; chưa có shop/mua xe nên mới đo khả năng đủ tiền.
+**P2 giữ cruise P1.2:** tự chạy ở 14 m/s (50,4 km/h), giữ W/S để nhanh/chậm, thả để hồi. Thêm xăng/HP, nước/ổ gà/xe, nhặt xăng/sửa, điểm/tiền, coasting, kết ván và restart. Theo yêu cầu mới, thử thu nhập **0,50 tiền/m** để bám mục tiêu ô tô đầu tiên **1–1,5 phút**, thay mốc cũ 3–5 phút/0,15 tiền/m. Giữ tiền đầu 200 và giá ô tô 800. Các số còn TẠM; chưa có shop/mua xe nên mới đo khả năng đủ tiền.
 
 **Bổ sung đã chốt:** thêm khách giảm cruise kể cả chưa quá tải; mức giảm/sàn tùy xe và giới hạn tình huống, không nhất thiết luôn chạm min. Tài xế không tính là khách thêm. Chưa triển khai hệ thống hành khách hoặc luật này trong P2.
 

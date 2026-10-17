@@ -16,7 +16,7 @@ describe('P2 survival and chronological consequences', () => {
   it('money/score/fuel follow actual travel; pause/ready/end have no side effects', () => {
     const r = advance(empty(), 10);
     expect(r.distance).toBeCloseTo(140); expect(r.score).toBeCloseTo(140);
-    expect(r.money).toBeCloseTo(221); expect(r.fuel).toBeCloseTo(7.58);
+    expect(r.money).toBeCloseTo(270); expect(r.fuel).toBeCloseTo(7.58);
     for (const phase of ['ready', 'paused', 'ended'] as const) {
       const stopped = { ...r, phase }; expect(advance(stopped, 10)).toBe(stopped);
     }
@@ -24,7 +24,7 @@ describe('P2 survival and chronological consequences', () => {
   it('water burns by exact contact duration, separate from HP and distance fuel', () => {
     const r = advance(empty([entity('water', 'water', 7, 0)]), 1);
     expect(r.fuel).toBeCloseTo(8 - 14 * .003 - .8 * 9 / 14, 8);
-    expect(r.durability).toBe(70); expect(r.money).toBeCloseTo(202.1);
+    expect(r.durability).toBe(70); expect(r.money).toBeCloseTo(207);
   });
   it('pothole applies once, money cannot be negative; traffic has a collider cooldown', () => {
     const r = advance({ ...empty([entity('pothole', 'hole', 0, 0)]), money: 2 }, .1);
