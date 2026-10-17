@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#172329" />
+    <title>Đường Về Nhà · Prototype 1</title>
+  </head>
+  <body>
+    <main id="app">
+      <aside class="outside"><span>ĐƯỜNG VỀ NHÀ</span><p>Một chuyến về nhà<br>giữa cơn mưa.</p><small>PROTOTYPE 01<br>Lái xe & camera</small></aside>
+      <section id="game" aria-label="Khung chơi Đường Về Nhà">
+        <canvas id="scene" aria-label="Đường ba làn và xe máy, điều khiển bằng W A S D" tabindex="0"></canvas>
+        <header id="hud"><div class="hud-title"><span>ĐƯỜNG VỀ NHÀ</span><span class="tag">P1 · BẢN THỬ</span></div><div class="metrics"><div><strong id="speed">0</strong><span>km/h</span></div><div class="distance"><strong id="distance">0</strong><span>m đã đi</span></div></div></header>
+        <div id="notice">Đường thử an toàn · chưa có chướng ngại</div>
+        <footer><div class="keys"><span><kbd>W</kbd> Tăng tốc</span><span><kbd>S</kbd> Hãm</span><span><kbd>A</kbd><kbd>D</kbd> Lái</span></div><div class="actions"><button id="pause" disabled>Tạm dừng</button><button id="help">Hướng dẫn</button><button id="restart" disabled>Chơi lại</button></div></footer>
+        <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="panel"><span class="eyebrow" id="modal-label">PROTOTYPE 01 · ĐƯỜNG THỬ</span><h1 id="modal-title">Đường về nhà</h1><p id="modal-description">Thử tay lái giữa cơn mưa. Xe tự chạy; bạn quyết định tốc độ và vị trí trên đường.</p><div id="instructions"><p><kbd>W</kbd> Tăng tốc <kbd>S</kbd> Hãm, không lùi</p><p><kbd>A</kbd> <kbd>D</kbd> Lái tự do qua 3 làn</p><p><kbd>Esc</kbd> Tạm dừng / tiếp tục</p><p class="quiet">Lượt này thử cảm giác lái và camera. Chưa có xăng, tiền, khách hay chướng ngại. Không có thắng/thua.</p></div><button class="primary" id="play">Bắt đầu lái</button><button id="close-help" hidden>Đóng hướng dẫn</button><div class="panel-actions"><button id="panel-help" hidden>Xem hướng dẫn</button><button id="panel-restart" hidden>Chơi lại từ đầu</button></div></div></div>
+        <div id="error" role="alert" hidden>Không khởi tạo được đồ họa 3D. Hãy bật WebGL hoặc thử trình duyệt khác.</div>
+      </section>
+      <aside class="outside right"><span>THỬ CẢM GIÁC LÁI</span><p>Lái có phản hồi tốt?<br>Camera có dễ nhìn?<br>Phanh có dễ kiểm soát?</p><small>WASD · ESC ĐỂ DỪNG<br>Đồ họa placeholder</small></aside>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
