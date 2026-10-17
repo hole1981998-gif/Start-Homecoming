@@ -154,7 +154,7 @@ Size/length hazard và HP/damage từng loại traffic chưa gán số. Nước 
 
 **Yêu cầu cân bằng tiếp theo — CHƯA ÁP DỤNG:** bình xăng nhặt hiện tối đa +5,5 L, bằng dung tích xe máy; hộp sửa hiện tối đa +40 HP trên 70 HP. Cả hai hồi quá nhiều theo cảm nhận chơi thử, cần giảm độc lập trong một vòng thử sau. Chọn lượng hồi theo từng `VehicleDefinition`, không mặc định một món lấp đầy bình hay khôi phục phần lớn HP; chưa khóa giá trị mới khi chưa mô phỏng. Đo phân bố xăng/HP trước và sau nhặt, tỷ lệ chết vì cạn xăng/hỏng xe, số lần buộc tìm nguồn tiếp tế, quãng đường an toàn sau khi nhặt và thời gian mua ô tô đầu ở cruise/W/S trên nhiều seed. Bảo đảm mọi đoạn ba làn bắt buộc vẫn có thể chịu được theo tài nguyên hiện có hoặc có nhánh tránh, kể cả sau khi giảm hồi.
 
-**Traffic P4.1–P4.2 — CHƯA ÁP DỤNG:** mỗi loại xe giao thông cần HP và sát thương va chạm riêng; traffic mất HP khi tiếp xúc ổ gà dài theo thời gian, ngoài damage khi bị người chơi húc. Chọn HP/damage để có xe chịu được và xe có thể bị phá bởi môi trường; không đặt toàn bộ loại xe về cùng một ngưỡng. Xe HP=0 chỉ tạo hành khách một lần, bên cạnh nơi hỏng và trong phạm vi có thể tới đón; số khách không vượt quá số người trên xe/giới hạn cân bằng. Đo số xe hỏng theo từng nguyên nhân, số khách sinh/được đón, thu nhập tăng thêm và tần suất farm qua nhiều seed. Khách chỉ tăng điểm/tiền khi đã được đón và xe thực sự di chuyển, không thưởng ngay tại lúc xe hỏng.
+**Traffic P4.1 đã có bản thử; P4.2 CHƯA ÁP DỤNG:** mỗi loại xe giao thông nay có HP và sát thương va chạm riêng; traffic mất HP khi tiếp xúc ổ gà dài theo thời gian, ngoài damage khi bị người chơi húc. Các số vẫn cần cân để có xe chịu được và xe có thể bị phá bởi môi trường. Ở P4.2, xe HP=0 mới tạo hành khách một lần, bên cạnh nơi hỏng và trong phạm vi có thể tới đón; số khách không vượt quá số người trên xe/giới hạn cân bằng. Đo số xe hỏng theo từng nguyên nhân, số khách sinh/được đón, thu nhập tăng thêm và tần suất farm qua nhiều seed. Khách chỉ tăng điểm/tiền khi đã được đón và xe thực sự di chuyển, không thưởng ngay tại lúc xe hỏng.
 
 **P3B bản thử (`p3b-junctions-1`):** giao lộ đầu 800 m, sau đó mỗi 800 m; giao lộ đầu luôn có đường thẳng, các giao lộ sau có thể bị chặn theo seed. Cửa sổ Q/E từ 1,8 s giảm tuyến tính tới 1,2 s ở khoảng 10 km, sàn 0,9 s; cue báo trước ít nhất khoảng 4 s. Bỏ lỡ khi đường thẳng bị chặn gây 20 HP và trạng thái ngã/trôi hiện có, đúng một lần/giao lộ. Vùng 60 m mỗi phía giao lộ bỏ hazard để tránh chồng thao tác. Gap hazard từ 90 m giảm dần về 75 m trong khoảng 10 km; nguồn xăng/sửa, lượng hồi, giá và thu nhập giữ như P3A để đo riêng nhịp đường. Những số này là TẠM, không coi là difficulty đã cân bằng. Lần sau đo tỷ lệ chọn rẽ thành công/bỏ lỡ, tài nguyên sau nhiều giao lộ và cảm giác điều khiển của từng xe dài.
 
@@ -171,3 +171,18 @@ Báo cáo xác suất sống tới đủ 800, phân bố thời gian đạt mố
 **Sửa trạng thái khách sau tai nạn (`p4b-crash-rider-roster-1`) — TẠM:** mỗi khách trên xe có ID riêng; xác suất quay lại sau một vụ va chạm là 0,5 cho từng ID và crash index. Khách không quay lại không thể đón lại. Họ bay 0,65 s, nằm 0,4 s và đứng dậy trong 0,55 s trước khi đi quanh điểm đáp. Đây là thông số thử cho độ đọc hình, chưa phải tỷ lệ giữ khách đã cân bằng. Ván thường dùng seed mới khi restart; fixture phát triển `?scenario=passenger-crash-car&seed=17` tái hiện cùng va chạm để kiểm tra.
 
 **P4.1 traffic (`p4-1-traffic-durability-1`) — tất cả số TẠM:** xe nhỏ 30 HP/20 sát thương/1,9 × 3,6 m; van 48 HP/27 sát thương/2,2 × 5,1 m; tải 78 HP/36 sát thương/2,7 × 7,2 m. Spawn seeded tỷ trọng nhỏ:van:tải = 2:1:1. Traffic chịu 6 HP khi mới vào ổ gà và 12 HP/s khi còn chạm, không bị trừ tiền; vũng nước giảm tốc còn 60% khi chạm, chưa mô phỏng bình xăng traffic. Xe máy/xe nhỏ gây 14 HP khi húc, ô tô 4/7 chỗ gây 24/30 HP, buýt/tải/container gây 55 HP. Xe lớn húc hỏng mục tiêu nhận 40% sát thương mục tiêu (làm tròn lên) và không ngã; các trường hợp khác vẫn ngã. Xác xe dừng/hiện 2,5 s rồi biến mất, không gây thêm damage. Chưa sinh khách từ xe hỏng (P4.2). Các chỉ số này cần cân lại dựa trên tỷ lệ chết/né ở nhiều seed và feedback cảm giác công bằng.
+
+**P4.1 mở rộng đủ danh mục (`p4-1-traffic-roster-1`) — số TẠM:** xe chướng ngại dùng footprint cùng loại xe người chơi nhưng HP/sát thương được cân riêng. Làn trái ngược chiều, phải cùng chiều, giữa chọn hướng theo seed; bảng tốc độ là độ lớn m/s. Trọng số áp dụng khi sinh một traffic entity, tổng 16. Loại xe người chơi mới phải có đối ứng traffic và luật húc mới.
+
+| Loại traffic | HP | Sát thương khi va | Tốc độ | Trọng số sinh |
+|---|---:|---:|---:|---:|
+| Xe máy | 20 | 12 | 8 | 3 |
+| Mô tô | 26 | 16 | 10 | 2 |
+| Ô tô 4 chỗ | 30 | 20 | 6 | 4 |
+| Ô tô 7 chỗ | 48 | 26 | 5,5 | 2 |
+| Ba gác | 32 | 18 | 5 | 2 |
+| Xe buýt | 90 | 38 | 4 | 1 |
+| Xe tải | 100 | 42 | 5 | 1 |
+| Container | 130 | 50 | 4 | 1 |
+
+Damage húc của xe người chơi theo cùng thứ tự loại trên: 14/18/24/30/22/55/60/70 HP. Buýt/tải/container chỉ đi xuyên sau cú húc nếu mục tiêu thực sự về 0 HP, và vẫn mất 40% sát thương của mục tiêu, làm tròn lên; trường hợp khác vẫn chịu crash. Cần đo tỷ lệ chết, thời gian phản ứng, làn còn đi được, chi phí húc và khả năng sống của cả xe nhỏ/lớn qua nhiều seed trước khi khóa số. Bảng ba loại P4.1 phía trên là số lịch sử của lát cắt trước, không phải danh mục spawn hiện hành.

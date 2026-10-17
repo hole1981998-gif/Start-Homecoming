@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { balance } from '../src/config';
 import { noInput, type Input } from '../src/simulation';
 import { initialRun, pickUpPassenger, stepRun, type Run } from '../src/survival';
-import { entity, fillWorld, initialWorld, leavesOpenLane, sweptContact, warningDistance, type Entity } from '../src/world';
+import { entity, fillWorld, initialWorld, leavesOpenLane, sweptContact, trafficTypes, warningDistance, type Entity } from '../src/world';
 
 function empty(entities: Entity[] = []): Run {
   const r = initialRun();
@@ -87,7 +87,8 @@ describe('survival, continuous hazards and crash recovery', () => {
     const traffic = world.entities.filter(e => e.kind === 'traffic');
     expect(traffic.some(e => e.x < 0)).toBe(true);
     expect(traffic.some(e => e.x > 0)).toBe(true);
-    expect(traffic.every(e => e.x < 0 ? e.speed < 0 : e.x > 0 ? e.speed > 0 : Math.abs(e.speed) === balance.trafficSpeed)).toBe(true);
+    expect(traffic.every(e => Math.abs(e.speed) === trafficTypes[e.trafficKind!].speed &&
+      (e.x < 0 ? e.speed < 0 : e.x > 0 ? e.speed > 0 : true))).toBe(true);
     expect(warningDistance(20, traffic.find(e => e.speed < 0)!)).toBeGreaterThan(warningDistance(20, traffic.find(e => e.speed > 0)!));
   });
   it('opposing traffic reaches sooner and long potholes hurt for longer', () => {

@@ -49,7 +49,7 @@ it('oncoming warning appears earlier and exposes direction without relying on co
   hud.update(run, projection, true);
   const cue = document.querySelector<HTMLElement>('[data-kind="traffic"]')!;
   expect(cue.hidden).toBe(false); expect(cue.getAttribute('aria-label')).toContain('ngược chiều');
-  expect(cue.getAttribute('aria-label')).toContain('Xe nhỏ');
+  expect(cue.getAttribute('aria-label')).toContain('Ô tô 4 chỗ');
   expect(cue.querySelector('.traffic-direction')!.textContent).toBe('↓');
   hud.update({ ...run, world: { ...run.world, entities: [{ ...car, x: 3.2, speed: 6 }] } }, projection, true);
   expect(cue.hidden).toBe(true);

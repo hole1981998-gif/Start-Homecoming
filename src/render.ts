@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { balance } from './config';
 import { activeVehicle, type Run } from './survival';
-import { passengerPose, type EntityKind } from './world';
+import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from './world';
 import { junction, pathPose } from './route';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh }
@@ -22,8 +22,9 @@ export class RoadRenderer {
   private roadSurface!: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   private ground!: THREE.Mesh;
   private viewState!: Run;
-  private entityMeshes = new Map<string, { kind: EntityKind; mesh: THREE.Group }>();
+  private entityMeshes = new Map<string, { kind: EntityKind; trafficKind?: TrafficKind; mesh: THREE.Group }>();
   private pools: Record<EntityKind, THREE.Group[]> = { water: [], pothole: [], traffic: [], fuel: [], repair: [], passenger: [] };
+  private trafficPools = new Map<TrafficKind, THREE.Group[]>();
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
   private observer: ResizeObserver;
   private host: HTMLElement;
@@ -100,20 +101,46 @@ export class RoadRenderer {
     });
     this.observer.observe(host);
   }
-  private entityMesh(kind: EntityKind): THREE.Group {
-    const pooled = this.pools[kind].pop(); if (pooled) return pooled;
+  private entityMesh(kind: EntityKind, trafficKind: TrafficKind = 'car4'): THREE.Group {
+    const pool = kind === 'traffic' ? this.trafficPools.get(trafficKind) ?? [] : this.pools[kind];
+    const pooled = pool.pop(); if (pooled) return pooled;
     const g = new THREE.Group(), box = this.makeBox;
     const part = (w: number, h: number, d: number, color: string, x: number, y: number, z: number) => {
-      const m = box(w, h, d, color, g); m.position.set(x, y, z);
+      const m = box(w, h, d, color, g); m.position.set(x, y, z); return m;
     };
     if (kind === 'water') { part(3.2, .05, 7, '#5799aa', 0, .035, 0); part(2.5, .01, .1, '#abd1d5', 0, .065, -1.5); }
     else if (kind === 'pothole') {
       part(1.5, .03, 1.8, '#191d23', 0, .025, 0);
       for (const x of [-.85, .85]) part(.15, .08, 2, '#dfb357', x, .05, 0);
     } else if (kind === 'traffic') {
-      part(1.9, .8, 3.6, '#d59561', 0, .6, 0); part(1.6, .6, 1.8, '#a9c6cb', 0, 1.3, 0);
-      for (const x of [-.65, .65]) part(.25, .18, .06, '#fa9d80', x, .65, 1.83);
-      for (const x of [-.65, .65]) part(.25, .18, .06, '#fff0ba', x, .65, -1.83);
+      const d = trafficTypes[trafficKind], w = d.width, l = d.length;
+      const open = trafficKind === 'motorcycle' || trafficKind === 'motorbike' || trafficKind === 'tricycle';
+      const tall = trafficKind === 'bus' || trafficKind === 'container';
+      const bodyHeight = open ? .35 : tall ? 1.65 : trafficKind === 'truck' ? 1.25 : .82;
+      const body = part(w * .9, bodyHeight, l * .88, d.color, 0, .42 + bodyHeight / 2, 0);
+      g.userData.body = body;
+      if (open) {
+        const wheelZ = l * .36;
+        for (const z of [-wheelZ, wheelZ]) part(.21, .48, .36, '#202a30', 0, .25, z);
+        if (trafficKind === 'tricycle') for (const x of [-w * .35, w * .35])
+          part(.22, .46, .38, '#202a30', x, .25, wheelZ);
+        part(.34, .65, .4, '#698c91', 0, 1.05, 0);
+        part(.36, .36, .36, '#e8d9bf', 0, 1.53, -.04);
+        if (trafficKind === 'tricycle') part(w * .8, .18, l * .42, '#6d6561', 0, .95, l * .2);
+      } else if (trafficKind === 'truck' || trafficKind === 'container') {
+        part(w * .75, .8, l * .24, '#a9c6cb', 0, 1.24, -l * .32);
+        part(w * .82, trafficKind === 'container' ? 1.8 : .85, l * .58,
+          trafficKind === 'container' ? '#8b8179' : '#726f72', 0, trafficKind === 'container' ? 1.54 : 1.13, l * .16);
+      } else {
+        part(w * .78, trafficKind === 'bus' ? .5 : .46, l * (trafficKind === 'bus' ? .8 : .48),
+          '#a9c6cb', 0, tall ? 1.75 : 1.18, -.05);
+      }
+      if (!open) for (const x of [-w * .42, w * .42]) for (const z of [-l * .32, l * .32])
+        part(.2, .42, .42, '#202a30', x, .27, z);
+      for (const x of [-w * .3, w * .3]) {
+        part(.2, .13, .06, '#fa9d80', x, .63, l * .45);
+        part(.2, .13, .06, '#fff0ba', x, .63, -l * .45);
+      }
     } else if (kind === 'passenger') {
       part(.38, .7, .28, '#e2c486', 0, .92, 0);
       part(.38, .38, .38, '#e6dbc4', 0, 1.47, 0);
@@ -222,7 +249,8 @@ export class RoadRenderer {
       if (e.consumed) continue;
       live.add(e.id);
       let entry = this.entityMeshes.get(e.id);
-      if (!entry) { entry = { kind: e.kind, mesh: this.entityMesh(e.kind) }; this.entityMeshes.set(e.id, entry); }
+      if (!entry) { entry = { kind: e.kind, trafficKind: e.trafficKind,
+        mesh: this.entityMesh(e.kind, e.trafficKind) }; this.entityMeshes.set(e.id, entry); }
       const entityPose = pathPose(e.distance, route, s.seed);
       const pose = passengerPose(e, s.activeSeconds);
       entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * e.x, pose.height,
@@ -230,16 +258,22 @@ export class RoadRenderer {
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && e.speed < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
       if (e.kind === 'traffic') {
-        const body = entry.mesh.children[0] as THREE.Mesh;
-        (body.material as THREE.MeshBasicMaterial).color.set(e.wrecked ? '#4e5558' :
-          e.trafficKind === 'truck' ? '#8a879c' : e.trafficKind === 'van' ? '#88aaa3' : '#d59561');
+        const body = entry.mesh.userData.body as THREE.Mesh;
+        (body.material as THREE.MeshLambertMaterial).color.set(e.wrecked ? '#4e5558' :
+          trafficTypes[e.trafficKind ?? 'car4'].color);
       }
       const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
-      entry.mesh.scale.set(e.width / baseWidth, e.kind === 'traffic' && e.trafficKind === 'truck' ? 1.35 : 1, e.length / baseLength);
+      entry.mesh.scale.set(e.kind === 'traffic' ? 1 : e.width / baseWidth, 1,
+        e.kind === 'traffic' ? 1 : e.length / baseLength);
     }
     for (const [id, entry] of this.entityMeshes) if (!live.has(id)) {
-      entry.mesh.visible = false; this.pools[entry.kind].push(entry.mesh); this.entityMeshes.delete(id);
+      entry.mesh.visible = false;
+      if (entry.kind === 'traffic') {
+        const kind = entry.trafficKind ?? 'car4';
+        const pool = this.trafficPools.get(kind) ?? []; pool.push(entry.mesh); this.trafficPools.set(kind, pool);
+      } else this.pools[entry.kind].push(entry.mesh);
+      this.entityMeshes.delete(id);
     }
     this.renderer.render(this.scene, this.camera);
     const tail = this.project(x, 0, vehicle.length / 2 + .45);

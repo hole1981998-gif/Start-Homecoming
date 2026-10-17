@@ -1,10 +1,10 @@
-import { balance, hazardSizes, trafficTypes } from './config';
-export { trafficTypes } from './config';
+import { balance, hazardSizes } from './config';
+import { trafficSpawnKinds, trafficTypes, vehicles, type VehicleDefinition, type VehicleKind } from './vehicles';
+export { trafficTypes } from './vehicles';
 import { nearJunction, type RouteState, type Turn } from './route';
-import { vehicles, type VehicleDefinition } from './vehicles';
 
 export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger';
-export type TrafficKind = 'car' | 'van' | 'truck';
+export type TrafficKind = VehicleKind;
 export interface PassengerMotion { homeX: number; homeDistance: number; startedAt: number; phase: number; idle: boolean;
   ejectedAt?: number; fromX?: number; fromDistance?: number; crashRecovery?: boolean }
 export interface Entity {
@@ -39,10 +39,10 @@ export function forkWorld(world: World, route: RouteState, turn: Turn, junctionD
     rng: branchSeed, branchSeed, branchId, branchVariant };
 }
 export function entity(kind: EntityKind, id: string, distance: number, x: number): Entity {
-  const sizes: Record<EntityKind, [number, number]> = { water: [3.2, 7], pothole: [1.5, 1.8], traffic: [1.9, 3.6], fuel: [.8, .8], repair: [.8, .8], passenger: [.7, .7] };
+  const sizes: Record<EntityKind, [number, number]> = { water: [3.2, 7], pothole: [1.5, 1.8], traffic: [trafficTypes.car4.width, trafficTypes.car4.length], fuel: [.8, .8], repair: [.8, .8], passenger: [.7, .7] };
   return { id, kind, distance, x, width: sizes[kind][0], length: sizes[kind][1],
     speed: kind === 'traffic' ? balance.trafficSpeed : 0, consumed: false, touching: false, lastHit: -1e10,
-    ...(kind === 'traffic' ? { trafficKind: 'car' as const, hp: trafficTypes.car.hp, wrecked: false,
+    ...(kind === 'traffic' ? { trafficKind: 'car4' as const, hp: trafficTypes.car4.hp, wrecked: false,
       trafficContacts: [], baseSpeed: balance.trafficSpeed } : {}) };
 }
 /** Move traffic once per fixed step and resolve road patches against its swept footprint. */
@@ -66,7 +66,7 @@ export function advanceTraffic(entities: Entity[], dt: number): void {
       const [enter, exit] = hit;
       if (patch.kind === 'pothole') {
         const firstTouch = !(car.trafficContacts ?? []).includes(patch.id);
-        car.hp = Math.max(0, (car.hp ?? trafficTypes.car.hp) -
+        car.hp = Math.max(0, (car.hp ?? trafficTypes.car4.hp) -
           (firstTouch ? balance.potholeImpactDamage : 0) - (exit - enter) * dt * balance.potholeDamagePerSecond);
       } else inWater = true;
       if (exit >= 1 - 1e-9) contacts.push(patch.id);
@@ -199,12 +199,12 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     const lane = random() % 3 - 1;
     const hazard = entity(kind, branchEntityId(w, 'hazard', index), spawnAt, lane * balance.laneWidth);
     if (kind === 'traffic') {
-      const variant: TrafficKind = (['car', 'car', 'van', 'truck'] as TrafficKind[])[random() % 4];
+      const variant = trafficSpawnKinds[random() % trafficSpawnKinds.length];
       hazard.trafficKind = variant; hazard.hp = trafficTypes[variant].hp;
       hazard.width = trafficTypes[variant].width; hazard.length = trafficTypes[variant].length;
       // Lane directions are relative to the player's current route. The middle is seeded once.
-      hazard.speed = lane < 0 ? -balance.trafficSpeed : lane > 0 ? balance.trafficSpeed :
-        random() % 2 ? balance.trafficSpeed : -balance.trafficSpeed;
+      hazard.speed = lane < 0 ? -trafficTypes[variant].speed : lane > 0 ? trafficTypes[variant].speed :
+        random() % 2 ? trafficTypes[variant].speed : -trafficTypes[variant].speed;
       hazard.baseSpeed = hazard.speed;
     } else if (kind === 'water' || kind === 'pothole') {
       const variants = hazardSizes[kind];

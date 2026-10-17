@@ -1,7 +1,8 @@
 import type { Run } from './survival';
-import { entity, fillWorld, initialWorld } from './world';
+import { entity, fillWorld, initialWorld, trafficTypes } from './world';
 import { junction } from './route';
 import { newVehicle, vehicles, type VehicleKind } from './vehicles';
+import { balance } from './config';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null): Run {
   if (scenario === 'vehicle-replacement' || scenario === 'vehicle-failure') {
@@ -37,6 +38,28 @@ export function developmentScenario(run: Run, scenario: string | null): Run {
       fuel: bus.fuel, durability: bus.durability,
       world: { ...run.world, entities: [car], nextHazard: 1e9, nextFuel: 1e9,
         nextRepair: 1e9, nextPassenger: 1e9 } };
+  }
+  if (scenario === 'traffic-gallery') {
+    const entities = (Object.keys(trafficTypes) as VehicleKind[]).map((kind, i) => {
+      const model = trafficTypes[kind], car = entity('traffic', `qa-${kind}`, 24 + i * 13,
+        (i % 3 - 1) * balance.laneWidth);
+      car.trafficKind = kind; car.hp = model.hp; car.width = model.width; car.length = model.length;
+      car.speed = 0; car.baseSpeed = 0;
+      return car;
+    });
+    return { ...run, world: { ...run.world, entities, nextHazard: 1e9, nextFuel: 1e9,
+      nextRepair: 1e9, nextPassenger: 1e9 } };
+  }
+  if (scenario?.startsWith('traffic-kind-')) {
+    const requested = scenario.slice('traffic-kind-'.length);
+    if (Object.hasOwn(trafficTypes, requested)) {
+      const kind = requested as VehicleKind, model = trafficTypes[kind];
+      const car = entity('traffic', `qa-${kind}`, 24, 0);
+      car.trafficKind = kind; car.hp = model.hp; car.width = model.width; car.length = model.length;
+      car.speed = 0; car.baseSpeed = 0;
+      return { ...run, world: { ...run.world, entities: [car], nextHazard: 1e9, nextFuel: 1e9,
+        nextRepair: 1e9, nextPassenger: 1e9 } };
+    }
   }
   if (scenario === 'branch-hazard') {
     const crossing = junction(run.seed, 1), distance = crossing.distance - 18;

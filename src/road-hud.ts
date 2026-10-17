@@ -1,7 +1,7 @@
 import { createElement, Waves, CircleDot, CarFront, Fuel, Wrench, ChevronDown, UserRound } from 'lucide';
 import { balance } from './config';
 import { names, type Run } from './survival';
-import { warningDistance, type EntityKind } from './world';
+import { trafficTypes, warningDistance, type EntityKind } from './world';
 
 interface Projection { project(x: number, y: number, z: number): { x: number; y: number } }
 const icons = { water: Waves, pothole: CircleDot, traffic: CarFront, fuel: Fuel, repair: Wrench, passenger: UserRound };
@@ -50,8 +50,7 @@ export class RoadHud {
         Math.abs(e.x - s.x) <= balance.passengerLateralReach ? 'F · ĐÓN' : `${distance} m`;
       const lane = e.x < -1 ? 'trái' : e.x > 1 ? 'phải' : 'giữa';
       if (e.kind === 'traffic') cue.root.querySelector('.traffic-direction')!.textContent = e.speed < 0 ? '↓' : '↑';
-      const label = e.kind === 'traffic' ? e.trafficKind === 'truck' ? 'Xe tải' :
-        e.trafficKind === 'van' ? 'Xe van' : 'Xe nhỏ' : names[e.kind];
+      const label = e.kind === 'traffic' ? trafficTypes[e.trafficKind ?? 'car4'].name : names[e.kind];
       cue.root.setAttribute('aria-label', `${label} · ${lane}${e.kind === 'traffic' ? e.speed < 0 ? ' · ngược chiều' : ' · cùng chiều' : ''} · ${distance} m`);
     }
     const coast = document.getElementById('coast-cue')!;

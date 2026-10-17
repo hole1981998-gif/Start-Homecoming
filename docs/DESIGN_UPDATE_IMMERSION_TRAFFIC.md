@@ -55,6 +55,8 @@ Vũng nước trải dài tính hao xăng theo thời gian tiếp xúc; ổ gà 
 
 **Cập nhật cho P4.1–P4.2:** xe giao thông nhiều loại có HP riêng, cũng chịu tác động từ chướng ngại môi trường. Ổ gà gây HP theo thời gian tiếp xúc; nước gây hao nhiên liệu nếu loại xe giao thông có nhiên liệu được mô phỏng. Tiền rơi ở ổ gà là hậu quả riêng của người chơi, không trừ “tiền” của traffic. Khi HP về 0, xe ngừng hoạt động và hành khách xuất hiện bên cạnh để người chơi đón; một xe chỉ phát sinh nhóm hành khách một lần. Quy tắc xe chết máy cũ vẫn là event riêng, không nhân đôi nguồn khách. Xe bị phá không tự biến thành collider tai nạn chí tử hoặc bước secret. Đề xuất vô hiệu collider xe hỏng sau khi xử lý va chạm, nhưng giữ cue/hình xe hỏng đủ để người chơi nhận ra nguồn khách; chưa mô phỏng dây chuyền xe va nhau. Không thưởng tiền/điểm trực tiếp từ húc; điểm/thu nhập theo quãng đường và khách đã đón. Xe lớn chịu hao HP/đà hoặc chi phí sửa có thể đo được; không mặc định húc miễn phí.
 
+**Danh mục xe chướng ngại đồng bộ — ĐÃ CHỐT, ĐÃ CÓ BẢN THỬ:** dùng đủ các loại xe hiện có của người chơi làm traffic: xe máy, mô tô, ô tô 4/7 chỗ, ba gác, xe buýt, xe tải, container. Loại xe người chơi bổ sung trong tương lai cũng phải có biến thể traffic tương ứng. Mỗi loại có silhouette và footprint đúng cỡ, HP/sức chịu va chạm riêng; xe nhỏ dễ bị húc phá hơn xe lớn nhưng xe lớn vẫn có chi phí húc và không bất tử. Bản thử đã mở rộng từ ba lên tám loại; trọng số sinh, hướng/làn và mức damage còn phải cân bằng trên nhiều seed và lượt chơi thực để sự đa dạng tăng lựa chọn mà không tạo bức tường bất khả thi.
+
 ## Chia prototype và tiêu chí nghiệm thu
 
 | Bước | Phạm vi đề xuất | Điều cần chứng minh |
