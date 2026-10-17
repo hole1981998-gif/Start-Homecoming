@@ -45,7 +45,7 @@ Chạy → đọc cảnh báo → né hoặc rẽ → đón khách/nhặt đồ 
 
 **ĐỀ XUẤT tương tác hệ thống:** dùng mức giảm theo từng khách và sàn cruise cấu hình riêng cho từng loại xe; sau đó giới hạn theo min/max hiệu dụng. Phạt quá tải hiện có vẫn giảm max speed và tăng hao xăng; không nhân thêm lần nữa cùng hệ số quá tải vào cruise sau khi đã tính giảm theo khách. Nâng cấp động cơ hiện chỉ tăng max speed theo bảng đã có, chưa tự tăng cruiseSpeed. Đón/cho khách xuống chỉ đổi mốc mục tiêu; vận tốc thực chuyển tiếp êm theo W/S và luật hồi tốc, không nhảy tức thì. Cho khách xuống làm mốc tăng trở lại theo số khách còn trên xe. Mua/thay xe giữ khách, tính lại mốc theo xe mới và tải đang giữ; tốc độ hiện tại được giới hạn về khoảng hợp lệ của xe mới, không gán ngay cruise để nhận cú tăng tốc miễn phí. Hết xăng/coasting và các chuyển động do QTE/nitro điều khiển có ưu tiên riêng, không bị auto-cruise cấp thêm lực kéo. Các thông số giảm/sàn/hồi tốc đều TẠM.
 
-**Mục đích thiết kế:** tạo lựa chọn tốc độ chủ động bên cạnh lái ngang: giữ W để đi nhanh, giữ S để có thêm thời gian đọc tình huống, thả để trở về nhịp chạy mặc định. Playtest phải kiểm tra tải thao tác khi phối hợp WASD với Q/E/F/C/Space; không mặc định giữ phím nhiều hơn đồng nghĩa vui hơn. HUD và Help cần giải thích rõ mốc tự chạy và hành vi hồi tốc, không chỉ hiển thị số km/h.
+**Mục đích thiết kế:** tạo lựa chọn tốc độ chủ động bên cạnh lái ngang: giữ W để đi nhanh, giữ S để có thêm thời gian đọc tình huống, thả để trở về nhịp chạy mặc định. Playtest phải kiểm tra tải thao tác khi phối hợp WASD với Q/E/F/C/Space; không mặc định giữ phím nhiều hơn đồng nghĩa vui hơn. Help giải thích hành vi giữ/thả W/S; khi lái chỉ hiển thị tốc độ hiện tại, không hiện mốc cruise. Thông số trung vị xem ở kho/khi mua xe.
 
 ## Đường, giao lộ và độ khó
 
@@ -101,7 +101,7 @@ Xăng và độ bền là hai tài nguyên riêng. Nước làm hao xăng; va ch
 
 ## Trải nghiệm và tiêu chí hoàn thành
 
-HUD có tốc độ, quãng đường, điểm, tiền, xăng, độ bền, số người/tải, xe dự phòng, vật phẩm và cảnh báo. Low-poly rõ silhouette, mưa không che tín hiệu nguy hiểm. Không chỉ dựa vào màu; có icon/chữ/hướng. Kết ván nêu nguyên nhân, điểm, quãng đường và badge nếu đạt. Không dùng nội dung mở khóa để ép chơi lại.
+HUD có tốc độ hiện tại, quãng đường, điểm và tiền phủ trực tiếp lên gameplay, không chiếm một vùng bảng riêng; xăng/độ bền tối giản gần xe, tránh thân xe và hành lang phía trước. Không hiện cruise khi lái; xem ở kho/khi mua. Số người/tải, xe dự phòng và vật phẩm trình bày gọn theo ngữ cảnh; cảnh báo/QTE dùng Graphic UI trong màn chơi. Low-poly rõ silhouette, mưa không che tín hiệu nguy hiểm. Không chỉ dựa vào màu; có icon/chữ/hướng. Kết ván nêu nguyên nhân, điểm, quãng đường và badge nếu đạt. Không dùng nội dung mở khóa để ép chơi lại.
 
 Một bản chơi được cần đủ vòng chạy–tương tác–mua–thay xe–kết ván; mọi quy tắc phải có test hoặc kiểm tra thủ công phù hợp, không chỉ cảnh demo chạy hình.
 
@@ -144,7 +144,7 @@ Trong prototype, dùng Web Audio oscillator/noise hoặc âm thanh placeholder r
 
 **ĐỀ XUẤT triển khai:** hướng dẫn input ngắn ở safe start, có thể bỏ qua; giới thiệu từng input bằng prompt theo ngữ cảnh thay vì dồn một màn dài. Card lần đầu xuất hiện trong vùng an toàn trước khi chướng ngại có thể gây va chạm; không bật card che đúng lúc QTE hoặc lái xe nguy hiểm. Card giải thích cơ chế có nút đóng rõ và timeout; nếu game đang chạy thì ngừng sinh nguy hiểm mới cho đến khi card đóng, hoặc mở card ở safe window. Sau lần đầu, chỉ hiện cue ngắn; nội dung hướng dẫn xem lại trong Help/Pause.
 
-Popup xác nhận là toast nhỏ, tự đóng nhanh, không cần bấm xác nhận và không pause gameplay. Ưu tiên cạnh màn hình, không che xe, QTE, HUD tài nguyên hay hướng đi. Có cooldown và hàng đợi gộp sự kiện để không spam; sự kiện gameplay vẫn rõ nếu popup bị bỏ qua. Mỗi loại event có 3–4 dòng thoại đã duyệt, chọn có kiểm soát, tránh lặp liên tiếp; ngôn từ vui, ngắn, không miệt thị người chơi. Hình và SFX giai đoạn đầu là placeholder nhẹ; tạo hình minh họa hoàn chỉnh và thêm SFX sản xuất sau theo gate đồng ý giai đoạn cuối. Lời thoại công an dưới đây là ví dụ minh họa tone, không bắt buộc chỉ có một câu:
+Cập nhật theo feedback P2: phản hồi chính là VFX/SFX cue và UI tại chỗ (nhấn tài nguyên, icon, số biến động ngắn), không dùng bảng log chữ khi lái. Popup caption chỉ là điểm nhấn tùy chọn, tự đóng nhanh, không pause; tránh xe, QTE, tài nguyên và hành lang né. Không bắt buộc caption cho mọi va chạm/pickup. Có cooldown và hàng đợi gộp sự kiện để không spam; sự kiện gameplay vẫn rõ nếu popup bị bỏ qua. Mỗi loại event có 3–4 dòng thoại đã duyệt, chọn có kiểm soát, tránh lặp liên tiếp; ngôn từ vui, ngắn, không miệt thị người chơi. Hình và SFX giai đoạn đầu là placeholder nhẹ; tạo hình minh họa hoàn chỉnh và thêm SFX sản xuất sau theo gate đồng ý giai đoạn cuối. Lời thoại công an dưới đây là ví dụ minh họa tone, không bắt buộc chỉ có một câu:
 
 - “Chạy đâu cho thoát con!”
 - “Tấp vào lề nào, tay lái lụa!”
@@ -163,3 +163,9 @@ Popup xác nhận là toast nhỏ, tự đóng nhanh, không cần bấm xác nh
 Vai trò có thể do Codex đảm nhiệm như các góc review; phải ghi rõ nếu tự đánh giá từ dữ liệu hiện có, không tự nhận là chuyên gia độc lập đã xem test live. Báo cáo review không được biến đề xuất thành cơ chế đã chốt. Không cần chờ ý kiến cho sửa lỗi hiển thị hiển nhiên hoặc thay đổi reversible nhỏ; với thay đổi cân bằng lớn hoặc đổi hành vi UX đã thống nhất, trình đề xuất và hỏi ý kiến trước khi áp dụng.
 
 **Công cụ tùy chọn:** khi đã có prototype UI chạy được và plugin Product Design đang kết nối, dùng Product Design audit cho onboarding/flow/màn hình dựa trên ảnh chụp hiện tại. Ghi bước, ảnh và phát hiện UX/accessibility gắn với bằng chứng. Ảnh không chứng minh được cảm giác lái, timing input hay fairness; các phần đó phải được chơi thử trực tiếp. Nếu plugin/tool không sẵn có, tiếp tục checklist UI/UX thủ công và ghi giới hạn.
+
+## Cập nhật sau feedback P2 — UI và giao thông
+
+**ĐÃ CHỐT theo yêu cầu chủ dự án:** HUD phủ gameplay; xăng/HP gần xe; không hiện cruise khi lái; cảnh báo/QTE dùng graphic và phản hồi tại chỗ, hạn chế bảng chữ. Traffic trái ngược chiều, phải cùng chiều, giữa chọn hướng seeded theo hệ quy chiếu người chơi; hazard nhiều size/chiều dài, có thể chiếm 2–3 lane. Traffic có loại, sát thương và HP khác nhau để xe lớn có thể húc phá. Thông số và điều kiện cụ thể còn ĐỀ XUẤT/TẠM.
+
+Đặc tả, ràng buộc công bằng, phân kỳ P2.1/P3A/P3B/P4.1 và kế hoạch kiểm chứng: [DESIGN_UPDATE_IMMERSION_TRAFFIC.md](DESIGN_UPDATE_IMMERSION_TRAFFIC.md). Build P2.0 chưa triển khai các thay đổi này. Mẫu phủ kín đường cần giải pháp hợp lệ; chưa có thì cấm sinh. Không tự coi xe bị húc là tai nạn kích hoạt secret.

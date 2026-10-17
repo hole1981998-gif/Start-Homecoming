@@ -33,3 +33,7 @@ P1.2 đã được chủ dự án chấp nhận cho chuyển P2; code tiếp t�
 Mỗi lần simulation/playtest cần báo cáo kèm tự review game design và UI/UX. Thay đổi cân bằng lớn phải xin ý kiến chủ dự án. Không diễn giải simulation đường trống thành chứng minh economy cân bằng. Không tạo/tích hợp art hoặc SFX hoàn chỉnh trước gate riêng.
 
 Các tài liệu thiết kế trong `docs/` xuất phát từ bộ tài liệu chủ dự án ngày 17/10/2026 và được cập nhật theo quyết định mới trong chat. Chúng mô tả đích thiết kế, không phải báo cáo đã triển khai. Báo cáo P1 giữ nguyên làm lịch sử cho build cũ. Nguồn đồng bộ bên ngoài không bị sửa.
+
+## Feedback thiết kế sau P2
+
+Đã cập nhật [UI/nhịp chơi/traffic và phân kỳ prototype](docs/DESIGN_UPDATE_IMMERSION_TRAFFIC.md), cùng GDD/spec/roadmap/balance. Đây là design kế tiếp, chưa đổi P2.0 đang chạy. Đề xuất P2.1 cho HUD overlay/cue/mốc ven đường và thử nhịp; P3A/B cho traffic nhiều hướng/hazard rộng/QTE; P4.1 cho HP traffic/húc phá sau hệ thống nhiều xe.

@@ -139,3 +139,11 @@ lengthPenalty = clamp((vehicleLength - 4.2) * 0.025, 0, 0.3)
 Đo thời lượng ván, khoảng cách đạt tiền mua ô tô 4 chỗ, số lần tiếp tế, tỷ lệ chết theo nguyên nhân, tỷ lệ thất bại QTE theo xe, số seed bất khả thi và tỷ lệ đạt secret. Thử tải 1 người, đúng tải và quá tải; thử xe dài trên mọi mẫu giao lộ. Không tăng difficulty bằng tăng tiền phạt. Ghi seed/config version và kết quả thực, điều chỉnh một nhóm biến mỗi lần; chưa có dữ liệu đo ở bản tài liệu này.
 
 Riêng passenger cruise: thử từng n từ 0 khách tới đúng tải, quá tải và tới sàn; kiểm tra min <= effectiveCruise <= max, tăng n không tăng cruise khi giữ nguyên xe/tình huống, bỏ khách không làm giảm cruise. So sánh xe máy/ô tô/buýt/container và đổi xe giữ khách. Đo tiền ròng/phút, quãng chạy mỗi bình và thời gian mua xe đầu tiên ở cruise/W/S; xác minh còn nhiều lựa chọn chở khách có ý nghĩa, vẫn phục vụ mục tiêu 3–5 phút. Chưa gán các hệ số mới hoặc sửa income/giá cho tới vòng cân bằng triển khai.
+
+## Thử nghiệm nhịp sau feedback P2 — CHƯA ÁP DỤNG
+
+Chi tiết [DESIGN_UPDATE_IMMERSION_TRAFFIC.md](DESIGN_UPDATE_IMMERSION_TRAFFIC.md). Baseline gap 90 m (~6,43 s cruise / 4,5 s max với hazard tĩnh); đề xuất thử riêng 75 m (~5,36 / 3,75 s), rồi 70 m (5 / 3,5 s). Giữ tốc độ, damage, 0,15 tiền/m, tiếp tế và warning >=3,5 s trong phép so sánh. Gap không tự chứng minh đường khả thi; xét footprint, vị trí ngang, hazard cũ và tiếp tế. Traffic ngược chiều cần warning theo relative speed.
+
+Size/length hazard và HP/damage từng loại traffic chưa gán số. Nước dài dùng exposure time và ngân sách xăng hiện có; ổ gà dài một hit/entity; không tự nhân damage theo size hoặc mỗi frame. Chặn cứng 3 lane cần phương án khả dụng; nếu không thì loại mẫu. Húc phá không thưởng tiền/điểm riêng, có chi phí HP/đà/sửa cần thử; không đổi thu nhập bù ngầm va chạm tăng.
+
+Báo cáo xác suất sống tới đủ 800, phân bố thời gian đạt mốc kèm lượt chết/censored, thu nhập ròng, HP/xăng mất, tiếp tế cho cruise/W/S nhiều seed. Kết quả P2.0 không nghiệm thu mật độ/traffic mới.

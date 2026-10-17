@@ -7,8 +7,11 @@ Roadmap là kế hoạch đề xuất, không phải báo cáo đã triển khai
 | 0 — Nền dự án | Vite, TS strict, Three.js, lint/typecheck/test/build, config schema, CI | Clean checkout cài được theo lockfile; cả 4 check có kết quả thật; canvas 9:16 |
 | 1 — Lái xe | Low-poly bằng code, đường 3 lane, WASD liên tục, cruise riêng từng loại xe và hồi tốc khi thả W/S, camera, pause/focus | Không khóa lane; giữ W/S duy trì nhanh/chậm; thả tự hồi từ cả hai phía không giật/dao động; không lùi; resize không méo; mở tab khác không làm chết xe |
 | 2 — Vòng sinh tồn | Xăng/HP riêng, coasting chung, chướng ngại cơ bản, score/money theo distance, HUD, restart | Điểm không tăng khi pause; hết tài nguyên kết ván đúng; restart không rò trạng thái |
-| 3 — Tuyến endless | Chunk/pooling, giao lộ Q/E và QTE, camera rẽ, difficulty theo distance, RNG seeded | Đi thẳng/rẽ/bỏ lỡ đều đúng; xe dài có lối khả thi; seed tái hiện được |
+| 2.1 — HUD và nhịp chơi (bổ sung đề xuất) | Overlay, resource gần xe, graphic cue, mốc ven đường primitive; thử mật độ tách vòng | Không che đường, không cruise HUD; so sánh baseline và giữ mục tiêu economy |
+| 3A — Traffic/hazard (chia nhỏ P3) | Hướng theo làn, size/chiều dài hazard, director khả thi | Relative speed warning, sweep, không spawn bẫy; chưa có lối giải thì không chặn kín |
+| 3B — Tuyến endless | Chunk/pooling, giao lộ Q/E và QTE, camera rẽ, difficulty theo distance, RNG seeded | Đi thẳng/rẽ/bỏ lỡ đều đúng; xe dài có lối khả thi; seed tái hiện được |
 | 4 — Người và xe | F đón khách, capacity có tài xế, cruise giảm theo số khách với mức giảm/sàn riêng từng xe, quá tải, Tab cho xuống, đủ loại xe, kho 2 xe, tự thay | Thêm khách giảm cruise kể cả chưa quá tải; đạt sàn đúng từng xe/context; bỏ khách/đổi xe tính lại không giật tốc độ; mua xe thứ ba nguyên tử; đổi xe giữ khách; upgrade riêng không mất/nhân đôi |
+| 4.1 — Húc phá (bổ sung đề xuất) | HP/damage theo loại traffic; xe lớn phá xe yếu, cue tối giản | Không hit lặp/farm, chi phí có ý nghĩa, không kích hoạt nhầm secret |
 | 5 — Kinh tế ven đường | C shop, mua xe, nâng cấp xe hiện tại, xăng/sửa, R item, controlled loot | Hàng không reroll; tiền không âm; hủy giao dịch không mất tiền; tiếp tế khả thi |
 | 6 — Nguy hiểm đặc biệt | Công an/dân phòng, kẹt xe, xe chết máy, tai nạn, tàu, Space nitro | Tiền phạt cố định; thiếu tiền đúng chính sách; tàu không xuyên collider; thay xe không chết dây chuyền |
 | 7 — Kết ván đặc biệt | Chuỗi secret 4 bước, badge, kết quả và leaderboard local | Đúng chuỗi thì kết secret trước HP=0; sai thứ tự không kích hoạt; ghi điểm đúng một lần |
@@ -20,7 +23,7 @@ Trong mốc 0–8, dùng placeholder tối giản để giữ cảnh và UI rõ;
 
 Âm thanh placeholder và cue tối thiểu có thể làm trong prototype để kiểm tra nhịp độ/tín hiệu. Sản xuất nhạc và SFX hoàn chỉnh thực hiện cùng giai đoạn cuối sau khi chủ dự án đồng ý. Trước đó ưu tiên cue Web Audio đơn giản, volume controls và cue hình ảnh tương đương.
 
-Onboarding và polish tương tác được làm bằng thứ tự: input intro có thể bỏ qua → card cơ chế/chướng ngại lần đầu trong safe window → toast xác nhận cho item/skill/event với pool 3–4 câu mỗi nhóm → icon/SFX placeholder. Kiểm tra không che hazard/QTE và không spam. Minh họa art hoàn chỉnh, voice hoặc SFX production chỉ ở giai đoạn cuối sau khi được chủ dự án duyệt.
+Onboarding và polish tương tác được làm bằng thứ tự: input intro có thể bỏ qua → card cơ chế/chướng ngại lần đầu trong safe window → graphic UI/VFX/SFX placeholder cho item/skill/event → caption vui tùy chọn với pool 3–4 câu mỗi nhóm; không giữ bảng log chữ khi lái. Kiểm tra không che hazard/QTE và không spam. Minh họa art hoàn chỉnh, voice hoặc SFX production chỉ ở giai đoạn cuối sau khi được chủ dự án duyệt.
 
 Sau **mỗi vòng simulation/playtest**, ghi report rồi yêu cầu review theo hai vai: game designer đề xuất cân bằng dựa trên bằng chứng và hỏi ý kiến chủ dự án trước các thay đổi lớn; UI/UX designer đề xuất cải thiện luồng, độ rõ ràng và animation UI. Giai đoạn prototype giữ UI đơn giản, chỉ sửa những điểm gây khó hiểu/cản thao tác; animation polish để sau.
 
@@ -59,3 +62,7 @@ Các mục trên đã có mặc định để triển khai prototype, không ph�
 ## Definition of Done
 
 Implementation khớp phạm vi đã chốt; số tạm ở config; lint/typecheck/tests/build chạy và pass; manual gameplay liên quan có bằng chứng; lỗi còn lại và giới hạn được ghi trong PR; docs cập nhật; reviewer con người duyệt. Chưa đạt mục nào thì ghi rõ, không đánh dấu hoàn thành hoặc merge để né check.
+
+## Feedback P2: kế hoạch kế tiếp
+
+Đọc [DESIGN_UPDATE_IMMERSION_TRAFFIC.md](DESIGN_UPDATE_IMMERSION_TRAFFIC.md) trước P2.1. P2.0 giữ nguyên làm baseline. P2.1 ưu tiên UI và mốc tốc độ thị giác rồi thử gap 75/70 m từng vòng, chưa áp dụng số. P3A làm traffic trái ngược/phải cùng/giữa seeded và hazard nhiều size; P3B thêm QTE/tuyến và mẫu phủ kín có phương án hợp lệ. P4.1 chỉ sau P4 có xe người chơi khác nhau. Cân lợi ích húc với chi phí sửa/đổi xe ở P5; xe lớn không bất tử. Các mốc P5–P9 giữ tên; SFX/art hoàn chỉnh vẫn ở gate cuối.

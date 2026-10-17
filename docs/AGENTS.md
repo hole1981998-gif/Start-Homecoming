@@ -83,3 +83,7 @@ PR URL hoặc trạng thái chưa tạo:
 Review con người: đang chờ / bằng chứng phê duyệt
 Merge: chưa merge (mặc định)
 ```
+
+## Bổ sung ưu tiên sau feedback P2 ngày 17/10/2026
+
+Theo yêu cầu mới của chủ dự án, GAME_DESIGN.md và DESIGN_UPDATE_IMMERSION_TRAFFIC.md thay hướng dẫn cũ về HUD/cruise và toast: không bắt hiện số cruise trên HUD; xem tại kho/khi mua. HUD overlay gameplay; xăng/HP tối giản gần xe, không che hành lang lái. Cảnh báo/QTE là Graphic UI; hậu quả dùng cue hình/âm và giá trị tài nguyên/số biến động, không bắt dòng log chữ mỗi event. Caption vui tùy chọn. Thẻ lần đầu an toàn/Help/kho/shop vẫn chứa chi tiết. Đích thiết kế thêm traffic theo hướng làn, hazard nhiều size, HP/damage traffic và húc phá; theo phân kỳ P2.1/P3A/P3B/P4.1, không thêm toàn bộ vào P2.0. Số mới vẫn tạm, art/SFX hoàn chỉnh vẫn qua gate cuối.
