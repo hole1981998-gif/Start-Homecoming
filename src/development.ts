@@ -1,5 +1,5 @@
 import type { Run } from './survival';
-import { entity } from './world';
+import { entity, fillWorld, initialWorld } from './world';
 import { junction } from './route';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null): Run {
@@ -11,6 +11,14 @@ export function developmentScenario(run: Run, scenario: string | null): Run {
     const hole = entity('pothole', 'qa-hole', 15, 0); hole.width = 9.6; hole.length = 8;
     return { ...run, passengers: 3, world: { ...run.world, entities: [car, water, hole],
       nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
+  }
+  if (scenario === 'branch-hazard') {
+    const crossing = junction(run.seed, 1), distance = crossing.distance - 18;
+    const traffic = entity('traffic', 'qa-old-branch', crossing.distance + 85, 0);
+    traffic.speed = 0;
+    const world = fillWorld(initialWorld(run.seed), distance);
+    return { ...run, distance, route: { ...run.route, index: 1 },
+      world: { ...world, entities: [...world.entities.filter(e => e.distance + e.length / 2 > distance - 12), traffic] } };
   }
   if (scenario === 'junction' || scenario === 'blocked-junction' || scenario === 'blocked-window') {
     const index = scenario === 'junction' ? 0 : Array.from({ length: 20 }, (_, i) => i + 1).find(i => junction(run.seed, i).blockedStraight)!;

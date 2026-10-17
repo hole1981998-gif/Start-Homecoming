@@ -61,10 +61,10 @@ export class RoadRenderer {
       this.scene.add(group); group.add(straightStub);
       // The cross street meets the outgoing road at the end of the quarter turn.
       const crossStreet = box(90, .07, 9.6, '#33454b', group); crossStreet.position.set(0, -.055, -10.2);
-      const oldRoad = box(9.6, .04, 92, '#303e46', straightStub); oldRoad.position.set(0, -.08, -46);
+      const oldRoad = box(9.6, .04, 190, '#303e46', straightStub); oldRoad.position.set(0, -.08, -95);
       for (const side of [-1, 1]) {
-        const edge = box(.12, .025, 70, '#d3d4bc', straightStub); edge.position.set(side * 4.9, -.035, -54);
-        const stripe = box(.09, .025, 70, '#9caeae', straightStub); stripe.position.set(side * balance.laneWidth / 2, -.035, -54);
+        const edge = box(.12, .025, 150, '#d3d4bc', straightStub); edge.position.set(side * 4.9, -.035, -95);
+        const stripe = box(.09, .025, 150, '#9caeae', straightStub); stripe.position.set(side * balance.laneWidth / 2, -.035, -95);
       }
       const barrier = box(9.2, .7, .35, '#d39468', group); barrier.position.set(0, .36, -12);
       this.crossings.push({ group, straightStub, barrier });
@@ -207,12 +207,13 @@ export class RoadRenderer {
         s.route.history.some(turn => turn.distance === cross.distance);
     }
     const live = new Set<string>();
-    for (const e of s.world.entities) {
+    const visibleEntities = [...s.world.entities.map(entity => ({ entity, route: s.route })), ...s.world.retired];
+    for (const { entity: e, route } of visibleEntities) {
       if (e.consumed) continue;
       live.add(e.id);
       let entry = this.entityMeshes.get(e.id);
       if (!entry) { entry = { kind: e.kind, mesh: this.entityMesh(e.kind) }; this.entityMeshes.set(e.id, entry); }
-      const entityPose = pathPose(e.distance, s.route, s.seed);
+      const entityPose = pathPose(e.distance, route, s.seed);
       const flight = e.kind === 'passenger' && e.passengerMotion?.ejectedAt !== undefined ?
         Math.max(0, Math.min(1, (s.activeSeconds - e.passengerMotion.ejectedAt) / balance.passengerKickSeconds)) : 1;
       const inFlight = flight < 1;

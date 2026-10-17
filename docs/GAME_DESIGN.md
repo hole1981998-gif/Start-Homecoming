@@ -54,6 +54,8 @@ Chạy → đọc cảnh báo → né hoặc rẽ → đón khách/nhặt đồ 
 
 **ĐỀ XUẤT:** Q/E hợp lệ sẽ chốt hướng một lần; xe dài có cửa sổ ngắn hơn nhưng vẫn có thời gian phản ứng tối thiểu. Không bấm thì đi thẳng nếu còn thông; nếu buộc rẽ mà bỏ lỡ, xử lý va chạm với vật cản thật, không tự chọn hướng. Thất bại QTE không tạo phạt bí mật. Chỉ sinh tổ hợp có ít nhất một phương án khả thi với xe và tài nguyên hiện có. Tăng mật độ, phối hợp chướng ngại và giảm thời gian phản ứng tới một sàn, không tăng vô hạn.
 
+**ĐÃ CHỐT sau feedback giao lộ:** chướng ngại đã thấy trên đường thẳng giữ nguyên vị trí khi chọn rẽ; nhánh được chọn có bộ chướng ngại riêng theo seed và hướng rẽ. Đường cũ, giao lộ và vật thể của nó chỉ được thu hồi khi đã ra khỏi vùng nhìn phía sau xe. Không sao chép hoặc bẻ vị trí chướng ngại đường thẳng sang nhánh mới.
+
 **Feedback sau P3A:** chủ dự án vẫn thấy game dễ; ghi lại để đánh giá difficulty curve sau khi có thêm hệ thống, chưa tăng mật độ cùng vòng đổi xăng/va chạm. Xăng cần tạo cảm giác hơi thiếu và lần nhặt xăng đem lại sự nhẹ nhõm; thử tăng hao nền vừa phải rồi đo tài nguyên thấp trên nhiều seed, tránh chỉ nâng tốc độ để làm nhịp nhanh.
 
 ## Xe, xăng, độ bền và thay xe

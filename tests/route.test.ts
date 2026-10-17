@@ -3,7 +3,7 @@ import { balance } from '../src/config';
 import { initialRun, selectTurn, stepRun, type Run } from '../src/survival';
 import { noInput } from '../src/simulation';
 import { canChoose, compactRoute, junction, nearJunction, pathPose } from '../src/route';
-import { hazardDistance } from '../src/world';
+import { entity, fillWorld, hazardDistance, initialWorld } from '../src/world';
 
 function atJunction(index: number, seed = 17): Run {
   const j = junction(seed, index);
@@ -82,6 +82,66 @@ describe('P3B junction decisions', () => {
       expect(after.z).toBeCloseTo(before.z, 8);
       expect(after.heading).toBeCloseTo(before.heading, 8);
     }
+  });
+  it('keeps a seen straight hazard in place and gives each chosen branch a distinct hazard', () => {
+    const seed = 17;
+    const junctionIndex = Array.from({ length: 12 }, (_, i) => i).find(index => {
+      const distance = junction(seed, index).distance;
+      return Array.from({ length: 150 }, (_, hazard) => hazardDistance(hazard)).some(at =>
+        at >= distance + balance.junctionClearance && at <= distance + balance.worldLookAhead - 10);
+    })!;
+    const crossing = junction(seed, junctionIndex), decisionDistance = crossing.distance - 10;
+    const world = fillWorld(initialWorld(seed), decisionDistance);
+    const old = world.entities.find(e => e.id.startsWith('hazard-') &&
+      e.distance >= crossing.distance + balance.junctionClearance)!;
+    expect(old).toBeDefined();
+    const base = { ...initialRun(seed), phase: 'running' as const, distance: decisionDistance,
+      route: { ...initialRun(seed).route, index: junctionIndex }, world };
+    const left = selectTurn(base, 'left'), right = selectTurn(base, 'right');
+    for (const selected of [left, right]) {
+      const preserved = selected.world.retired.find(item => item.entity.id === old.id)!;
+      expect(preserved).toBeDefined();
+      expect(preserved.route.choice).toBeNull();
+      const newHazard = selected.world.entities.find(e => e.distance === old.distance && e.id.startsWith('hazard-'))!;
+      expect(newHazard).toBeDefined();
+      expect(newHazard.id).not.toBe(old.id);
+      expect(newHazard.kind).not.toBe(old.kind);
+      const oldPose = pathPose(old.distance, preserved.route, seed);
+      const newPose = pathPose(newHazard.distance, selected.route, seed);
+      expect(Math.hypot(oldPose.x - newPose.x, oldPose.z - newPose.z)).toBeGreaterThan(20);
+    }
+    expect(left.world.entities.find(e => e.distance === old.distance && e.id.startsWith('hazard-'))!.kind)
+      .not.toBe(right.world.entities.find(e => e.distance === old.distance && e.id.startsWith('hazard-'))!.kind);
+    expect(fillWorld(left.world, crossing.distance + 64).retired.some(item => item.entity.id === old.id)).toBe(true);
+    expect(fillWorld(left.world, crossing.distance + 65).retired.some(item => item.entity.id === old.id)).toBe(false);
+  });
+
+  it('derives branch hazards from the chosen path, not how early Q/E was pressed', () => {
+    const seed = 17, crossing = junction(seed, 1);
+    const make = (distance: number) => {
+      const initial = initialRun(seed);
+      return selectTurn({ ...initial, phase: 'running', distance, route: { ...initial.route, index: 1 },
+        world: fillWorld(initialWorld(seed), distance) }, 'left');
+    };
+    const early = make(crossing.distance - 18), late = make(crossing.distance - 2);
+    expect(early.world.branchSeed).toBe(late.world.branchSeed);
+    const oldBranch = fillWorld(early.world, crossing.distance + 50);
+    const newBranch = fillWorld(late.world, crossing.distance + 50);
+    expect(oldBranch.entities.filter(e => e.id.startsWith('hazard-') && e.distance > crossing.distance))
+      .toEqual(newBranch.entities.filter(e => e.id.startsWith('hazard-') && e.distance > crossing.distance));
+  });
+
+  it('does not collide with traffic left on the unchosen straight branch', () => {
+    const seed = 17, crossing = junction(seed, 0), initial = initialRun(seed);
+    const car = entity('traffic', 'old-straight-car', crossing.distance + 4, 0); car.speed = 0;
+    const run = { ...initial, phase: 'running' as const, distance: crossing.distance - 10,
+      world: { ...initial.world, entities: [car], nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
+    const turned = selectTurn(run, 'left');
+    expect(turned.world.retired.some(item => item.entity.id === car.id)).toBe(true);
+    expect(turned.world.entities.some(e => e.id === car.id)).toBe(false);
+    const after = cross(turned);
+    expect(after.crash).toBeNull();
+    expect(after.durability).toBe(initial.durability);
   });
 
   it('seeded QTE sampling separates a missed blocked route from a timely turn', () => {

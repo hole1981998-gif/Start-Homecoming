@@ -162,4 +162,6 @@ Size/length hazard và HP/damage từng loại traffic chưa gán số. Nước 
 
 **Motion NPC P4A (`p4a-passengers-2`) — TẠM:** khách G bay ngang trong 0,65 s; khách chờ/ở lại có thể đứng yên hoặc đi với tốc độ quỹ đạo tối đa 0,45 m/s, luôn trong bán kính 1,5 m từ vị trí gốc. Vị trí hiển thị và vùng F theo fixed step, không theo frame render. Đây là số thử khả năng đọc và bắt nhịp, chưa phải cân bằng độ khó cuối.
 
+**Sửa nhánh giao lộ (`p4a-branch-hazards-1`) — TẠM:** giữ nguyên các số xăng, HP, thu nhập, khoảng hazard, 60 m hành lang giao lộ và chu kỳ vật phẩm. Sau Q/E, nhánh mới có seed/ID riêng; pha loại chướng ngại lệch 1 bước khi rẽ trái, 2 bước khi rẽ phải để tránh chướng ngại cùng loại xuất hiện đúng vị trí dọc vừa thấy ở đường thẳng. Phân bố dài hạn vẫn luân phiên ba loại. Cần so sánh nhiều seed và quyết định rẽ khác nhau về lối tránh, nhặt vật phẩm, thời lượng sống và độ khó; chưa coi đây là balance cuối.
+
 Báo cáo xác suất sống tới đủ 800, phân bố thời gian đạt mốc kèm lượt chết/censored, thu nhập ròng, HP/xăng mất, tiếp tế cho cruise/W/S nhiều seed. Kết quả P2.0 không nghiệm thu mật độ/traffic mới.

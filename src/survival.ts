@@ -1,6 +1,6 @@
 import { balance } from './config';
 import { initialState, step, type Input, type State } from './simulation';
-import { advancePassengers, entity, fillWorld, initialWorld, passengerMotion, sweptContact, type EntityKind, type World } from './world';
+import { advancePassengers, entity, fillWorld, forkWorld, initialWorld, passengerMotion, sweptContact, type EntityKind, type World } from './world';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
 
@@ -77,7 +77,9 @@ function overlapsVehicle(x: number, distance: number, e: World['entities'][numbe
 export function selectTurn(run: Run, turn: Turn): Run {
   const next = junction(run.seed, run.route.index);
   if (run.phase !== 'running' || run.crash || run.route.choice || !canChoose(run.distance, run.speed, next)) return run;
-  return { ...run, route: { ...run.route, choice: turn } };
+  const forked = forkWorld(run.world, run.route, turn, next.distance);
+  return { ...run, route: { ...run.route, choice: turn },
+    world: fillWorld(forked, run.distance, run.fuel, run.durability, passengerDrive(run.passengers).fuelFactor) };
 }
 
 export function stepRun(before: Run, input: Input): Run {
@@ -114,7 +116,9 @@ export function stepRun(before: Run, input: Input): Run {
       }
     }
     advancePassengers(movedEntities, before.activeSeconds + dt);
-    return { ...before, world: { ...world, entities: movedEntities }, protectedEntities: [...protectedEntities],
+    return { ...before, world: { ...world, entities: movedEntities,
+      retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
+      protectedEntities: [...protectedEntities],
       ticks: before.ticks + 1, activeSeconds: before.activeSeconds + dt, distance, x, speed, lateralVelocity: 0,
       crash: returned ? null : { ...before.crash, elapsed }, recovering: returned && before.fuel > 0 };
   }
@@ -133,7 +137,9 @@ export function stepRun(before: Run, input: Input): Run {
   }
   const ds = driven.distance - before.distance;
   const world = fillWorld(before.world, before.distance, before.fuel, before.durability, drive.fuelFactor);
-  const r: Run = { ...before, world: { ...world, entities: world.entities.map(e => ({ ...e })) }, ticks: before.ticks + 1,
+  const r: Run = { ...before, world: { ...world, entities: world.entities.map(e => ({ ...e })),
+    retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
+    ticks: before.ticks + 1,
     x: driven.x, lateralVelocity: driven.lateralVelocity, speed: driven.speed,
     recovering: before.recovering && driven.speed < drive.cruiseSpeed - 1e-8 };
   // A depleted imported/test state starts coasting immediately, never receives cruise thrust.
@@ -254,7 +260,6 @@ export function stepRun(before: Run, input: Input): Run {
     r.route = { ...r.route, index: r.route.index + 1, choice: null, turns: r.route.turns + Number(choice !== 'straight'),
       lastTurn: choice, turnAt: r.activeSeconds, misses: r.route.misses + Number(choice === 'straight' && crossing.blockedStraight),
       history: choice === 'straight' ? r.route.history : [...r.route.history, { distance: crossing.distance, turn: choice }] };
-    if (choice !== 'straight') r.world.rng = (Math.imul(r.world.rng ^ (choice === 'left' ? 0x51633e2d : 0x2734a901), 1664525) + 1013904223) >>> 0;
     if (choice === 'straight' && crossing.blockedStraight) {
       r.durability = Math.max(0, r.durability - balance.trafficDamage);
       feedback('traffic', `Đường thẳng bị chắn · −${balance.trafficDamage} HP`);
