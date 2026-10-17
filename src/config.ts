@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p4-1-traffic-roster-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p4-2-traffic-passengers-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -20,6 +20,7 @@ export const balance = Object.freeze({
   trafficDamage: 20, trafficSpeed: 6, driverFallSeconds: 0.8, driverPauseSeconds: 0.5, driverReturnSeconds: 1.8,
   trafficWaterSpeedFactor: 0.6, trafficWreckSeconds: 2.5,
   trafficHeavySelfDamageFactor: 0.4,
+  trafficPassengerLimit: 3, trafficPassengerClearance: 0.5,
   crashSlideDeceleration: 8, crashSkidLateralMetres: 1.8,
   driverEjectionSpeedFactor: 1.5, driverEjectionLateralMetres: 2.5,
   fuelPickup: 5.5, repairPickup: 40,
@@ -47,7 +48,8 @@ export function validateConfig(c: Balance): void {
       c.overloadSpeedPenalty >= 1 || c.minSpeedFactor > 1 || c.maxFuelLoadFactor < 1 ||
       c.passengerReach >= c.passengerInterval / 2 || c.passengerReturnChance > 1) throw new Error('Invalid passenger bounds');
   if (c.trafficWaterSpeedFactor >= 1 || c.trafficHeavySelfDamageFactor >= 1 ||
-      c.trafficWreckSeconds < c.fixedStep) throw new Error('Invalid traffic bounds');
+      c.trafficWreckSeconds < c.fixedStep || !Number.isInteger(c.trafficPassengerLimit) ||
+      c.trafficPassengerLimit > c.riderLimit) throw new Error('Invalid traffic bounds');
 }
 validateConfig(balance);
 

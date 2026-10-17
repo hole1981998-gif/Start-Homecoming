@@ -186,3 +186,6 @@ Báo cáo xác suất sống tới đủ 800, phân bố thời gian đạt mố
 | Container | 130 | 50 | 4 | 1 |
 
 Damage húc của xe người chơi theo cùng thứ tự loại trên: 14/18/24/30/22/55/60/70 HP. Buýt/tải/container chỉ đi xuyên sau cú húc nếu mục tiêu thực sự về 0 HP, và vẫn mất 40% sát thương của mục tiêu, làm tròn lên; trường hợp khác vẫn chịu crash. Cần đo tỷ lệ chết, thời gian phản ứng, làn còn đi được, chi phí húc và khả năng sống của cả xe nhỏ/lớn qua nhiều seed trước khi khóa số. Bảng ba loại P4.1 phía trên là số lịch sử của lát cắt trước, không phải danh mục spawn hiện hành.
+
+## P4.2 — Thông số thử đã áp dụng
+Config `p4-2-traffic-passengers-1`: số khách xe hỏng là 1..min(capacity − 1, 3), seeded theo ID xe và seed ván; tài xế traffic không tạo thêm khách. Clearance chỗ đón 0,5 m ngoài footprint xe người chơi/hazard, NPC đứng yên. Chưa thay đổi tiền/m, thưởng khách, giá xe, spawn traffic, nhiên liệu hoặc damage. Không cộng tiền/điểm khi phá xe. Đo cơ hội đón, lượng khách thực đón và thu nhập/phút trước khi tăng cap hoặc cân chi phí húc. Những đoạn P4.2 chưa áp dụng ở trên là lịch sử.

@@ -1,6 +1,6 @@
 import { balance } from './config';
 import { initialState, step, type Input, type State } from './simulation';
-import { advancePassengers, advanceTraffic, entity, fillWorld, forkWorld, initialWorld, passengerMotion, sweptContact, trafficTypes, type EntityKind, type World } from './world';
+import { advancePassengers, advanceTraffic, entity, fillWorld, forkWorld, initialWorld, passengerMotion, spawnWreckPassengers, sweptContact, trafficTypes, type EntityKind, type World } from './world';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
 import { newVehicle, vehicleRam, vehicles, type VehicleDefinition, type VehicleInstance } from './vehicles';
@@ -143,6 +143,7 @@ export function stepRun(before: Run, input: Input): Run {
       }
     }
     advancePassengers(movedEntities, before.activeSeconds + dt);
+    spawnWreckPassengers({ ...world, entities: movedEntities }, before.activeSeconds + dt, vehicle);
     const crashed: Run = { ...before, world: { ...world, entities: movedEntities,
       retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
       protectedEntities: [...protectedEntities],
@@ -325,6 +326,7 @@ export function stepRun(before: Run, input: Input): Run {
     const e = r.world.entities.find(entity => entity.id === id);
     return !!e && overlapsVehicle(r.x, r.distance, e, vehicle);
   });
+  spawnWreckPassengers(r.world, r.activeSeconds, vehicle);
   advancePassengers(r.world.entities, r.activeSeconds);
   r.route = compactRoute(r.route, r.distance, r.seed);
   r.vehicleInstances = saveVehicle(r).map(v => v.id === r.activeVehicleId &&

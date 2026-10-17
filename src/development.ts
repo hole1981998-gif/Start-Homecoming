@@ -31,6 +31,16 @@ export function developmentScenario(run: Run, scenario: string | null): Run {
       world: { ...run.world, entities: [car, water, hole],
       nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
   }
+  if (scenario === 'traffic-passengers' || scenario === 'traffic-passengers-pothole') {
+    const bus = newVehicle('bus', `${run.runId}-qa-bus`);
+    const car = entity('traffic', 'qa-passenger-source', 55, 0);
+    car.speed = 0; car.baseSpeed = 0;
+    const hole = entity('pothole', 'qa-source-pothole', 55, 0); hole.width = 2; hole.length = 24;
+    return { ...run, activeVehicleId: bus.id, vehicleInstances: [bus],
+      speed: vehicles.bus.cruiseSpeed, fuel: bus.fuel, durability: bus.durability,
+      world: { ...run.world, entities: scenario === 'traffic-passengers-pothole' ? [car, hole] : [car],
+        nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
+  }
   if (scenario === 'traffic-ram') {
     const bus = newVehicle('bus', `${run.runId}-qa-bus`);
     const car = entity('traffic', 'qa-small-car', 8, 0); car.speed = 0; car.baseSpeed = 0;

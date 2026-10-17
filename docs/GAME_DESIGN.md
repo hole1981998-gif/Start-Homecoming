@@ -190,3 +190,6 @@ Vai trò có thể do Codex đảm nhiệm như các góc review; phải ghi rõ
 **ĐÃ CHỐT sau feedback P4B:** khi tai nạn, từng hành khách được quyết định quay lại hoặc ở lại; người ở lại không nhận F đón lại. Họ phải có nhịp văng/ngã, nằm ngắn rồi đứng dậy trước khi đi lững thững. HUD sức chứa, hình nhân vật và logic F phải phản ánh cùng một danh sách khách, không sinh lại khách bị bỏ sau khi tài xế lên xe. Tỷ lệ quay lại và thời lượng animation trong BALANCE_CONFIG.md là TẠM.
 
 Đặc tả, ràng buộc công bằng, phân kỳ P2.1/P3A/P3B/P4.1 và kế hoạch kiểm chứng: [DESIGN_UPDATE_IMMERSION_TRAFFIC.md](DESIGN_UPDATE_IMMERSION_TRAFFIC.md). Build P2.0 chưa triển khai các thay đổi này. Mẫu phủ kín đường cần giải pháp hợp lệ; chưa có thì cấm sinh. Không tự coi xe bị húc là tai nạn kích hoạt secret.
+
+## P4.2 — Trạng thái bản thử
+Đã có NPC từ traffic hỏng do húc/ổ gà; F đón thủ công, không tự thêm khách hoặc thưởng. Bản thử dùng số khách seeded giới hạn tối đa 3 và không vượt sức chứa trừ tài xế; đây là mặc định bảo thủ TẠM cho economy, không phải mô hình đầy xe buýt. Chỉ xuất hiện nếu có chỗ bên cạnh ngoài hazard, có thể trì hoãn/bỏ qua khi không tìm được chỗ trước lúc thu hồi dữ liệu. Khách này đứng yên ở chỗ đã kiểm tra; visual/animation hoàn chỉnh tiếp tục để giai đoạn cuối.

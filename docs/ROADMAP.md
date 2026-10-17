@@ -66,6 +66,8 @@ Các mục trên đã có mặc định để triển khai prototype, không ph�
 
 ## Definition of Done
 
+**P4.2 có bản thử (`p4-2-traffic-passengers-1`):** xe hỏng do húc hoặc ổ gà tạo roster NPC seeded đúng một lần; 1–3 khách, không vượt sức chứa trừ tài xế. Chọn chỗ bên cạnh trong đường và ngoài footprint xác/hazard; nếu cả hai phía không an toàn thì trì hoãn, có thể bỏ nếu xe đã ra khỏi vùng dữ liệu. Khách dùng F và hệ tải/thu nhập hiện có, không thưởng ngay lúc sinh. Giữ khách sau khi xác biến mất, không sinh khách cho nhánh đã retire. Số khách và clearance TẠM; xem [PROTOTYPE_4_2_REVIEW.md](PROTOTYPE_4_2_REVIEW.md). Các ghi chú P4.2 chưa làm phía dưới là lịch sử P4.1.
+
 Implementation khớp phạm vi đã chốt; số tạm ở config; lint/typecheck/tests/build chạy và pass; manual gameplay liên quan có bằng chứng; lỗi còn lại và giới hạn được ghi trong PR; docs cập nhật; reviewer con người duyệt. Chưa đạt mục nào thì ghi rõ, không đánh dấu hoàn thành hoặc merge để né check.
 
 ## Feedback P2: kế hoạch kế tiếp

@@ -12,6 +12,7 @@ export interface Entity {
   speed: number; consumed: boolean; touching: boolean; lastHit: number;
   passengerMotion?: PassengerMotion; motionKey?: string; pickupable?: boolean; riderId?: string;
   trafficKind?: TrafficKind; hp?: number; wrecked?: boolean; wreckAge?: number; trafficContacts?: string[]; baseSpeed?: number;
+  wreckPassengersSpawned?: boolean;
 }
 export interface RetiredEntity { entity: Entity; route: RouteState; expireDistance: number }
 export interface World { entities: Entity[]; retired: RetiredEntity[]; nextHazard: number; nextFuel: number; nextRepair: number;
@@ -80,6 +81,40 @@ function passengerHash(id: string): number {
   let hash = 2166136261;
   for (const character of id) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0;
   return hash >>> 0;
+}
+/** Resolve each wreck once, after collision events. Unsafe exits wait; retired branches never spawn. */
+export function spawnWreckPassengers(world: World, now: number, vehicle: VehicleDefinition): void {
+  const additions: Entity[] = [];
+  for (const car of world.entities) {
+    if (car.kind !== 'traffic' || !car.wrecked || car.wreckPassengersSpawned) continue;
+    const hash = passengerHash(`${world.seed}:${car.id}:occupants`);
+    const count = 1 + hash % Math.min(balance.trafficPassengerLimit, vehicles[car.trafficKind ?? 'car4'].capacity - 1);
+    const side = hash & 1 ? 1 : -1;
+    const exits = [side * balance.laneWidth, -side * balance.laneWidth, 0]
+      .filter(x => Math.abs(x - car.x) > (car.width + .7) / 2 + balance.trafficPassengerClearance)
+      .sort((a, b) => Math.abs(a - car.x) - Math.abs(b - car.x));
+    const positions = exits.map(x => Array.from({ length: count }, (_, index) => ({
+      x,
+      distance: car.distance + (index - (count - 1) / 2) * 2,
+    })));
+    const safe = positions.find(group => group.every(point => world.entities.every(hazard => {
+      if (hazard.consumed || hazard.wrecked || !['water', 'pothole', 'traffic'].includes(hazard.kind)) return true;
+      // Reserve enough room for the current vehicle, not only the NPC's tiny collider.
+      return Math.abs(point.x - hazard.x) > (vehicle.width + hazard.width) / 2 + balance.trafficPassengerClearance ||
+        Math.abs(point.distance - hazard.distance) > (vehicle.length + hazard.length) / 2 + balance.trafficPassengerClearance;
+    })));
+    if (!safe) continue;
+    car.wreckPassengersSpawned = true;
+    for (let i = 0; i < safe.length; i++) {
+      const point = safe[i], npc = entity('passenger', `wreck-rider:${car.id}:${i}`, point.distance, point.x);
+      npc.motionKey = `${world.seed}:${npc.id}`; npc.riderId = npc.id;
+      npc.pickupable = true;
+      // Remain in the checked safe pocket; wandering could carry them back into the patch.
+      npc.passengerMotion = { ...passengerMotion(npc, now), idle: true };
+      additions.push(npc);
+    }
+  }
+  world.entities.push(...additions);
 }
 export function passengerMotion(e: Entity, at: number): PassengerMotion {
   const hash = passengerHash(e.motionKey ?? e.id);
