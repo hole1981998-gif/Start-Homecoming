@@ -32,8 +32,33 @@ export function leavesOpenLane(candidate: Entity, existing: Entity[], distance: 
   return true;
 }
 
-/** P3A: keep each encounter independently avoidable while direction and size vary by seed. */
-export function fillWorld(world: World, distance: number): World {
+const coversRoad = (e: Entity) => e.width >= balance.laneWidth * balance.laneCount - 1e-8;
+function forcedPatchIsAffordable(e: Entity, distance: number, fuel: number, durability: number): boolean {
+  if (!coversRoad(e)) return true;
+  if (e.kind === 'water') {
+    const cost = (e.distance - distance) * balance.fuelPerMeter +
+      (e.length + balance.vehicleLength) / balance.minSpeed * balance.waterFuelPerSecond;
+    return fuel >= cost + 1;
+  }
+  if (e.kind === 'pothole') {
+    const cost = balance.potholeImpactDamage +
+      (e.length + balance.vehicleLength) / balance.minSpeed * balance.potholeDamagePerSecond;
+    return durability >= cost + 10;
+  }
+  return false;
+}
+function hasConcurrentCar(candidate: Entity, existing: Entity[], distance: number): boolean {
+  for (let speed = balance.minSpeed; speed <= balance.maxSpeed; speed += 1) {
+    const time = Math.max(0, (candidate.distance - distance) / speed);
+    if (existing.some(e => e.kind === 'traffic' && !e.consumed &&
+      Math.abs(e.distance + e.speed * time - candidate.distance) <=
+        (e.length + candidate.length + balance.vehicleLength) / 2 + 4)) return true;
+  }
+  return false;
+}
+
+/** Forced three-lane costs require a resource budget until junction branches exist. */
+export function fillWorld(world: World, distance: number, fuel: number = balance.fuelCapacity, durability: number = balance.durabilityCapacity): World {
   const w = { ...world, entities: world.entities.filter(e => e.distance + e.length / 2 > distance - 12) };
   const ahead = distance + balance.worldLookAhead;
   const random = () => {
@@ -53,10 +78,16 @@ export function fillWorld(world: World, distance: number): World {
       const variants = hazardSizes[kind];
       const [width, length] = variants[random() % variants.length];
       hazard.width = width; hazard.length = length;
-      // A two-lane patch sits between lane centres and always leaves the opposite edge open.
-      if (width > balance.laneWidth) hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
+      // Two-lane patches leave an outside lane; three-lane patches cover the full road.
+      if (coversRoad(hazard)) hazard.x = 0;
+      else if (width > balance.laneWidth) hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
     }
-    if (kind === 'water' || leavesOpenLane(hazard, w.entities, distance)) w.entities.push(hazard);
+    if (!forcedPatchIsAffordable(hazard, distance, fuel, durability)) {
+      hazard.width = 5.7; hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
+    }
+    const forced = coversRoad(hazard);
+    if (forced && kind === 'pothole' && hasConcurrentCar(hazard, w.entities, distance)) continue;
+    if (forced || kind === 'water' || leavesOpenLane(hazard, w.entities, distance)) w.entities.push(hazard);
   }
   while (w.nextFuel * balance.fuelInterval <= ahead) {
     const index = w.nextFuel++;

@@ -27,19 +27,24 @@ it('seeded survival/economy sampling across cruise, W and S strategies', () => {
   for (const seed of [17, 42, 20261017, ...Array.from({ length: 27 }, (_, i) => 100 + i)]) for (const strategy of ['cruise', 'fast', 'slow'] as const) {
     let r = { ...initialRun(seed), phase: 'running' as Run['phase'] };
     let affordAt: number | null = null, maxEntities = 0, fuelPickups = 0, oldSequence = 0, violations = 0;
+    let minFuel = r.fuel, secondsBelow2 = 0, crashes = 0;
     for (let tick = 0; tick < 60 * 600 && r.phase === 'running'; tick++) {
       const old = r;
       r = stepRun(r, pilot(r, strategy));
       if (r.money >= 800 && affordAt === null) affordAt = r.activeSeconds;
       maxEntities = Math.max(maxEntities, r.world.entities.length);
       if (r.eventSequence !== oldSequence && r.feedback.startsWith('Nhặt xăng')) fuelPickups++;
+      if (!old.crash && r.crash) crashes++;
+      minFuel = Math.min(minFuel, r.fuel);
+      if (r.fuel < 2) secondsBelow2 += balance.fixedStep;
       oldSequence = r.eventSequence;
       if (!Number.isFinite(r.distance) || r.distance < old.distance || r.money < 0 || r.fuel < 0 || r.fuel > 8 || r.durability < 0 || r.durability > 70) violations++;
     }
     expect(violations).toBe(0); expect(maxEntities).toBeLessThan(20);
     expect(affordAt).not.toBeNull();
     if (strategy !== 'slow') { expect(affordAt).toBeGreaterThanOrEqual(60); expect(affordAt).toBeLessThanOrEqual(90); }
-    observations.push({ seed, strategy, seconds: r.activeSeconds, distance: r.distance, hp: r.durability, fuel: r.fuel, money: r.money, end: r.result?.reason ?? 'running', affordAt, fuelPickups, maxEntities });
+    observations.push({ seed, strategy, seconds: r.activeSeconds, distance: r.distance, hp: r.durability, fuel: r.fuel, minFuel, secondsBelow2, crashes,
+      money: r.money, end: r.result?.reason ?? 'running', affordAt, fuelPickups, maxEntities });
   }
   console.log(JSON.stringify({ config: balance.version, observations }));
 }, 15000);

@@ -8,6 +8,9 @@ export class RoadRenderer {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(52, 9 / 16, 0.1, 180);
   private bike = new THREE.Group();
+  private rider!: THREE.Mesh;
+  private helmet!: THREE.Mesh;
+  private fallenDriver = new THREE.Group();
   private markers: THREE.Mesh[] = [];
   private posts: THREE.Mesh[] = [];
   private entityMeshes = new Map<string, { kind: EntityKind; mesh: THREE.Group }>();
@@ -41,8 +44,11 @@ export class RoadRenderer {
     this.scene.add(this.bike);
     const body = box(0.65, 0.42, 1.5, '#dbb55c', this.bike); body.position.y = 0.65;
     for (const z of [-0.68, 0.68]) { const wheel = box(0.22, 0.48, 0.46, '#172126', this.bike); wheel.position.set(0, 0.25, z); }
-    const rider = box(0.5, 0.75, 0.45, '#7dabb3', this.bike); rider.position.set(0, 1.2, 0.1);
-    const helmet = box(0.4, 0.35, 0.4, '#e4d9c2', this.bike); helmet.position.set(0, 1.75, 0.06);
+    this.rider = box(0.5, 0.75, 0.45, '#7dabb3', this.bike); this.rider.position.set(0, 1.2, 0.1);
+    this.helmet = box(0.4, 0.35, 0.4, '#e4d9c2', this.bike); this.helmet.position.set(0, 1.75, 0.06);
+    this.scene.add(this.fallenDriver);
+    const fallenBody = box(0.5, 0.75, 0.45, '#7dabb3', this.fallenDriver); fallenBody.position.y = .55;
+    const fallenHelmet = box(.4, .35, .4, '#e4d9c2', this.fallenDriver); fallenHelmet.position.y = 1.15;
     const lamp = box(0.3, 0.16, 0.05, '#fff0ba', this.bike); lamp.position.set(0, 0.72, -0.77);
     this.observer = new ResizeObserver(() => {
       const { width, height } = host.getBoundingClientRect();
@@ -77,6 +83,15 @@ export class RoadRenderer {
     const distance = THREE.MathUtils.lerp(previous.distance, s.distance, alpha);
     this.bike.position.x = x;
     this.bike.rotation.z = -s.lateralVelocity * 0.035;
+    this.rider.visible = !s.crash; this.helmet.visible = !s.crash;
+    this.fallenDriver.visible = !!s.crash;
+    if (s.crash) {
+      const { elapsed, side } = s.crash;
+      const away = elapsed < balance.driverFallSeconds ? Math.min(1, elapsed / balance.driverFallSeconds) :
+        Math.max(0, 1 - (elapsed - balance.driverFallSeconds) / balance.driverReturnSeconds);
+      this.fallenDriver.position.set(x + side * (.65 + .9 * away), 0, 1.1 + .25 * away);
+      this.fallenDriver.rotation.z = side * .65 * away;
+    }
     // Follow the full lateral range: partial tracking clips the bike at road edges in 9:16.
     this.camera.position.set(x, 7.5, 11);
     this.camera.lookAt(x, 0, -12);

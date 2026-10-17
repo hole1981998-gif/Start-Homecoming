@@ -1,6 +1,6 @@
 # Đường Về Nhà — Prototype 3A · giao thông và chướng ngại
 
-P3A kế thừa vòng sinh tồn P2 và HUD overlay. Xe giao thông làn trái chạy ngược chiều, làn phải cùng chiều, làn giữa chọn hướng theo seed; mũi tên trên cảnh báo cho biết hướng. Nước và ổ gà có nhiều chiều rộng/chiều dài, có mẫu chiếm hai làn nhưng luôn còn một làn thoát. Mesh và vùng va chạm cùng kích thước; ổ gà dài vẫn chỉ gây một hit, nước dài tính thời gian tiếp xúc. Mật độ, sát thương và economy chưa tăng trong lượt này. Giao lộ/QTE và đường rẽ thuộc P3B tiếp theo.
+P3A kế thừa vòng sinh tồn P2 và HUD overlay. Xe giao thông làn trái chạy ngược chiều, làn phải cùng chiều, làn giữa chọn hướng theo seed; mũi tên trên cảnh báo cho biết hướng. Nước và ổ gà có nhiều chiều rộng/chiều dài, tới 30 m và có mẫu phủ cả ba làn. Vì nhánh rẽ chưa có, đoạn phủ kín chỉ sinh khi xe còn đủ xăng/HP để chịu; nếu không, thu về hai làn. Mesh và vùng va chạm cùng kích thước. Ổ gà lấy HP lúc chạm và tiếp tục lấy theo thời gian; nước dài tính xăng theo thời gian tiếp xúc. Va xe trừ HP một lần/xe, tài xế ngã, xe dừng 0 rồi tự quay lại; trong lúc đó xe miễn nhiễm damage/debuff. Sau khi lên xe, xe tăng tốc dần, giữ W để nhanh hơn. Hệ thống hành khách chưa có ở P3A, nhưng mô phỏng đã có quy tắc seed cho số khách quay lại/mất sau tai nạn. Xăng nền tăng hao từ 0,003 lên 0,0038 L/m; density và economy tiền chưa đổi. Giao lộ/QTE và đường rẽ thuộc P3B tiếp theo.
 
 **P2 giữ cruise P1.2:** tự chạy ở 14 m/s (50,4 km/h), giữ W/S để nhanh/chậm, thả để hồi. Thêm xăng/HP, nước/ổ gà/xe, nhặt xăng/sửa, điểm/tiền, coasting, kết ván và restart. Theo yêu cầu mới, thử thu nhập **0,50 tiền/m** để bám mục tiêu ô tô đầu tiên **1–1,5 phút**, thay mốc cũ 3–5 phút/0,15 tiền/m. Giữ tiền đầu 200 và giá ô tô 800. Các số còn TẠM; chưa có shop/mua xe nên mới đo khả năng đủ tiền.
 
@@ -19,7 +19,7 @@ Three.js + TypeScript strict + Vite. Desktop, bàn phím, khung 9:16. Placeholde
 - Esc: tạm dừng/tiếp tục. Mất focus sẽ pause, phải chủ động tiếp tục.
 - Nút Hướng dẫn: xem lại input. Nút Chơi lại: reset quãng đường/vị trí và tốc độ về cruise. Pause ngừng cả quá trình hồi tốc; resume giữ vận tốc lúc pause và xóa phím cũ.
 
-Nước hao thêm xăng; ổ gà mất HP và tiền; va xe mất HP. Lái chạm bình xăng/hộp sửa để nhặt, có cảnh báo bằng icon/hướng và thẻ lần đầu ở khoảng cách an toàn. Hết xăng trôi thêm 25 m; HP về 0 hoặc hết đà thì kết ván, ghi kết quả local một lần. Pause/Help không hao tài nguyên hoặc cộng thu nhập. Help có thể tắt lời nhắc vui; số hậu quả vẫn hiện. Chưa có giao lộ, hành khách, nhiều xe, shop, nitro hoặc secret.
+Nước hao thêm xăng; ổ gà mất HP liên tục khi còn chạm và mất tiền một lần; va xe mất HP một lần mỗi xe và kích hoạt ngã nếu xe chưa hỏng. Lái chạm bình xăng/hộp sửa để nhặt, có cảnh báo bằng icon/hướng và thẻ lần đầu ở khoảng cách an toàn. Hết xăng trôi thêm 25 m; HP về 0 hoặc hết đà thì kết ván, ghi kết quả local một lần. Pause/Help không hao tài nguyên hoặc cộng thu nhập. Help có thể tắt lời nhắc vui; số hậu quả vẫn hiện. Chưa có giao lộ, hành khách chơi được, nhiều xe, shop, nitro hoặc secret.
 
 ## Check
 

@@ -51,6 +51,8 @@ Giả thuyết cần tách thử: (1) thiếu mốc ven đường làm chuyển 
 
 Vũng nước trải dài tính hao xăng theo thời gian tiếp xúc; ổ gà dài mặc định một hit mỗi vùng/entity, không trừ HP mỗi frame. Nếu muốn nhiều đoạn gây hit phải có silhouette/cue riêng và cooldown rõ. Nước phủ 3 làn chỉ được dùng như đoạn chi phí có thể chịu được với tài nguyên hiện tại hoặc có nhánh tránh; không gọi là “né được”. Vật cản cứng phủ 3 làn chỉ sinh khi có nhánh rẽ/giải pháp đã khả dụng và đủ thời gian; trước khi có hệ thống đó thì cấm mẫu. S giảm tốc không giải quyết một bức tường cứng vì xe không dừng hẳn.
 
+**Cập nhật theo yêu cầu chủ dự án sau P3A:** luật ổ gà dài “một hit” ở đoạn trên đã được thay thế: có một cú impact/tiền lúc chạm lần đầu, sau đó mất HP theo thời gian còn tiếp xúc, không lấy lại tiền mỗi frame. Cho thêm nước/ổ gà dài hàng chục mét và mẫu phủ cả ba làn. Khi P3B chưa có nhánh rẽ, chỉ sinh mẫu phủ kín nếu xăng/HP còn đủ để chịu toàn bộ đoạn theo tốc độ thấp nhất và có dự phòng; nếu thiếu tài nguyên thì thu về hai làn. Mẫu phủ kín là chi phí buộc chấp nhận, không gọi là lối né được. Xe cứng không thể xuyên vẫn cấm khóa kín ba làn trước khi có đường rẽ hợp lệ.
+
 Xe có HP không đồng nghĩa mọi xe chạm nhau đều cho thêm khách/loot: quy tắc xe chết máy cũ là event riêng. Xe bị phá không tự biến thành collider tai nạn chí tử hoặc bước secret. Trong prototype húc phá, đề xuất xe HP=0 rời collider ngay, văng chỉ là hiệu ứng; chưa mô phỏng dây chuyền xe va nhau. Không thưởng tiền/điểm farm từ húc; điểm/thu nhập vẫn theo quãng đường và khách. Xe lớn chịu hao HP/đà hoặc chi phí sửa có thể đo được; không mặc định húc miễn phí.
 
 ## Chia prototype và tiêu chí nghiệm thu

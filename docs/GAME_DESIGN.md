@@ -53,11 +53,15 @@ Chạy → đọc cảnh báo → né hoặc rẽ → đón khách/nhặt đồ 
 
 **ĐỀ XUẤT:** Q/E hợp lệ sẽ chốt hướng một lần; xe dài có cửa sổ ngắn hơn nhưng vẫn có thời gian phản ứng tối thiểu. Không bấm thì đi thẳng nếu còn thông; nếu buộc rẽ mà bỏ lỡ, xử lý va chạm với vật cản thật, không tự chọn hướng. Thất bại QTE không tạo phạt bí mật. Chỉ sinh tổ hợp có ít nhất một phương án khả thi với xe và tài nguyên hiện có. Tăng mật độ, phối hợp chướng ngại và giảm thời gian phản ứng tới một sàn, không tăng vô hạn.
 
+**Feedback sau P3A:** chủ dự án vẫn thấy game dễ; ghi lại để đánh giá difficulty curve sau khi có thêm hệ thống, chưa tăng mật độ cùng vòng đổi xăng/va chạm. Xăng cần tạo cảm giác hơi thiếu và lần nhặt xăng đem lại sự nhẹ nhõm; thử tăng hao nền vừa phải rồi đo tài nguyên thấp trên nhiều seed, tránh chỉ nâng tốc độ để làm nhịp nhanh.
+
 ## Xe, xăng, độ bền và thay xe
 
 **ĐÃ CHỐT:** có xe máy, mô tô, ô tô 4/7 chỗ, ba gác, xe buýt, xe tải, container. Mỗi loại khác tốc độ, sức chứa người, xăng và độ bền. Xe lớn chủ yếu dài hơn; chiều rộng luôn nhỏ hơn 1,5 lane. Giữ tối đa 2 xe. Mua xe thứ ba phải chọn bỏ một xe. Nâng cấp gắn với từng xe; cửa hàng nâng cấp xe đang chạy.
 
 Xăng và độ bền là hai tài nguyên riêng. Nước làm hao xăng; va chạm gây hư hại theo loại. Có vật phẩm xăng và bộ sửa chữa. Hết xăng được trôi thêm một quãng cố định chung cho mọi xe. Xe hỏng hoặc bị tịch thu tự chuyển sang xe dự phòng; không còn xe hợp lệ thì thua.
+
+**Bổ sung đã chốt sau P3A:** đâm xe đang chạy gây sát thương một lần với chiếc xe đó và hất tài xế ra đường. Xe dừng ở vận tốc 0; tài xế tự quay lại xe. Khách đi nhờ cũng ngã, mỗi người có thể quay lại hoặc rời đi theo RNG seed. Trong thời gian tài xế ngã và quay lại, xe/người không nhận damage hay debuff; thời gian vẫn trôi nhưng không cộng quãng đường/tiền. Khi tài xế đã lên xe, tốc độ tăng mượt từ 0 tới trung vị; giữ W làm tăng nhanh hơn. Nếu va chạm làm HP về 0 thì xử lý kết ván/thay xe theo luật tài nguyên, không tự phục hồi xe hỏng. Prototype P3A chỉ có tài xế để xem được bằng mắt; số khách và mất khách sẽ nối với hệ thống P4.
 
 **ĐỀ XUẤT:** hết xăng sau đoạn trôi cũng thử thay xe. Xe hợp lệ phải còn độ bền và xăng; xe bị tịch thu bị loại khỏi kho, xe hỏng/hết xăng vẫn chiếm slot nhưng không được tự chọn lại. Có thể phục hồi bằng vật phẩm trong UI an toàn khi có tài nguyên. Mua xe là giao dịch nguyên tử: chọn slot trước, chỉ trừ tiền khi xác nhận; không cho tồn tại 3 xe dù một frame. Xe mới mua mặc định trở thành xe đang chạy. Thay xe giữ nguyên tiền, vật phẩm và người; không hồi xăng/độ bền miễn phí. Có khoảng bảo vệ ngắn sau thay xe để tránh cùng một collider phá cả hai xe.
 

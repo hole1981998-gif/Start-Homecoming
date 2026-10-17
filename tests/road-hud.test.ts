@@ -52,3 +52,12 @@ it('oncoming warning appears earlier and exposes direction without relying on co
   hud.update({ ...run, world: { ...run.world, entities: [{ ...car, x: 3.2, speed: 6 }] } }, projection, true);
   expect(cue.hidden).toBe(true);
 });
+it('crash return cue shows remaining protection time and clears on restart', () => {
+  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
+  const run: Run = { ...initialRun(), phase: 'running', crash: { elapsed: 1, side: 1, returningPassengers: 0, lostPassengers: 0 } };
+  hud.update(run, projection, true);
+  const cue = document.getElementById('crash-cue')!;
+  expect(cue.hidden).toBe(false); expect(cue.getAttribute('aria-label')).toContain('miễn nhiễm');
+  hud.update(initialRun(), projection, true);
+  expect(cue.hidden).toBe(true);
+});

@@ -1,16 +1,16 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p3a-traffic-geometry-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p3a-crash-hazards-2', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
   lateralSpeed: 5, lateralAcceleration: 22, lateralBraking: 30,
   fixedStep: 1 / 60, maxFrameSeconds: 0.1, maxSubsteps: 6,
-  fuelCapacity: 8, durabilityCapacity: 70, fuelPerMeter: 0.003,
+  fuelCapacity: 8, durabilityCapacity: 70, fuelPerMeter: 0.0038,
   initialMoney: 200, scorePerMeter: 1, moneyPerMeter: 0.5,
   coastDistance: 25, coastDrag: 3, coastCrawlSpeed: 2,
-  waterFuelPerSecond: 0.8, potholeDamage: 12, potholeMoneyLoss: 10,
-  trafficDamage: 20, trafficCooldown: 1, trafficSpeed: 6,
+  waterFuelPerSecond: 0.8, potholeImpactDamage: 6, potholeDamagePerSecond: 12, potholeMoneyLoss: 10,
+  trafficDamage: 20, trafficSpeed: 6, driverFallSeconds: 0.8, driverReturnSeconds: 1.8,
   fuelPickup: 8, repairPickup: 40,
   firstHazard: 130, hazardGap: 90, worldLookAhead: 140,
   fuelInterval: 450, firstRepair: 650, repairInterval: 900,
@@ -33,11 +33,11 @@ validateConfig(balance);
 
 /** P3A geometry candidates, in metres. All are temporary playtest values. */
 export const hazardSizes = Object.freeze({
-  water: [[2.4, 4], [3.2, 7], [3.2, 14], [5.7, 9]] as const,
-  pothole: [[1.1, 1.2], [1.5, 1.8], [2.3, 4], [5.7, 5]] as const,
+  water: [[2.4, 4], [3.2, 7], [3.2, 14], [5.7, 9], [5.7, 24], [9.6, 30]] as const,
+  pothole: [[1.1, 1.2], [1.5, 1.8], [2.3, 4], [5.7, 5], [5.7, 24], [9.6, 18]] as const,
 });
 for (const variants of Object.values(hazardSizes)) for (const [width, length] of variants) {
-  if (width <= 0 || length <= 0 || width + balance.vehicleWidth >= balance.laneWidth * 3) {
+  if (width <= 0 || length <= 0 || width > balance.laneWidth * balance.laneCount) {
     throw new Error('Invalid P3A hazard geometry');
   }
 }

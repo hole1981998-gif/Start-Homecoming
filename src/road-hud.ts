@@ -1,4 +1,5 @@
 import { createElement, Waves, CircleDot, CarFront, Fuel, Wrench, ChevronDown } from 'lucide';
+import { balance } from './config';
 import { names, type Run } from './survival';
 import { warningDistance, type EntityKind } from './world';
 
@@ -30,7 +31,7 @@ export class RoadHud {
       e.distance - s.distance <= warningDistance(s.speed, e)).sort((a, b) => a.distance - b.distance);
     const hazard = nearby.find(e => !supplyKind(e.kind)), supply = nearby.find(e => supplyKind(e.kind));
     let hazardPosition: { x: number; y: number } | undefined;
-    if (s.phase === 'running') for (const e of [hazard, supply]) {
+    if (s.phase === 'running' && !s.crash) for (const e of [hazard, supply]) {
       if (!e) continue;
       const p = projection.project(e.x, 1.1, -(e.distance - s.distance));
       const x = clamp(p.x, 9, 91), y = clamp(p.y, 24, 61);
@@ -49,6 +50,12 @@ export class RoadHud {
     const coast = document.getElementById('coast-cue')!;
     coast.hidden = s.motion !== 'coasting' || s.phase !== 'running';
     coast.textContent = `Trôi ${Math.ceil(s.coastRemaining)} m`;
+    const crash = document.getElementById('crash-cue')!;
+    crash.hidden = !s.crash || s.phase !== 'running';
+    if (s.crash) {
+      const remaining = Math.max(0, balance.driverFallSeconds + balance.driverReturnSeconds - s.crash.elapsed);
+      document.getElementById('crash-time')!.textContent = `${remaining.toFixed(1)} s`;
+    }
     const feedback = document.getElementById('feedback')!;
     const active = s.phase === 'running' && s.activeSeconds - s.feedbackAt < 1.5;
     const full = active ? s.feedback : '';
