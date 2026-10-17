@@ -72,7 +72,7 @@ Sàn bằng min cho phép xe giảm tới min khi đủ khách; sàn cao hơn mi
 | returnAcceleration | 3 | m/s², tự tăng tốc khi dưới effectiveCruiseSpeed |
 | returnDeceleration | 4 | m/s², tự giảm tốc khi trên effectiveCruiseSpeed |
 
-Hai rate trên tạm dùng chung; cruise thuộc từng VehicleDefinition. Có thể đề xuất rate riêng từng xe sau playtest. Với xe máy chỉ có tài xế, 20 → 14 m/s mất 1,5 s; 8 → 14 mất 2 s theo các số tạm này. Đây là phép tính thiết kế, **chưa chạy simulation cho cơ chế mới**. Gia tốc khi giữ W và lực hãm S dùng config điều khiển riêng, không suy ra từ return rates. Nâng cấp động cơ hiện chỉ tăng max theo mô tả cũ; chưa tăng baseCruiseSpeed. Khi hết xăng, auto-cruise không được tự cấp lực kéo.
+Hai rate trên tạm dùng chung; cruise thuộc từng VehicleDefinition khi có hệ thống nhiều xe. Có thể đề xuất rate riêng từng xe sau playtest. Với xe máy chỉ có tài xế, 20 → 14 m/s mất 1,5 s; 8 → 14 mất 2 s theo các số tạm này. **P1.2 đã triển khai và chạy simulation cho trường hợp xe máy này**; không suy ra các xe/tải khách khác đã được kiểm chứng hoặc số đã khóa cân bằng. Gia tốc khi giữ W và lực hãm S dùng config điều khiển riêng, không suy ra từ return rates. Nâng cấp động cơ hiện chỉ tăng max theo mô tả cũ; chưa tăng baseCruiseSpeed. Khi hết xăng, auto-cruise không được tự cấp lực kéo (kiểm tra trong prototype có fuel/coasting).
 
 ### Mục tiêu economy đã chốt: ô tô đầu tiên sau 3–5 phút
 

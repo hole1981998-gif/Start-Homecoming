@@ -12,21 +12,69 @@ describe('P1 gameplay and future economy invariants', () => {
     for (const fps of [30, 60, 144]) {
       let s = running(); const clock = new FixedClock();
       for (let i = 0; i < fps * 120; i++) clock.advance(1 / fps, () => { s = step(s, noInput()); });
-      distances.push(s.distance); expect(s.distance).toBeCloseTo(960, 6);
+      distances.push(s.distance); expect(s.distance).toBeCloseTo(1680, 6);
     }
     expect(Math.max(...distances) - Math.min(...distances)).toBeLessThan(1e-6);
   });
   it('accelerates to cap in 2.4 s and brakes to forward-only minimum in 1.2 s', () => {
-    let s = run(running(), 2.4, { ...noInput(), accelerate: true });
+    let s = run({ ...running(), speed: 8 }, 2.4, { ...noInput(), accelerate: true });
     expect(s.speed).toBeCloseTo(20); expect(s.distance).toBeCloseTo(33.6);
     s = run(s, 1.2, { ...noInput(), brake: true });
     expect(s.speed).toBeCloseTo(8); expect(s.distance).toBeCloseTo(50.4);
     expect(run(s, 30, { ...noInput(), brake: true }).speed).toBe(8);
   });
-  it('retains speed on releasing W and prioritizes braking on W+S', () => {
-    const s = run(running(), 1, { ...noInput(), accelerate: true });
-    expect(run(s, 1).speed).toBe(s.speed);
-    expect(run(s, 1, { ...noInput(), accelerate: true, brake: true }).speed).toBe(8);
+  it('starts/restarts at cruise, holding pedals maintains extremes, W+S prioritizes braking', () => {
+    expect(initialState().speed).toBe(14);
+    const s = run(running(), 10, { ...noInput(), accelerate: true });
+    expect(s.speed).toBe(20);
+    expect(run(s, 1.2, { ...noInput(), accelerate: true, brake: true }).speed).toBe(8);
+    expect(run(running(), 10, { ...noInput(), brake: true }).speed).toBe(8);
+  });
+  it('returns smoothly from above/below without overshoot and integrates actual travel', () => {
+    const high = { ...running(), speed: 20 };
+    const low = { ...running(), speed: 8 };
+    expect(run(high, .5).speed).toBeCloseTo(18);
+    expect(run(low, 1).speed).toBeCloseTo(11);
+    expect(run(high, 1.5).speed).toBe(14); expect(run(high, 1.5).distance).toBeCloseTo(25.5);
+    expect(run(low, 2).speed).toBe(14); expect(run(low, 2).distance).toBeCloseTo(22);
+    for (const start of [8, 13.99, 14, 14.01, 20]) {
+      let s = { ...running(), speed: start };
+      for (let i = 0; i < 600; i++) {
+        const next = step(s, noInput());
+        expect(Math.abs(next.speed - 14)).toBeLessThanOrEqual(Math.abs(s.speed - 14));
+        expect((s.speed - 14) * (next.speed - 14)).toBeGreaterThanOrEqual(0);
+        s = next;
+      }
+      expect(s.speed).toBe(14);
+    }
+  });
+  it('A/D does not suspend cruise; pedal re-press overrides return immediately', () => {
+    const s = run({ ...running(), speed: 20 }, .5, { ...noInput(), right: true });
+    expect(s.x).toBeGreaterThan(0); expect(s.speed).toBeCloseTo(18);
+    expect(step(s, { ...noInput(), accelerate: true }).speed).toBeGreaterThan(s.speed);
+    expect(step(s, { ...noInput(), brake: true }).speed).toBeLessThan(s.speed);
+  });
+  it('return target comes from config; invalid cruise and return rates are rejected', () => {
+    for (const cruiseSpeed of [9, 14, 19]) {
+      const c = { ...balance, cruiseSpeed }; validateConfig(c);
+      let s = { ...running(), speed: 8 };
+      for (let i = 0; i < 600; i++) s = step(s, noInput(), balance.fixedStep, c);
+      expect(s.speed).toBe(cruiseSpeed);
+    }
+    for (const changes of [{ cruiseSpeed: 7 }, { cruiseSpeed: 21 }, { cruiseSpeed: NaN }, { returnAcceleration: 0 }, { returnDeceleration: -1 }]) {
+      expect(() => validateConfig({ ...balance, ...changes })).toThrow();
+    }
+  });
+  it('mixed pedal/release/steering simulation matches at different render frame rates', () => {
+    const results = [30, 60, 144].map(fps => {
+      let s = running(); const clock = new FixedClock();
+      for (let i = 0; i < fps * 10; i++) clock.advance(1 / fps, () => {
+        const t = s.ticks / 60;
+        s = step(s, { accelerate: t < 3, brake: t >= 5 && t < 7, left: false, right: t >= 7 });
+      });
+      return s;
+    });
+    expect(results[0]).toEqual(results[1]); expect(results[1]).toEqual(results[2]);
   });
   it('steers continuously, stops after release, and keeps full body inside edges', () => {
     let s = run(running(), 0.1, { ...noInput(), right: true });
@@ -41,7 +89,9 @@ describe('P1 gameplay and future economy invariants', () => {
   it('opposing steering cancels; pause/ready cannot award distance or ticks', () => {
     expect(run(running(), 10, { ...noInput(), right: true, left: true }).x).toBe(0);
     for (const phase of ['ready', 'paused'] as const) {
-      const s = { ...running(), phase }; expect(run(s, 100)).toBe(s);
+      for (const speed of [8, 20]) {
+        const s = { ...running(), phase, speed }; expect(run(s, 100)).toBe(s);
+      }
     }
   });
   it('drops stalled time; rejects invalid dt and balance; reset clears accumulated time', () => {

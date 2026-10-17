@@ -1,5 +1,7 @@
 # Quyết định thiết kế — tốc độ trung vị
 
+**Trạng thái hiện tại:** P1.2 đã triển khai cruise xe máy và cập nhật HUD/Help; xem PROTOTYPE_1_2_REVIEW.md. Các mục bên dưới ghi lại lịch sử quyết định/lượt kiểm tra trước triển khai; passenger cruise và các hệ thống tương tác còn chờ prototype tương ứng.
+
 Ngày 17/10/2026. Nguồn: yêu cầu trực tiếp của chủ dự án trong chat sau playtest P1. Cập nhật trên branch P1 đang review, phạm vi chỉ tài liệu; không tạo feature code phụ thuộc hoặc tự merge main. Không có remote để lấy base mới, push/PR/CI; bàn giao local và patch theo fallback AGENTS.md.
 
 ## Đã chốt

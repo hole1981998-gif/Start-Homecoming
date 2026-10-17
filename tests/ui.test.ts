@@ -10,7 +10,8 @@ vi.mock('../src/render', () => ({ RoadRenderer: class {
 
 it('real input/UI wiring: release, blur, pause button, help, focus trap and repeat restarts', async () => {
   document.body.innerHTML = `<div id="game"><canvas id="scene" tabindex="0"></canvas>
-    <span id="speed"></span><span id="distance"></span><button id="pause" disabled>Pause</button>
+    <span id="speed"></span><span id="distance"></span><span id="cruise"></span><span id="drive-mode"></span>
+    <p id="release-help"></p><button id="pause" disabled>Pause</button>
     <button id="restart" disabled>Restart</button><button id="help">Help</button>
     <div id="modal"><h1 id="modal-title"></h1><p id="modal-description"></p><span id="modal-label"></span>
     <div id="instructions"></div><button id="play">Play</button><button id="close-help" hidden>Close</button>
@@ -24,17 +25,25 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   const tick = (seconds: number) => { for (let i = 0; i < seconds * 60; i++) { now += 1000 / 60; nextFrame(now); } };
   const key = (type: string, code: string, extra: KeyboardEventInit = {}) => window.dispatchEvent(new KeyboardEvent(type, { code, bubbles: true, cancelable: true, ...extra }));
   const click = (id: string) => { el(id).focus(); el(id).click(); };
-  click('play'); tick(1); expect(el('distance').textContent).toBe('8');
-  key('keydown', 'KeyW'); tick(3); key('keyup', 'KeyW');
-  expect(el('speed').textContent).toBe('72'); tick(1); expect(el('speed').textContent).toBe('72');
-  key('keydown', 'KeyS'); tick(2); key('keyup', 'KeyS'); expect(el('speed').textContent).toBe('29');
+  expect(el('release-help').textContent).toContain('Thả W/S');
+  expect(el('cruise').textContent).toContain('50,4');
+  click('play'); tick(1); expect(el('distance').textContent).toBe('14');
+  expect(el('speed').textContent).toBe('50,4');
+  key('keydown', 'KeyW'); tick(3); expect(el('drive-mode').textContent).toContain('Giữ W'); key('keyup', 'KeyW');
+  expect(el('speed').textContent).toBe('72,0'); tick(1); expect(el('speed').textContent).toBe('57,6');
+  expect(el('drive-mode').textContent).toContain('đang hồi');
+  tick(1); expect(el('speed').textContent).toBe('50,4');
+  key('keydown', 'KeyS'); tick(2); expect(el('drive-mode').textContent).toContain('Giữ S'); key('keyup', 'KeyS'); expect(el('speed').textContent).toBe('28,8');
   // Focus moves before click in a browser: this must pause once, not pause then resume.
   click('pause'); expect(el('modal').hidden).toBe(false);
   const pausedDistance = el('distance').textContent; tick(10); expect(el('distance').textContent).toBe(pausedDistance);
   expect(el('panel-help').hidden).toBe(false); expect(el('panel-restart').hidden).toBe(false);
-  click('play'); key('keydown', 'KeyW'); tick(1);
+  click('play'); tick(1); expect(el('speed').textContent).toBe('39,6');
+  tick(1); expect(el('speed').textContent).toBe('50,4');
+  key('keydown', 'KeyW'); tick(2);
   window.dispatchEvent(new Event('blur')); tick(5); expect(el('modal').hidden).toBe(false);
-  click('play'); tick(1); const resumedSpeed = el('speed').textContent; tick(1); expect(el('speed').textContent).toBe(resumedSpeed);
+  click('play'); tick(1); expect(el('speed').textContent).toBe('57,6');
+  tick(1); expect(el('speed').textContent).toBe('50,4');
   click('help'); expect(el('modal-title').textContent).toBe('Cách cầm lái');
   const helpDistance = el('distance').textContent; tick(3); expect(el('distance').textContent).toBe(helpDistance);
   key('keydown', 'Tab'); expect(document.activeElement).toBe(el('close-help'));
@@ -42,7 +51,8 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   key('keydown', 'Escape'); expect(el('modal').hidden).toBe(true);
   for (let i = 0; i < 10; i++) {
     click('restart'); tick(1); expect(el('distance').textContent).toBe('0');
-    click('play'); tick(1); expect(el('distance').textContent).toBe('8');
+    click('play'); tick(1); expect(el('distance').textContent).toBe('14');
+    expect(el('speed').textContent).toBe('50,4');
   }
   expect(renderer.instances).toBe(1); expect(renderer.draws).toBeGreaterThan(1000);
   vi.unstubAllGlobals();

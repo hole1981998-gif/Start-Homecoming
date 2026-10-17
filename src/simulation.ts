@@ -4,16 +4,20 @@ export type Phase = 'ready' | 'running' | 'paused';
 export interface Input { accelerate: boolean; brake: boolean; left: boolean; right: boolean }
 export const noInput = (): Input => ({ accelerate: false, brake: false, left: false, right: false });
 export interface State { phase: Phase; distance: number; speed: number; x: number; lateralVelocity: number; ticks: number }
-export const initialState = (): State => ({ phase: 'ready', distance: 0, speed: balance.minSpeed, x: 0, lateralVelocity: 0, ticks: 0 });
-const approach = (value: number, target: number, delta: number) => value < target ? Math.min(target, value + delta) : Math.max(target, value - delta);
+export const initialState = (): State => ({ phase: 'ready', distance: 0, speed: balance.cruiseSpeed, x: 0, lateralVelocity: 0, ticks: 0 });
+const approach = (value: number, target: number, delta: number) =>
+  Math.abs(target - value) <= delta + 1e-12 ? target : value + Math.sign(target - value) * delta;
 
 /** Pure fixed-step gameplay. Renderer/camera cannot award distance or mutate economy. */
 export function step(s: State, input: Input, dt = balance.fixedStep, c: Balance = balance): State {
   if (s.phase !== 'running' || !Number.isFinite(dt) || dt <= 0) return s;
   // Reject excessively large simulation steps; the clock must subdivide real time.
   if (dt > c.fixedStep + 1e-9) throw new Error('Simulation requires fixed steps');
-  const speed = input.brake ? Math.max(c.minSpeed, s.speed - c.braking * dt) :
-    input.accelerate ? Math.min(c.maxSpeed, s.speed + c.acceleration * dt) : s.speed;
+  // Holding a pedal overrides cruise. A/D alone does not override the longitudinal controller.
+  const target = input.brake ? c.minSpeed : input.accelerate ? c.maxSpeed : c.cruiseSpeed;
+  const rate = input.brake ? c.braking : input.accelerate ? c.acceleration :
+    s.speed < c.cruiseSpeed ? c.returnAcceleration : c.returnDeceleration;
+  const speed = approach(s.speed, target, rate * dt);
   const direction = Number(input.right) - Number(input.left);
   let lateralVelocity = approach(s.lateralVelocity, direction * c.lateralSpeed,
     (direction ? c.lateralAcceleration : c.lateralBraking) * dt);

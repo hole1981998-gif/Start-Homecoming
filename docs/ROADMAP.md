@@ -28,7 +28,7 @@ Khi UI prototype đã chạy và Product Design sẵn có, dùng audit để ki�
 
 ## Các PR gợi ý và phụ thuộc
 
-**Cập nhật thiết kế 17/10/2026:** P1 hiện tại vẫn dùng luật cũ thả W giữ tốc độ; chưa nghiệm thu luật cruise mới. Revision triển khai kế tiếp cần cập nhật simulation, config, Help/HUD và test; tự chạy lại simulation/playtest rồi review cả game design/UI/UX trước khi coi cơ chế mới đạt. Kiểm tra quá tải, đổi xe, coasting và nitro sẽ mở rộng ở prototype có các hệ thống đó. Báo cáo P1 cũ không bị viết lại thành bằng chứng cho cơ chế chưa chạy.
+**P1.2 ngày 17/10/2026:** đã áp dụng cruise xe máy 14 m/s và hồi từ cả hai phía; cập nhật simulation, config, Help/HUD và test. Bằng chứng simulation/playtest và tự review xem PROTOTYPE_1_2_REVIEW.md; vẫn chờ feedback chủ dự án để khóa cảm giác lái/các số tạm. Kiểm tra giảm cruise theo khách, quá tải, đổi xe, coasting và nitro sẽ mở rộng ở prototype có các hệ thống đó. Báo cáo P1 cũ giữ nguyên làm lịch sử cho luật cũ.
 
 **Mục tiêu economy đã chốt:** có cơ hội mua ô tô đầu tiên sau 3–5 phút gameplay hoạt động trong lượt đại diện. P2 bắt đầu kiểm tra quãng đường/thu nhập ở cruise, W, S; P4–P5 hoàn thiện kiểm tra cùng hành khách/shop/chi phí. Ghi median và phân bố thời gian/khả năng mua ở nhiều seed, không chỉ chọn một lượt max speed tốt nhất. Chưa tự thay giá/thu nhập lớn chỉ để đạt số mục tiêu.
 

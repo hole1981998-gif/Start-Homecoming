@@ -1,6 +1,6 @@
 # Đường Về Nhà — Prototype 1
 
-**Thiết kế mới ngày 17/10/2026:** mỗi loại xe có tốc độ trung vị, thả W/S tự hồi về mốc; mục tiêu có cơ hội mua ô tô đầu tiên sau 3–5 phút gameplay. Chi tiết trong [GAME_DESIGN.md](docs/GAME_DESIGN.md) và [BALANCE_CONFIG.md](docs/BALANCE_CONFIG.md). Bản P1 đang chạy **chưa triển khai** auto-cruise; hướng dẫn chơi bên dưới mô tả đúng build cũ, không phải thiết kế mới.
+**P1.2 — đã triển khai cruise cho xe máy:** tự chạy ở 14 m/s (50,4 km/h); giữ W/S để chạy nhanh/chậm; thả phím hồi về mốc từ cả hai phía. Các số còn TẠM. Thiết kế đầy đủ và mục tiêu ô tô đầu tiên 3–5 phút xem [GAME_DESIGN.md](docs/GAME_DESIGN.md) và [BALANCE_CONFIG.md](docs/BALANCE_CONFIG.md).
 
 **Bổ sung đã chốt:** thêm khách giảm cruise kể cả chưa quá tải; mức giảm/sàn tùy xe và giới hạn tình huống, không nhất thiết luôn chạm min. Tài xế không tính là khách thêm. Chưa triển khai hệ thống hành khách hoặc luật này trong P1.
 
@@ -10,11 +10,12 @@ Three.js + TypeScript strict + Vite. Desktop, bàn phím, khung 9:16. Placeholde
 
 `pnpm install --frozen-lockfile`, sau đó `pnpm dev`. Mở URL được in trong terminal, bấm **Bắt đầu lái**.
 
-- W: tăng tốc; thả W giữ tốc độ hiện tại.
-- S: hãm về tốc độ tối thiểu; không lùi, không dừng hẳn.
+- Giữ W: tăng/duy trì tới 20 m/s (72 km/h).
+- Giữ S: hãm/duy trì tới 8 m/s (28,8 km/h); không lùi, không dừng hẳn. W+S ưu tiên S.
+- Thả W/S: hồi dần về 14 m/s (50,4 km/h), kể cả khi vẫn đang giữ A/D. Từ max về cruise mất 1,5 s; từ min lên cruise mất 2 s theo config tạm.
 - A/D: lái ngang liên tục, không khóa lane.
 - Esc: tạm dừng/tiếp tục. Mất focus sẽ pause, phải chủ động tiếp tục.
-- Nút Hướng dẫn: xem lại input. Nút Chơi lại: reset quãng đường, tốc độ và vị trí.
+- Nút Hướng dẫn: xem lại input. Nút Chơi lại: reset quãng đường/vị trí và tốc độ về cruise. Pause ngừng cả quá trình hồi tốc; resume giữ vận tốc lúc pause và xóa phím cũ.
 
 Lượt này chưa có thắng/thua, chướng ngại, kinh tế, hành khách, xăng/HP hay điểm. Đường trống chỉ để đánh giá input và camera; không phải nhịp gameplay endless cuối cùng.
 

@@ -1,6 +1,7 @@
 import './style.css';
 import { FixedClock, initialState, noInput, step, type State } from './simulation';
 import { RoadRenderer } from './render';
+import { balance } from './config';
 const element = <T extends HTMLElement>(id: string) => {
   const el = document.getElementById(id);
   if (!el) throw new Error(`Missing UI: ${id}`);
@@ -13,6 +14,13 @@ const pause = element<HTMLButtonElement>('pause');
 const restart = element<HTMLButtonElement>('restart');
 const closeHelp = element<HTMLButtonElement>('close-help');
 const speed = element('speed'), distance = element('distance');
+const driveMode = element('drive-mode');
+const speedFormatter = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const formatSpeed = (metersPerSecond: number) => speedFormatter.format(metersPerSecond * 3.6);
+const cruiseLabel = `${formatSpeed(balance.cruiseSpeed)} km/h`;
+element('cruise').textContent = `Trung vị · ${cruiseLabel}`;
+element('release-help').textContent = `Thả W/S: tự hồi về ${cruiseLabel}.`;
+element('modal-description').textContent = `Xe tự chạy ở ${cruiseLabel}. Giữ W/S để chạy nhanh/chậm; thả phím để hồi về tốc độ trung vị.`;
 let state = initialState(), previous: State = state;
 let input = noInput();
 let helpOpen = false;
@@ -51,7 +59,7 @@ restart.addEventListener('click', () => {
 });
 function openHelp(): void {
   setPaused(); helpOpen = true; clearInput();
-  showModal('Cách cầm lái', 'Xe luôn tiến về phía trước. Thả W để giữ tốc độ hiện tại; giữ S để hãm về tốc độ tối thiểu.', 'HƯỚNG DẪN', 'Bắt đầu lái');
+  showModal('Cách cầm lái', `Xe tự chạy ở ${cruiseLabel}. Giữ W để tăng tốc, giữ S để hãm. Thả W/S: xe hồi dần về mốc này từ cả hai phía.`, 'HƯỚNG DẪN', 'Bắt đầu lái');
 }
 element('help').addEventListener('click', openHelp);
 element('panel-help').addEventListener('click', openHelp);
@@ -107,8 +115,12 @@ function frame(now: number): void {
         meanRenderCpuMs: renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length });
     }
   }
-  speed.textContent = String(state.phase === 'running' ? Math.round(state.speed * 3.6) : 0);
-  distance.textContent = String(Math.floor(state.distance));
+  speed.textContent = formatSpeed(state.phase === 'running' ? state.speed : 0);
+  // Prevent 13.99999999999998 from displaying 13 at an exact 14 m boundary.
+  distance.textContent = String(Math.floor(state.distance + 1e-8));
+  driveMode.textContent = state.phase !== 'running' ? (state.phase === 'ready' ? 'Sẵn sàng lái' : 'Đã tạm dừng') :
+    input.brake ? 'Giữ S · hãm / chạy chậm' : input.accelerate ? 'Giữ W · tăng / chạy nhanh' :
+      Math.abs(state.speed - balance.cruiseSpeed) > 1e-8 ? 'Thả phím · đang hồi về trung vị' : 'Thả phím · tự chạy trung vị';
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
