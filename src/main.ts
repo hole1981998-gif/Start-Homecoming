@@ -1,7 +1,7 @@
 import './style.css';
 import { balance } from './config';
 import { FixedClock, noInput } from './simulation';
-import { dropPassenger, initialRun, names, passengerDrive, pickUpPassenger, selectTurn, stepRun } from './survival';
+import { activeVehicle, dropPassenger, initialRun, names, passengerDrive, pickUpPassenger, selectTurn, stepRun, switchVehicle } from './survival';
 import { canChoose, junction } from './route';
 import { recordResult, saveSeen, seenCards, showFlavor, saveFlavor } from './persistence';
 import { RoadRenderer } from './render';
@@ -9,6 +9,7 @@ import { warningDistance, type EntityKind } from './world';
 import { developmentScenario } from './development';
 import { createIcons, Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } from 'lucide';
 import { RoadHud } from './road-hud';
+import { vehicles } from './vehicles';
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } });
 
 const el = <T extends Element = HTMLElement>(id: string): T => {
@@ -44,7 +45,7 @@ function clearInput(): void { input = noInput(); clock.reset(); previous = state
 function show(view: Exclude<Screen, null>, title: string, description: string): void {
   screen = view; modal.hidden = false; clearInput();
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 04A · HÀNH KHÁCH');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 04B · ĐỔI XE');
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
   play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
@@ -66,7 +67,7 @@ function resume(): void {
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
   state = newRun(); previous = state;
-  show('start', 'Đường về nhà', `Giữ xe còn xăng và độ bền. F đón khách khi lái tới gần; G cho một khách xuống ngay. W/S điều tốc, A/D lái tự do, Q/E chọn rẽ tại giao lộ. Tab đổi xe khi có xe dự phòng.`);
+  show('start', 'Đường về nhà', `Giữ xe còn xăng và độ bền. F đón khách, G cho một khách xuống. Tab đổi nhanh sang xe dự phòng khi có xe thứ hai. W/S điều tốc, A/D lái tự do, Q/E chọn rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử này có sẵn ${vehicles[state.vehicleInstances[1].kind].name} dự phòng.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
@@ -77,7 +78,8 @@ function resultView(): void {
 }
 function openHelp(): void {
   pauseRun();
-  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị. A/D lái trong đường; Q/E chọn rẽ trái/phải khi tín hiệu giao lộ sáng. F đón người đi nhờ khi ở gần cùng phía đường; G cho một khách xuống ngay, không dừng xe. Tab dành để đổi xe khi có xe thứ hai; bản này mới có xe máy. Sức chứa xe máy gồm tài xế: ${balance.motorcycleCapacity} người. Chở quá tải vẫn được nhưng giảm tốc tối đa và tăng hao xăng. Nước hao xăng, ổ gà trừ HP theo thời gian tiếp xúc, xe giao thông gây va/ngã; trong pha ngã/trôi/quay lại, xe miễn tác động xấu kể cả khi nằm trong chướng ngại. Xe máy có bình ${formatter.format(balance.fuelCapacity)} L, hao ${fuelRateFormatter.format(balance.fuelPerMeter * 100)} L/100 m khi chưa quá tải. Bình xăng: tới +${balance.fuelPickup} L; hộp sửa: tới +${balance.repairPickup} HP. Hết xăng trôi ${balance.coastDistance} m; HP về 0 thì kết ván.`);
+  const vehicle = activeVehicle(state);
+  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị của ${vehicle.name}. A/D lái; Q/E rẽ; F đón khách; G cho khách xuống. Tab đổi nhanh xe khi có xe dự phòng; khách và tài nguyên của từng xe được giữ nguyên. Xe hiện tại ${vehicle.name}: ${vehicle.capacity} chỗ tính cả tài xế, cruise ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h khi trống, bình ${formatter.format(vehicle.fuelCapacity)} L, hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Chở khách giảm cruise và quá tải tăng hao xăng. Nước hao xăng, ổ gà trừ HP theo thời gian, xe giao thông gây va/ngã; pha ngã/trôi/quay lại miễn tác động xấu. Hết xăng trôi ${balance.coastDistance} m; HP về 0 hoặc hết đà sẽ tự chuyển xe còn chạy được. Mua xe/shop thuộc P5.`);
 }
 const cardDescriptions: Record<EntityKind, string> = {
   water: `Mảng nước làm hao thêm ${formatter.format(balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Có đoạn dài tới 30 m và phủ ba làn: lúc đó phải chấp nhận hao xăng cho đến khi có nhánh rẽ ở prototype sau.`,
@@ -127,7 +129,7 @@ window.addEventListener('keydown', event => {
   }
   if (state.phase !== 'running' || document.activeElement !== canvas) return;
   if (['Space', 'Tab'].includes(event.code)) event.preventDefault();
-  if (!event.repeat && event.code === 'Tab') { /* One vehicle in P4A; switching begins with the second vehicle. */ return; }
+  if (!event.repeat && event.code === 'Tab') { state = switchVehicle(state); return; }
   if (!event.repeat && event.code === 'KeyF') { state = pickUpPassenger(state); return; }
   if (!event.repeat && event.code === 'KeyG') { state = dropPassenger(state); return; }
   if (!event.repeat && (event.code === 'KeyQ' || event.code === 'KeyE')) {
@@ -144,6 +146,7 @@ canvas.addEventListener('blur', event => {
 canvas.addEventListener('click', () => { if (state.phase === 'running') canvas.focus(); }, { signal: listeners.signal });
 
 function updateHud(): void {
+  const vehicle = activeVehicle(state);
   const nextJunction = junction(state.seed, state.route.index);
   const approach = nextJunction.distance - state.distance;
   const junctionCue = el('junction-cue');
@@ -161,13 +164,14 @@ function updateHud(): void {
   text('speed', speedText(state.phase === 'running' ? state.speed : 0)); text('distance', `${Math.floor(state.distance + 1e-8)}`);
   text('score', `${Math.floor(state.score + 1e-8)}`); text('money', formatter.format(state.money));
   const occupants = state.crash ? 0 : state.passengers + 1;
-  text('rider-count', `${occupants}/${balance.motorcycleCapacity}`);
-  el('rider-count').setAttribute('aria-label', `${occupants} người trên xe gồm tài xế, sức chứa ${balance.motorcycleCapacity}`);
-  el('rider-count').classList.toggle('overloaded', state.passengers + 1 > balance.motorcycleCapacity);
+  text('rider-count', `${occupants}/${vehicle.capacity}`);
+  text('vehicle-name', vehicle.name);
+  el('rider-count').setAttribute('aria-label', `${occupants} người trên xe gồm tài xế, sức chứa ${vehicle.capacity}`);
+  el('rider-count').classList.toggle('overloaded', state.passengers + 1 > vehicle.capacity);
   const fuel = el<HTMLProgressElement>('fuel'), hp = el<HTMLProgressElement>('hp');
-  fuel.max = balance.fuelCapacity; fuel.value = state.fuel; hp.max = balance.durabilityCapacity; hp.value = state.durability;
-  el<SVGPathElement>('fuel-arc').style.strokeDasharray = `${Math.max(0, Math.min(100, state.fuel / balance.fuelCapacity * 100))} 100`;
-  el<SVGPathElement>('hp-arc').style.strokeDasharray = `${Math.max(0, Math.min(100, state.durability / balance.durabilityCapacity * 100))} 100`;
+  fuel.max = vehicle.fuelCapacity; fuel.value = state.fuel; hp.max = vehicle.durabilityCapacity; hp.value = state.durability;
+  el<SVGPathElement>('fuel-arc').style.strokeDasharray = `${Math.max(0, Math.min(100, state.fuel / vehicle.fuelCapacity * 100))} 100`;
+  el<SVGPathElement>('hp-arc').style.strokeDasharray = `${Math.max(0, Math.min(100, state.durability / vehicle.durabilityCapacity * 100))} 100`;
   text('fuel-value', `${speedFormatter.format(state.fuel)} L`);
   text('hp-value', `${Math.ceil(state.durability - 1e-8)} HP`);
   fuel.parentElement?.classList.toggle('critical', state.fuel < 2); hp.parentElement?.classList.toggle('critical', state.durability < 25);
@@ -175,9 +179,9 @@ function updateHud(): void {
   el('hp-arc').classList.toggle('critical', state.durability < 25);
   text('drive-mode', state.phase !== 'running' ? state.phase === 'ready' ? 'Sẵn sàng' : state.phase === 'ended' ? 'Đã kết ván' : 'Đã tạm dừng' :
     state.crash ? state.speed > 0 ? 'Xe đang trôi · tài xế quay lại · miễn nhiễm' : 'Tài xế đang quay lại xe · miễn nhiễm' :
-    state.recovering ? 'Đang tăng tốc lại sau va chạm' :
+    state.recovering ? 'Đang tăng tốc lại' :
     state.motion === 'coasting' ? `Hết xăng · trôi ${Math.ceil(state.coastRemaining)} m` : input.brake ? 'Giữ S · hãm' : input.accelerate ? 'Giữ W · tăng' :
-      Math.abs(state.speed - passengerDrive(state.passengers).cruiseSpeed) > 1e-8 ? 'Đang hồi về trung vị' : 'Tự chạy trung vị');
+      Math.abs(state.speed - passengerDrive(state.passengers, vehicle).cruiseSpeed) > 1e-8 ? 'Đang hồi về trung vị' : 'Tự chạy trung vị');
   roadHud.update(state, graphics, flavorToggle.checked);
   pause.disabled = state.phase === 'ready' || state.phase === 'ended'; restart.disabled = state.phase === 'ready';
   pause.setAttribute('aria-label', state.phase === 'paused' ? 'Tiếp tục' : 'Tạm dừng');

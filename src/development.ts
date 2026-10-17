@@ -1,8 +1,22 @@
 import type { Run } from './survival';
 import { entity, fillWorld, initialWorld } from './world';
 import { junction } from './route';
+import { newVehicle, vehicles, type VehicleKind } from './vehicles';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null): Run {
+  if (scenario === 'vehicle-replacement' || scenario === 'vehicle-failure') {
+    const car = entity('traffic', 'qa-vehicle-replacement', 8, 0); car.speed = 0;
+    return { ...run, durability: 20,
+      vehicleInstances: scenario === 'vehicle-replacement' ?
+        [...run.vehicleInstances, newVehicle('car4', `${run.runId}-car4`)] : run.vehicleInstances,
+      world: { ...run.world, entities: [car], nextHazard: 1e9, nextFuel: 1e9,
+        nextRepair: 1e9, nextPassenger: 1e9 } };
+  }
+  if (scenario === 'vehicles' || scenario?.startsWith('vehicles-')) {
+    const requested = scenario === 'vehicles' ? 'car4' : scenario!.slice('vehicles-'.length);
+    const kind: VehicleKind = requested in vehicles ? requested as VehicleKind : 'car4';
+    return { ...run, vehicleInstances: [...run.vehicleInstances, newVehicle(kind, `${run.runId}-${kind}`)] };
+  }
   if (scenario === 'passenger') return { ...run, world: { ...run.world, entities: [entity('passenger', 'qa-passenger', 5, 0)],
     nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
   if (scenario === 'passenger-crash') {

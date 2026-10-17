@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p4a-branch-hazards-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p4b-vehicles-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -8,7 +8,7 @@ export const balance = Object.freeze({
   fixedStep: 1 / 60, maxFrameSeconds: 0.1, maxSubsteps: 6,
   fuelCapacity: 5.5, durabilityCapacity: 70, fuelPerMeter: 0.0045,
   initialMoney: 200, scorePerMeter: 1, moneyPerMeter: 0.5,
-  riderScoreBonus: 0.04, riderMoneyPerMeter: 0.01, motorcycleCapacity: 2, riderLimit: 6,
+  riderScoreBonus: 0.04, riderMoneyPerMeter: 0.01, motorcycleCapacity: 2, riderLimit: 24,
   riderCruiseLoss: 2, riderCruiseFloor: 8, overloadSpeedPenalty: 0.08, overloadFuelPenalty: 0.15,
   minSpeedFactor: 0.4, maxFuelLoadFactor: 3,
   firstPassenger: 260, passengerInterval: 400, passengerReach: 12, passengerLateralReach: 1.8,

@@ -24,6 +24,8 @@ Tên thư mục là đề xuất, không phải yêu cầu đã tồn tại. Kh�
 
 `RunState`: phase, runId, seed, distance, score, money, activeVehicleId, tối đa 2 vehicle instances, rider IDs, inventory, secretState, event sequence. `VehicleDefinition` giữ thông số loại; `VehicleInstance` giữ ID riêng, fuel, durability, upgrades, trạng thái confiscated/disabled. Không dùng definition làm trạng thái mutable dùng chung.
 
+**P4B bản thử:** `Run` lưu `vehicleInstances` và `activeVehicleId`, các trường fuel/durability hiện tại là bản làm việc của xe đang lái và được ghi về instance sau tick/trước khi đổi xe. Tính speed, collider, tiêu hao, giới hạn pickup và HUD từ definition hiện hành. Tab không mở modal; đổi xe không đổi khách/tiền/điểm và không cấp tài nguyên miễn phí. Khi HP=0 hoặc fuel coast hết, đánh dấu xe đang lái disabled rồi chuyển xe dự phòng còn hợp lệ; không ghi kết quả ván nếu chuyển thành công. Bảo vệ ngắn sau tự chuyển, hazard đang chồng lên xe được bảo vệ tới lúc rời collider. Purchase command thuần dữ liệu đã validate slot/tiền/chọn xe bỏ, nhưng chưa nối gameplay/UI trước P5.
+
 - `occupants = 1 + riders.length`; `overload = max(0, occupants - capacity)`; tài xế không nằm trong danh sách riders.
 - Mỗi xe có upgrade riêng; xe bị bỏ không chuyển upgrade sang xe còn lại.
 - Tiền, nhiên liệu, độ bền hữu hạn, không âm; fuel/durability không quá max sau nâng cấp.

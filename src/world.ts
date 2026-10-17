@@ -1,5 +1,6 @@
 import { balance, hazardSizes } from './config';
 import { nearJunction, type RouteState, type Turn } from './route';
+import { vehicles, type VehicleDefinition } from './vehicles';
 
 export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger';
 export interface PassengerMotion { homeX: number; homeDistance: number; startedAt: number; phase: number; idle: boolean;
@@ -86,50 +87,54 @@ export function hazardDistance(index: number): number {
   const reduction = range / rampSteps * ramped * (ramped - 1) / 2 + range * Math.max(0, index - rampSteps);
   return balance.firstHazard + balance.hazardGap * index - reduction;
 }
-const blocksLane = (e: Entity, x: number) => Math.abs(e.x - x) <= (e.width + balance.vehicleWidth) / 2;
+const blocksLane = (e: Entity, x: number, vehicle: VehicleDefinition) =>
+  Math.abs(e.x - x) <= (e.width + vehicle.width) / 2;
 /** Reject a combination that closes every lane across the current speed range. */
-export function leavesOpenLane(candidate: Entity, existing: Entity[], distance: number): boolean {
-  for (let speed = balance.minSpeed; speed <= balance.maxSpeed; speed += 1) {
+export function leavesOpenLane(candidate: Entity, existing: Entity[], distance: number,
+  vehicle: VehicleDefinition = vehicles.motorcycle): boolean {
+  for (let speed = vehicle.minSpeed; speed <= vehicle.maxSpeed; speed += 1) {
     const closing = speed - candidate.speed;
     if (closing <= 0) continue;
     const time = Math.max(0, (candidate.distance - distance) / closing);
     const candidateAt = candidate.distance + candidate.speed * time;
     const concurrent = existing.filter(e => !e.consumed && (e.kind === 'traffic' || e.kind === 'pothole') &&
-      Math.abs(e.distance + e.speed * time - candidateAt) <= (e.length + candidate.length + balance.vehicleLength) / 2 + 4);
-    if (!laneCentres.some(x => !blocksLane(candidate, x) && concurrent.every(e => !blocksLane(e, x)))) return false;
+      Math.abs(e.distance + e.speed * time - candidateAt) <= (e.length + candidate.length + vehicle.length) / 2 + 4);
+    if (!laneCentres.some(x => !blocksLane(candidate, x, vehicle) && concurrent.every(e => !blocksLane(e, x, vehicle)))) return false;
   }
   return true;
 }
 
 const coversRoad = (e: Entity) => e.width >= balance.laneWidth * balance.laneCount - 1e-8;
-function forcedPatchIsAffordable(e: Entity, distance: number, fuel: number, durability: number, fuelFactor: number): boolean {
+function forcedPatchIsAffordable(e: Entity, distance: number, fuel: number, durability: number,
+  fuelFactor: number, vehicle: VehicleDefinition): boolean {
   if (!coversRoad(e)) return true;
   if (e.kind === 'water') {
     // Evaluate the current load; boarding later is a player choice that changes the remaining budget.
-    const cost = (e.distance - distance) * balance.fuelPerMeter * fuelFactor +
-      (e.length + balance.vehicleLength) / balance.minSpeed * balance.waterFuelPerSecond;
+    const cost = (e.distance - distance) * vehicle.fuelPerMeter * fuelFactor +
+      (e.length + vehicle.length) / vehicle.minSpeed * balance.waterFuelPerSecond;
     return fuel >= cost + .5;
   }
   if (e.kind === 'pothole') {
     const cost = balance.potholeImpactDamage +
-      (e.length + balance.vehicleLength) / balance.minSpeed * balance.potholeDamagePerSecond;
+      (e.length + vehicle.length) / vehicle.minSpeed * balance.potholeDamagePerSecond;
     return durability >= cost + 10;
   }
   return false;
 }
-function hasConcurrentCar(candidate: Entity, existing: Entity[], distance: number): boolean {
-  for (let speed = balance.minSpeed; speed <= balance.maxSpeed; speed += 1) {
+function hasConcurrentCar(candidate: Entity, existing: Entity[], distance: number, vehicle: VehicleDefinition): boolean {
+  for (let speed = vehicle.minSpeed; speed <= vehicle.maxSpeed; speed += 1) {
     const time = Math.max(0, (candidate.distance - distance) / speed);
     if (existing.some(e => e.kind === 'traffic' && !e.consumed &&
       Math.abs(e.distance + e.speed * time - candidate.distance) <=
-        (e.length + candidate.length + balance.vehicleLength) / 2 + 4)) return true;
+        (e.length + candidate.length + vehicle.length) / 2 + 4)) return true;
   }
   return false;
 }
 
 /** Forced three-lane costs require a resource budget until junction branches exist. */
 export function fillWorld(world: World, distance: number, fuel: number = balance.fuelCapacity,
-  durability: number = balance.durabilityCapacity, fuelFactor = 1): World {
+  durability: number = balance.durabilityCapacity, fuelFactor = 1,
+  vehicle: VehicleDefinition = vehicles.motorcycle): World {
   const w = { ...world, entities: world.entities.filter(e => e.distance + e.length / 2 > distance - 12),
     retired: world.retired.filter(e => e.expireDistance >= distance) };
   const ahead = distance + balance.worldLookAhead;
@@ -157,12 +162,12 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
       if (coversRoad(hazard)) hazard.x = 0;
       else if (width > balance.laneWidth) hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
     }
-    if (!forcedPatchIsAffordable(hazard, distance, fuel, durability, fuelFactor)) {
+    if (!forcedPatchIsAffordable(hazard, distance, fuel, durability, fuelFactor, vehicle)) {
       hazard.width = 5.7; hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
     }
     const forced = coversRoad(hazard);
-    if (forced && kind === 'pothole' && hasConcurrentCar(hazard, w.entities, distance)) continue;
-    if (forced || kind === 'water' || leavesOpenLane(hazard, w.entities, distance)) w.entities.push(hazard);
+    if (forced && kind === 'pothole' && hasConcurrentCar(hazard, w.entities, distance, vehicle)) continue;
+    if (forced || kind === 'water' || leavesOpenLane(hazard, w.entities, distance, vehicle)) w.entities.push(hazard);
   }
   while (w.nextFuel * balance.fuelInterval <= ahead) {
     const index = w.nextFuel++;

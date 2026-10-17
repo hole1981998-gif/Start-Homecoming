@@ -3,6 +3,7 @@ import { initialState, step, type Input, type State } from './simulation';
 import { advancePassengers, entity, fillWorld, forkWorld, initialWorld, passengerMotion, sweptContact, type EntityKind, type World } from './world';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
+import { newVehicle, vehicles, type VehicleDefinition, type VehicleInstance } from './vehicles';
 
 export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
@@ -15,6 +16,7 @@ export interface Run extends State {
   crash: CrashState | null; recovering: boolean; passengers: number; lostPassengers: number; crashRng: number;
   protectedEntities: string[];
   route: RouteState;
+  vehicleInstances: VehicleInstance[]; activeVehicleId: string; replacementProtectedUntil: number;
 }
 export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initialState(),
   runId, seed, fuel: balance.fuelCapacity, durability: balance.durabilityCapacity, score: 0,
@@ -24,14 +26,40 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   crash: null, recovering: false, passengers: 0, lostPassengers: 0, crashRng: (seed ^ 0x9e3779b9) >>> 0,
   protectedEntities: [],
   route: initialRoute(),
+  vehicleInstances: [newVehicle('motorcycle', `${runId}-motorcycle`)],
+  activeVehicleId: `${runId}-motorcycle`, replacementProtectedUntil: 0,
 });
 export const names: Record<EntityKind, string> = { water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ' };
 
-export function passengerDrive(count: number): { cruiseSpeed: number; maxSpeed: number; fuelFactor: number } {
-  const overload = Math.max(0, count + 1 - balance.motorcycleCapacity);
-  const maxSpeed = balance.maxSpeed * Math.max(balance.minSpeedFactor, 1 - overload * balance.overloadSpeedPenalty);
-  const cruiseSpeed = Math.min(maxSpeed, Math.max(balance.riderCruiseFloor, balance.cruiseSpeed - count * balance.riderCruiseLoss));
+export const activeVehicle = (run: Run): VehicleDefinition =>
+  vehicles[run.vehicleInstances.find(v => v.id === run.activeVehicleId)!.kind];
+export function passengerDrive(count: number, vehicle: VehicleDefinition = vehicles.motorcycle):
+  { cruiseSpeed: number; maxSpeed: number; fuelFactor: number } {
+  const overload = Math.max(0, count + 1 - vehicle.capacity);
+  const maxSpeed = vehicle.maxSpeed * Math.max(balance.minSpeedFactor, 1 - overload * balance.overloadSpeedPenalty);
+  const cruiseSpeed = Math.min(maxSpeed, Math.max(vehicle.cruiseFloor, vehicle.cruiseSpeed - count * vehicle.cruiseLoss));
   return { cruiseSpeed, maxSpeed, fuelFactor: Math.min(balance.maxFuelLoadFactor, 1 + overload * balance.overloadFuelPenalty) };
+}
+function saveVehicle(run: Run): VehicleInstance[] {
+  return run.vehicleInstances.map(v => v.id === run.activeVehicleId ?
+    { ...v, fuel: run.fuel, durability: run.durability } : v);
+}
+export function switchVehicle(run: Run, targetId?: string, automatic = false): Run {
+  if (run.phase !== 'running' || run.crash) return run;
+  if (!automatic && run.activeSeconds < run.replacementProtectedUntil) return run;
+  const stored = saveVehicle(run);
+  const target = stored.find(v => v.id === (targetId ?? stored.find(v => v.id !== run.activeVehicleId)?.id));
+  if (!target || target.id === run.activeVehicleId || target.disabled || target.durability <= 0 || target.fuel <= 0) return run;
+  const definition = vehicles[target.kind];
+  const protectedEntities = run.world.entities.filter(e => harmful(e.kind) &&
+    overlapsVehicle(run.x, run.distance, e, definition)).map(e => e.id);
+  return { ...run, vehicleInstances: stored, activeVehicleId: target.id,
+    fuel: target.fuel, durability: target.durability, motion: 'powered', coastRemaining: balance.coastDistance,
+    speed: Math.min(run.speed, definition.maxSpeed), recovering: true,
+    replacementProtectedUntil: automatic ? run.activeSeconds + 1.5 : run.replacementProtectedUntil,
+    protectedEntities: [...new Set([...run.protectedEntities, ...protectedEntities])],
+    x: Math.max(-(balance.laneWidth * 3 - definition.width) / 2,
+      Math.min((balance.laneWidth * 3 - definition.width) / 2, run.x)) };
 }
 
 function passengerEvent(run: Run, kind: 'passenger' | 'drop', message: string): Run {
@@ -69,9 +97,9 @@ export function dropPassenger(run: Run): Run {
 }
 
 const harmful = (kind: EntityKind) => kind === 'water' || kind === 'pothole' || kind === 'traffic';
-function overlapsVehicle(x: number, distance: number, e: World['entities'][number]): boolean {
-  return Math.abs(x - e.x) <= (balance.vehicleWidth + e.width) / 2 &&
-    Math.abs(distance - e.distance) <= (balance.vehicleLength + e.length) / 2;
+function overlapsVehicle(x: number, distance: number, e: World['entities'][number], vehicle: VehicleDefinition): boolean {
+  return Math.abs(x - e.x) <= (vehicle.width + e.width) / 2 &&
+    Math.abs(distance - e.distance) <= (vehicle.length + e.length) / 2;
 }
 
 export function selectTurn(run: Run, turn: Turn): Run {
@@ -79,21 +107,24 @@ export function selectTurn(run: Run, turn: Turn): Run {
   if (run.phase !== 'running' || run.crash || run.route.choice || !canChoose(run.distance, run.speed, next)) return run;
   const forked = forkWorld(run.world, run.route, turn, next.distance);
   return { ...run, route: { ...run.route, choice: turn },
-    world: fillWorld(forked, run.distance, run.fuel, run.durability, passengerDrive(run.passengers).fuelFactor) };
+    world: fillWorld(forked, run.distance, run.fuel, run.durability,
+      passengerDrive(run.passengers, activeVehicle(run)).fuelFactor, activeVehicle(run)) };
 }
 
 export function stepRun(before: Run, input: Input): Run {
   if (before.phase !== 'running') return before;
   const dt = balance.fixedStep;
+  const vehicle = activeVehicle(before);
   if (before.crash) {
-    const world = fillWorld(before.world, before.distance, before.fuel, before.durability, passengerDrive(before.passengers).fuelFactor);
+    const world = fillWorld(before.world, before.distance, before.fuel, before.durability,
+      passengerDrive(before.passengers, vehicle).fuelFactor, vehicle);
     const elapsed = before.crash.elapsed + dt;
     const slideTime = Math.min(dt, before.speed / balance.crashSlideDeceleration);
     const speed = Math.max(0, before.speed - balance.crashSlideDeceleration * dt);
     const distance = before.distance + before.speed * slideTime - balance.crashSlideDeceleration * slideTime * slideTime / 2;
     const skidProgress = Math.min(1, elapsed / balance.driverFallSeconds);
-    const x = Math.max(-balance.laneWidth * 1.5 + balance.vehicleWidth / 2,
-      Math.min(balance.laneWidth * 1.5 - balance.vehicleWidth / 2,
+    const x = Math.max(-balance.laneWidth * 1.5 + vehicle.width / 2,
+      Math.min(balance.laneWidth * 1.5 - vehicle.width / 2,
         before.crash.originX + before.crash.side * balance.crashSkidLateralMetres * skidProgress));
     const returned = elapsed >= balance.driverFallSeconds + balance.driverPauseSeconds + balance.driverReturnSeconds && speed === 0;
     const movedEntities = world.entities.map(e => ({ ...e, distance: e.distance + e.speed * dt, touching: false }));
@@ -101,7 +132,7 @@ export function stepRun(before: Run, input: Input): Run {
     for (let i = 0; i < movedEntities.length; i++) {
       const e = movedEntities[i], previousEntity = world.entities[i];
       if (!e.consumed && harmful(e.kind) && sweptContact(before.x - previousEntity.x, before.distance - previousEntity.distance,
-        x - e.x, distance - e.distance, (balance.vehicleWidth + e.width) / 2, (balance.vehicleLength + e.length) / 2)) {
+        x - e.x, distance - e.distance, (vehicle.width + e.width) / 2, (vehicle.length + e.length) / 2)) {
         protectedEntities.add(e.id);
       }
     }
@@ -116,27 +147,30 @@ export function stepRun(before: Run, input: Input): Run {
       }
     }
     advancePassengers(movedEntities, before.activeSeconds + dt);
-    return { ...before, world: { ...world, entities: movedEntities,
+    const crashed: Run = { ...before, world: { ...world, entities: movedEntities,
       retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
       protectedEntities: [...protectedEntities],
       ticks: before.ticks + 1, activeSeconds: before.activeSeconds + dt, distance, x, speed, lateralVelocity: 0,
       crash: returned ? null : { ...before.crash, elapsed }, recovering: returned && before.fuel > 0 };
+    return { ...crashed, vehicleInstances: saveVehicle(crashed) };
   }
-  const drive = passengerDrive(before.passengers);
-  const driveConfig = { ...balance, cruiseSpeed: drive.cruiseSpeed, maxSpeed: drive.maxSpeed };
+  const drive = passengerDrive(before.passengers, vehicle);
+  const driveConfig = { ...balance, minSpeed: Math.min(vehicle.minSpeed, drive.maxSpeed), cruiseSpeed: drive.cruiseSpeed,
+    maxSpeed: drive.maxSpeed, vehicleWidth: vehicle.width };
   const driven = before.recovering ? (() => {
-    const steering = step({ ...before, speed: balance.minSpeed }, input, dt, driveConfig);
+    const steering = step({ ...before, speed: driveConfig.minSpeed }, input, dt, driveConfig);
     const target = input.accelerate ? drive.maxSpeed : input.brake ? before.speed : drive.cruiseSpeed;
     const rate = input.accelerate ? balance.acceleration : input.brake ? 0 : balance.returnAcceleration;
     const speed = Math.min(target, before.speed + rate * dt);
     return { ...steering, speed, distance: before.distance + (before.speed + speed) * dt / 2 };
   })() : step(before, input, dt, driveConfig);
   if (before.motion === 'coasting' || before.fuel <= 0) {
-    driven.speed = Math.max(balance.coastCrawlSpeed, before.speed - (input.brake ? balance.braking : balance.coastDrag) * dt);
+    driven.speed = Math.max(Math.min(balance.coastCrawlSpeed, vehicle.minSpeed),
+      before.speed - (input.brake ? balance.braking : balance.coastDrag) * dt);
     driven.distance = before.distance + (before.speed + driven.speed) * .5 * dt;
   }
   const ds = driven.distance - before.distance;
-  const world = fillWorld(before.world, before.distance, before.fuel, before.durability, drive.fuelFactor);
+  const world = fillWorld(before.world, before.distance, before.fuel, before.durability, drive.fuelFactor, vehicle);
   const r: Run = { ...before, world: { ...world, entities: world.entities.map(e => ({ ...e })),
     retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
     ticks: before.ticks + 1,
@@ -149,9 +183,13 @@ export function stepRun(before: Run, input: Input): Run {
     r.eventSequence++; r.feedbackKind = kind; r.feedback = text; r.feedbackAt = r.activeSeconds;
     r.feedbackFlavor = captions[kind][count % captions[kind].length];
   };
+  let replacementPending = false;
   const finish = (reason: RunResult['reason']) => {
     if (r.result) return;
     r.phase = 'ended'; r.speed = 0;
+    if (r.vehicleInstances.some(v => v.id !== r.activeVehicleId && !v.disabled && v.fuel > 0 && v.durability > 0)) {
+      replacementPending = true; return;
+    }
     r.result = { runId: r.runId, seed: r.seed, config: balance.version, reason,
       distance: r.distance, score: r.score, money: r.money, seconds: r.activeSeconds };
   };
@@ -174,8 +212,10 @@ export function stepRun(before: Run, input: Input): Run {
   for (let index = 0; index < r.world.entities.length; index++) {
     const e = r.world.entities[index];
     const endDistance = e.distance + e.speed * dt;
-    const contact = !e.consumed && e.kind !== 'passenger' && sweptContact(before.x - e.x, before.distance - e.distance,
-      driven.x - e.x, driven.distance - endDistance, (balance.vehicleWidth + e.width) / 2, (balance.vehicleLength + e.length) / 2);
+    const contact = !e.consumed && e.kind !== 'passenger' &&
+      (!harmful(e.kind) || before.activeSeconds >= before.replacementProtectedUntil) &&
+      sweptContact(before.x - e.x, before.distance - e.distance,
+        driven.x - e.x, driven.distance - endDistance, (vehicle.width + e.width) / 2, (vehicle.length + e.length) / 2);
     e.distance = endDistance;
     if (!contact || before.protectedEntities.includes(e.id)) { e.touching = false; continue; }
     const [enter, exit] = contact;
@@ -196,7 +236,7 @@ export function stepRun(before: Run, input: Input): Run {
   const advance = (target: number) => {
     while (target - fraction > 1e-12 && r.phase !== 'ended' && !r.crash) {
       const powered = r.motion === 'powered';
-      const fuelRate = powered ? ds * balance.fuelPerMeter * drive.fuelFactor + dt * waterCount * balance.waterFuelPerSecond : 0;
+      const fuelRate = powered ? ds * vehicle.fuelPerMeter * drive.fuelFactor + dt * waterCount * balance.waterFuelPerSecond : 0;
       const damageRate = dt * potholeCount * balance.potholeDamagePerSecond;
       let segment = target - fraction;
       if (fuelRate > 0) segment = Math.min(segment, r.fuel / fuelRate);
@@ -244,11 +284,11 @@ export function stepRun(before: Run, input: Input): Run {
       if (r.durability === 0) finish('damage');
       else crashDriver(before.speed + (driven.speed - before.speed) * fraction);
     } else if (e.kind === 'fuel') {
-      const gained = Math.min(balance.fuelPickup, balance.fuelCapacity - r.fuel);
+      const gained = Math.min(vehicle.fuelPickup, vehicle.fuelCapacity - r.fuel);
       r.fuel += gained; r.motion = 'powered'; r.coastRemaining = balance.coastDistance; e.consumed = true;
       feedback('fuel', `Nhặt xăng · +${gained.toFixed(1)} L`);
     } else if (e.kind === 'repair') {
-      const gained = Math.min(balance.repairPickup, balance.durabilityCapacity - r.durability);
+      const gained = Math.min(vehicle.repairPickup, vehicle.durabilityCapacity - r.durability);
       r.durability += gained; e.consumed = true; feedback('repair', `Sửa xe · +${gained.toFixed(0)} HP`);
     }
   }
@@ -269,9 +309,12 @@ export function stepRun(before: Run, input: Input): Run {
   if (r.phase === 'ended' || r.crash) { r.x = before.x + (driven.x - before.x) * fraction; r.lateralVelocity = 0; }
   if (!r.crash) r.protectedEntities = r.protectedEntities.filter(id => {
     const e = r.world.entities.find(entity => entity.id === id);
-    return !!e && overlapsVehicle(r.x, r.distance, e);
+    return !!e && overlapsVehicle(r.x, r.distance, e, vehicle);
   });
   advancePassengers(r.world.entities, r.activeSeconds);
   r.route = compactRoute(r.route, r.distance, r.seed);
+  r.vehicleInstances = saveVehicle(r).map(v => v.id === r.activeVehicleId &&
+    (r.durability <= 0 || (r.fuel <= 0 && r.coastRemaining <= 0)) ? { ...v, disabled: true } : v);
+  if (replacementPending) { r.phase = 'running'; return switchVehicle(r, undefined, true); }
   return r;
 }
