@@ -126,8 +126,12 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(first.crash).not.toBeNull(); expect(first.speed).toBeCloseTo(balance.cruiseSpeed);
     expect(first.durability).toBe(70 - balance.trafficDamage);
     expect(first.crash!.returningPassengers + first.crash!.lostPassengers).toBe(3);
+    expect(first.crash!.lostPassengers).toBe(2);
     expect(first.passengers).toBe(first.crash!.returningPassengers);
     expect(first.lostPassengers).toBe(first.crash!.lostPassengers);
+    const fallenAtImpact = first.world.entities.filter(e => e.id.startsWith('fallen-'));
+    expect(fallenAtImpact).toHaveLength(first.crash!.lostPassengers);
+    expect(fallenAtImpact.every(e => e.pickupable === false && e.passengerMotion?.ejectedAt !== undefined)).toBe(true);
     expect(stepRun({ ...empty([car]), passengers: 3 }, noInput()).crash).toEqual(first.crash);
     const sliding = advance(first, .5);
     expect(sliding.speed).toBeGreaterThan(0); expect(sliding.speed).toBeLessThan(first.speed);
@@ -145,13 +149,17 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(stranded).toHaveLength(first.crash!.lostPassengers);
     expect(stranded.every(e => e.passengerMotion && !e.consumed)).toBe(true);
     expect(stranded.every(e => e.pickupable === false)).toBe(true);
+    expect(stranded.map(e => e.id)).toEqual(fallenAtImpact.map(e => e.id));
     const strandedInReach = { ...stranded[0], x: withStranded.x, distance: withStranded.distance,
       passengerMotion: { ...stranded[0].passengerMotion!, homeX: withStranded.x, homeDistance: withStranded.distance } };
     const pickupAttempt = { ...withStranded, passengers: 0,
       world: { ...withStranded.world, entities: [strandedInReach] } };
     expect(pickUpPassenger(pickupAttempt)).toBe(pickupAttempt);
-    const returned = advance({ ...first, world: { ...first.world, entities: [car] } }, 3.2);
+    const returned = advance(first, 3.2);
     expect(returned.crash).toBeNull(); expect(returned.recovering).toBe(true); expect(returned.speed).toBeGreaterThanOrEqual(0);
+    const afterReboard = returned.world.entities.filter(e => e.id.startsWith('fallen-'));
+    expect(afterReboard.map(e => e.id)).toEqual(stranded.map(e => e.id));
+    expect(afterReboard.map(e => [e.x, e.distance])).toEqual(stranded.map(e => [e.x, e.distance]));
     const after = advance(returned, .5);
     const withW = advance(returned, .5, { ...noInput(), accelerate: true });
     expect(withW.speed).toBeGreaterThan(after.speed);

@@ -98,4 +98,4 @@ Implementation khớp phạm vi đã chốt; số tạm ở config; lint/typeche
 
 **Ghi chú cho prototype sau:** tài xế văng ra cần ngã/nằm tại chỗ một nhịp, đứng dậy rồi mới chạy về xe. Giữ miễn nhiễm toàn bộ chuỗi và chỉ hồi tốc khi đã lên xe; thêm thời gian dừng vào simulation trước animation hoàn chỉnh.
 
-**Sửa hồi quy P4B:** khách ngẫu nhiên không quay lại sau tai nạn vẫn hiện/di chuyển bên đường nhưng bị khóa đón lại bằng F vĩnh viễn. Khách được chọn quay lại nhập lại xe; khách chờ thường và khách do G cho xuống vẫn theo luật đón khách bình thường.
+**Sửa hồi quy P4B:** khách ngẫu nhiên không quay lại sau tai nạn được giữ thành entity ngay từ lúc va chạm; cùng entity tiếp tục văng/đáp đúng vị trí, không biến mất rồi xuất hiện cạnh xe sau khi tài xế trở lại. Họ bị khóa đón lại bằng F vĩnh viễn. Khách được chọn quay lại nhập lại xe; khách chờ thường và khách do G cho xuống vẫn theo luật đón khách bình thường.

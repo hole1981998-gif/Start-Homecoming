@@ -28,7 +28,7 @@ Tên thư mục là đề xuất, không phải yêu cầu đã tồn tại. Kh�
 
 - `occupants = 1 + riders.length`; `overload = max(0, occupants - capacity)`; tài xế không nằm trong danh sách riders.
 
-Khách bị chọn ngẫu nhiên không quay lại sau tai nạn được tạo thành NPC đường phố để giữ hình ảnh, nhưng mang `pickupable = false` vĩnh viễn. `pickUpPassenger` loại các entity này khỏi truy vấn F bất kể cooldown/vị trí hoặc tài xế đã lên xe. Khách được chọn quay lại chỉ tăng lại số `riders` khi tài xế trở về; không tạo NPC roadside cho họ. Khách chờ thường và khách G cho xuống giữ hành vi đón lại hiện tại.
+Khách bị chọn ngẫu nhiên không quay lại sau tai nạn thành entity NPC đường phố ngay tại thời điểm va chạm, được giữ cùng ID/vị trí qua lúc tài xế quay lại và mang `pickupable = false` vĩnh viễn. Entity chuyển động văng khỏi xe rồi đứng/đi quanh điểm đáp; không tạo lại ở cạnh xe khi kết thúc crash. `pickUpPassenger` loại các entity này khỏi truy vấn F bất kể cooldown/vị trí hoặc tài xế đã lên xe. Khách được chọn quay lại chỉ tăng lại số `riders` khi tài xế trở về; hoạt ảnh của họ kết thúc trên xe. Khách chờ thường và khách G cho xuống giữ hành vi đón lại hiện tại.
 - Mỗi xe có upgrade riêng; xe bị bỏ không chuyển upgrade sang xe còn lại.
 - Tiền, nhiên liệu, độ bền hữu hạn, không âm; fuel/durability không quá max sau nâng cấp.
 - Đổi xe giữ khách, tiền, item. Xe dự phòng không tiêu hao xăng khi không chạy (đề xuất).

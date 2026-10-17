@@ -136,17 +136,6 @@ export function stepRun(before: Run, input: Input): Run {
         protectedEntities.add(e.id);
       }
     }
-    if (returned && before.crash.lostPassengers > 0) {
-      const side = before.crash.side;
-      for (let i = 0; i < before.crash.lostPassengers; i++) {
-        const passenger = entity('passenger', `fallen-${before.runId}-${before.eventSequence}-${i}`,
-          distance + 2 + i, side * balance.laneWidth);
-        passenger.pickupable = false;
-        passenger.motionKey = `${before.seed}:fallen:${before.eventSequence}:${i}`;
-        passenger.passengerMotion = passengerMotion(passenger, before.activeSeconds + dt);
-        movedEntities.push(passenger);
-      }
-    }
     advancePassengers(movedEntities, before.activeSeconds + dt);
     const crashed: Run = { ...before, world: { ...world, entities: movedEntities,
       retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
@@ -203,9 +192,22 @@ export function stepRun(before: Run, input: Input): Run {
     rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0;
     const lost = r.passengers - returning;
     r.crashRng = rng; r.passengers = returning; r.lostPassengers += lost;
-    r.crash = { elapsed: 0, side: r.x > balance.laneWidth / 2 ? -1 : r.x < -balance.laneWidth / 2 ? 1 :
-      (rng & 1) ? 1 : -1, originDistance: r.distance, originX: r.x,
+    const crashX = before.x + (driven.x - before.x) * fraction;
+    const side = crashX > balance.laneWidth / 2 ? -1 : crashX < -balance.laneWidth / 2 ? 1 : (rng & 1) ? 1 : -1;
+    r.crash = { elapsed: 0, side, originDistance: r.distance, originX: crashX,
       impactSpeed, returningPassengers: returning, lostPassengers: lost };
+    for (let i = 0; i < lost; i++) {
+      const index = returning + i;
+      const passenger = entity('passenger', `fallen-${r.runId}-${r.eventSequence}-${i}`,
+        r.distance + impactSpeed * balance.driverEjectionSpeedFactor * balance.driverFallSeconds + .7 + index * .8,
+        crashX + side * (1.3 + index * .45));
+      passenger.pickupable = false;
+      passenger.motionKey = `${r.seed}:fallen:${r.eventSequence}:${i}`;
+      passenger.passengerMotion = { ...passengerMotion(passenger, r.activeSeconds + balance.driverFallSeconds),
+        ejectedAt: r.activeSeconds, fromX: crashX, fromDistance: r.distance };
+      passenger.x = crashX; passenger.distance = r.distance;
+      r.world.entities.push(passenger);
+    }
     r.speed = impactSpeed; r.recovering = false;
   };
   type Event = { t: number; index: number; type: 'enter-water' | 'exit-water' | 'enter-pothole' | 'exit-pothole' | 'hit' };

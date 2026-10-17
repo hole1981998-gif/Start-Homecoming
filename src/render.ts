@@ -150,7 +150,7 @@ export class RoadRenderer {
     this.fallenDriver.visible = !!s.crash;
     this.fallenPassengers.forEach(person => { person.visible = false; });
     if (s.crash) {
-      const { elapsed, side, originDistance, impactSpeed, returningPassengers, lostPassengers } = s.crash;
+      const { elapsed, side, originDistance, impactSpeed, returningPassengers } = s.crash;
       const ejection = Math.min(1, elapsed / balance.driverFallSeconds);
       const returnProgress = Math.max(0, Math.min(1, (elapsed - balance.driverFallSeconds - balance.driverPauseSeconds) / balance.driverReturnSeconds));
       const away = ejection * (1 - returnProgress);
@@ -162,19 +162,18 @@ export class RoadRenderer {
       this.fallenDriver.position.set(fallenPose.x + Math.cos(fallenPose.heading) * driverX, 0,
         fallenPose.z + Math.sin(fallenPose.heading) * driverX);
       this.fallenDriver.rotation.set(0, -fallenPose.heading, side * 1.25 * away, 'YXZ');
-      for (let i = 0; i < returningPassengers + lostPassengers && i < this.fallenPassengers.length; i++) {
+      // Lost passengers already exist as roadside entities; only animate those returning to the vehicle.
+      for (let i = 0; i < returningPassengers && i < this.fallenPassengers.length; i++) {
         const person = this.fallenPassengers[i];
-        const returns = i < returningPassengers;
         person.visible = true;
-        const passengerReturn = returns ? returnProgress : 0;
+        const passengerReturn = returnProgress;
         const passengerDistance = THREE.MathUtils.lerp(ejectedDistance + .7 + i * .8, distance,
           passengerReturn);
         const pose = pathPose(passengerDistance, s.route, s.seed);
         const lateral = x + side * (1.3 + i * .45) * (1 - passengerReturn);
         person.position.set(pose.x + Math.cos(pose.heading) * lateral, 0,
           pose.z + Math.sin(pose.heading) * lateral);
-        const topple = returns ? 1 - passengerReturn : Math.max(0, 1 -
-          Math.max(0, elapsed - balance.driverFallSeconds) / balance.driverPauseSeconds);
+        const topple = 1 - passengerReturn;
         person.rotation.set(0, -pose.heading, -side * .85 * Math.min(1, ejection) * topple, 'YXZ');
       }
     }
