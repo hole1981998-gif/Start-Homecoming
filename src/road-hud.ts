@@ -49,9 +49,12 @@ export class RoadHud {
       cue.value.textContent = e.kind === 'passenger' && Math.abs(e.distance - s.distance) <= balance.passengerReach &&
         Math.abs(e.x - s.x) <= balance.passengerLateralReach ? 'F · ĐÓN' : `${distance} m`;
       const lane = e.x < -1 ? 'trái' : e.x > 1 ? 'phải' : 'giữa';
-      if (e.kind === 'traffic') cue.root.querySelector('.traffic-direction')!.textContent = e.speed < 0 ? '↓' : '↑';
+      const trafficState = e.trafficMotion === 'stopped' ? 'đã dừng vì hết xăng' :
+        e.trafficMotion === 'coasting' ? 'đang trôi do hết xăng' : e.speed < 0 ? 'ngược chiều' : 'cùng chiều';
+      if (e.kind === 'traffic') cue.root.querySelector('.traffic-direction')!.textContent =
+        e.trafficMotion === 'stopped' ? '⛽ · ■' : `${e.trafficMotion === 'coasting' ? '⛽ · ' : ''}${e.speed < 0 ? '↓' : '↑'}`;
       const label = e.kind === 'traffic' ? trafficTypes[e.trafficKind ?? 'car4'].name : names[e.kind];
-      cue.root.setAttribute('aria-label', `${label} · ${lane}${e.kind === 'traffic' ? e.speed < 0 ? ' · ngược chiều' : ' · cùng chiều' : ''} · ${distance} m`);
+      cue.root.setAttribute('aria-label', `${label} · ${lane}${e.kind === 'traffic' ? ` · ${trafficState}` : ''} · ${distance} m`);
     }
     const coast = document.getElementById('coast-cue')!;
     coast.hidden = s.motion !== 'coasting' || s.phase !== 'running';

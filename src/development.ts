@@ -31,6 +31,13 @@ export function developmentScenario(run: Run, scenario: string | null): Run {
       world: { ...run.world, entities: [car, water, hole],
       nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
   }
+  if (scenario === 'traffic-fuel' || scenario === 'traffic-fuel-oncoming') {
+    const car = entity('traffic', 'qa-fuel-traffic', 90, scenario === 'traffic-fuel' ? balance.laneWidth : -balance.laneWidth);
+    car.speed = scenario === 'traffic-fuel' ? 6 : -6; car.baseSpeed = car.speed;
+    car.fuel = .006;
+    return { ...run, world: { ...run.world, entities: [car], nextHazard: 1e9,
+      nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
+  }
   if (scenario === 'traffic-passengers' || scenario === 'traffic-passengers-pothole') {
     const bus = newVehicle('bus', `${run.runId}-qa-bus`);
     const car = entity('traffic', 'qa-passenger-source', 55, 0);

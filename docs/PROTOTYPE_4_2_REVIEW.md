@@ -56,3 +56,6 @@ Kiểm tra Windows/pnpm: lint, typecheck, 76/76 tests và production build đề
 Manual IAB seed 17 trên code lượt 2: scenario traffic-passengers, W húc xe rồi A/F ba lần gần 60 m, HP 202 và HUD vẫn 1/25, cue F không hiện. Scenario traffic-passengers-pothole, A né/S giảm tốc/F gần 44 m, HUD tăng 1/25→3/25 và HP vẫn 210. Không dùng screenshot để chứng minh timing. Chưa kiểm tra thủ công các loại xe/seed khác.
 
 Tự review gameplay: thay đổi loại bỏ lợi ích thu khách trực tiếp từ việc chủ động húc phá; chưa đổi giá/damage/thu nhập. ĐỀ XUẤT lượt sau đo chi phí HP/km của chiến thuật húc để đảm bảo xe lớn vẫn có lợi ích mở đường, không mặc định bỏ mọi cú húc là tối ưu. Chưa áp dụng thay đổi cân bằng nào. Tự review UX: input F và cue cùng dùng pickupable, tránh báo thao tác không thực hiện được; chưa có cue phân biệt tâm trạng từ chối, có thể khó hiểu nếu người chơi chưa đọc hướng dẫn. Giữ đây là ghi chú cho lượt UX/visual phù hợp, chưa thêm popup/menu hay art.
+
+## Cập nhật tiếp: nhiên liệu traffic
+Xe giao thông cũng có nhiên liệu theo loại, trôi rồi dừng khi cạn. Báo cáo và giới hạn mới: [TRAFFIC_FUEL_REVIEW.md](TRAFFIC_FUEL_REVIEW.md). Cờ khách từ xe bị húc từ chối vẫn được giữ nguyên.

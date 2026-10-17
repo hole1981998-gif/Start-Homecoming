@@ -109,3 +109,5 @@ Implementation khớp phạm vi đã chốt; số tạm ở config; lint/typeche
 **Sửa hồi quy P4B:** khách ngẫu nhiên không quay lại sau tai nạn được giữ thành entity ngay từ lúc va chạm; cùng entity tiếp tục văng/đáp đúng vị trí, không biến mất rồi xuất hiện cạnh xe sau khi tài xế trở lại. Họ bị khóa đón lại bằng F vĩnh viễn. Khách được chọn quay lại nhập lại xe; khách chờ thường và khách do G cho xuống vẫn theo luật đón khách bình thường.
 
 **P4.2 lượt 2 — ĐÃ CHỐT và triển khai:** khách từ xe bị người chơi húc hỏng từ chối lên xe; giữ NPC và khóa F vĩnh viễn. Khách từ xe hỏng do ổ gà vẫn đón được. Xem phần cập nhật trong PROTOTYPE_4_2_REVIEW.md; nội dung P4.2 lượt đầu bên trên là lịch sử.
+
+**Traffic fuel đã có bản thử theo feedback:** xe chướng ngại tiêu nhiên liệu theo loại và khi chạm nước; hết xăng trôi 25 m rồi dừng, còn collider và HP. Không tự sinh khách vì cạn xăng trong lát cắt này. DEV `?scenario=traffic-fuel&seed=17` cho quan sát xe cùng chiều cạn xăng; `traffic-fuel-oncoming` kiểm tra hướng âm. Xem [TRAFFIC_FUEL_REVIEW.md](TRAFFIC_FUEL_REVIEW.md). Các câu traffic chưa có fuel ở ghi chú cũ đã được thay thế.

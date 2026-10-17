@@ -255,7 +255,7 @@ export class RoadRenderer {
       const pose = passengerPose(e, s.activeSeconds);
       entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * e.x, pose.height,
         entityPose.z + Math.sin(entityPose.heading) * e.x);
-      entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && e.speed < 0 ? Math.PI : 0),
+      entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
       if (e.kind === 'traffic') {
         const body = entry.mesh.userData.body as THREE.Mesh;
