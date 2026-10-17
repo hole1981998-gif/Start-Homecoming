@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p4-2-traffic-fuel-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p5-roadside-economy-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -52,6 +52,23 @@ export function validateConfig(c: Balance): void {
       c.trafficPassengerLimit > c.riderLimit) throw new Error('Invalid traffic bounds');
 }
 validateConfig(balance);
+
+/** P5 trial prices/effects from BALANCE_CONFIG. Amounts L / HP, distances m. */
+export const shopBalance = Object.freeze({ firstDistance: 600, secondDistance: 1200,
+  minGap: 600, maxGap: 900, reach: 30, lateralReach: 1.8, clearance: 45, inventoryLimit: 3,
+  fuelPrice: 60, repairPrice: 70, fuelItemPrice: 75, repairItemPrice: 85,
+  fuelAmount: 8, repairAmount: 40,
+  enginePrices: [200, 400, 700] as const, tankPrices: [180, 350, 600] as const,
+  armourPrices: [180, 350, 600] as const, economyPrices: [220, 420, 750] as const,
+  enginePerLevel: .08, tankPerLevel: .15, armourPerLevel: .15, economyPerLevel: .08 });
+for (const value of Object.values(shopBalance).flatMap(v => typeof v === 'number' ? [v] : [...v])) {
+  if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid shop config');
+}
+if (shopBalance.minGap > shopBalance.maxGap || shopBalance.economyPerLevel * 3 >= 1 ||
+    shopBalance.secondDistance - shopBalance.firstDistance < shopBalance.minGap ||
+    shopBalance.secondDistance - shopBalance.firstDistance > shopBalance.maxGap ||
+    !Number.isInteger(shopBalance.inventoryLimit) || !Number.isInteger(shopBalance.minGap) ||
+    !Number.isInteger(shopBalance.maxGap)) throw new Error('Invalid shop bounds');
 
 /** P3A geometry candidates, in metres. All are temporary playtest values. */
 export const hazardSizes = Object.freeze({

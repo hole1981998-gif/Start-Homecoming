@@ -5,6 +5,15 @@ import { newVehicle, vehicles, type VehicleKind } from './vehicles';
 import { balance } from './config';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null): Run {
+  if (scenario === 'shop' || scenario === 'shop-third' || scenario === 'shop-insufficient') {
+    const shop = entity('shop', 'qa-shop', 12, 0);
+    shop.shopStock = { vehicles: ['motorcycle', 'car4', 'bus', 'container'], fuel: 3, repair: 3 };
+    return { ...run, money: scenario === 'shop-insufficient' ? 20 : 4000, fuel: 1, durability: 30,
+      riderIds: ['qa-shop-rider'],
+      vehicleInstances: scenario === 'shop-third' ? [...run.vehicleInstances, newVehicle('car7', 'qa-spare')] : run.vehicleInstances,
+      world: { ...run.world, entities: [shop], nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9,
+        nextPassenger: 1e9, nextShopDistance: 1e9 } };
+  }
   if (scenario === 'vehicle-replacement' || scenario === 'vehicle-failure') {
     const car = entity('traffic', 'qa-vehicle-replacement', 8, 0); car.speed = 0;
     return { ...run, durability: 20,

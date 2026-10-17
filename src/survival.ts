@@ -3,7 +3,7 @@ import { initialState, step, type Input, type State } from './simulation';
 import { advancePassengers, advanceTraffic, entity, fillWorld, forkWorld, initialWorld, passengerMotion, spawnWreckPassengers, sweptContact, trafficTypes, type EntityKind, type World } from './world';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
-import { newVehicle, vehicleRam, vehicles, type VehicleDefinition, type VehicleInstance } from './vehicles';
+import { effectiveVehicle, newVehicle, vehicleRam, vehicles, type VehicleDefinition, type VehicleInstance } from './vehicles';
 import { splitCrashRiders } from './passenger-outcomes';
 
 export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage'; distance: number; score: number; money: number; seconds: number }
@@ -18,6 +18,7 @@ export interface Run extends State {
   protectedEntities: string[];
   route: RouteState;
   vehicleInstances: VehicleInstance[]; activeVehicleId: string; replacementProtectedUntil: number;
+  shopId: string | null; economySequence: number; inventory: Array<'fuel' | 'repair'>; selectedItem: number;
 }
 export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initialState(),
   runId, seed, fuel: balance.fuelCapacity, durability: balance.durabilityCapacity, score: 0,
@@ -29,11 +30,12 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   route: initialRoute(),
   vehicleInstances: [newVehicle('motorcycle', `${runId}-motorcycle`)],
   activeVehicleId: `${runId}-motorcycle`, replacementProtectedUntil: 0,
+  shopId: null, economySequence: 0, inventory: [], selectedItem: 0,
 });
-export const names: Record<EntityKind, string> = { water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ' };
+export const names: Record<EntityKind, string> = { water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường' };
 
 export const activeVehicle = (run: Run): VehicleDefinition =>
-  vehicles[run.vehicleInstances.find(v => v.id === run.activeVehicleId)!.kind];
+  effectiveVehicle(run.vehicleInstances.find(v => v.id === run.activeVehicleId)!);
 export function passengerDrive(count: number, vehicle: VehicleDefinition = vehicles.motorcycle):
   { cruiseSpeed: number; maxSpeed: number; fuelFactor: number } {
   const overload = Math.max(0, count + 1 - vehicle.capacity);
@@ -51,7 +53,7 @@ export function switchVehicle(run: Run, targetId?: string, automatic = false): R
   const stored = saveVehicle(run);
   const target = stored.find(v => v.id === (targetId ?? stored.find(v => v.id !== run.activeVehicleId)?.id));
   if (!target || target.id === run.activeVehicleId || target.disabled || target.durability <= 0 || target.fuel <= 0) return run;
-  const definition = vehicles[target.kind];
+  const definition = effectiveVehicle(target);
   const protectedEntities = run.world.entities.filter(e => harmful(e.kind) &&
     overlapsVehicle(run.x, run.distance, e, definition)).map(e => e.id);
   return { ...run, vehicleInstances: stored, activeVehicleId: target.id,
@@ -222,7 +224,7 @@ export function stepRun(before: Run, input: Input): Run {
   for (let index = 0; index < r.world.entities.length; index++) {
     const e = r.world.entities[index];
     const endDistance = e.distance;
-    const contact = !e.consumed && e.kind !== 'passenger' &&
+    const contact = !e.consumed && e.kind !== 'passenger' && e.kind !== 'shop' &&
       (e.kind !== 'traffic' || !e.wrecked) &&
       (!harmful(e.kind) || before.activeSeconds >= before.replacementProtectedUntil) &&
       sweptContact(before.x - e.x, before.distance - world.entities[index].distance,

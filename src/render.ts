@@ -23,7 +23,7 @@ export class RoadRenderer {
   private ground!: THREE.Mesh;
   private viewState!: Run;
   private entityMeshes = new Map<string, { kind: EntityKind; trafficKind?: TrafficKind; mesh: THREE.Group }>();
-  private pools: Record<EntityKind, THREE.Group[]> = { water: [], pothole: [], traffic: [], fuel: [], repair: [], passenger: [] };
+  private pools: Record<EntityKind, THREE.Group[]> = { water: [], pothole: [], traffic: [], fuel: [], repair: [], passenger: [], shop: [] };
   private trafficPools = new Map<TrafficKind, THREE.Group[]>();
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
   private observer: ResizeObserver;
@@ -108,7 +108,11 @@ export class RoadRenderer {
     const part = (w: number, h: number, d: number, color: string, x: number, y: number, z: number) => {
       const m = box(w, h, d, color, g); m.position.set(x, y, z); return m;
     };
-    if (kind === 'water') { part(3.2, .05, 7, '#5799aa', 0, .035, 0); part(2.5, .01, .1, '#abd1d5', 0, .065, -1.5); }
+    if (kind === 'shop') {
+      part(1.8, 1.6, 3, '#688e88', 0, .8, 0); part(2.2, .2, 3.4, '#cdb376', 0, 1.7, 0);
+      part(.6, .8, .12, '#e1d9af', 0, 1.05, 1.55);
+    }
+    else if (kind === 'water') { part(3.2, .05, 7, '#5799aa', 0, .035, 0); part(2.5, .01, .1, '#abd1d5', 0, .065, -1.5); }
     else if (kind === 'pothole') {
       part(1.5, .03, 1.8, '#191d23', 0, .025, 0);
       for (const x of [-.85, .85]) part(.15, .08, 2, '#dfb357', x, .05, 0);
@@ -253,8 +257,9 @@ export class RoadRenderer {
         mesh: this.entityMesh(e.kind, e.trafficKind) }; this.entityMeshes.set(e.id, entry); }
       const entityPose = pathPose(e.distance, route, s.seed);
       const pose = passengerPose(e, s.activeSeconds);
-      entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * e.x, pose.height,
-        entityPose.z + Math.sin(entityPose.heading) * e.x);
+      const entityX = e.x + (e.kind === 'shop' ? Math.sign(e.x) * 2.8 : 0);
+      entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * entityX, pose.height,
+        entityPose.z + Math.sin(entityPose.heading) * entityX);
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
       if (e.kind === 'traffic') {
@@ -264,8 +269,8 @@ export class RoadRenderer {
       }
       const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
-      entry.mesh.scale.set(e.kind === 'traffic' ? 1 : e.width / baseWidth, 1,
-        e.kind === 'traffic' ? 1 : e.length / baseLength);
+      entry.mesh.scale.set(e.kind === 'traffic' || e.kind === 'shop' ? 1 : e.width / baseWidth, 1,
+        e.kind === 'traffic' || e.kind === 'shop' ? 1 : e.length / baseLength);
     }
     for (const [id, entry] of this.entityMeshes) if (!live.has(id)) {
       entry.mesh.visible = false;

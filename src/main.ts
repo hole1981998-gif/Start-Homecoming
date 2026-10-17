@@ -1,5 +1,5 @@
 import './style.css';
-import { balance } from './config';
+import { balance, shopBalance } from './config';
 import { FixedClock, noInput } from './simulation';
 import { activeVehicle, dropPassenger, initialRun, names, passengerDrive, pickUpPassenger, selectTurn, stepRun, switchVehicle } from './survival';
 import { canChoose, junction } from './route';
@@ -10,6 +10,8 @@ import { developmentScenario } from './development';
 import { createIcons, Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } from 'lucide';
 import { RoadHud } from './road-hud';
 import { vehicles } from './vehicles';
+import { enterShop, leaveShop, transact, useItem } from './shop';
+import { ShopView } from './shop-view';
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } });
 
 const el = <T extends Element = HTMLElement>(id: string): T => {
@@ -34,7 +36,7 @@ function newRun() {
   return import.meta.env.DEV ? developmentScenario(run, scenario) : run;
 }
 let state = newRun(), previous = state, input = noInput();
-type Screen = 'start' | 'pause' | 'help' | 'card' | 'result' | null;
+type Screen = 'start' | 'pause' | 'help' | 'card' | 'result' | 'shop' | null;
 let screen: Screen = 'start';
 let discovery: EntityKind | null = null, cardTimer: ReturnType<typeof setTimeout> | undefined;
 let savedRunId = '';
@@ -42,6 +44,16 @@ const seen = seenCards(), clock = new FixedClock(), listeners = new AbortControl
 const flavorToggle = el<HTMLInputElement>('flavor-toggle'); flavorToggle.checked = showFlavor();
 flavorToggle.addEventListener('change', () => saveFlavor(flavorToggle.checked), { signal: listeners.signal });
 const roadHud = new RoadHud(el('world-cues'));
+const shopView = new ShopView(el('shop-panel'), () => state, command => {
+  const result = transact(state, command); state = result.run; previous = state;
+  text('shop-status', result.message);
+}, index => { state = { ...state, selectedItem: index }; });
+function openShop(): void {
+  const next = enterShop(state); if (next === state) return;
+  state = next; shopView.reset();
+  show('shop', 'Cửa hàng ven đường', 'Game tạm dừng. Tiền chỉ trừ khi giao dịch thành công.');
+  text('shop-status', 'Chọn danh mục. Esc hoặc Tiếp tục lái để rời cửa hàng.'); shopView.render();
+}
 let graphics: RoadRenderer;
 try { graphics = new RoadRenderer(canvas, el('game')); }
 catch (error) { el('error').hidden = false; modal.hidden = true; throw error; }
@@ -50,7 +62,8 @@ function clearInput(): void { input = noInput(); clock.reset(); previous = state
 function show(view: Exclude<Screen, null>, title: string, description: string): void {
   screen = view; modal.hidden = false; clearInput();
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 04.2 · KHÁCH TỪ XE HỎNG');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 05 · KINH TẾ VEN ĐƯỜNG');
+  el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
   play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
@@ -67,12 +80,12 @@ function pauseRun(): void {
 }
 function resume(): void {
   if (document.hidden || state.phase === 'ended') return;
-  state = { ...state, phase: 'running' }; screen = null; modal.hidden = true; clearInput(); canvas.focus({ preventScroll: true });
+  state = { ...leaveShop(state), phase: 'running' }; screen = null; modal.hidden = true; clearInput(); canvas.focus({ preventScroll: true });
 }
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
   state = newRun(); previous = state;
-  show('start', 'Đường về nhà', `Giữ xe còn xăng và độ bền. Xe giao thông có nhiều cỡ, HP và mức sát thương riêng; xe lớn của bạn có thể húc hỏng xe nhỏ. Xe hỏng có thể để lại khách bên cạnh nếu có chỗ an toàn. Khách từ xe bị bạn húc hỏng sẽ từ chối lên xe. F đón khách, G cho một khách xuống; Tab đổi xe. W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
+  show('start', 'Đường về nhà', `C ghé cửa hàng ven đường để mua xe, tiếp tế và nâng cấp. R dùng vật phẩm đã chọn, Tab đổi xe; F/G đón hoặc cho khách xuống. Giữ xe còn xăng và độ bền, W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
@@ -82,16 +95,18 @@ function resultView(): void {
     result.reason === 'fuel' ? `Xe đã trôi thêm đủ ${balance.coastDistance} m sau khi hết xăng. Lượt sau hãy tìm bình xăng ven đường.` : 'Độ bền đã về 0 sau va chạm. Lượt sau hãy đọc cảnh báo và chừa thời gian đổi hướng.');
 }
 function openHelp(): void {
+  if (state.shopId) state = leaveShop(state);
   pauseRun();
   const vehicle = activeVehicle(state);
-  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị của ${vehicle.name}. A/D lái; Q/E rẽ; F đón khách; G cho khách xuống. Tab đổi nhanh xe khi có xe dự phòng; khách và tài nguyên của từng xe được giữ nguyên. Xe hiện tại ${vehicle.name}: ${vehicle.capacity} chỗ tính cả tài xế, cruise ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h khi trống, bình ${formatter.format(vehicle.fuelCapacity)} L, hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Chở khách giảm cruise và quá tải tăng hao xăng. Nước hao xăng, ổ gà trừ HP theo thời gian, xe giao thông gây va/ngã; pha ngã/trôi/quay lại miễn tác động xấu. Hết xăng trôi ${balance.coastDistance} m; HP về 0 hoặc hết đà sẽ tự chuyển xe còn chạy được. Mua xe/shop thuộc P5.`);
+  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị của ${vehicle.name}. A/D lái; Q/E rẽ; F đón khách; G cho khách xuống. Tab đổi nhanh xe khi có xe dự phòng; khách và tài nguyên của từng xe được giữ nguyên. Xe hiện tại ${vehicle.name}: ${vehicle.capacity} chỗ tính cả tài xế, cruise ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h khi trống, bình ${formatter.format(vehicle.fuelCapacity)} L, hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Chở khách giảm cruise và quá tải tăng hao xăng. Nước hao xăng, ổ gà trừ HP theo thời gian, xe giao thông gây va/ngã; pha ngã/trôi/quay lại miễn tác động xấu. Hết xăng trôi ${balance.coastDistance} m; HP về 0 hoặc hết đà sẽ tự chuyển xe còn chạy được. C ghé cửa hàng đủ gần; R dùng vật phẩm chọn trong shop.`);
 }
 const cardDescriptions: Record<EntityKind, string> = {
+  shop: `Nhà ven đường có biểu tượng cửa hàng. Lái tới cùng phía, nhấn C trong khoảng ${shopBalance.reach} m để ghé; game tạm dừng khi mua. Có xăng, sửa, xe và nâng cấp. Kho tối đa hai xe; mua xe thứ ba phải chọn xe bỏ. R dùng vật phẩm chọn trong shop; Tab vẫn đổi xe. Hàng của cùng cửa hàng không đổi khi mở lại.`,
   water: `Mảng nước làm hao thêm ${formatter.format(balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Có đoạn dài tới 30 m và phủ ba làn: lúc đó phải chấp nhận hao xăng cho đến khi có nhánh rẽ ở prototype sau.`,
   pothole: `Ổ gà viền vàng lấy ${balance.potholeImpactDamage} HP và tối đa ${balance.potholeMoneyLoss} tiền ở lần chạm đầu; tiếp tục lấy ${balance.potholeDamagePerSecond} HP mỗi giây xe còn chạm. Có đoạn dài tới 24 m hoặc phủ cả ba làn; chạy nhanh qua sẽ giảm thời gian chịu hại.`,
   traffic: `Xe giao thông có đủ loại từ xe máy, ô tô, ba gác tới buýt, tải và container; mỗi loại có HP, kích cỡ và sát thương riêng. Làn trái ngược chiều, phải cùng chiều, giữa chọn hướng theo seed. Va xe thường làm tài xế ngã; buýt, tải và container có thể húc hỏng xe yếu nhưng vẫn mất HP. Xe giao thông chịu ổ gà, chậm và hao thêm xăng trong nước. Mỗi loại có bình và mức hao riêng; hết xăng trôi thêm rồi dừng nhưng vẫn còn HP và gây va chạm. Khi xe hỏng, khách xuất hiện bên cạnh nếu có chỗ an toàn; nhấn F khi đủ gần để đón nếu xe tự hỏng vì ổ gà. Khách từ xe bị bạn húc hỏng từ chối lên xe; không tự nhận khách hay thưởng.`,
   fuel: `Bình xăng đứng có quai: lái chạm để nhận tới ${balance.fuelPickup} L, không vượt sức chứa. Nhặt được khi đang trôi sẽ giúp xe chạy lại.`,
-  repair: `Hộp trắng có dấu cộng: lái chạm để phục hồi tới ${balance.repairPickup} HP, không vượt độ bền tối đa. Đây là nhặt trực tiếp, chưa có kho vật phẩm.`,
+  repair: `Hộp trắng có dấu cộng: lái chạm để phục hồi tới ${balance.repairPickup} HP, không vượt độ bền tối đa. Đây là nhặt trực tiếp; mua bộ sửa mang theo ở cửa hàng và dùng R.`,
   passenger: `Người đứng ven đường chờ đi nhờ. Lái tới gần cùng phía và nhấn F để đón; không tự lên xe khi chạm. Nhấn G cho một khách xuống ngay khi chạy. Tài xế chiếm một chỗ, khách thêm làm giảm tốc độ trung vị; quá tải còn giảm tốc tối đa và tăng hao xăng.`,
 };
 function dismissCard(): void {
@@ -128,13 +143,15 @@ window.addEventListener('keydown', event => {
     return;
   }
   if (event.code === 'Tab' && !modal.hidden) {
-    const buttons = [...modal.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button,input')].filter(b => !b.closest('[hidden]') && !b.disabled);
+    const buttons = [...modal.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>('button,input,select')].filter(b => !b.closest('[hidden]') && !b.disabled);
     const first = buttons[0], last = buttons[buttons.length - 1];
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
   if (state.phase !== 'running' || document.activeElement !== canvas) return;
   if (['Space', 'Tab'].includes(event.code)) event.preventDefault();
+  if (!event.repeat && event.code === 'KeyC') { event.preventDefault(); openShop(); return; }
+  if (!event.repeat && event.code === 'KeyR') { event.preventDefault(); state = useItem(state); return; }
   if (!event.repeat && event.code === 'Tab') { state = switchVehicle(state); return; }
   if (!event.repeat && event.code === 'KeyF') { state = pickUpPassenger(state); return; }
   if (!event.repeat && event.code === 'KeyG') { state = dropPassenger(state); return; }
@@ -172,6 +189,10 @@ function updateHud(): void {
   const occupants = state.crash ? 0 : state.riderIds.length + 1;
   text('rider-count', `${occupants}/${vehicle.capacity}`);
   text('vehicle-name', vehicle.name);
+  const item = state.inventory[state.selectedItem];
+  el('item-cue').hidden = state.inventory.length === 0;
+  text('item-cue', item ? `R · ${item === 'fuel' ? '⛽' : '⚒'} · ${state.inventory.length}/${shopBalance.inventoryLimit}` : '');
+  el('item-cue').setAttribute('aria-label', item ? `R dùng ${item === 'fuel' ? 'xăng' : 'bộ sửa'}, còn ${state.inventory.length} vật phẩm` : 'Không có vật phẩm');
   el('rider-count').setAttribute('aria-label', `${occupants} người trên xe gồm tài xế, sức chứa ${vehicle.capacity}`);
   el('rider-count').classList.toggle('overloaded', state.riderIds.length + 1 > vehicle.capacity);
   const fuel = el<HTMLProgressElement>('fuel'), hp = el<HTMLProgressElement>('hp');

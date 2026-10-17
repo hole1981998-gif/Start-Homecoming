@@ -1,10 +1,12 @@
-import { balance, hazardSizes } from './config';
+import { balance, hazardSizes, shopBalance } from './config';
 import { trafficSpawnKinds, trafficTypes, vehicles, type VehicleDefinition, type VehicleKind } from './vehicles';
 export { trafficTypes } from './vehicles';
 import { nearJunction, type RouteState, type Turn } from './route';
 import { moveTrafficWithFuel } from './traffic-fuel';
+const maxTrafficSpeed = Math.max(...Object.values(trafficTypes).map(type => type.speed));
 
-export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger';
+export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger' | 'shop';
+export interface ShopStock { vehicles: VehicleKind[]; fuel: number; repair: number }
 export type TrafficKind = VehicleKind;
 export interface PassengerMotion { homeX: number; homeDistance: number; startedAt: number; phase: number; idle: boolean;
   ejectedAt?: number; fromX?: number; fromDistance?: number; crashRecovery?: boolean }
@@ -15,12 +17,24 @@ export interface Entity {
   trafficKind?: TrafficKind; hp?: number; wrecked?: boolean; wreckAge?: number; trafficContacts?: string[]; baseSpeed?: number;
   wreckPassengersSpawned?: boolean; wreckedByPlayer?: boolean;
   fuel?: number; trafficMotion?: 'powered' | 'coasting' | 'stopped'; coastRemaining?: number;
+  shopStock?: ShopStock;
 }
 export interface RetiredEntity { entity: Entity; route: RouteState; expireDistance: number }
 export interface World { entities: Entity[]; retired: RetiredEntity[]; nextHazard: number; nextFuel: number; nextRepair: number;
-  nextPassenger: number; rng: number; seed: number; branchSeed: number; branchId: number; branchVariant: number }
+  nextPassenger: number; nextShop: number; nextShopDistance: number; rng: number; seed: number; branchSeed: number; branchId: number; branchVariant: number }
 export const initialWorld = (seed: number): World => ({ entities: [], retired: [], nextHazard: 0, nextFuel: 1,
-  nextRepair: 0, nextPassenger: 0, rng: seed >>> 0, seed, branchSeed: seed >>> 0, branchId: 0, branchVariant: 0 });
+  nextRepair: 0, nextPassenger: 0, nextShop: 0, nextShopDistance: shopBalance.firstDistance,
+  rng: seed >>> 0, seed, branchSeed: seed >>> 0, branchId: 0, branchVariant: 0 });
+export function nextShopDistance(distance: number, index: number, seed: number): number {
+  if (index === 0) return shopBalance.secondDistance;
+  const span = shopBalance.maxGap - shopBalance.minGap + 1;
+  const offset = (Math.imul(seed ^ index, 1103515245) >>> 0) % span;
+  for (let i = 0; i < span; i++) {
+    const candidate = distance + shopBalance.minGap + (offset + i) % span;
+    if (!nearJunction(candidate)) return candidate;
+  }
+  throw new Error('No safe shop interval');
+}
 const branchEntityId = (world: World, prefix: string, index: number) =>
   world.branchId === 0 ? `${prefix}-${index}` : `${prefix}-${world.branchId}-${index}`;
 /** Keep the old straight branch until its junction leaves the rear view. */
@@ -33,16 +47,18 @@ export function forkWorld(world: World, route: RouteState, turn: Turn, junctionD
   let nextHazard = 0;
   while (hazardDistance(nextHazard) < split) nextHazard++;
   const oldRoute = { ...route, choice: null };
+  let shopIndex = 0, shopDistance: number = shopBalance.firstDistance;
+  while (shopDistance < split) { shopDistance = nextShopDistance(shopDistance, shopIndex, branchSeed); shopIndex++; }
   return { ...world, entities: world.entities.filter(e => e.distance < split),
     retired: [...world.retired, ...world.entities.filter(e => !e.consumed && e.distance >= split)
       .map(entity => ({ entity, route: oldRoute, expireDistance: junctionDistance + 64 }))],
     nextHazard, nextFuel: Math.max(1, Math.ceil(split / balance.fuelInterval)),
     nextRepair: Math.max(0, Math.ceil((split - balance.firstRepair) / balance.repairInterval)),
     nextPassenger: Math.max(0, Math.ceil((split - balance.firstPassenger) / balance.passengerInterval)),
-    rng: branchSeed, branchSeed, branchId, branchVariant };
+    nextShop: shopIndex, nextShopDistance: shopDistance, rng: branchSeed, branchSeed, branchId, branchVariant };
 }
 export function entity(kind: EntityKind, id: string, distance: number, x: number): Entity {
-  const sizes: Record<EntityKind, [number, number]> = { water: [3.2, 7], pothole: [1.5, 1.8], traffic: [trafficTypes.car4.width, trafficTypes.car4.length], fuel: [.8, .8], repair: [.8, .8], passenger: [.7, .7] };
+  const sizes: Record<EntityKind, [number, number]> = { water: [3.2, 7], pothole: [1.5, 1.8], traffic: [trafficTypes.car4.width, trafficTypes.car4.length], fuel: [.8, .8], repair: [.8, .8], passenger: [.7, .7], shop: [1, 3] };
   return { id, kind, distance, x, width: sizes[kind][0], length: sizes[kind][1],
     speed: kind === 'traffic' ? balance.trafficSpeed : 0, consumed: false, touching: false, lastHit: -1e10,
     ...(kind === 'traffic' ? { trafficKind: 'car4' as const, hp: trafficTypes.car4.hp, wrecked: false,
@@ -158,6 +174,7 @@ export function advancePassengers(entities: Entity[], now: number): void {
   }
 }
 export function warningDistance(playerSpeed: number, target: Entity): number {
+  if (target.kind === 'shop') return Math.max(60, playerSpeed * 4);
   return Math.max(60, Math.max(0, playerSpeed - target.speed) * balance.warningSeconds);
 }
 
@@ -219,9 +236,21 @@ function hasConcurrentCar(candidate: Entity, existing: Entity[], distance: numbe
 export function fillWorld(world: World, distance: number, fuel: number = balance.fuelCapacity,
   durability: number = balance.durabilityCapacity, fuelFactor = 1,
   vehicle: VehicleDefinition = vehicles.motorcycle): World {
-  const w = { ...world, entities: world.entities.filter(e => e.distance + e.length / 2 > distance - 12),
+  const w = { ...world, entities: world.entities.filter(e => e.kind === 'shop' ?
+    e.distance + shopBalance.reach >= distance : e.distance + e.length / 2 > distance - 12),
     retired: world.retired.filter(e => e.expireDistance >= distance) };
-  const ahead = distance + balance.worldLookAhead;
+  const ahead = distance + Math.max(balance.worldLookAhead, (vehicle.maxSpeed + maxTrafficSpeed) * balance.warningSeconds);
+  while (w.nextShopDistance <= ahead) {
+    const index = w.nextShop, at = w.nextShopDistance;
+    const shop = entity('shop', branchEntityId(w, 'shop', index), at, index % 2 ? balance.laneWidth : -balance.laneWidth);
+    const hash = passengerHash(`${w.branchSeed}:${shop.id}:stock`);
+    const alternatives = (Object.keys(vehicles) as VehicleKind[]).filter(k => k !== 'car4' && k !== 'motorcycle');
+    shop.shopStock = { vehicles: ['motorcycle', 'car4', alternatives[hash % alternatives.length],
+      alternatives[(hash % alternatives.length + 1 + (hash >>> 8) % (alternatives.length - 1)) % alternatives.length]],
+      fuel: 2 + hash % 3, repair: 2 + (hash >>> 4) % 3 };
+    w.entities.push(shop);
+    w.nextShopDistance = nextShopDistance(at, index, w.branchSeed); w.nextShop++;
+  }
   const random = () => {
     w.rng = (Math.imul(w.rng, 1664525) + 1013904223) >>> 0;
     return w.rng >>> 16;
@@ -232,6 +261,8 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     const spawnAt = hazardDistance(index);
     // A junction is a short decision corridor, not a surprise hazard stack.
     if (nearJunction(spawnAt)) continue;
+    const shopCorridor = Math.abs(w.nextShopDistance - spawnAt) < shopBalance.clearance ||
+      w.entities.some(e => e.kind === 'shop' && Math.abs(e.distance - spawnAt) < shopBalance.clearance);
     const lane = random() % 3 - 1;
     const hazard = entity(kind, branchEntityId(w, 'hazard', index), spawnAt, lane * balance.laneWidth);
     if (kind === 'traffic') {
@@ -254,6 +285,8 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     if (!forcedPatchIsAffordable(hazard, distance, fuel, durability, fuelFactor, vehicle)) {
       hazard.width = 5.7; hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
     }
+    // Consume the usual hazard draws before rejecting it, so shop stock/corridors cannot reroll later hazards.
+    if (shopCorridor) continue;
     const forced = coversRoad(hazard);
     if (forced && kind === 'pothole' && hasConcurrentCar(hazard, w.entities, distance, vehicle)) continue;
     if (forced || kind === 'water' || leavesOpenLane(hazard, w.entities, distance, vehicle)) w.entities.push(hazard);

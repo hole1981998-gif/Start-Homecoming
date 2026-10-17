@@ -1,4 +1,4 @@
-import { balance } from './config';
+import { balance, shopBalance } from './config';
 
 export type VehicleKind = 'motorcycle' | 'motorbike' | 'car4' | 'car7' | 'tricycle' | 'bus' | 'truck' | 'container';
 export interface VehicleDefinition {
@@ -7,7 +7,7 @@ export interface VehicleDefinition {
   fuelPickup: number; repairPickup: number; width: number; length: number; price: number;
 }
 export interface VehicleInstance {
-  id: string; kind: VehicleKind; fuel: number; durability: number; upgrades: { engine: number; tank: number; armour: number };
+  id: string; kind: VehicleKind; fuel: number; durability: number; upgrades: { engine: number; tank: number; armour: number; economy?: number };
   disabled: boolean;
 }
 /** Temporary P4B trial numbers; the motorcycle keeps its proven P4A baseline. */
@@ -94,6 +94,13 @@ export function newVehicle(kind: VehicleKind, id: string): VehicleInstance {
   const d = vehicles[kind];
   return { id, kind, fuel: d.fuelCapacity, durability: d.durabilityCapacity,
     upgrades: { engine: 0, tank: 0, armour: 0 }, disabled: false };
+}
+export function effectiveVehicle(instance: VehicleInstance): VehicleDefinition {
+  const d = vehicles[instance.kind], u = instance.upgrades;
+  return { ...d, maxSpeed: d.maxSpeed * (1 + u.engine * shopBalance.enginePerLevel),
+    fuelCapacity: d.fuelCapacity * (1 + u.tank * shopBalance.tankPerLevel),
+    durabilityCapacity: d.durabilityCapacity * (1 + u.armour * shopBalance.armourPerLevel),
+    fuelPerMeter: d.fuelPerMeter * (1 - (u.economy ?? 0) * shopBalance.economyPerLevel) };
 }
 export function buyVehicle(inventory: VehicleInstance[], money: number, kind: VehicleKind,
   newId: string, discardId?: string): { inventory: VehicleInstance[]; money: number } | null {
