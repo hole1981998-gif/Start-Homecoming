@@ -96,11 +96,11 @@ P2 giữ lái P1.2, xe máy 8 L / 70 HP, 0,003 L/m; nước 0,8 L/s, ổ gà 12 
 | Tiết kiệm xăng (3 cấp) | 220 / 420 / 750 | -8% tiêu hao base mỗi cấp |
 | Bơm xăng trực tiếp | 60 | +8 L, clamp tank |
 | Sửa trực tiếp | 70 | +40 HP, clamp max |
-| Gói xăng mang theo | 75 | R: +8 L cho xe đang chạy |
-| Bộ sửa mang theo | 85 | R: +40 HP cho xe đang chạy |
-| Nitro | 120 | Space tiêu 1 gói, tối đa giữ 3 |
+| Gói xăng mang theo | Bỏ | Không bán/không dùng |
+| Bộ sửa mang theo | Bỏ | Không bán/không dùng |
+| Vật phẩm mới | Chưa chốt giá | Nitro, star, chuối, Grab; theo DESIGN_ITEMS_HAZARDS.md, chưa triển khai |
 
-Đề xuất inventory vật phẩm R tối đa 3, chọn slot trong Tab; nitro dùng kho riêng. Nitro: bay 1.6 s, tăng tốc 30% trong lúc bay, cooldown 2 s; đường bay và đoàn tàu phải được kiểm tra theo xe dài nhất. Không bật bất tử toàn ván khi đang nhảy. Không thưởng tiền chỉ vì dùng item.
+Inventory ĐÃ CHỐT tối đa hai món, hai ô cố định dùng phím 1/2; R mở shop, Tab đổi xe, không dùng để chọn vật phẩm. Dùng ô 1 không dồn ô 2; món mua mới vào ô trống đầu tiên. Nitro nằm trong kho hai ô mới, không kho riêng. Các số thử cũ (bay 1.6 s, tăng tốc 30%, cooldown 2 s) chỉ là lịch sử, không tự dùng cho P5.1; đường bay và đoàn tàu phải được kiểm tra theo xe dài nhất. Không bật bất tử toàn ván khi đang nhảy. Không thưởng tiền chỉ vì dùng item.
 
 ## Nguy hiểm và tiền phạt — TẠM
 
@@ -131,7 +131,7 @@ lengthPenalty = clamp((vehicleLength - 4.2) * 0.025, 0, 0.3)
 - Một nguồn xăng miễn phí có thể tiếp cận mỗi tối đa 500 m; nếu xe tiêu hao lớn cần bảo đảm theo tầm chạy còn lại chứ không chỉ mốc 500 m.
 - Tối đa 2 nhóm nguy hiểm nặng liên tiếp; sau đó có ít nhất 3 s hành lang an toàn.
 - Cooldown công an 1200 m, tàu 800 m, tai nạn 600 m; không chồng các event bắt buộc bất khả thi.
-- Trọng số vật phẩm: xăng 45, sửa 35, nitro 20; chuẩn hóa khi roll, có pity hỗ trợ tài nguyên thấp. Pity không đảm bảo thắng và không cắt đường tiếp cận.
+- Trọng số vật phẩm mới chưa chốt; bỏ bảng roll gói xăng/sửa/nitro cũ. Pickup hồi trực tiếp trên đường giữ riêng khỏi kho.
 - Mọi thời gian phản ứng là sàn sau khi xét tốc độ/chiều dài; director phải nới khoảng cách hoặc bỏ mẫu nếu không thể đi qua.
 
 ## Cần kiểm chứng trước khóa cân bằng
@@ -199,3 +199,10 @@ Config `p4-2-traffic-fuel-1`: mỗi loại traffic dùng `fuelCapacity` và `fue
 Shop 600 m, 1200 m, sau đó gap seeded 600–900 m; cảnh báo tối thiểu 4 s hoặc 60 m, C đủ gần cùng phía ±30 m dọc/1,8 m ngang. Không spawn tâm hazard mới trong 45 m quanh shop. Số này TẠM và có thể làm ván dễ hơn; giữ RNG draw của hazard bị bỏ để so sánh được. Mỗi shop có xe máy/car4 và hai loại khác seeded, một chiếc mỗi loại; xăng/sửa mang theo stock 2–4 mỗi loại, không refresh khi vào lại.
 Giá/effect dùng bảng trên: engine +8% max/cấp, tank/armour +15% max/cấp, economy −8% L/m nền/cấp, ba cấp. Không tự bơm/sửa khi tăng max. Bơm 60 tiền tới +8 L; sửa 70 tới +40 HP; gói xăng 75, bộ sửa 85, cùng mức hồi và clamp. R inventory ba ô; chọn trong shop, không dùng Tab chọn món. Nitro chưa bán trước khi có Space/P6.
 Mục tiêu đo lần này là giao dịch mua thật tại shop 1200 m, không chỉ đủ tiền: pilot né hazard và chủ động tiếp cận shop, 30 seed × cruise/W, mua được 29/30 và 28/30; median có mua 85,72 s và 60,18 s. Đây là mẫu giới hạn, không bảo đảm mọi seed. Ca đường trống không nhặt đồ chỉ còn ~0,10 L trước khi mua xe mới; chưa khóa mức căng xăng. Chi phí tiếp tế sớm chủ động làm chậm việc mua ô tô; không tự tăng income để bù. Xem PROTOTYPE_5_REVIEW.md cho giới hạn và đề xuất.
+
+## P5 feedback (`p5-controls-garage-2`)
+Kho hai món/hai ô 1/2; R shop. Không đổi giá/effect, fuel/HP, income hoặc difficulty curve trong lượt này. Shop đầy catalog xe, không mua trùng loại sở hữu. Giá nâng cấp tra cấp của instance được chọn, kể cả dự phòng; không refill khi tăng max. Việc hiện đủ catalog làm lựa chọn mua khác bản roll hai loại, cần đánh giá chiến thuật sau; không gọi giá/economy hiện tại đã cân. Gate tuning riêng mốc 8 phải đo khó theo quãng đường (đầu/giữa/cuối ván) và economy/giá trước giai đoạn art 9 và SFX/VFX 10.
+
+## Yêu cầu mới — vật phẩm/chướng ngại 18/10/2026 (ưu tiên hơn mô tả cũ)
+
+Xem [DESIGN_ITEMS_HAZARDS.md](DESIGN_ITEMS_HAZARDS.md) cho cơ chế đã chốt, đề xuất cần thử, phân kỳ và gate. P5 bỏ gói xăng/bộ sửa mang theo, chỉ tiếp tế trực tiếp tại shop; giữ mua xe/nâng cấp. Pickup tài nguyên trên đường vẫn hồi trực tiếp. Nitro boost/nhảy, star miễn damage/debuff nhưng không chặn event, chuối né công an/dân phòng và Grab nhiều lượt gọi khách đặc biệt đưa vào P5.1/P5.2/P6. Bốn nhóm hazard đưa vào P6.1–P6.3. Hai ô 1/2 dành cho hệ vật phẩm tương lai; hiện chưa có món để dùng. Giá/thời lượng/số lượt/hệ số thưởng chưa chốt, không dùng số cũ như số đã cân bằng; nitro kho riêng/Space cũ không còn là thiết kế hiện hành. Star với terminal tàu là điểm cần xác nhận theo diễn giải bảo thủ trong đặc tả.

@@ -5,10 +5,16 @@ import { reachableShop, upgradeNames, upgradePrice, vehicleSummary, type ShopCom
 
 /** Prototype shop UI. Transactions remain pure and revalidate every command. */
 export class ShopView {
-  private tab: 'service' | 'vehicle' | 'upgrade' | 'item' = 'service';
+  private tab: 'service' | 'vehicle' | 'upgrade' = 'service';
   private pending: VehicleKind | null = null;
+  private upgradeTarget: string | null = null;
   constructor(private host: HTMLElement, private read: () => Run,
-    command: (command: ShopCommand) => void, select: (index: number) => void) {
+    command: (command: ShopCommand) => void) {
+    host.addEventListener('change', event => {
+      const select = event.target as HTMLSelectElement;
+      if (select.id !== 'shop-upgrade-target') return;
+      this.upgradeTarget = select.value; this.render();
+    });
     host.addEventListener('click', event => {
       const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
       if (!button || button.disabled) return;
@@ -24,18 +30,19 @@ export class ShopView {
         this.render(); return;
       }
       if (button.dataset.service) command({ kind: 'service', item: button.dataset.service as 'fuel' | 'repair', sequence });
-      if (button.dataset.item) command({ kind: 'item', item: button.dataset.item as 'fuel' | 'repair', sequence });
-      if (button.dataset.upgrade) command({ kind: 'upgrade', upgrade: button.dataset.upgrade as UpgradeKind, sequence });
-      if (button.dataset.select !== undefined) select(Number(button.dataset.select));
+      if (button.dataset.upgrade) command({ kind: 'upgrade', upgrade: button.dataset.upgrade as UpgradeKind,
+        targetId: this.upgradeTarget ?? run.activeVehicleId, sequence });
       this.render();
     });
   }
-  reset(): void { this.tab = 'service'; this.pending = null; }
+  reset(): void { this.tab = 'service'; this.pending = null; this.upgradeTarget = this.read().activeVehicleId; }
   render(): void {
     const hadFocus = this.host.contains(document.activeElement);
     const run = this.read(), shop = reachableShop(run);
     if (!shop?.shopStock) return;
     const stock = shop.shopStock, instance = run.vehicleInstances.find(v => v.id === run.activeVehicleId)!, d = effectiveVehicle(instance);
+    const upgradeTarget = run.vehicleInstances.find(v => v.id === this.upgradeTarget) ?? instance;
+    this.upgradeTarget = upgradeTarget.id;
     const button = (label: string, data: string, disabled = false) => `<button ${data}${disabled ? ' disabled' : ''}>${label}</button>`;
     const row = (title: string, detail: string, control: string) => `<div class="shop-row"><div><strong>${title}</strong><small>${detail}</small></div>${control}</div>`;
     const money = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(run.money);
@@ -47,8 +54,13 @@ export class ShopView {
           button('Sửa', 'data-service="repair"', run.money < shopBalance.repairPrice || run.durability >= d.durabilityCapacity - 1e-9));
     }
     if (this.tab === 'vehicle') {
-      content = stock.vehicles.map(kind => row(vehicles[kind].name, `${vehicleSummary(kind)} · ${vehicles[kind].price} tiền`,
-        button('Chọn mua', `data-vehicle="${kind}" aria-label="Chọn mua ${vehicles[kind].name}"`, run.money < vehicles[kind].price))).join('');
+      content = (Object.keys(vehicles) as VehicleKind[]).map(kind => {
+        const owned = run.vehicleInstances.some(v => v.kind === kind), sold = !stock.vehicles.includes(kind);
+        return row(vehicles[kind].name, `${vehicleSummary(kind)} · ${vehicles[kind].price} tiền`,
+          button(owned ? 'Đã sở hữu' : sold ? 'Hết hàng' : 'Chọn mua',
+            `data-vehicle="${kind}" aria-label="${owned ? 'Đã sở hữu' : 'Chọn mua'} ${vehicles[kind].name}"`,
+            owned || sold || run.money < vehicles[kind].price));
+      }).join('');
       if (this.pending) {
         const kind = this.pending;
         content = `<div class="shop-confirm"><strong>Mua ${vehicles[kind].name} · ${vehicles[kind].price} tiền?</strong>
@@ -57,23 +69,19 @@ export class ShopView {
           button('Xác nhận mua', 'data-confirm="true"') + button('Huỷ mua', 'data-cancel="true"') + '</div>';
       }
     }
-    if (this.tab === 'upgrade') content = (Object.keys(upgradeNames) as UpgradeKind[]).map(kind => {
-      const level = instance.upgrades[kind] ?? 0, price = upgradePrice(kind, level);
+    if (this.tab === 'upgrade') content = `<label for="shop-upgrade-target">Xe cần nâng cấp</label>
+      <select id="shop-upgrade-target">${run.vehicleInstances.map(v => `<option value="${v.id}"${v.id === upgradeTarget.id ? ' selected' : ''}>${vehicles[v.kind].name} (${v.id === run.activeVehicleId ? 'đang lái' : 'dự phòng'})</option>`).join('')}</select>
+      <p>Nâng cấp ${vehicles[upgradeTarget.kind].name}; giữ nguyên xe đang lái, xăng và HP hiện có.</p>` +
+      (Object.keys(upgradeNames) as UpgradeKind[]).map(kind => {
+      const level = upgradeTarget.upgrades[kind] ?? 0, price = upgradePrice(kind, level);
       const details = { engine: '+8% tốc độ tối đa/cấp', tank: '+15% bình/cấp; không bơm thêm', armour: '+15% HP tối đa/cấp; không tự sửa', economy: '−8% tiêu hao nền/cấp' };
       return row(`${upgradeNames[kind]} · ${level}/3`, `${details[kind]}${price === undefined ? '' : ` · ${price} tiền`}`,
         button(price === undefined ? 'Tối đa' : 'Nâng cấp', `data-upgrade="${kind}" aria-label="Nâng cấp ${upgradeNames[kind]}"`, price === undefined || run.money < price));
     }).join('');
-    if (this.tab === 'item') content = (['fuel', 'repair'] as const).map(item => {
-      const price = item === 'fuel' ? shopBalance.fuelItemPrice : shopBalance.repairItemPrice;
-      return row(item === 'fuel' ? 'Gói xăng' : 'Bộ sửa', `${price} tiền · còn ${stock[item]}`,
-        button('Mua mang theo', `data-item="${item}" aria-label="Mua ${item === 'fuel' ? 'gói xăng' : 'bộ sửa'}"`,
-          stock[item] <= 0 || run.money < price || run.inventory.length >= shopBalance.inventoryLimit));
-    }).join('') + `<p>Kho ${run.inventory.length}/${shopBalance.inventoryLimit} · chọn món để dùng bằng R khi lái:</p>` +
-      run.inventory.map((item, i) => button(`${i === run.selectedItem ? '✓ ' : ''}${i + 1}. ${item === 'fuel' ? 'Xăng' : 'Sửa'}`, `data-select="${i}" aria-pressed="${i === run.selectedItem}"`)).join('');
     this.host.innerHTML = `<p class="shop-wallet">${money} tiền · ${d.name}<br>${run.fuel.toFixed(1)}/${d.fuelCapacity.toFixed(1)} L · ${Math.ceil(run.durability)}/${Math.ceil(d.durabilityCapacity)} HP</p>
-      <nav aria-label="Danh mục cửa hàng">${(['service', 'vehicle', 'upgrade', 'item'] as const).map((tab, i) =>
-      button(['Tiếp tế', 'Mua xe', 'Nâng cấp', 'Vật phẩm'][i], `data-tab="${tab}" aria-pressed="${tab === this.tab}"`)).join('')}</nav><div class="shop-content">${content}</div>`;
-    if (hadFocus) (this.host.querySelector<HTMLSelectElement>('#shop-discard') ??
+      <nav aria-label="Danh mục cửa hàng">${(['service', 'vehicle', 'upgrade'] as const).map((tab, i) =>
+      button(['Tiếp tế', 'Mua xe', 'Nâng cấp'][i], `data-tab="${tab}" aria-pressed="${tab === this.tab}"`)).join('')}</nav><div class="shop-content">${content}</div>`;
+    if (hadFocus) (this.host.querySelector<HTMLSelectElement>('#shop-discard, #shop-upgrade-target') ??
       this.host.querySelector<HTMLButtonElement>('nav button[aria-pressed="true"]'))?.focus({ preventScroll: true });
   }
 }

@@ -18,7 +18,7 @@ export interface Run extends State {
   protectedEntities: string[];
   route: RouteState;
   vehicleInstances: VehicleInstance[]; activeVehicleId: string; replacementProtectedUntil: number;
-  shopId: string | null; economySequence: number; inventory: Array<'fuel' | 'repair'>; selectedItem: number;
+  shopId: string | null; economySequence: number;
 }
 export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initialState(),
   runId, seed, fuel: balance.fuelCapacity, durability: balance.durabilityCapacity, score: 0,
@@ -30,7 +30,7 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   route: initialRoute(),
   vehicleInstances: [newVehicle('motorcycle', `${runId}-motorcycle`)],
   activeVehicleId: `${runId}-motorcycle`, replacementProtectedUntil: 0,
-  shopId: null, economySequence: 0, inventory: [], selectedItem: 0,
+  shopId: null, economySequence: 0,
 });
 export const names: Record<EntityKind, string> = { water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường' };
 

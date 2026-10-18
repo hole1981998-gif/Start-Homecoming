@@ -6,7 +6,7 @@ import { moveTrafficWithFuel } from './traffic-fuel';
 const maxTrafficSpeed = Math.max(...Object.values(trafficTypes).map(type => type.speed));
 
 export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger' | 'shop';
-export interface ShopStock { vehicles: VehicleKind[]; fuel: number; repair: number }
+export interface ShopStock { vehicles: VehicleKind[] }
 export type TrafficKind = VehicleKind;
 export interface PassengerMotion { homeX: number; homeDistance: number; startedAt: number; phase: number; idle: boolean;
   ejectedAt?: number; fromX?: number; fromDistance?: number; crashRecovery?: boolean }
@@ -243,11 +243,7 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
   while (w.nextShopDistance <= ahead) {
     const index = w.nextShop, at = w.nextShopDistance;
     const shop = entity('shop', branchEntityId(w, 'shop', index), at, index % 2 ? balance.laneWidth : -balance.laneWidth);
-    const hash = passengerHash(`${w.branchSeed}:${shop.id}:stock`);
-    const alternatives = (Object.keys(vehicles) as VehicleKind[]).filter(k => k !== 'car4' && k !== 'motorcycle');
-    shop.shopStock = { vehicles: ['motorcycle', 'car4', alternatives[hash % alternatives.length],
-      alternatives[(hash % alternatives.length + 1 + (hash >>> 8) % (alternatives.length - 1)) % alternatives.length]],
-      fuel: 2 + hash % 3, repair: 2 + (hash >>> 4) % 3 };
+    shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[] };
     w.entities.push(shop);
     w.nextShopDistance = nextShopDistance(at, index, w.branchSeed); w.nextShop++;
   }

@@ -47,7 +47,7 @@ export class RoadHud {
       cue.root.hidden = false; cue.root.style.left = `${x}%`; cue.root.style.top = `${y}%`;
       cue.root.querySelector<SVGElement>('.pointer')!.style.transform = p.x < 9 ? 'rotate(90deg)' : p.x > 91 ? 'rotate(-90deg)' : '';
       const distance = Math.max(0, Math.ceil(e.distance - s.distance));
-      cue.value.textContent = e.kind === 'shop' && reachableShop(s)?.id === e.id ? 'C · GHÉ' : e.kind === 'passenger' && Math.abs(e.distance - s.distance) <= balance.passengerReach &&
+      cue.value.textContent = e.kind === 'shop' && reachableShop(s)?.id === e.id ? 'R · GHÉ' : e.kind === 'passenger' && Math.abs(e.distance - s.distance) <= balance.passengerReach &&
         Math.abs(e.x - s.x) <= balance.passengerLateralReach ? 'F · ĐÓN' : `${distance} m`;
       const lane = e.x < -1 ? 'trái' : e.x > 1 ? 'phải' : 'giữa';
       const trafficState = e.trafficMotion === 'stopped' ? 'đã dừng vì hết xăng' :

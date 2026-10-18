@@ -3,9 +3,9 @@ import { balance, shopBalance } from '../src/config';
 import { developmentScenario } from '../src/development';
 import { noInput } from '../src/simulation';
 import { activeVehicle, initialRun, stepRun, switchVehicle, type Run } from '../src/survival';
-import { enterShop, leaveShop, transact, useItem, type ShopCommand } from '../src/shop';
+import { enterShop, leaveShop, transact, type ShopCommand } from '../src/shop';
 import { entity, fillWorld, initialWorld, nextShopDistance } from '../src/world';
-import { effectiveVehicle, newVehicle } from '../src/vehicles';
+import { effectiveVehicle, newVehicle, vehicles } from '../src/vehicles';
 
 const atShop = (scenario = 'shop') => enterShop({ ...developmentScenario(initialRun(17, 'shop-test'), scenario), phase: 'running' });
 type WithoutSequence<T> = T extends unknown ? Omit<T, 'sequence'> : never;
@@ -32,6 +32,21 @@ it('services clamp, refuse full resources and insufficient funds, and stale comm
   const poor = atShop('shop-insufficient');
   expect(apply(poor, { kind: 'service', item: 'repair' })).toBe(poor);
   expect(run.fuel).toBe(1); expect(run.money).toBe(4000);
+});
+
+it('removed takeaway commands cannot charge, heal or create inventory, even from a stale UI', () => {
+  const run = atShop(), before = structuredClone(run);
+  for (const item of ['fuel', 'repair']) {
+    const stale = { kind: 'item', item, sequence: run.economySequence } as unknown as ShopCommand;
+    expect(transact(run, stale).run).toBe(run);
+  }
+  expect(run).toEqual(before);
+  expect('inventory' in run).toBe(false);
+  const repaired = apply(run, { kind: 'service', item: 'repair' });
+  expect(repaired.durability).toBe(70);
+  expect(repaired.vehicleInstances[0].durability).toBe(70);
+  const reopened = enterShop({ ...leaveShop(repaired), phase: 'running' });
+  expect(reopened.world.entities[0].shopStock).toEqual(repaired.world.entities[0].shopStock);
 });
 
 it('buying a third vehicle needs an explicit discard, preserves riders/resources, and rejects stale confirmation', () => {
@@ -64,32 +79,36 @@ it('upgrades belong to one instance and affect real driving without free tank/HP
   expect(switched.vehicleInstances.find(v => v.kind === 'car7')?.upgrades.engine).toBe(0);
 });
 
-it('inventory has three slots, stock cannot reroll, and R consumes only a useful selected item', () => {
-  let run = atShop();
-  const originalStock = structuredClone(run.world.entities[0].shopStock);
-  run = apply(run, { kind: 'item', item: 'fuel' });
-  run = apply(run, { kind: 'item', item: 'repair' });
-  run = apply(run, { kind: 'item', item: 'repair' });
-  expect(run.inventory).toEqual(['fuel', 'repair', 'repair']);
-  expect(apply(run, { kind: 'item', item: 'fuel' })).toBe(run);
-  const reopened = enterShop({ ...leaveShop(run), phase: 'running' });
-  expect(reopened.world.entities[0].shopStock).toEqual(run.world.entities[0].shopStock);
-  expect(reopened.world.entities[0].shopStock!.repair).toBe(originalStock!.repair - 2);
-  const playing: Run = { ...leaveShop(run), phase: 'running', fuel: 0, motion: 'coasting', selectedItem: 0 };
-  const used = useItem(playing);
-  expect(used.inventory).toEqual(['repair', 'repair']); expect(used.fuel).toBe(5.5); expect(used.motion).toBe('powered');
-  const full = { ...used, durability: 70 };
-  expect(useItem(full)).toBe(full);
+it('shops expose every catalog type, including tricycle/container; owned kinds cannot be bought even when discarding them', () => {
+  for (let seed = 1; seed <= 10; seed++) {
+    const shop = fillWorld(initialWorld(seed), 600).entities.find(e => e.kind === 'shop')!;
+    expect(shop.shopStock!.vehicles.sort()).toEqual(Object.keys(vehicles).sort());
+  }
+  const run = atShop('shop-third');
+  expect(apply(run, { kind: 'vehicle', vehicle: 'motorcycle', discardId: run.activeVehicleId })).toBe(run);
+  expect(apply(run, { kind: 'vehicle', vehicle: 'car7', discardId: 'qa-spare' })).toBe(run);
 });
 
-it('upgrade caps and sold-out items reject purchases without charging', () => {
+it('upgrading a reserve vehicle changes only that instance without equipping, refilling or healing it', () => {
+  const run = atShop('shop-third');
+  const upgraded = apply(run, { kind: 'upgrade', upgrade: 'tank', targetId: 'qa-spare' });
+  expect(upgraded.activeVehicleId).toBe(run.activeVehicleId);
+  expect(upgraded.fuel).toBe(run.fuel); expect(upgraded.durability).toBe(run.durability);
+  const spare = upgraded.vehicleInstances.find(v => v.id === 'qa-spare')!;
+  expect(spare.upgrades.tank).toBe(1); expect(spare.fuel).toBe(20);
+  expect(effectiveVehicle(spare).fuelCapacity).toBe(23);
+  expect(upgraded.vehicleInstances[0].upgrades.tank).toBe(0);
+  expect(upgraded.money).toBe(run.money - shopBalance.tankPrices[0]);
+  expect(apply(run, { kind: 'upgrade', upgrade: 'engine', targetId: 'missing' })).toBe(run);
+  const switched = switchVehicle({ ...leaveShop(upgraded), phase: 'running' });
+  expect(activeVehicle(switched).fuelCapacity).toBe(23); expect(switched.fuel).toBe(20);
+});
+
+it('upgrade caps reject purchases without charging', () => {
   let run = atShop();
   for (let i = 0; i < 3; i++) run = apply(run, { kind: 'upgrade', upgrade: 'engine' });
   expect(run.vehicleInstances[0].upgrades.engine).toBe(3);
   expect(apply(run, { kind: 'upgrade', upgrade: 'engine' })).toBe(run);
-  const empty = { ...run, world: { ...run.world, entities: run.world.entities.map(e => e.shopStock ?
-    { ...e, shopStock: { ...e.shopStock, fuel: 0 } } : e) } };
-  expect(apply(empty, { kind: 'item', item: 'fuel' })).toBe(empty);
 });
 
 it('a longer purchase protects overlapping hazards until clear without granting general immunity', () => {

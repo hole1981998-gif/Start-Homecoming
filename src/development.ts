@@ -7,7 +7,7 @@ import { balance } from './config';
 export function developmentScenario(run: Run, scenario: string | null): Run {
   if (scenario === 'shop' || scenario === 'shop-third' || scenario === 'shop-insufficient') {
     const shop = entity('shop', 'qa-shop', 12, 0);
-    shop.shopStock = { vehicles: ['motorcycle', 'car4', 'bus', 'container'], fuel: 3, repair: 3 };
+    shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[] };
     return { ...run, money: scenario === 'shop-insufficient' ? 20 : 4000, fuel: 1, durability: 30,
       riderIds: ['qa-shop-rider'],
       vehicleInstances: scenario === 'shop-third' ? [...run.vehicleInstances, newVehicle('car7', 'qa-spare')] : run.vehicleInstances,

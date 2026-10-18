@@ -6,7 +6,7 @@ vi.mock('../src/render', () => ({ RoadRenderer: class {
   project() { return { x: 50, y: 40 }; }
   dispose() { /* no graphics resources */ }
 } }));
-it('C opens a frozen shop, purchases an item, R uses it only in gameplay and restart clears inventory', async () => {
+it('R opens service-only shop, removed item keys do not heal, services apply immediately and restart restores state', async () => {
   document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
   history.replaceState({}, '', '/?scenario=shop&seed=17');
   localStorage.setItem('dvn.cards.v1', JSON.stringify(['shop']));
@@ -18,14 +18,21 @@ it('C opens a frozen shop, purchases an item, R uses it only in gameplay and res
   const click = (selector: string) => (document.querySelector(selector) as HTMLElement).click();
   const tick = (seconds: number) => { for (let i = 0; i < seconds * 60; i++) { now += 1000 / 60; frame(now); } };
   const key = (code: string) => window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
-  click('#play'); key('KeyC'); tick(1);
+  click('#play'); key('KeyC'); expect(el('shop-panel').hidden).toBe(true);
+  key('KeyR'); tick(1);
   expect(el('shop-panel').hidden).toBe(false);
   const distance = el('distance').textContent; tick(3); expect(el('distance').textContent).toBe(distance);
-  click('[data-tab="item"]'); click('[data-item="repair"]'); tick(1);
-  expect(el('shop-status').textContent).toContain('Đã mua'); expect(el('money').textContent).toBe('3.915');
-  key('KeyR'); tick(1); expect(el('hp-value').textContent).toBe('30 HP');
-  key('Escape'); key('KeyR'); tick(.2);
-  expect(el('hp-value').textContent).toBe('70 HP'); expect(el('item-cue').hidden).toBe(true);
+  expect(document.querySelector('[data-tab="item"]')).toBeNull();
+  expect(document.querySelector('[data-item]')).toBeNull();
+  key('Digit1'); key('Digit2'); tick(.2);
+  expect(el('hp-value').textContent).toBe('30 HP'); expect(el('money').textContent).toBe('4.000');
+  click('[data-service="fuel"]'); click('[data-service="repair"]'); tick(.2);
+  expect(el('shop-status').textContent).toContain('Đã sửa');
+  expect(el('money').textContent).toBe('3.870'); expect(el('hp-value').textContent).toBe('70 HP');
+  expect(el('fuel-value').textContent).toBe('5,5 L');
+  expect((document.querySelector('[data-service="fuel"]') as HTMLButtonElement).disabled).toBe(true);
+  key('Escape'); tick(.2);
+  expect(el('item-cue').hidden).toBe(true);
   expect(document.activeElement).toBe(el('scene'));
   click('#restart'); tick(.2); expect(el('money').textContent).toBe('4.000'); expect(el('hp-value').textContent).toBe('30 HP');
   expect(el('shop-panel').hidden).toBe(true);

@@ -27,14 +27,14 @@ Chạy → đọc cảnh báo → né hoặc rẽ → đón khách/nhặt đồ 
 | W / S | Giữ W để tăng/duy trì tốc độ cao; giữ S để giảm/duy trì tốc độ thấp. Thả cả hai: tốc độ tự trở về tốc độ trung vị riêng của loại xe |
 | A / D | Lái ngang liên tục trong bề rộng đường; không khóa tâm lane |
 | Q / E | Chọn rẽ trái / phải trong cửa sổ QTE giao lộ |
-| Space | Dùng một gói nitro để lấy đà nhảy qua vật cản |
-| R | Dùng vật phẩm hỗ trợ đang chọn; không dùng thay Space cho nitro |
+| Space | Chưa gán trong P5; input nhảy mới theo P5.1, không giữ luật kho nitro riêng cũ |
+| 1 / 2 | Dành cho hai ô vật phẩm mới từ P5.1; P5 hiện chưa có món để dùng |
 | F | Đón/tương tác hành khách đủ gần |
 | G | Cho đúng một khách đang đi nhờ xuống xe, không mở menu và không dừng ván |
-| C | Vào cửa hàng ven đường khi đủ điều kiện |
+| R | Vào cửa hàng ven đường khi đủ điều kiện; C không còn được dùng |
 | Tab | Đổi nhanh xe đang chạy khi có xe dự phòng, không mở popup |
 
-**ĐỀ XUẤT:** S hãm tới tốc độ tối thiểu, không chạy lùi. “Tự do tới lui” được hiểu là điều chỉnh tốc độ dọc và vị trí ngang, không lùi ngược đường endless. UI chỉ báo hành động khả dụng. Cửa hàng tạm dừng mô phỏng trong ván đơn; Tab đổi nhanh xe hợp lệ, không mở UI. Không cho tương tác cửa hàng từ bất cứ đâu. Space không có nitro thì không nhảy.
+**ĐỀ XUẤT:** S hãm tới tốc độ tối thiểu, không chạy lùi. “Tự do tới lui” được hiểu là điều chỉnh tốc độ dọc và vị trí ngang, không lùi ngược đường endless. UI chỉ báo hành động khả dụng. Cửa hàng tạm dừng mô phỏng trong ván đơn; Tab đổi nhanh xe hợp lệ, không mở UI. Không cho tương tác cửa hàng từ bất cứ đâu. Không có nitro thì không nhảy; cách kích hoạt nhảy mới cần thử ở P5.1.
 
 ### Tốc độ trung vị và thao tác giữ phím
 
@@ -60,7 +60,7 @@ Chạy → đọc cảnh báo → né hoặc rẽ → đón khách/nhặt đồ 
 
 ## Xe, xăng, độ bền và thay xe
 
-**ĐÃ CHỐT:** có xe máy, mô tô, ô tô 4/7 chỗ, ba gác, xe buýt, xe tải, container. Mỗi loại khác tốc độ, sức chứa người, xăng và độ bền. Xe lớn chủ yếu dài hơn; chiều rộng luôn nhỏ hơn 1,5 lane. Giữ tối đa 2 xe. Mua xe thứ ba phải chọn bỏ một xe. Nâng cấp gắn với từng xe; cửa hàng nâng cấp xe đang chạy.
+**ĐÃ CHỐT:** có xe máy, mô tô, ô tô 4/7 chỗ, ba gác, xe buýt, xe tải, container. Mỗi loại khác tốc độ, sức chứa người, xăng và độ bền. Xe lớn chủ yếu dài hơn; chiều rộng luôn nhỏ hơn 1,5 lane. Giữ tối đa 2 xe. Mua xe thứ ba phải chọn bỏ một xe. Không mua thêm loại xe đang sở hữu, kể cả định bỏ chính loại đó để mua lại. Nâng cấp gắn với instance được chọn trong hai xe đang sở hữu; nâng xe dự phòng không tự equip hay hồi tài nguyên.
 
 **ĐÃ CHỐT — danh mục xe giao thông:** xe chướng ngại cũng có đầy đủ các loại tương ứng với xe người chơi: xe máy, mô tô, ô tô 4/7 chỗ, ba gác, xe buýt, xe tải và container. Mỗi loại có HP, sức chịu va chạm và mức sát thương phù hợp với kích thước/khối lượng của chính loại đó; không coi mọi xe chướng ngại là một xe nhỏ đổi màu. Khi thiết kế bổ sung một loại xe cho người chơi, đồng thời bổ sung biến thể xe giao thông tương ứng vào danh mục thiết kế và kế hoạch kiểm thử. Bản P4.1 mở rộng đã có đủ tám loại với placeholder riêng; các số HP/sát thương/trọng số spawn hiện là TẠM và có thể cân riêng cho hai vai trò để giữ đường đi khả thi và húc phá có chi phí.
 
@@ -110,7 +110,7 @@ Xăng và độ bền là hai tài nguyên riêng. Nước làm hao xăng; va ch
 
 **ĐỀ XUẤT về điểm mơ hồ:** mức phạt không tăng theo tiền người chơi hay quãng đường. Nếu không đủ tiền khi gặp công an: lấy tiền còn lại, tịch thu xe hiện tại; nếu có xe dự phòng hợp lệ thì trừ 50% lượng xăng hiện có của xe đó rồi tự chuyển; không có thì thua. Đây là lựa chọn nhánh “xe 2 giảm nửa xăng” mà chủ dự án còn để mở, cần xác nhận khi playtest. Nếu thiếu tiền phạt dân phòng: lấy tới 0, không tịch thu, không tạo nợ, vẫn chạy. Mọi giao dịch không cho tiền âm.
 
-**ĐÃ CHỐT:** cửa hàng ở ven đường, có RNG vừa phải; nâng cấp chỉ gắn xe đang chạy. **ĐỀ XUẤT:** cảnh báo sớm, C trong vùng tiếp cận mở UI an toàn; mua xăng, sửa chữa, vật phẩm, xe và nâng cấp theo danh mục. RNG có seed, trọng số, giới hạn chuỗi xấu, khoảng cách bảo đảm tiếp tế. Không đổi hàng khi mở lại cùng cửa hàng; không ép người chơi cần nitro khi không thể có nitro.
+**ĐÃ CHỐT:** cửa hàng ở ven đường; danh sách xe phải đủ catalog người chơi, gồm ba gác và container. Xe đã sở hữu hiện trạng thái không thể mua, không bị thiếu khỏi danh mục do roll ngẫu nhiên. Chọn xe đang lái hoặc dự phòng trước khi nâng cấp, chi phí/cấp áp dụng đúng instance đó. **ĐỀ XUẤT:** cảnh báo sớm, R trong vùng tiếp cận mở UI an toàn; bơm xăng/sửa trực tiếp, mua xe và nâng cấp theo danh mục. Không bán gói xăng/bộ sửa mang theo; vật phẩm mới theo phân kỳ DESIGN_ITEMS_HAZARDS.md, nguồn bán/loot chưa chốt; không ép người chơi cần nitro khi không thể có nitro.
 
 ## Secret ending — bốn bước đúng thứ tự
 
@@ -203,3 +203,12 @@ Vai trò có thể do Codex đảm nhiệm như các góc review; phải ghi rõ
 Đã triển khai C ghé shop có vị trí thật và cảnh báo, pause mô phỏng trong khi mua. Giá/mức nâng cấp dùng bảng TẠM hiện có; thu nhập nền vẫn 0,50/m. Hai shop đầu 600/1200 m là mặc định bảo thủ TẠM để kiểm tra mua ô tô thật quanh 1–1,5 phút; các shop sau seeded trong khoảng 600–900 m và ngoài hành lang giao lộ. Mỗi shop có xe máy, ô tô 4 chỗ và hai loại xe khác theo seed; mỗi loại bán một chiếc. Vật phẩm xăng/sửa có stock seeded 2–4 món/loại, không reroll khi mở lại. Đây là controlled stock cho lát cắt shop; loot/nitro và sự kiện đặc biệt đường đi tiếp tục nối ở P6, chưa gọi đã có toàn bộ loot director cuối.
 Mua xe mới trở thành xe đang chạy, giữ khách và lưu tài nguyên/nâng cấp xe cũ. Kho tối đa hai instance: mua xe thứ ba phải chọn xe bỏ và xác nhận rõ; huỷ/thiếu tiền/command cũ không thay dữ liệu. Bốn nâng cấp động cơ/bình/gia cố/tiết kiệm có ba cấp và gắn instance đang chạy. Nâng dung tích/HP tối đa không tự cấp thêm tài nguyên. Bơm/sửa trực tiếp và vật phẩm R clamp theo xe hiện tại.
 R dùng món chọn trong shop, tối đa ba món. Tab luôn đổi xe, thay mô tả cũ dùng Tab chọn inventory. Không tiêu vật phẩm khi tài nguyên đầy hoặc khi pause/crash; kho reset khi chơi lại. Nitro/Space dành P6, không bán món chưa dùng được trong P5. Chưa tự thay mức hồi của vật phẩm miễn phí trên đường; feedback giảm lượng hồi vẫn cần vòng cân riêng.
+
+## Feedback P5 — điều khiển, garage và thứ tự hoàn thiện (ĐÃ CHỐT)
+Thay luật P5 lượt đầu: R mở shop, bỏ C; kho hai ô cố định dùng 1/2, không chọn món bằng R/Tab và không dồn vị trí sau dùng. Danh mục shop hiển thị đủ tám loại hiện có, ba gác/container luôn có dòng tương ứng; loại đang sở hữu bị khoá mua ở UI lẫn transaction. Nâng cấp cho phép chọn một trong hai instance (đang lái/dự phòng), không tự thay xe hoặc hồi tài nguyên.
+Roadmap cuối: tuning độ khó/economy/giá trước → UI/visual art và review/chỉnh art direction → hoàn thiện/review/chỉnh SFX/VFX cuối cùng. Game hiện còn quá dễ và khó dần theo quãng đường chưa rõ theo feedback chủ dự án; coi đây là vấn đề chưa đạt, phải đánh giá lại ở gate tuning. Lượt này chỉ cập nhật kế hoạch và cơ chế P5 được yêu cầu, chưa tự tăng difficulty/damage hay thay giá. Quy trình duyệt art và rubric mỗi tiêu chí tối thiểu 6/10 vẫn giữ; chỉ sửa cue/input cần thiết trước giai đoạn art.
+Các ghi chú P5 lượt đầu phía trên về kho ba món, C/R cũ, shop roll hai loại xe và chỉ nâng xe đang chạy là lịch sử, được yêu cầu mới này thay thế.
+
+## Yêu cầu mới — vật phẩm/chướng ngại 18/10/2026 (ưu tiên hơn mô tả cũ)
+
+Xem [DESIGN_ITEMS_HAZARDS.md](DESIGN_ITEMS_HAZARDS.md) cho cơ chế đã chốt, đề xuất cần thử, phân kỳ và gate. P5 bỏ gói xăng/bộ sửa mang theo, chỉ tiếp tế trực tiếp tại shop; giữ mua xe/nâng cấp. Pickup tài nguyên trên đường vẫn hồi trực tiếp. Nitro boost/nhảy, star miễn damage/debuff nhưng không chặn event, chuối né công an/dân phòng và Grab nhiều lượt gọi khách đặc biệt đưa vào P5.1/P5.2/P6. Bốn nhóm hazard đưa vào P6.1–P6.3. Hai ô 1/2 dành cho hệ vật phẩm tương lai; hiện chưa có món để dùng. Giá/thời lượng/số lượt/hệ số thưởng chưa chốt, không dùng số cũ như số đã cân bằng; nitro kho riêng/Space cũ không còn là thiết kế hiện hành. Star với terminal tàu là điểm cần xác nhận theo diễn giải bảo thủ trong đặc tả.

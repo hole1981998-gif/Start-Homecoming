@@ -65,3 +65,6 @@ Luồng C→danh mục→xác nhận→rời shop có hậu quả và giá hiể
 ## Git và PR
 
 Remote URL đã xác nhận `https://github.com/hole1981998-gif/Start-Homecoming.git`; ls-remote mới vẫn chỉ HEAD P4.1, không main/master. Đây là patch branch riêng từ P4.2/traffic-fuel đã duyệt, không tạo main hoặc giả vờ fast-forward main. PR theo main chưa tạo, CI/review con người revision cuối chưa có; chưa merge. Thông điệp commit dự kiến: Add roadside shops, vehicle purchases, upgrades and carried supplies.
+
+
+Cập nhật tiếp nối: [P5 — tiếp tế tại chỗ và roadmap vật phẩm/chướng ngại](P5_SERVICES_ITEMS_ROADMAP_REVIEW.md). Báo cáo này giữ kết quả lịch sử; gói xăng/sửa mang theo và input cũ đã được thay thế.

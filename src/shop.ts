@@ -3,11 +3,11 @@ import type { Run } from './survival';
 import { buyVehicle, effectiveVehicle, vehicles, type VehicleKind } from './vehicles';
 import type { Entity } from './world';
 
-export type ItemKind = 'fuel' | 'repair';
+export type ServiceKind = 'fuel' | 'repair';
 export type UpgradeKind = 'engine' | 'tank' | 'armour' | 'economy';
 export type ShopCommand = { sequence: number } & (
   { kind: 'vehicle'; vehicle: VehicleKind; discardId?: string } |
-  { kind: 'service' | 'item'; item: ItemKind } | { kind: 'upgrade'; upgrade: UpgradeKind });
+  { kind: 'service'; item: ServiceKind } | { kind: 'upgrade'; upgrade: UpgradeKind; targetId?: string });
 export const upgradeNames: Record<UpgradeKind, string> = {
   engine: 'Động cơ', tank: 'Bình xăng', armour: 'Gia cố', economy: 'Tiết kiệm xăng' };
 export function upgradePrice(kind: UpgradeKind, level: number): number | undefined {
@@ -30,6 +30,7 @@ const sync = (run: Run) => run.vehicleInstances.map(v => v.id === run.activeVehi
 /** Validate then apply once; repeated/stale commands never repeat a charge. */
 export function transact(run: Run, command: ShopCommand): { run: Run; message: string } {
   const fail = (message: string) => ({ run, message });
+  if (!['vehicle', 'upgrade', 'service'].includes(command.kind)) return fail('Mặt hàng không còn được bán.');
   const shop = reachableShop(run);
   if (run.phase !== 'paused' || !shop || shop.id !== run.shopId || command.sequence !== run.economySequence ||
     !Number.isFinite(run.money) || run.money < 0) return fail('Giao dịch đã cũ hoặc ngoài cửa hàng.');
@@ -40,6 +41,7 @@ export function transact(run: Run, command: ShopCommand): { run: Run; message: s
   const updatedStock = { ...stock, vehicles: [...stock.vehicles] };
   let price = 0, message = '';
   if (command.kind === 'vehicle') {
+    if (instances.some(v => v.kind === command.vehicle)) return fail('Bạn đã sở hữu loại xe này; không thể mua thêm.');
     if (!stock.vehicles.includes(command.vehicle)) return fail('Xe không còn tại cửa hàng này.');
     if (instances.length >= 2 && !command.discardId) return fail('Chọn chiếc xe sẽ bỏ trước khi xác nhận mua.');
     const bought = buyVehicle(instances, run.money, command.vehicle, `${run.runId}-purchase-${run.economySequence}`, command.discardId);
@@ -56,23 +58,18 @@ export function transact(run: Run, command: ShopCommand): { run: Run; message: s
     updatedStock.vehicles = stock.vehicles.filter(k => k !== command.vehicle);
     message = `Đã mua ${d.name}; khách giữ nguyên.${command.discardId ? ' Đã bỏ xe đã chọn.' : ''}`;
   } else if (command.kind === 'upgrade') {
-    const level = active.upgrades[command.upgrade] ?? 0;
+    const target = instances.find(v => v.id === (command.targetId ?? active.id));
+    if (!target) return fail('Xe được chọn không còn trong kho.');
+    const level = target.upgrades[command.upgrade] ?? 0;
     const cost = upgradePrice(command.upgrade, level);
     if (cost === undefined) return fail('Đã đạt cấp tối đa.');
     price = cost;
-    next.vehicleInstances = instances.map(v => v.id === active.id ?
+    next.vehicleInstances = instances.map(v => v.id === target.id ?
       { ...v, upgrades: { ...v.upgrades, [command.upgrade]: level + 1 } } : v);
-    message = `${upgradeNames[command.upgrade]} cấp ${level + 1}; không tự bơm/sửa thêm.`;
+    message = `${vehicles[target.kind].name}: ${upgradeNames[command.upgrade]} cấp ${level + 1}; không tự bơm/sửa thêm.`;
   } else {
     const fuel = command.item === 'fuel';
-    price = command.kind === 'item' ? fuel ? shopBalance.fuelItemPrice : shopBalance.repairItemPrice :
-      fuel ? shopBalance.fuelPrice : shopBalance.repairPrice;
-    if (command.kind === 'item') {
-      if (run.inventory.length >= shopBalance.inventoryLimit) return fail('Kho vật phẩm đã đầy.');
-      if (stock[command.item] <= 0) return fail('Vật phẩm đã hết ở cửa hàng này.');
-      next.inventory = [...run.inventory, command.item]; updatedStock[command.item]--;
-      message = 'Đã mua vật phẩm; chọn trong cửa hàng và dùng R khi lái.';
-    } else {
+    price = fuel ? shopBalance.fuelPrice : shopBalance.repairPrice;
       const gained = fuel ? Math.min(shopBalance.fuelAmount, definition.fuelCapacity - run.fuel) :
         Math.min(shopBalance.repairAmount, definition.durabilityCapacity - run.durability);
       if (gained <= 1e-9) return fail(fuel ? 'Bình đã đầy; không thu tiền.' : 'Xe còn nguyên độ bền; không thu tiền.');
@@ -81,31 +78,12 @@ export function transact(run: Run, command: ShopCommand): { run: Run; message: s
       next.vehicleInstances = instances.map(v => v.id === active.id ? { ...v, fuel: next.fuel, durability: next.durability,
         disabled: next.fuel <= 0 || next.durability <= 0 } : v);
       message = fuel ? `Đã bơm +${gained.toFixed(1)} L.` : `Đã sửa +${gained.toFixed(0)} HP.`;
-    }
-    if (command.kind === 'item') next.vehicleInstances = instances;
   }
   if (run.money < price) return fail('Không đủ tiền.');
   next.money -= price;
   next.economySequence++;
   next.world = { ...run.world, entities: run.world.entities.map(e => e.id === shop.id ? { ...e, shopStock: updatedStock } : e) };
   return { run: next, message };
-}
-
-export function useItem(run: Run): Run {
-  if (run.phase !== 'running' || run.crash || run.result) return run;
-  const item = run.inventory[run.selectedItem]; if (!item) return run;
-  const active = run.vehicleInstances.find(v => v.id === run.activeVehicleId)!, d = effectiveVehicle(active);
-  const gain = item === 'fuel' ? Math.min(shopBalance.fuelAmount, d.fuelCapacity - run.fuel) :
-    Math.min(shopBalance.repairAmount, d.durabilityCapacity - run.durability);
-  if (gain <= 1e-9) return run;
-  const inventory = run.inventory.filter((_, i) => i !== run.selectedItem);
-  const next: Run = { ...run, inventory, selectedItem: Math.min(run.selectedItem, Math.max(0, inventory.length - 1)),
-    fuel: run.fuel + (item === 'fuel' ? gain : 0), durability: run.durability + (item === 'repair' ? gain : 0),
-    eventSequence: run.eventSequence + 1, feedbackKind: item, feedbackAt: run.activeSeconds,
-    feedback: item === 'fuel' ? `Dùng xăng · +${gain.toFixed(1)} L` : `Dùng bộ sửa · +${gain.toFixed(0)} HP` };
-  if (item === 'fuel') { next.motion = 'powered'; next.coastRemaining = balance.coastDistance; }
-  next.vehicleInstances = sync(next);
-  return next;
 }
 
 export function vehicleSummary(kind: VehicleKind): string {

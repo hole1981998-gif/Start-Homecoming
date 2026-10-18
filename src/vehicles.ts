@@ -105,6 +105,7 @@ export function effectiveVehicle(instance: VehicleInstance): VehicleDefinition {
 export function buyVehicle(inventory: VehicleInstance[], money: number, kind: VehicleKind,
   newId: string, discardId?: string): { inventory: VehicleInstance[]; money: number } | null {
   const price = vehicles[kind].price;
+  if (inventory.some(v => v.kind === kind)) return null;
   if (!Number.isFinite(money) || money < price || inventory.some(v => v.id === newId)) return null;
   if (inventory.length === 2 && (!discardId || !inventory.some(v => v.id === discardId))) return null;
   if (inventory.length > 2 || (inventory.length < 2 && discardId)) return null;
