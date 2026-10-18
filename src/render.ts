@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { balance } from './config';
 import { jumpHeight, hasStar, hasBoost } from './items';
 import { activeVehicle, type Run } from './survival';
-import { passengerPose, trafficPassengerCount, trafficTypes, type EntityKind, type TrafficKind } from './world';
+import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from './world';
 import { junction, pathPose } from './route';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh }
@@ -206,14 +206,6 @@ export class RoadRenderer {
       }
       if (!open) for (const x of [-w * .42, w * .42]) for (const z of [-l * .32, l * .32])
         part(.2, .42, .42, '#202a30', x, .27, z);
-      if (!open) {
-        const passengers = this.addWindowPassengers(g, w * .9, l * .82,
-          balance.trafficPassengerLimit, tall ? 1.73 : 1.28);
-        if (trafficKind === 'truck' || trafficKind === 'container') passengers.forEach((person, i) => {
-          person.position.z = -l * .32 + Math.floor(i / 2) * .32;
-        });
-        g.userData.windowPassengers = passengers;
-      }
       for (const x of [-w * .3, w * .3]) {
         part(.2, .13, .06, '#fa9d80', x, .63, l * .45);
         part(.2, .13, .06, '#fff0ba', x, .63, -l * .45);
@@ -247,8 +239,9 @@ export class RoadRenderer {
     const open = ['motorcycle', 'motorbike', 'tricycle'].includes(vehicle.kind);
     this.openFrame.visible = open && !tricycle; this.tricycleFrame.visible = tricycle;
     this.closedFrame.visible = !open;
-    this.bike.scale.set(tricycle ? 1 : vehicle.width / (open ? balance.vehicleWidth : 1), 1,
-      tricycle ? 1 : vehicle.length / (open ? balance.vehicleLength : 2));
+    const scaleX = tricycle ? 1 : vehicle.width / (open ? balance.vehicleWidth : 1);
+    const scaleZ = tricycle ? 1 : vehicle.length / (open ? balance.vehicleLength : 2);
+    this.bike.scale.set(scaleX, 1, scaleZ);
     const x = THREE.MathUtils.lerp(previous.x, s.x, alpha);
     const distance = THREE.MathUtils.lerp(previous.distance, s.distance, alpha);
     const playerPose = pathPose(distance, s.route, s.seed);
@@ -259,6 +252,8 @@ export class RoadRenderer {
     this.rider.visible = !s.crash && open; this.helmet.visible = !s.crash && open;
     this.windowPassengers.forEach((person, i) => {
       person.visible = !s.crash && !open && i < s.riderIds.length;
+      // Vehicle footprint stretches for bus/container; people keep human-sized proportions.
+      person.scale.set(1 / scaleX, 1, 1 / scaleZ);
       const rows = Math.ceil(s.riderIds.length / 2);
       person.position.z = vehicle.kind === 'truck' || vehicle.kind === 'container' ? -.36 + Math.floor(i / 2) * .18 :
         rows <= 1 ? 0 : -.58 + Math.floor(i / 2) * 1.16 / (rows - 1);
@@ -358,8 +353,6 @@ export class RoadRenderer {
         entry.mesh.rotation.z = (e.cargoVelocityX ?? 0) * s.activeSeconds * 1.5;
       }
       if (e.kind === 'traffic') {
-        const passengers = entry.mesh.userData.windowPassengers as THREE.Group[] | undefined;
-        passengers?.forEach((person, i) => { person.visible = !e.wrecked && i < trafficPassengerCount(s.seed, e); });
         (entry.mesh.userData.service as THREE.Group).visible = e.serviceRole === 'ambulance';
         const hpFill = entry.mesh.userData.hpFill as THREE.Mesh, hpBack = entry.mesh.userData.hpBack as THREE.Mesh;
         hpFill.visible = hpBack.visible = !!s.world.prototype;

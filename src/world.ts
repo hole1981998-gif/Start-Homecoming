@@ -113,7 +113,7 @@ function passengerHash(id: string): number {
   for (const character of id) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0;
   return hash >>> 0;
 }
-/** The visible traffic occupants and the people leaving a wreck share one seeded count. */
+/** A wreck's passenger roster count is stable across repeated collision checks. */
 export function trafficPassengerCount(seed: number, car: Pick<Entity, 'id' | 'trafficKind'>): number {
   const limit = Math.min(balance.trafficPassengerLimit, vehicles[car.trafficKind ?? 'car4'].capacity - 1);
   return limit > 0 ? 1 + passengerHash(`${seed}:${car.id}:occupants`) % limit : 0;
