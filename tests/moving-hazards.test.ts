@@ -42,12 +42,12 @@ it('finite train moves continuously in either direction and releases lanes behin
     const train = ready(name).world.entities[0], m = train.crossMotion!;
     const side = Math.sign(m.velocity);
     expect(crossX(m, 0)).toBe(-side * 20);
-    expect(crossX(m, 3)).toBe(-side * 2);
-    expect(crossX(m, 5)).toBe(side * 10);
-    expect(crossX(m, 8)).toBe(side * 28);
+    expect(crossX(m, 3)).toBeCloseTo(-side * 20 + m.velocity * 3);
+    expect(crossX(m, 5)).toBeCloseTo(-side * 20 + m.velocity * 5);
+    expect(crossX(m, 8)).toBeCloseTo(-side * 20 + m.velocity * 8);
     for (const [x, hit] of [[-side * 3.2, false], [0, true], [side * 3.2, true]] as const) {
-      const run = ready(name); run.activeSeconds = 5; run.distance = 70; run.x = x;
-      advanceCrossMotion(run.world.entities, 5);
+      const run = ready(name); run.activeSeconds = 30 / movingBalance.trainSpeed; run.distance = 70; run.x = x;
+      advanceCrossMotion(run.world.entities, run.activeSeconds);
       const after = stepRun(run, noInput());
       expect(after.result?.reason === 'train').toBe(hit);
     }
@@ -65,7 +65,7 @@ it('S waits for the real tail, nitro+Space clears actual geometry; star alone ne
   jumping = requestJump(usePowerItem(jumping, 0));
   jumping = seconds(jumping, 2, { ...noInput(), accelerate: true });
   expect(jumping.result).toBeNull(); expect(jumping.distance).toBeGreaterThan(90);
-  expect(seconds(usePowerItem(ready('p61-train-left'), 1), 6).result?.reason).toBe('train');
+  expect(seconds(usePowerItem(ready('p61-train-left'), 1), 4.3, { ...noInput(), accelerate: true }).result?.reason).toBe('train');
 });
 it('pause freezes NPC/train pose, timers and traffic HP; restart restores an identical seeded fixture', () => {
   for (const name of ['p61-train-left', 'p61-police-two', 'p61-traffic-pair']) {
@@ -207,3 +207,31 @@ it('P6.1 fixture simulation: 30 seeds across all scenarios stays finite with rep
       maxDistance: Math.max(...observations.filter(o => o.scenario === name).map(o => o.distance)) })),
     config: movingBalance }));
 }, 15000);
+
+it('four-second train occupancy, officer variations and longer/faster vendor preserve readable physical motion', () => {
+  for (const name of ['p61-train-left', 'p61-train-right']) {
+    const train = ready(name).world.entities[0], m = train.crossMotion!;
+    const halfRoad = balance.laneWidth * balance.laneCount / 2;
+    const entering = (Math.abs(m.origin) - train.width / 2 - halfRoad) / Math.abs(m.velocity);
+    const leaving = entering + 4;
+    expect(Math.abs(crossX(m, entering))).toBeCloseTo(train.width / 2 + halfRoad);
+    expect(Math.abs(crossX(m, leaving))).toBeCloseTo(train.width / 2 + halfRoad);
+    expect(Math.sign(crossX(m, entering))).not.toBe(Math.sign(crossX(m, leaving)));
+  }
+  for (const kind of ['police', 'militia']) {
+    const fast = ready('p61-' + kind + '-fast'), stagger = ready('p61-' + kind + '-stagger');
+    expect(Math.abs(fast.world.entities[0].crossMotion!.velocity)).toBeGreaterThan(4.5);
+    const [a,b] = stagger.world.entities;
+    expect(a.distance).not.toBe(b.distance);
+    expect(Math.abs(a.crossMotion!.velocity)).not.toBe(Math.abs(b.crossMotion!.velocity));
+    for (let t=0;t<8;t+=.1) for (const e of [a,b]) expect(Math.abs(crossX(e.crossMotion!,t)) + e.width/2).toBeLessThanOrEqual(balance.laneWidth*balance.laneCount/2);
+    stagger.distance = 40;
+    const banana = usePowerItem(stagger,0);
+    expect(banana.world.entities.every(e=>e.stunned)).toBe(true);
+    expect(seconds(banana,1).world.entities.map(e=>e.x)).toEqual(banana.world.entities.map(e=>e.x));
+  }
+  const vendor = ready('p61-vendor').world.entities[0];
+  expect(vendor.length).toBeGreaterThan(1.5);
+  expect(vendor.crossMotion!.velocity).toBeGreaterThan(2.2);
+  expect(crossX(vendor.crossMotion!,2.5)-crossX(vendor.crossMotion!,1.5)).toBeCloseTo(vendor.crossMotion!.velocity);
+});

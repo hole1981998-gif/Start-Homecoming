@@ -103,12 +103,12 @@ if (eventBalance.trainClosedSeconds >= eventBalance.trainPeriod || eventBalance.
     eventBalance.brokenItemChance > 1 || eventBalance.trainClearance >= itemBalance.jumpHeight ||
     eventBalance.gap < 1200) throw new Error('Invalid event bounds');
 
-export const movingVersion = 'p61-scenarios-1';
+export const movingVersion = 'p61-scenarios-2';
 
 /** Opt-in P6.1 scenarios only. Units: m, m/s, s. No normal-route spawn tuning. */
-export const movingBalance = Object.freeze({ trainWidth: 24, trainDepth: 2.8, trainSpeed: 6, trainOrigin: 20,
-  npcWidth: .65, npcDepth: .65, patrolSpeed: 4.5, patrolBound: 4.35,
-  barrierWidth: 6.2, barrierDepth: 1.4, blockerDamage: 20, vendorSpeed: 2.2, ambulanceSpeed: 16 });
+export const movingBalance = Object.freeze({ trainWidth: 24, trainDepth: 2.8, trainSpeed: (24 + balance.laneWidth * balance.laneCount) / 4, trainCrossSeconds: 4, trainOrigin: 20,
+  npcWidth: .65, npcDepth: .65, patrolSpeed: 4.5, patrolFastSpeed: 6.3, patrolStaggerSpeed: 5.6, patrolSlowSpeed: 3.8, patrolStaggerDepth: 3, patrolBound: 4.35,
+  barrierWidth: 6.2, barrierDepth: 1.4, blockerDamage: 20, vendorSpeed: 3.4, vendorWidth: 1.1, vendorLength: 2.1, ambulanceSpeed: 16 });
 for (const value of Object.values(movingBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid moving hazard config');
 if (movingBalance.npcWidth + 2 * movingBalance.patrolBound > balance.laneWidth * balance.laneCount ||
     movingBalance.trainOrigin - movingBalance.trainWidth / 2 < balance.laneWidth * 1.5 ||

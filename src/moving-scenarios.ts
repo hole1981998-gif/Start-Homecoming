@@ -11,6 +11,10 @@ export const movingScenarios = [
   ['p61-police-one', 'Một công an qua lại', 'Né NPC bằng A/D; chạm thật mới bị bắt. Phím 1 ném chuối khi cue hiện.'],
   ['p61-police-two', 'Hai công an cùng nhóm', 'Một chuối vô hiệu cả hai, giữ họ đứng trên đường; chạm họ không bị bắt.'],
   ['p61-militia-two', 'Hai dân phòng cùng nhóm', 'Thử né hoặc 1 ném chuối. Không ném và chạm: phạt đúng một lần cho nhóm.'],
+  ['p61-police-fast', 'Công an chạy nhanh', 'Hai người quét ngang nhanh hơn; A/D chủ động né hoặc dùng một chuối cho cả nhóm.'],
+  ['p61-police-stagger', 'Công an lệch nhịp', 'Hai người lệch khoảng đường, tốc độ và phạm vi; không còn luôn gặp nhau ở giữa.'],
+  ['p61-militia-fast', 'Dân phòng chạy nhanh', 'Hai người quét ngang nhanh hơn; S giảm tốc để chọn cửa sổ né.'],
+  ['p61-militia-stagger', 'Dân phòng lệch nhịp', 'Hai người di chuyển lệch nhịp và cách nhau dọc đường; chuối vẫn vô hiệu cả nhóm.'],
   ['p61-groups', 'Hai nhóm độc lập', 'Nhóm đầu hai người; nhóm sau vẫn bắt được dù nhóm đầu đã trúng chuối.'],
   ['p61-traffic-pair', 'Ô tô va xe buýt', 'Bạn ở lane trái; quan sát thanh HP và xe nhỏ hỏng, khách sinh đúng một lần.'],
   ['p61-traffic-chain', 'Chuỗi va chạm ba xe', 'Xe sau có thể đâm xe đã dừng sau vụ va chạm đầu; theo dõi HP và khách.'],
@@ -48,7 +52,14 @@ export function movingScenario(run: Run, scenario: string): Run {
     for (let group = 0; group < (scenario === 'p61-groups' ? 2 : 1); group++) for (let i = 0; i < (group ? 1 : count); i++) {
       const npc = entity(kind, `p61-officer-${group}-${i}`, 70 + group * 65, i ? c.patrolBound : -c.patrolBound);
       npc.groupId = `p61-group-${group}`; npc.width = c.npcWidth; npc.length = c.npcDepth;
-      npc.crossMotion = motion(npc.x, (i ? -1 : 1) * c.patrolSpeed, 'pingpong');
+      const fast = scenario.endsWith('-fast'), stagger = scenario.endsWith('-stagger');
+      const speed = fast ? c.patrolFastSpeed : stagger ? i ? c.patrolSlowSpeed : c.patrolStaggerSpeed : c.patrolSpeed;
+      npc.crossMotion = motion(npc.x, (i ? -1 : 1) * speed, 'pingpong');
+      if (stagger) {
+        npc.distance += i * c.patrolStaggerDepth;
+        npc.crossMotion.min = i ? -1.6 : -c.patrolBound;
+        npc.crossMotion.max = i ? c.patrolBound : 1.6;
+      }
       npc.displayName = kind === 'police' ? 'Công an đi ngang' : 'Dân phòng đi ngang';
       npc.help = definition[2]; entities.push(npc);
     }
@@ -77,7 +88,7 @@ export function movingScenario(run: Run, scenario: string): Run {
     obstacle.displayName = scenario === 'p61-vendor' ? 'Hàng rong băng ngang' : 'Rào sửa đường';
     obstacle.help = definition[2]; obstacle.width = c.barrierWidth; obstacle.length = c.barrierDepth;
     if (scenario === 'p61-vendor') {
-      obstacle.width = .8; obstacle.length = 1.5; obstacle.x = -6;
+      obstacle.width = c.vendorWidth; obstacle.length = c.vendorLength; obstacle.x = -6;
       obstacle.crossMotion = motion(-6, c.vendorSpeed, 'linear', 1.5);
     }
     entities.push(obstacle);

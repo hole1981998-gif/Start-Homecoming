@@ -55,3 +55,5 @@ Phím 1/2 dùng chuối trong cửa sổ bắt; gần ray giữ S để dừng c
 
 ### P6.1 — 15 tình huống để duyệt trước tích hợp
 Mở http://127.0.0.1:5173/p61.html khi `pnpm dev` đang chạy. Mỗi link dùng seed 17; W/S tốc độ, A/D lái, 1/2 vật phẩm, Space nhảy khi nitro hiệu lực, F đón khách, Esc pause. Các ca traffic đặt người chơi ở lane trái để quan sát; có thể S chờ. Chơi lại để reset cùng tình huống. Đây là hub DEV, chưa nằm trong `pnpm preview`/production build. Bản thường chưa bật cơ chế P6.1 mới. Báo cáo: [P6.1](docs/PROTOTYPE_6_1_SCENARIOS_REVIEW.md).
+
+P6.1 cập nhật: hub hiện 19 ca; thêm công an/dân phòng chạy nhanh và lệch nhịp. Tàu qua toàn đường trong 4 s; hàng rong nhanh/dài hơn. Chỉ bản thử DEV; xem docs/P61_EVASION_TUNING_REVIEW.md.
