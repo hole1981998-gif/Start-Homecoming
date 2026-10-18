@@ -1,3 +1,5 @@
+import { advanceCrossMotion, crossBoundaries, retireCrossers } from './cross-motion';
+import { advanceInteractingTraffic } from './traffic-interactions';
 import { eventBalance } from './config';
 import { isSpecial, trainClosed } from './special-events';
 import { balance, itemBalance } from './config';
@@ -130,7 +132,7 @@ export function selectTurn(run: Run, turn: Turn): Run {
 export function stepRun(before: Run, input: Input): Run {
   if (before.phase !== 'running') return before;
   const trainCuts: number[] = [];
-  for (const e of before.world.entities) if (e.kind === 'train' && !e.consumed && e.eventAt !== undefined) {
+  for (const e of before.world.entities) if (e.kind === 'train' && !e.crossMotion && !e.consumed && e.eventAt !== undefined) {
     const age = before.activeSeconds - e.eventAt;
     const cycle = Math.floor(age / eventBalance.trainPeriod);
     for (const offset of [eventBalance.trainClosedSeconds, eventBalance.trainPeriod]) {
@@ -138,6 +140,7 @@ export function stepRun(before: Run, input: Input): Run {
       if (at > before.activeSeconds + 1e-9 && at < before.activeSeconds + balance.fixedStep - 1e-9) trainCuts.push(at);
     }
   }
+  if (before.world.experimentalMotion) trainCuts.push(...crossBoundaries(before.world.entities, before.activeSeconds, balance.fixedStep));
   if (trainCuts.length === 0 && before.activeSeconds >= before.powers.boostUntil && before.activeSeconds >= before.powers.starUntil &&
       before.activeSeconds >= before.powers.jumpAt + itemBalance.jumpSeconds) return stepRunSegment(before, input, balance.fixedStep);
   const cuts = [...new Set([...trainCuts, ...powerBoundaries(before, balance.fixedStep)])].sort((a, b) => a - b);
@@ -167,7 +170,9 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     const returned = elapsed >= balance.driverFallSeconds + balance.driverPauseSeconds + balance.driverReturnSeconds && speed === 0;
     const movedEntities = world.entities.map(e => ({ ...e, touching: false }));
     for (const e of movedEntities) if (e.kind === 'train') e.eventAt ??= before.activeSeconds;
-    advanceTraffic(movedEntities, dt);
+    if (world.experimentalMotion) advanceCrossMotion(movedEntities, before.activeSeconds + dt);
+    if (world.experimentalTraffic) advanceInteractingTraffic(movedEntities, world.entities, dt);
+    else advanceTraffic(movedEntities, dt);
     const protectedEntities = new Set(before.protectedEntities);
     for (let i = 0; i < movedEntities.length; i++) {
       const e = movedEntities[i], previousEntity = world.entities[i];
@@ -179,19 +184,20 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     advancePassengers(movedEntities, before.activeSeconds + dt);
     spawnWreckPassengers({ ...world, entities: movedEntities }, before.activeSeconds + dt, vehicle);
     // Falling grants damage/debuff immunity, never immunity to a train's terminal collider.
-    const trainHit = movedEntities.find(e => e.kind === 'train' && !e.consumed && trainClosed(e, before.activeSeconds + dt / 2) &&
-      sweptContact(before.x - e.x, before.distance - e.distance, x - e.x, distance - e.distance,
+    const trainHit = movedEntities.find(e => e.kind === 'train' && !e.consumed && (e.crossMotion || trainClosed(e, before.activeSeconds + dt / 2)) &&
+      sweptContact(before.x - world.entities[movedEntities.indexOf(e)].x, before.distance - e.distance, x - e.x, distance - e.distance,
         (vehicle.width + e.width) / 2, (vehicle.length + e.length) / 2));
     if (trainHit) {
-      const hit = sweptContact(before.x - trainHit.x, before.distance - trainHit.distance, x - trainHit.x, distance - trainHit.distance,
+      const hit = sweptContact(before.x - world.entities[movedEntities.indexOf(trainHit)].x, before.distance - trainHit.distance, x - trainHit.x, distance - trainHit.distance,
         (vehicle.width + trainHit.width) / 2, (vehicle.length + trainHit.length) / 2)![0];
       const at = before.activeSeconds + hit * dt, stop = before.distance + (distance - before.distance) * hit;
       return { ...before, phase: 'ended', speed: 0, distance: stop, activeSeconds: at,
-        result: { runId: before.runId, seed: before.seed, config: balance.version, reason: 'train', distance: stop,
+        result: { runId: before.runId, seed: before.seed, config: before.world.prototype?.version ?? balance.version, reason: 'train', distance: stop,
           score: before.score, money: before.money, seconds: at } };
     }
+    if (world.experimentalMotion) retireCrossers(movedEntities);
     const crashed: Run = { ...before, world: { ...world, entities: movedEntities,
-      retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
+      retired: world.retired.map(entry => ({ ...entry, entity: (() => { const copy = { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt }; advanceCrossMotion([copy], before.activeSeconds + dt); return copy; })() })) },
       protectedEntities: [...protectedEntities],
       ticks: before.ticks + 1, activeSeconds: before.activeSeconds + dt, distance, x, speed, lateralVelocity: 0,
       crash: returned ? null : { ...before.crash, elapsed }, recovering: returned && before.fuel > 0,
@@ -228,7 +234,9 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   const world = fillWorld(before.world, before.distance, before.fuel, before.durability, drive.fuelFactor,
     boosted ? { ...vehicle, maxSpeed: drive.maxSpeed } : vehicle);
   const movedEntities = world.entities.map(e => ({ ...e }));
-  advanceTraffic(movedEntities, dt);
+  if (world.experimentalMotion) advanceCrossMotion(movedEntities, before.activeSeconds + dt);
+  if (world.experimentalTraffic) advanceInteractingTraffic(movedEntities, world.entities, dt);
+  else advanceTraffic(movedEntities, dt);
   const r: Run = { ...before, world: { ...world, entities: movedEntities,
     retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
     ticks: before.ticks + 1,
@@ -249,7 +257,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     if (reason !== 'train' && r.vehicleInstances.some(v => v.id !== r.activeVehicleId && !v.disabled && v.fuel > 0 && v.durability > 0)) {
       replacementPending = true; return;
     }
-    r.result = { runId: r.runId, seed: r.seed, config: balance.version, reason,
+    r.result = { runId: r.runId, seed: r.seed, config: r.world.prototype?.version ?? balance.version, reason,
       distance: r.distance, score: r.score, money: r.money, seconds: r.activeSeconds };
   };
   const crashDriver = (impactSpeed: number) => {
@@ -288,9 +296,10 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   for (let index = 0; index < r.world.entities.length; index++) {
     const e = r.world.entities[index];
     const endDistance = e.distance;
+    if (e.stunned) { e.touching = false; continue; }
     if (e.kind === 'train') {
       e.eventAt ??= before.activeSeconds;
-      if (!trainClosed(e, before.activeSeconds + dt / 2)) continue;
+      if (!e.crossMotion && !trainClosed(e, before.activeSeconds + dt / 2)) continue;
     }
     const height = sampledHeight > 0 ? isSpecial(e.kind) ? e.kind === 'train' ? eventBalance.trainClearance : Infinity : e.kind === 'traffic' ?
       (e.trafficKind === 'bus' || e.trafficKind === 'truck' || e.trafficKind === 'container') ? itemBalance.highTrafficClearance : itemBalance.lowTrafficClearance :
@@ -299,7 +308,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     const contact = !airborne && !e.consumed && e.kind !== 'passenger' && e.kind !== 'shop' &&
       (e.kind !== 'traffic' || !e.wrecked) &&
       (!harmful(e.kind) || before.activeSeconds >= before.replacementProtectedUntil) &&
-      sweptContact(before.x - e.x, before.distance - world.entities[index].distance,
+      sweptContact(before.x - world.entities[index].x, before.distance - world.entities[index].distance,
         driven.x - e.x, driven.distance - endDistance, (vehicle.width + e.width) / 2, (vehicle.length + e.length) / 2);
     if (!contact || before.protectedEntities.includes(e.id)) { e.touching = false; continue; }
     if (isSpecial(e.kind) && e.kind !== 'train' && before.activeSeconds < before.replacementProtectedUntil) { e.consumed = true; continue; }
@@ -347,6 +356,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     advance(event.t);
     if (r.phase === 'ended' || r.crash) break;
     const e = r.world.entities[event.index];
+    if (e.consumed || e.stunned) continue;
     if (event.type === 'enter-water') {
       waterCount++; if (!hasStar(r) && !e.touching) feedback('water', 'Vũng nước · hao thêm xăng khi đi qua'); e.touching = true; continue;
     }
@@ -367,6 +377,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
       e.consumed = true;
       if (e.kind === 'train') { feedback('train', 'Va chạm tàu'); finish('train'); }
       else if (e.kind === 'police' || e.kind === 'militia') {
+        if (e.groupId) for (const member of r.world.entities) if (member.groupId === e.groupId) member.consumed = true;
         const fine = e.kind === 'police' ? eventBalance.policeFine : eventBalance.militiaFine;
         const short = r.money < fine, paid = Math.min(fine, r.money);
         r.money -= paid;
@@ -432,6 +443,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     const e = r.world.entities.find(entity => entity.id === id);
     return !!e && overlapsVehicle(r.x, r.distance, e, vehicle);
   });
+  if (world.experimentalMotion) retireCrossers(r.world.entities);
   spawnWreckPassengers(r.world, r.activeSeconds, vehicle);
   advancePassengers(r.world.entities, r.activeSeconds);
   r.route = compactRoute(r.route, r.distance, r.seed);

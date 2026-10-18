@@ -50,17 +50,21 @@ export class RoadHud {
       const distance = Math.max(0, Math.ceil(e.distance - s.distance));
       cue.value.textContent = e.kind === 'shop' && reachableShop(s)?.id === e.id ? 'R · GHÉ' : e.kind === 'passenger' && Math.abs(e.distance - s.distance) <= balance.passengerReach &&
         Math.abs(e.x - s.x) <= balance.passengerLateralReach ? 'F · ĐÓN' : `${distance} m`;
-      if (e.kind === 'train') cue.value.textContent = trainClosed(e, s.activeSeconds) ? 'S · DỪNG' : '↑ · ĐƯỜNG MỞ';
+      if (e.kind === 'train') cue.value.textContent = e.crossMotion ?
+        (trainClosed(e, s.activeSeconds) ? (e.crossMotion.velocity < 0 ? '← · S CHỜ' : '→ · S CHỜ') :
+          e.x * e.crossMotion.velocity < 0 ? 'S · TÀU SẮP TỚI' : '↑ · ĐƯỜNG MỞ') :
+        trainClosed(e, s.activeSeconds) ? 'S · DỪNG' : '↑ · ĐƯỜNG MỞ';
+      if (e.stunned) cue.value.textContent = '✓ · VÔ HẠI';
       if ((e.kind === 'police' || e.kind === 'militia') && bananaTarget(s)?.id === e.id) {
         const slot = s.inventory.indexOf('banana');
         cue.value.textContent = (slot >= 0 ? (slot + 1) + ' · CHUỐI' : e.kind === 'police' ? '300 · TỊCH THU' : '100') + ' · ' + distance + ' m';
       }
       const lane = e.x < -1 ? 'trái' : e.x > 1 ? 'phải' : 'giữa';
-      const trafficState = e.trafficMotion === 'stopped' ? 'đã dừng vì hết xăng' :
+      const trafficState = e.trafficStoppedByCollision ? 'dừng sau va chạm' : e.trafficMotion === 'stopped' ? 'đã dừng vì hết xăng' :
         e.trafficMotion === 'coasting' ? 'đang trôi do hết xăng' : e.speed < 0 ? 'ngược chiều' : 'cùng chiều';
       if (e.kind === 'traffic') cue.root.querySelector('.traffic-direction')!.textContent =
-        e.trafficMotion === 'stopped' ? '⛽ · ■' : `${e.trafficMotion === 'coasting' ? '⛽ · ' : ''}${e.speed < 0 ? '↓' : '↑'}`;
-      const label = e.kind === 'traffic' ? trafficTypes[e.trafficKind ?? 'car4'].name : e.kind === 'passenger' && e.passengerType === 'grab' ? 'Khách Grab' : names[e.kind];
+        e.trafficStoppedByCollision ? '✕ · ■' : e.trafficMotion === 'stopped' ? '⛽ · ■' : `${e.trafficMotion === 'coasting' ? '⛽ · ' : ''}${e.speed < 0 ? '↓' : '↑'}`;
+      const label = e.displayName ?? (e.kind === 'traffic' ? trafficTypes[e.trafficKind ?? 'car4'].name : e.kind === 'passenger' && e.passengerType === 'grab' ? 'Khách Grab' : names[e.kind]);
       if (e.kind === 'passenger' && e.passengerType === 'grab') cue.value.textContent = 'Grab · ' + cue.value.textContent;
       cue.root.setAttribute('aria-label', `${label} · ${lane}${e.kind === 'traffic' ? ` · ${trafficState}` : ''} · ${distance} m`);
     }

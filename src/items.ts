@@ -26,7 +26,9 @@ export function usePowerItem(run: Run, slot: number): Run {
     return { ...run, eventSequence: run.eventSequence + 1, feedbackKind: target.kind, feedbackAt: run.activeSeconds,
       feedback: 'Chuối · tránh bị bắt', feedbackFlavor: '',
       inventory: run.inventory.map((v, i) => i === slot ? null : v),
-      world: { ...run.world, entities: run.world.entities.map(e => e.id === target.id ? { ...e, consumed: true } : e) } };
+      world: { ...run.world, entities: run.world.entities.map(e => target.groupId ?
+        e.groupId === target.groupId && (e.kind === 'police' || e.kind === 'militia') ? { ...e, stunned: true } : e :
+        e.id === target.id ? { ...e, consumed: true } : e) } };
   }
   if (item === 'grab') return callGrab(run, slot);
   if (!item || (item === 'nitro' && (hasBoost(run) || run.fuel <= 0 || run.motion !== 'powered')) ||

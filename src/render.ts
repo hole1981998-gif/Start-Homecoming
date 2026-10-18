@@ -113,9 +113,25 @@ export class RoadRenderer {
     const part = (w: number, h: number, d: number, color: string, x: number, y: number, z: number) => {
       const m = box(w, h, d, color, g); m.position.set(x, y, z); return m;
     };
-    if (isSpecial(kind)) {
-      const color = kind === 'police' ? '#698da8' : kind === 'militia' ? '#85906b' : kind === 'train' ? '#d6a165' : kind === 'accident' ? '#ad655d' : '#9a8e78';
-      part(.8, kind === 'train' ? 1.8 : 1.1, .8, color, 0, kind === 'train' ? .9 : .55, 0);
+    if (kind === 'train') {
+      for (const x of [-.135, .135]) part(.05, .15, .4, '#35434a', x, .55, 0);
+      for (const x of [-.27, 0, .27]) {
+        part(.25, 1.65, .8, '#bc9368', x, .9, 0);
+        for (const z of [-.41, .41]) part(.2, .38, .02, '#91abb0', x, 1.24, z);
+        part(.24, .18, .5, '#303e45', x, .14, 0);
+      }
+    } else if (kind === 'police' || kind === 'militia') {
+      const color = kind === 'police' ? '#698da8' : '#85906b';
+      const legacy = part(.8, 1.1, .8, color, 0, .55, 0);
+      const human = new THREE.Group(); g.add(human); g.userData.human = human; g.userData.legacy = legacy;
+      const torso = box(.5, .65, .3, color, human); torso.position.y = .9; g.userData.torso = torso;
+      const head = box(.36, .36, .36, '#e8d9b7', human); head.position.y = 1.45;
+      const hat = box(.45, .12, .43, color, human); hat.position.y = 1.68;
+      for (const x of [-.15, .15]) { const leg = box(.16, .55, .2, '#354d5a', human); leg.position.set(x, .3, 0); }
+      const mark = box(.22, .16, .2, '#f1d27d', human); mark.position.y = 2; g.userData.stunMark = mark;
+    } else if (isSpecial(kind)) {
+      const color = kind === 'accident' ? '#ad655d' : '#9a8e78';
+      part(.8, 1.1, .8, color, 0, .55, 0);
       part(.8, .1, .15, '#eee3bc', 0, .7, .42);
     } else if (kind === 'shop') {
       part(1.8, 1.6, 3, '#688e88', 0, .8, 0); part(2.2, .2, 3.4, '#cdb376', 0, 1.7, 0);
@@ -154,6 +170,12 @@ export class RoadRenderer {
         part(.2, .13, .06, '#fa9d80', x, .63, l * .45);
         part(.2, .13, .06, '#fff0ba', x, .63, -l * .45);
       }
+      const service = new THREE.Group(); g.add(service); g.userData.service = service;
+      const serviceX = box(.65, .12, .22, '#ba625e', service); serviceX.position.y = 1.7;
+      const serviceZ = box(.22, .12, .65, '#ba625e', service); serviceZ.position.y = 1.7;
+      const hpBack = part(w, .09, .04, '#29373e', 0, 2.6, 0);
+      const hpFill = part(w, .1, .045, '#a0d2ae', 0, 2.6, 0);
+      g.userData.hpBack = hpBack; g.userData.hpFill = hpFill;
     } else if (kind === 'passenger') {
       part(.38, .7, .28, '#e2c486', 0, .92, 0);
       part(.38, .38, .38, '#e6dbc4', 0, 1.47, 0);
@@ -276,11 +298,22 @@ export class RoadRenderer {
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
       if (e.kind === 'traffic') {
+        (entry.mesh.userData.service as THREE.Group).visible = e.serviceRole === 'ambulance';
+        const hpFill = entry.mesh.userData.hpFill as THREE.Mesh, hpBack = entry.mesh.userData.hpBack as THREE.Mesh;
+        hpFill.visible = hpBack.visible = !!s.world.prototype;
+        hpFill.scale.x = Math.max(0, (e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp);
+        hpFill.position.x = -(1 - hpFill.scale.x) * e.width / 2;
         const body = entry.mesh.userData.body as THREE.Mesh;
-        (body.material as THREE.MeshLambertMaterial).color.set(e.wrecked ? '#4e5558' :
+        (body.material as THREE.MeshLambertMaterial).color.set(e.wrecked ? '#4e5558' : e.serviceRole === 'ambulance' ? '#d2dedd' :
           trafficTypes[e.trafficKind ?? 'car4'].color);
       }
-      if (e.kind === 'train') entry.mesh.visible = trainClosed(e, s.activeSeconds);
+      if (e.kind === 'train') entry.mesh.visible = !!e.crossMotion || trainClosed(e, s.activeSeconds);
+      if (e.kind === 'police' || e.kind === 'militia') {
+        (entry.mesh.userData.human as THREE.Group).visible = !!e.groupId;
+        (entry.mesh.userData.legacy as THREE.Mesh).visible = !e.groupId;
+        (entry.mesh.userData.stunMark as THREE.Mesh).visible = e.stunned === true;
+        ((entry.mesh.userData.torso as THREE.Mesh).material as THREE.MeshLambertMaterial).color.set(e.stunned ? '#d3b66a' : e.kind === 'police' ? '#698da8' : '#85906b');
+      }
       if (e.kind === 'passenger') (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
       const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;

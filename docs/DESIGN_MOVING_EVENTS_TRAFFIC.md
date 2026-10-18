@@ -1,7 +1,7 @@
 # P6.1 — vật chắn chuyển động và tai nạn giao thông phát sinh
 
 ## Trạng thái
-**ĐÃ CHỐT theo feedback chủ dự án 18/10/2026; CHƯA TRIỂN KHAI.** Chủ dự án chưa đánh giá được tổng thể từ các fixture công an/tàu riêng lẻ. P6 hiện có khối chắn bật/tắt là giới hạn implementation, không phải design đúng. Cập nhật này dành cho P6.1, chưa đổi code, giá hay độ khó.
+**ĐÃ CHỐT theo feedback chủ dự án 18/10/2026; ĐÃ CÓ BẢN THỬ TÌNH HUỐNG, CHƯA TÍCH HỢP.** Chủ dự án chưa đánh giá được tổng thể từ các fixture công an/tàu riêng lẻ. P6 hiện có khối chắn bật/tắt là giới hạn implementation, không phải design đúng. Implementation thử tách riêng theo yêu cầu tiếp sau; giá và độ khó ván thường chưa đổi.
 
 ## Tàu chạy ngang đường
 - Tàu là đoàn vật thể có chiều dài hữu hạn, chạy liên tục từ phải qua trái hoặc trái qua phải. Đầu tàu tiến vào, các toa đi ngang, đuôi tàu rời đường; chuyển động primitive đủ đọc ở prototype, không chờ art production.
@@ -27,10 +27,15 @@
 2. Sweep chuyển động tương đối cả hai phía cho player–tàu, player–officer, traffic–traffic và traffic–hazard. Timestamp/tie-break ổn định, group ID để chuối cập nhật đồng thời cả nhóm và trừ món một lần; contact/pair ID chống damage/phạt lặp do đứng chồng nhau; xử lý hai xe đồng thời, không phụ thuộc thứ tự mảng. Không cộng hậu quả theo render FPS.
 3. Director xét cả quỹ đạo trong thời gian người chơi tới, bề rộng/chiều dài xe, tốc độ khép khoảng cách, quãng phanh và QTE. Nhóm hai NPC vẫn cần cửa sổ né công bằng; traffic tự tai nạn không được sinh vật cản ngay dưới xe người chơi mà không có tín hiệu/khoảng phản ứng hợp lý. Không bảo đảm an toàn chỉ bằng đếm lane trống ở thời điểm spawn.
 4. Bổ sung fixture hướng trái/phải, một/hai officer, một chuối vô hiệu cả hai cùng nhóm và chạm từng người không bị bắt, không vô hiệu nhóm khác, tàu đầu/giữa/đuôi, chạm khi nhảy/hạ cánh, hai traffic va nhau/hazard/chuỗi hỏng. Chạy nhiều seed và đủ catalog xe; kiểm tra 30/60/144 FPS, pause, restart, rẽ/cleanup/idempotence.
-5. **Bắt buộc bản chơi tích hợp:** ván bình thường có shop, vật phẩm, hành khách, giao lộ, tài nguyên và các event mới cùng hoạt động. Fixture chỉ hỗ trợ tái hiện bug, không thay bản này. Bàn giao link ván thường và fixture, ghi seed/config cùng playtest tuyến dài có tương tác thật; tách rõ kết quả fixture và nhận xét tổng thể.
-6. P6.1 có thể chia PR nhỏ trong cùng milestone: A — sửa tàu/officer/chuối và chuyển động ngang chung; B — traffic va nhau/hazard, tai nạn phát sinh và bản chơi tích hợp. Không gọi milestone xong khi mới có A hoặc khi chỉ test tình huống đặt sẵn. Rào/cây/xe chắn và hàng rong/cứu thương theo scope P6.1 cũ vẫn được giữ, không tự xóa khỏi roadmap.
+5. **Gate sau khi chủ dự án duyệt các tình huống riêng:** ván bình thường có shop, vật phẩm, hành khách, giao lộ, tài nguyên và các event mới cùng hoạt động. Fixture chỉ hỗ trợ tái hiện bug, không thay bản này. Bàn giao link ván thường và fixture, ghi seed/config cùng playtest tuyến dài có tương tác thật; tách rõ kết quả fixture và nhận xét tổng thể.
+6. Theo yêu cầu tiếp sau, P6.1 chia hai bước: A — bộ tình huống riêng gồm tàu/officer/chuối, rào/vật cản ngang và traffic tương tác; B — chỉ sau khi chủ dự án duyệt A mới triển khai bản chơi tích hợp. Không gọi milestone xong khi mới có A hoặc khi chỉ test tình huống đặt sẵn. Rào/cây/xe chắn và hàng rong/cứu thương theo scope P6.1 cũ vẫn được giữ, không tự xóa khỏi roadmap.
 
 Visual chỉ cần primitive chuyển động rõ và khớp collider để kiểm tra gameplay. UI/art đầy đủ ở P9, SFX/VFX hoàn chỉnh P10; đây không phải lý do hoãn chuyển động cơ học hoặc cue cần để né ở P6.1.
 
 ## Kiểm tra lượt cập nhật tài liệu
 Branch local codex/p6-1-moving-events-design, base b75f447; chỉ sửa sáu file design, không sửa runtime/test/config TypeScript hay sources/. Đã chạy pnpm lint, pnpm typecheck, pnpm test (142 tests/23 files), pnpm build: tất cả exit 0; build còn cảnh báo chunk 577,88 kB. Đây chỉ là kiểm tra hồi quy bản code P6 hiện có, không chứng minh chuyển động P6.1 đã chạy. Manual gameplay mới: chưa chạy vì chưa triển khai các cơ chế mới. Git diff --check pass. Repo không có remote, chưa push/PR/CI; chưa merge, chờ chơi thử khi P6.1 có bản triển khai.
+
+
+## P6.1 — bản thử tình huống trước tích hợp (18/10/2026)
+Theo yêu cầu mới nhất của chủ dự án: triển khai và duyệt các tình huống riêng trước; chỉ làm bản tích hợp khi chủ dự án đồng ý. Đã có 15 fixture DEV tại http://127.0.0.1:5173/p61.html, version `p61-scenarios-1`: tàu ngang hữu hạn, officer 1/2 người, chuối vô hiệu cả nhóm, traffic va nhau/hazard, rào, hàng rong và cứu thương. Chỉ fixture bật experimentalMotion/experimentalTraffic; director ván thường chưa dùng các cơ chế này. Đây chưa phải hoàn thành toàn bộ P6.1.
+Các số mới đều TẠM: tàu dài ngang 24 m, sâu 2,8 m, tốc độ ngang 6 m/s; NPC rộng/sâu 0,65 m, chạy ngang 4,5 m/s trong ±4,35 m; rào rộng 6,2 m/sâu 1,4 m, damage traffic 20 một lần; hàng rong ngang 2,2 m/s; cứu thương dọc 16 m/s. Không đổi giá, thu nhập, fuel hay mật độ ván thường. Báo cáo và giới hạn tích hợp: [PROTOTYPE_6_1_SCENARIOS_REVIEW.md](PROTOTYPE_6_1_SCENARIOS_REVIEW.md). P8 tuning độ khó/economy, P9 UI/art, P10 SFX/VFX giữ nguyên.

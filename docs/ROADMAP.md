@@ -154,3 +154,8 @@ Khách Grab được gọi chỉ xuất hiện ngẫu nhiên ở hai mép ngoài
 
 ## Bổ sung phạm vi P6.1 theo feedback mới
 Chủ dự án chưa nghiệm thu tổng thể P6 từ các ca công an/tàu giả lập. P6.1 sửa chuyển động/hitbox tàu và officer, chuối làm đứng yên/vô hại, đồng thời bổ sung traffic va nhau/hazard gây tai nạn/hỏng xe thực. Có thể chia A/B trong cùng milestone để review; chưa gọi hoàn tất nếu thiếu bản chơi tích hợp và playtest tuyến có đủ hệ thống. Đặc tả: [DESIGN_MOVING_EVENTS_TRAFFIC.md](DESIGN_MOVING_EVENTS_TRAFFIC.md). Chưa đổi code trong lượt ghi nhận này; P8 mới tuning mật độ/curve/economy, P9 UI/art và P10 SFX/VFX giữ nguyên.
+
+
+## P6.1 — bản thử tình huống trước tích hợp (18/10/2026)
+Theo yêu cầu mới nhất của chủ dự án: triển khai và duyệt các tình huống riêng trước; chỉ làm bản tích hợp khi chủ dự án đồng ý. Đã có 15 fixture DEV tại http://127.0.0.1:5173/p61.html, version `p61-scenarios-1`: tàu ngang hữu hạn, officer 1/2 người, chuối vô hiệu cả nhóm, traffic va nhau/hazard, rào, hàng rong và cứu thương. Chỉ fixture bật experimentalMotion/experimentalTraffic; director ván thường chưa dùng các cơ chế này. Đây chưa phải hoàn thành toàn bộ P6.1.
+Các số mới đều TẠM: tàu dài ngang 24 m, sâu 2,8 m, tốc độ ngang 6 m/s; NPC rộng/sâu 0,65 m, chạy ngang 4,5 m/s trong ±4,35 m; rào rộng 6,2 m/sâu 1,4 m, damage traffic 20 một lần; hàng rong ngang 2,2 m/s; cứu thương dọc 16 m/s. Không đổi giá, thu nhập, fuel hay mật độ ván thường. Báo cáo và giới hạn tích hợp: [PROTOTYPE_6_1_SCENARIOS_REVIEW.md](PROTOTYPE_6_1_SCENARIOS_REVIEW.md). P8 tuning độ khó/economy, P9 UI/art, P10 SFX/VFX giữ nguyên.

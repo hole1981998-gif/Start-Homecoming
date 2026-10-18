@@ -1,3 +1,4 @@
+import { crossX, type CrossMotion } from './cross-motion';
 import { isSpecial, specialPlan } from './special-events';
 import { eventBalance } from './config';
 import { balance, hazardSizes, itemBalance, shopBalance } from './config';
@@ -20,9 +21,14 @@ export interface Entity {
   wreckPassengersSpawned?: boolean; wreckedByPlayer?: boolean;
   fuel?: number; trafficMotion?: 'powered' | 'coasting' | 'stopped'; coastRemaining?: number;
   shopStock?: ShopStock; eventAt?: number;
+  crossMotion?: CrossMotion; groupId?: string; stunned?: boolean;
+  trafficPairContacts?: string[]; trafficStoppedByCollision?: boolean; trafficPlayerSource?: boolean;
+  serviceRole?: 'ambulance';
+  displayName?: string; help?: string;
 }
 export interface RetiredEntity { entity: Entity; route: RouteState; expireDistance: number }
 export interface World { entities: Entity[]; retired: RetiredEntity[]; nextHazard: number; nextFuel: number; nextRepair: number;
+  experimentalMotion?: boolean; experimentalTraffic?: boolean; prototype?: { version: string; title: string; description: string };
   nextSpecial?: number; nextPassenger: number; nextShop: number; nextShopDistance: number; rng: number; seed: number; branchSeed: number; branchId: number; branchVariant: number }
 export const initialWorld = (seed: number): World => ({ entities: [], retired: [], nextHazard: 0, nextFuel: 1,
   nextRepair: 0, nextPassenger: 0, nextShop: 0, nextShopDistance: shopBalance.firstDistance,
@@ -118,7 +124,18 @@ export function spawnWreckPassengers(world: World, now: number, vehicle: Vehicle
       distance: car.distance + (index - (count - 1) / 2) * 2,
     })));
     const safe = positions.find(group => group.every(point => world.entities.every(hazard => {
-      if (hazard.consumed || hazard.wrecked || !['water', 'pothole', 'traffic'].includes(hazard.kind)) return true;
+      if (hazard.consumed || hazard.wrecked || (!['water', 'pothole', 'traffic'].includes(hazard.kind) &&
+        !(world.experimentalMotion && ['jam', 'train', 'accident', 'broken'].includes(hazard.kind)))) return true;
+      if (world.experimentalMotion) {
+        const m = hazard.crossMotion, future = now + balance.warningSeconds;
+        const minX = m ? m.type === 'pingpong' ? m.min : Math.min(hazard.x, crossX(m, future)) : hazard.x;
+        const maxX = m ? m.type === 'pingpong' ? m.max : Math.max(hazard.x, crossX(m, future)) : hazard.x;
+        const end = hazard.distance + hazard.speed * balance.warningSeconds;
+        const halfW = (vehicle.width + hazard.width) / 2 + balance.trafficPassengerClearance;
+        const halfL = (vehicle.length + hazard.length) / 2 + balance.trafficPassengerClearance;
+        return point.x < minX - halfW || point.x > maxX + halfW ||
+          point.distance < Math.min(hazard.distance, end) - halfL || point.distance > Math.max(hazard.distance, end) + halfL;
+      }
       // Reserve enough room for the current vehicle, not only the NPC's tiny collider.
       return Math.abs(point.x - hazard.x) > (vehicle.width + hazard.width) / 2 + balance.trafficPassengerClearance ||
         Math.abs(point.distance - hazard.distance) > (vehicle.length + hazard.length) / 2 + balance.trafficPassengerClearance;

@@ -51,3 +51,7 @@ Chủ dự án thấy hai cung xăng/độ bền còn hơi nhọn; ghi để ch�
 Chơi bình thường: http://127.0.0.1:5173/?seed=17 . Event seeded bắt đầu từ khoảng 1.700 m (có thể bỏ mẫu để bảo đảm an toàn).
 Ca thử nhanh (DEV): ?scenario=events-police&seed=17, events-militia, events-jam, events-accident, events-broken, events-train. Mỗi ca có xe dự phòng và hai vật phẩm mẫu để thử; không dùng nguồn miễn phí này để đánh giá economy.
 Phím 1/2 dùng chuối trong cửa sổ bắt; gần ray giữ S để dừng chờ mở đường hoặc bật nitro rồi Space nhảy. Chạm tàu vẫn kết ván khi có star. Báo cáo: docs/PROTOTYPE_6_REVIEW.md. UI/art/SFX hoàn chỉnh theo phase riêng.
+
+
+### P6.1 — 15 tình huống để duyệt trước tích hợp
+Mở http://127.0.0.1:5173/p61.html khi `pnpm dev` đang chạy. Mỗi link dùng seed 17; W/S tốc độ, A/D lái, 1/2 vật phẩm, Space nhảy khi nitro hiệu lực, F đón khách, Esc pause. Các ca traffic đặt người chơi ở lane trái để quan sát; có thể S chờ. Chơi lại để reset cùng tình huống. Đây là hub DEV, chưa nằm trong `pnpm preview`/production build. Bản thường chưa bật cơ chế P6.1 mới. Báo cáo: [P6.1](docs/PROTOTYPE_6_1_SCENARIOS_REVIEW.md).

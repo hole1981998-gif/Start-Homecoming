@@ -21,6 +21,8 @@ const el = <T extends Element = HTMLElement>(id: string): T => {
 const text = (id: string, value: string) => { const node = el(id); if (node.textContent !== value) node.textContent = value; };
 const canvas = el<HTMLCanvasElement>('scene'), modal = el('modal');
 const play = el<HTMLButtonElement>('play'), pause = el<HTMLButtonElement>('pause'), restart = el<HTMLButtonElement>('restart');
+const testHome = document.createElement('a'); testHome.href = '/p61.html';
+testHome.textContent = '← Bộ tình huống P6.1'; testHome.hidden = true; modal.append(testHome);
 const closeHelp = el<HTMLButtonElement>('close-help');
 const formatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
 const fuelRateFormatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 });
@@ -62,8 +64,9 @@ catch (error) { el('error').hidden = false; modal.hidden = true; throw error; }
 function clearInput(): void { input = noInput(); clock.reset(); previous = state; }
 function show(view: Exclude<Screen, null>, title: string, description: string): void {
   screen = view; modal.hidden = false; clearInput();
+  testHome.hidden = !state.world.prototype;
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 06 · SỰ KIỆN · CHUỐI · TÀU');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.prototype ? 'P6.1 · THỬ TÌNH HUỐNG · CHƯA TÍCH HỢP' : 'PROTOTYPE 06 · SỰ KIỆN · CHUỐI · TÀU');
   el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
@@ -86,6 +89,12 @@ function resume(): void {
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
   state = newRun(); previous = state;
+  if (state.world.prototype) {
+    document.title = 'P6.1 · ' + state.world.prototype.title;
+    show('start', state.world.prototype.title, state.world.prototype.description + ' W/S điều tốc, A/D lái, 1/2 dùng vật phẩm, Space nhảy khi nitro bật; Esc tạm dừng. Vật phẩm và xe dự phòng mẫu không dùng để đánh giá economy.');
+    el('instructions').hidden = true;
+    return;
+  }
   show('start', 'Đường về nhà', `R ghé cửa hàng ven đường để mua xe, tiếp tế, nâng cấp và vật phẩm. Phím 1/2 dùng món trong ô: nitro boost, star miễn damage/debuff, chuối tránh bị bắt khi cảnh báo hoặc Grab gọi khách đặc biệt rồi F đón. Space nhảy khi nitro đang bật. Tab đổi xe; F/G đón hoặc cho khách xuống. Giữ xe còn xăng và độ bền, W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
@@ -127,7 +136,7 @@ function discover(): void {
     e.distance - state.distance <= warningDistance(state.speed, e, activeVehicle(state).length)).sort((a, b) => a.distance - b.distance)[0];
   if (!candidate) return;
   discovery = candidate.kind; state = { ...state, phase: 'paused' };
-  show('card', names[candidate.kind], cardDescriptions[candidate.kind]);
+  show('card', candidate.displayName ?? names[candidate.kind], candidate.help ?? cardDescriptions[candidate.kind]);
   text('discovery-hint', `Game đang tạm dừng. Bấm nút hoặc chờ ${balance.discoverySeconds} giây để đóng thẻ.`);
   cardTimer = setTimeout(dismissCard, balance.discoverySeconds * 1000);
 }
@@ -150,7 +159,7 @@ window.addEventListener('keydown', event => {
     return;
   }
   if (event.code === 'Tab' && !modal.hidden) {
-    const buttons = [...modal.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>('button,input,select')].filter(b => !b.closest('[hidden]') && !b.disabled);
+    const buttons = [...modal.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLAnchorElement>('button,input,select,a[href]')].filter(b => !b.closest('[hidden]') && !('disabled' in b && b.disabled));
     const first = buttons[0], last = buttons[buttons.length - 1];
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }

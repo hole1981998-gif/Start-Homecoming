@@ -8,11 +8,12 @@ export type SpecialKind = typeof specialKinds[number];
 export const isSpecial = (kind: EntityKind): kind is SpecialKind => (specialKinds as readonly string[]).includes(kind);
 /** Clock is gameplay time: pause/help/shop never advance the crossing. */
 export function trainClosed(e: Entity, seconds: number): boolean {
+  if (e.crossMotion) return e.x + e.width / 2 >= -balance.laneWidth * 1.5 && e.x - e.width / 2 <= balance.laneWidth * 1.5;
   return (seconds - (e.eventAt ?? seconds)) % eventBalance.trainPeriod < eventBalance.trainClosedSeconds;
 }
 export function bananaTarget(run: Run): Entity | undefined {
   const vehicle = effectiveVehicle(run.vehicleInstances.find(v => v.id === run.activeVehicleId)!);
-  return run.world.entities.filter(e => (e.kind === 'police' || e.kind === 'militia') && !e.consumed &&
+  return run.world.entities.filter(e => (e.kind === 'police' || e.kind === 'militia') && !e.consumed && !e.stunned &&
     e.distance > run.distance && e.distance - run.distance <= Math.max(eventBalance.bananaReach, run.speed * eventBalance.reactionSeconds + (vehicle.length + e.length) / 2))
     .sort((a, b) => a.distance - b.distance)[0];
 }

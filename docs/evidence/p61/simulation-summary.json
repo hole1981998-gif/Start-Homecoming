@@ -1,0 +1,176 @@
+{
+  "date": "2026-10-18",
+  "branch": "codex/p6-1-scenario-prototypes",
+  "base": "db7b79a",
+  "sourceDigest": "30a3052a8218c55f0d76e3585688ac03b485b66b956a78a2b44d78fd583cd3a3",
+  "digestPaths": [
+    "package.json",
+    "src/config.ts",
+    "src/cross-motion.ts",
+    "src/development.ts",
+    "src/feedback.ts",
+    "src/grab.ts",
+    "src/items.ts",
+    "src/main.ts",
+    "src/moving-scenarios.ts",
+    "src/passenger-outcomes.ts",
+    "src/persistence.ts",
+    "src/prototype-hub.ts",
+    "src/render.ts",
+    "src/road-hud.ts",
+    "src/route.ts",
+    "src/shop-view.ts",
+    "src/shop.ts",
+    "src/simulation.ts",
+    "src/special-events.ts",
+    "src/survival.ts",
+    "src/traffic-fuel.ts",
+    "src/traffic-interactions.ts",
+    "src/vehicles.ts",
+    "src/vite-env.d.ts",
+    "src/world.ts",
+    "tests/moving-hazards.test.ts"
+  ],
+  "environment": {
+    "os": "Windows",
+    "node": "24.19.0",
+    "pnpm": "11.25.0"
+  },
+  "gates": {
+    "lint": 0,
+    "typecheck": 0,
+    "tests": {
+      "exit": 0,
+      "tests": 159,
+      "files": 24
+    },
+    "simulate": {
+      "exit": 0,
+      "tests": 72,
+      "files": 6
+    },
+    "build": {
+      "exit": 0,
+      "jsKB": 587.81,
+      "warning": "chunk >500 kB"
+    }
+  },
+  "simulation": {
+    "version": "p61-scenarios-1",
+    "mode": "isolated fixtures; not integrated route balance",
+    "seeds": "1–30",
+    "cases": 450,
+    "scenarios": [
+      {
+        "name": "p61-train-left",
+        "running": 30,
+        "minDistance": 22.641666666666644,
+        "maxDistance": 22.641666666666644
+      },
+      {
+        "name": "p61-train-right",
+        "running": 30,
+        "minDistance": 22.641666666666644,
+        "maxDistance": 22.641666666666644
+      },
+      {
+        "name": "p61-train-container",
+        "running": 30,
+        "minDistance": 20.654166666666654,
+        "maxDistance": 20.654166666666654
+      },
+      {
+        "name": "p61-police-one",
+        "running": 30,
+        "minDistance": 107.4354166666667,
+        "maxDistance": 107.4354166666667
+      },
+      {
+        "name": "p61-police-two",
+        "running": 30,
+        "minDistance": 139.99999999999974,
+        "maxDistance": 139.99999999999974
+      },
+      {
+        "name": "p61-militia-two",
+        "running": 30,
+        "minDistance": 139.99999999999974,
+        "maxDistance": 139.99999999999974
+      },
+      {
+        "name": "p61-groups",
+        "running": 30,
+        "minDistance": 107.43541666666671,
+        "maxDistance": 107.43541666666671
+      },
+      {
+        "name": "p61-traffic-pair",
+        "running": 30,
+        "minDistance": 139.99999999999974,
+        "maxDistance": 139.99999999999974
+      },
+      {
+        "name": "p61-traffic-chain",
+        "running": 30,
+        "minDistance": 139.99999999999974,
+        "maxDistance": 139.99999999999974
+      },
+      {
+        "name": "p61-traffic-barrier",
+        "running": 30,
+        "minDistance": 139.99999999999974,
+        "maxDistance": 139.99999999999974
+      },
+      {
+        "name": "p61-traffic-train",
+        "running": 30,
+        "minDistance": 47.70833333333323,
+        "maxDistance": 47.70833333333323
+      },
+      {
+        "name": "p61-traffic-hole",
+        "running": 30,
+        "minDistance": 139.99999999999974,
+        "maxDistance": 139.99999999999974
+      },
+      {
+        "name": "p61-barrier",
+        "running": 30,
+        "minDistance": 86.5499999999996,
+        "maxDistance": 86.5499999999996
+      },
+      {
+        "name": "p61-vendor",
+        "running": 30,
+        "minDistance": 81.57041666666645,
+        "maxDistance": 81.57041666666645
+      },
+      {
+        "name": "p61-ambulance",
+        "running": 30,
+        "minDistance": 139.99999999999974,
+        "maxDistance": 139.99999999999974
+      }
+    ],
+    "config": {
+      "trainWidth": 24,
+      "trainDepth": 2.8,
+      "trainSpeed": 6,
+      "trainOrigin": 20,
+      "npcWidth": 0.65,
+      "npcDepth": 0.65,
+      "patrolSpeed": 4.5,
+      "patrolBound": 4.35,
+      "barrierWidth": 6.2,
+      "barrierDepth": 1.4,
+      "blockerDamage": 20,
+      "vendorSpeed": 2.2,
+      "ambulanceSpeed": 16
+    }
+  },
+  "limitations": [
+    "Fixed fixture geometry, seeds vary occupant outcomes; not route balance",
+    "No integration into normal director",
+    "Player/NPC same-tick global ordering requires integration work"
+  ]
+}
