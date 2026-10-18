@@ -10,7 +10,7 @@ import { nearJunction, type RouteState, type Turn } from './route';
 import { moveTrafficWithFuel } from './traffic-fuel';
 const maxTrafficSpeed = Math.max(...Object.values(trafficTypes).map(type => type.speed));
 
-export type EntityKind = 'wind' | 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger' | 'shop' | 'police' | 'militia' | 'jam' | 'accident' | 'train' | 'broken';
+export type EntityKind = 'wind' | 'water' | 'pothole' | 'traffic' | 'cargo' | 'fuel' | 'repair' | 'passenger' | 'shop' | 'police' | 'militia' | 'jam' | 'accident' | 'train' | 'broken';
 export interface ShopStock { vehicles: VehicleKind[]; items?: { nitro: number; star: number; grab?: number; banana?: number } }
 export type TrafficKind = VehicleKind;
 export interface PassengerMotion { homeX: number; homeDistance: number; startedAt: number; phase: number; idle: boolean;
@@ -26,11 +26,12 @@ export interface Entity {
   lateralPush?: number; motionWaiting?: boolean; crossMotion?: CrossMotion; groupId?: string; stunned?: boolean;
   trafficPairContacts?: string[]; trafficStoppedByCollision?: boolean; trafficPlayerSource?: boolean;
   serviceRole?: 'ambulance';
+  cargoReleaseAt?: number; cargoDropped?: boolean; cargoType?: 'crate' | 'barrel'; cargoVelocityX?: number; cargoExpiresAt?: number; cargoSourceId?: string;
   displayName?: string; help?: string;
 }
 export interface RetiredEntity { entity: Entity; route: RouteState; expireDistance: number }
 export interface World { entities: Entity[]; retired: RetiredEntity[]; nextHazard: number; nextFuel: number; nextRepair: number;
-  stress?: boolean; nextStress?: number; integrated?: boolean; experimentalMotion?: boolean; experimentalTraffic?: boolean; prototype?: { version: string; title: string; description: string };
+  stress?: boolean; nextStress?: number; integrated?: boolean; experimentalMotion?: boolean; experimentalTraffic?: boolean; experimentalCargo?: boolean; prototype?: { version: string; title: string; description: string };
   nextSpecial?: number; nextPassenger: number; nextShop: number; nextShopDistance: number; rng: number; seed: number; branchSeed: number; branchId: number; branchVariant: number }
 export const initialWorld = (seed: number, integrated = false): World => ({ entities: [], retired: [],
   ...(integrated ? { integrated: true, experimentalMotion: true, experimentalTraffic: true } : {}), nextHazard: 0, nextFuel: 1,
@@ -71,7 +72,7 @@ export function forkWorld(world: World, route: RouteState, turn: Turn, junctionD
     nextShop: shopIndex, nextShopDistance: shopDistance, rng: branchSeed, branchSeed, branchId, branchVariant };
 }
 export function entity(kind: EntityKind, id: string, distance: number, x: number): Entity {
-  const sizes: Record<EntityKind, [number, number]> = { wind: [9.6, 65], water: [3.2, 7], pothole: [1.5, 1.8], traffic: [trafficTypes.car4.width, trafficTypes.car4.length], fuel: [.8, .8], repair: [.8, .8], passenger: [.7, .7], shop: [1, 3], police: [9.6, .8], militia: [9.6, .8], jam: [6.2, 6], accident: [6.2, 5], train: [9.6, 2], broken: [1.9, 4.2] };
+  const sizes: Record<EntityKind, [number, number]> = { wind: [9.6, 65], water: [3.2, 7], pothole: [1.5, 1.8], traffic: [trafficTypes.car4.width, trafficTypes.car4.length], cargo: [.8, .8], fuel: [.8, .8], repair: [.8, .8], passenger: [.7, .7], shop: [1, 3], police: [9.6, .8], militia: [9.6, .8], jam: [6.2, 6], accident: [6.2, 5], train: [9.6, 2], broken: [1.9, 4.2] };
   return { id, kind, distance, x, width: sizes[kind][0], length: sizes[kind][1],
     speed: kind === 'traffic' ? balance.trafficSpeed : 0, consumed: false, touching: false, lastHit: -1e10,
     ...(kind === 'traffic' ? { trafficKind: 'car4' as const, hp: trafficTypes.car4.hp, wrecked: false,
@@ -261,7 +262,7 @@ function hasConcurrentCar(candidate: Entity, existing: Entity[], distance: numbe
 export function fillWorld(world: World, distance: number, fuel: number = balance.fuelCapacity,
   durability: number = balance.durabilityCapacity, fuelFactor = 1,
   vehicle: VehicleDefinition = vehicles.motorcycle, now = 0, speed = vehicle.cruiseSpeed): World {
-  const w = { ...world, entities: world.entities.filter(e => e.kind === 'shop' ?
+  const w = { ...world, entities: world.entities.filter(e => e.kind === 'cargo' && (e.consumed || now >= (e.cargoExpiresAt ?? Infinity)) ? false : e.kind === 'shop' ?
     e.distance + shopBalance.reach >= distance : e.distance + e.length / 2 > distance - 12),
     retired: world.retired.filter(e => e.expireDistance >= distance) };
   const ahead = distance + Math.max(balance.worldLookAhead, (vehicle.maxSpeed + maxTrafficSpeed) * balance.warningSeconds);

@@ -122,3 +122,10 @@ for (const value of Object.values(stressBalance)) if (!Number.isFinite(value) ||
 export const forceBalance = Object.freeze({ windPush: 1.5, maxPush: 2.2, zoneStart: 45, zoneLength: 65, windWidth: 9.6 });
 for(const value of Object.values(forceBalance)) if(!Number.isFinite(value)||value<=0)throw new Error('Invalid force config');
 if(forceBalance.maxPush>=balance.lateralSpeed||forceBalance.windWidth>balance.laneWidth*balance.laneCount)throw new Error('Force must remain countersteerable');
+
+/** P6.3 fixture-only cargo: m, m/s, s, HP. Provisional until playtest. */
+export const cargoBalance = Object.freeze({ lifetime: 12, rollSpeed: .9, backwardSpeed: 1.2, roadHalfWidth: 4.45,
+  crateDamage: 8, barrelDamage: 14, maxActive: 4, releaseGap: 1.2 });
+for (const value of Object.values(cargoBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid cargo config');
+if (!Number.isInteger(cargoBalance.maxActive) || cargoBalance.roadHalfWidth > balance.laneWidth * balance.laneCount / 2)
+  throw new Error('Invalid cargo bounds');

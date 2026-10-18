@@ -1,12 +1,12 @@
 import { trainClosed, bananaTarget } from './special-events';
-import { createElement, Wind, Waves, CircleDot, CarFront, Fuel, Wrench, ChevronDown, UserRound, Store, ShieldAlert, TrainFront, TriangleAlert, Ban } from 'lucide';
+import { createElement, Wind, Waves, CircleDot, CarFront, Package, Fuel, Wrench, ChevronDown, UserRound, Store, ShieldAlert, TrainFront, TriangleAlert, Ban } from 'lucide';
 import { balance, shopBalance } from './config';
 import { reachableShop } from './shop';
 import { activeVehicle, names, type Run } from './survival';
 import { trafficTypes, warningDistance, type EntityKind } from './world';
 
 interface Projection { project(x: number, y: number, z: number): { x: number; y: number } }
-const icons = { wind: Wind, water: Waves, pothole: CircleDot, traffic: CarFront, fuel: Fuel, repair: Wrench, passenger: UserRound, shop: Store, police: ShieldAlert, militia: ShieldAlert, train: TrainFront, accident: TriangleAlert, jam: Ban, broken: Wrench };
+const icons = { wind: Wind, water: Waves, pothole: CircleDot, traffic: CarFront, cargo: Package, fuel: Fuel, repair: Wrench, passenger: UserRound, shop: Store, police: ShieldAlert, militia: ShieldAlert, train: TrainFront, accident: TriangleAlert, jam: Ban, broken: Wrench };
 const supplyKind = (kind: EntityKind) => kind === 'fuel' || kind === 'repair' || kind === 'passenger' || kind === 'shop';
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -65,6 +65,9 @@ export class RoadHud {
         e.trafficMotion === 'coasting' ? 'đang trôi do hết xăng' : e.speed < 0 ? 'ngược chiều' : 'cùng chiều';
       if (e.kind === 'traffic') cue.root.querySelector('.traffic-direction')!.textContent =
         e.trafficStoppedByCollision ? '✕ · ■' : e.trafficMotion === 'stopped' ? '⛽ · ■' : `${e.trafficMotion === 'coasting' ? '⛽ · ' : ''}${e.speed < 0 ? '↓' : '↑'}`;
+      if (e.kind === 'traffic' && e.cargoReleaseAt !== undefined && !e.cargoDropped)
+        cue.value.textContent = `⚠ ĐỒ SẮP RƠI · ${distance} m`;
+      if (e.kind === 'cargo') cue.value.textContent = `${(e.cargoVelocityX ?? 0) > 0 ? '→' : '←'} · ${distance} m`;
       const label = e.displayName ?? (e.kind === 'traffic' ? trafficTypes[e.trafficKind ?? 'car4'].name : e.kind === 'passenger' && e.passengerType === 'grab' ? 'Khách Grab' : names[e.kind]);
       if (e.kind === 'passenger' && e.passengerType === 'grab') cue.value.textContent = 'Grab · ' + cue.value.textContent;
       cue.root.setAttribute('aria-label', `${label} · ${lane}${e.kind === 'traffic' ? ` · ${trafficState}` : ''} · ${distance} m`);

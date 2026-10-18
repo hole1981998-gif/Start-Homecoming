@@ -1,9 +1,10 @@
 import { environmentalPush, pushTrafficWithWind } from './environment-forces';
 import { advanceCrossMotion, crossBoundaries, retireCrossers } from './cross-motion';
 import { advanceInteractingTraffic } from './traffic-interactions';
+import { advanceCargo, releaseCargo } from './traffic-cargo';
 import { eventBalance } from './config';
 import { isSpecial, trainClosed } from './special-events';
-import { balance, itemBalance } from './config';
+import { balance, cargoBalance, itemBalance } from './config';
 import { initialState, step, type Input, type State } from './simulation';
 import { advancePassengers, advanceTraffic, entity, fillWorld, forkWorld, initialWorld, passengerMotion, spawnWreckPassengers, sweptContact, trafficTypes, type EntityKind, type World } from './world';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
@@ -41,7 +42,7 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   grabUses: [0, 0], grabSequence: 0, nextGrabAt: 0, grabRiderIds: [],
   shopId: null, economySequence: 0, inventory: [null, null], powers: newPowers(),
 });
-export const names: Record<EntityKind, string> = { wind: 'Gió ngang', water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường', police: 'Công an', militia: 'Dân phòng', jam: 'Kẹt xe', accident: 'Tai nạn', train: 'Tàu hoả', broken: 'Xe chết máy' };
+export const names: Record<EntityKind, string> = { wind: 'Gió ngang', water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', cargo: 'Đồ rơi đang lăn', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường', police: 'Công an', militia: 'Dân phòng', jam: 'Kẹt xe', accident: 'Tai nạn', train: 'Tàu hoả', broken: 'Xe chết máy' };
 
 export const activeVehicle = (run: Run): VehicleDefinition =>
   effectiveVehicle(run.vehicleInstances.find(v => v.id === run.activeVehicleId)!);
@@ -115,7 +116,7 @@ export function dropPassenger(run: Run): Run {
     world: { ...run.world, entities: [...run.world.entities, passenger] } }, 'drop', 'Khách xuống xe · −1 người');
 }
 
-const harmful = (kind: EntityKind) => kind === 'wind' || kind === 'water' || kind === 'pothole' || kind === 'traffic';
+const harmful = (kind: EntityKind) => kind === 'wind' || kind === 'water' || kind === 'pothole' || kind === 'traffic' || kind === 'cargo';
 function overlapsVehicle(x: number, distance: number, e: World['entities'][number], vehicle: VehicleDefinition): boolean {
   return Math.abs(x - e.x) <= (vehicle.width + e.width) / 2 &&
     Math.abs(distance - e.distance) <= (vehicle.length + e.length) / 2;
@@ -185,6 +186,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     const npcCuts = world.experimentalTraffic ? advanceInteractingTraffic(movedEntities, world.entities, dt) : [];
     if (world.integrated && npcCuts.length) return splitSegment(before, input, dt, npcCuts[0]);
     if (!world.experimentalTraffic) advanceTraffic(movedEntities, dt);
+    if (world.experimentalCargo) advanceCargo(movedEntities, dt, before.activeSeconds + dt);
     const protectedEntities = new Set(before.protectedEntities);
     for (let i = 0; i < movedEntities.length; i++) {
       const e = movedEntities[i], previousEntity = world.entities[i];
@@ -208,6 +210,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
           score: before.score, money: before.money, seconds: at } };
     }
     if (world.experimentalMotion) retireCrossers(movedEntities);
+    if (world.experimentalCargo) releaseCargo(movedEntities, before.activeSeconds + dt, distance, world.branchSeed);
     const crashed: Run = { ...before, world: { ...world, entities: movedEntities,
       retired: world.retired.map(entry => ({ ...entry, entity: (() => { const copy = { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt }; advanceCrossMotion([copy], before.activeSeconds + dt); return copy; })() })) },
       protectedEntities: [...protectedEntities],
@@ -259,6 +262,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   pushTrafficWithWind(movedEntities, world.entities, dt);
   const npcCuts = world.experimentalTraffic ? advanceInteractingTraffic(movedEntities, world.entities, dt) : [];
   if (!world.experimentalTraffic) advanceTraffic(movedEntities, dt);
+  if (world.experimentalCargo) advanceCargo(movedEntities, dt, before.activeSeconds + dt);
   if (world.integrated) {
     let cut = npcCuts[0] ?? dt;
     // Before the earliest NPC transition its trajectory is linear. Do not use its post-impact endpoint.
@@ -357,7 +361,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     }
   }
   // Damage precedes pickups on exact ties. No later event can rescue an earlier terminal collision.
-  const priority = (event: Event) => r.world.entities[event.index].kind === 'train' ? -1 : event.type === 'hit' && (r.world.entities[event.index].kind === 'traffic' || isSpecial(r.world.entities[event.index].kind)) ? 0 :
+  const priority = (event: Event) => r.world.entities[event.index].kind === 'train' ? -1 : event.type === 'hit' && (r.world.entities[event.index].kind === 'traffic' || r.world.entities[event.index].kind === 'cargo' || isSpecial(r.world.entities[event.index].kind)) ? 0 :
     event.type === 'enter-pothole' ? 1 : event.type === 'enter-water' ? 2 :
       event.type === 'exit-water' || event.type === 'exit-pothole' ? 3 : 4;
   events.sort((a, b) => a.t - b.t || priority(a) - priority(b) || a.index - b.index);
@@ -438,7 +442,16 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
       }
       continue;
     }
-    if (e.kind === 'traffic') {
+    if (e.kind === 'cargo') {
+      e.consumed = true;
+      if (!hasStar(r)) {
+        const damage = e.cargoType === 'barrel' ? cargoBalance.barrelDamage : cargoBalance.crateDamage;
+        r.durability = Math.max(0, r.durability - damage);
+        feedback('cargo', `Đồ rơi · −${damage} HP`);
+        if (r.durability === 0) finish('damage');
+        else if (e.cargoType === 'barrel') crashDriver(before.speed + (driven.speed - before.speed) * fraction);
+      }
+    } else if (e.kind === 'traffic') {
       if (hasStar(r)) continue;
       const target = trafficTypes[e.trafficKind ?? 'car4'];
       const ram = vehicleRam[vehicle.kind];
@@ -482,6 +495,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   if (world.experimentalMotion) retireCrossers(r.world.entities);
   spawnWreckPassengers(r.world, r.activeSeconds, vehicle);
   advancePassengers(r.world.entities, r.activeSeconds);
+  if (world.experimentalCargo) releaseCargo(r.world.entities, r.activeSeconds, r.distance, world.branchSeed);
   r.route = compactRoute(r.route, r.distance, r.seed);
   r.vehicleInstances = saveVehicle(r).map(v => v.id === r.activeVehicleId &&
     (r.durability <= 0 || (r.fuel <= 0 && r.coastRemaining <= 0)) ? { ...v, disabled: true } : v);

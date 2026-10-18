@@ -26,7 +26,7 @@ export class RoadRenderer {
   private ground!: THREE.Mesh;
   private viewState!: Run;
   private entityMeshes = new Map<string, { kind: EntityKind; trafficKind?: TrafficKind; mesh: THREE.Group }>();
-  private pools: Record<EntityKind, THREE.Group[]> = { wind: [], water: [], pothole: [], traffic: [], fuel: [], repair: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
+  private pools: Record<EntityKind, THREE.Group[]> = { wind: [], water: [], pothole: [], traffic: [], cargo: [], fuel: [], repair: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
   private trafficPools = new Map<TrafficKind, THREE.Group[]>();
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
   private observer: ResizeObserver;
@@ -142,6 +142,10 @@ export class RoadRenderer {
     else if (kind === 'pothole') {
       part(1.5, .03, 1.8, '#191d23', 0, .025, 0);
       for (const x of [-.85, .85]) part(.15, .08, 2, '#dfb357', x, .05, 0);
+    } else if (kind === 'cargo') {
+      g.userData.cargoBody = part(.8, .8, .8, '#b38b61', 0, .42, 0);
+      part(.84, .08, .84, '#e5ca8f', 0, .82, 0);
+      part(.08, .84, .84, '#e5ca8f', 0, .42, 0);
     } else if (kind === 'traffic') {
       const d = trafficTypes[trafficKind], w = d.width, l = d.length;
       const open = trafficKind === 'motorcycle' || trafficKind === 'motorbike' || trafficKind === 'tricycle';
@@ -298,6 +302,10 @@ export class RoadRenderer {
         entityPose.z + Math.sin(entityPose.heading) * entityX);
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
+      if (e.kind === 'cargo') {
+        (entry.mesh.userData.cargoBody as THREE.Mesh<THREE.BoxGeometry, THREE.MeshLambertMaterial>).material.color.set(e.cargoType === 'barrel' ? '#797f86' : '#b38b61');
+        entry.mesh.rotation.z = (e.cargoVelocityX ?? 0) * s.activeSeconds * 1.5;
+      }
       if (e.kind === 'traffic') {
         (entry.mesh.userData.service as THREE.Group).visible = e.serviceRole === 'ambulance';
         const hpFill = entry.mesh.userData.hpFill as THREE.Mesh, hpBack = entry.mesh.userData.hpBack as THREE.Mesh;
