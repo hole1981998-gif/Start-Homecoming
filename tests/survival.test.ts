@@ -125,7 +125,7 @@ describe('survival, continuous hazards and crash recovery', () => {
     const hole = entity('pothole', 'hole', 0, 0); hole.length = 20;
     const riderIds = ['rider-0', 'rider-1', 'rider-2'];
     const first = stepRun({ ...empty([car, hole]), riderIds }, noInput());
-    expect(first.crash).not.toBeNull(); expect(first.speed).toBeCloseTo(balance.cruiseSpeed);
+    expect(first.crash).not.toBeNull(); expect(first.speed).toBeCloseTo(first.crash!.impactSpeed - balance.crashSlideDeceleration * first.crash!.elapsed);
     expect(first.durability).toBe(70 - balance.trafficDamage);
     expect([...first.crash!.returningRiderIds, ...first.crash!.strandedRiderIds].sort()).toEqual(riderIds);
     expect(first.riderIds).toEqual([]);
@@ -177,7 +177,7 @@ describe('survival, continuous hazards and crash recovery', () => {
     const stopped = advance(first, balance.driverFallSeconds + balance.driverReturnSeconds);
     expect(stopped.speed).toBe(0);
     expect(stopped.crash).not.toBeNull();
-    expect(stopped.distance - first.distance).toBeCloseTo(balance.maxSpeed ** 2 / (2 * balance.crashSlideDeceleration), 7);
+    expect(stopped.distance - first.distance).toBeCloseTo(first.speed ** 2 / (2 * balance.crashSlideDeceleration), 7);
     expect(stopped.x).toBeLessThan(first.x);
     expect(stopped.durability).toBe(first.durability);
     expect(stopped.fuel).toBe(first.fuel);

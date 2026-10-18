@@ -1,4 +1,5 @@
 import { crossX, type CrossMotion } from './cross-motion';
+import { movingEvent } from './moving-events';
 import { isSpecial, specialPlan } from './special-events';
 import { eventBalance } from './config';
 import { balance, hazardSizes, itemBalance, shopBalance } from './config';
@@ -28,9 +29,10 @@ export interface Entity {
 }
 export interface RetiredEntity { entity: Entity; route: RouteState; expireDistance: number }
 export interface World { entities: Entity[]; retired: RetiredEntity[]; nextHazard: number; nextFuel: number; nextRepair: number;
-  experimentalMotion?: boolean; experimentalTraffic?: boolean; prototype?: { version: string; title: string; description: string };
+  integrated?: boolean; experimentalMotion?: boolean; experimentalTraffic?: boolean; prototype?: { version: string; title: string; description: string };
   nextSpecial?: number; nextPassenger: number; nextShop: number; nextShopDistance: number; rng: number; seed: number; branchSeed: number; branchId: number; branchVariant: number }
-export const initialWorld = (seed: number): World => ({ entities: [], retired: [], nextHazard: 0, nextFuel: 1,
+export const initialWorld = (seed: number, integrated = false): World => ({ entities: [], retired: [],
+  ...(integrated ? { integrated: true, experimentalMotion: true, experimentalTraffic: true } : {}), nextHazard: 0, nextFuel: 1,
   nextRepair: 0, nextPassenger: 0, nextShop: 0, nextShopDistance: shopBalance.firstDistance,
   rng: seed >>> 0, seed, branchSeed: seed >>> 0, branchId: 0, branchVariant: 0 });
 export function nextShopDistance(distance: number, index: number, seed: number): number {
@@ -256,7 +258,7 @@ function hasConcurrentCar(candidate: Entity, existing: Entity[], distance: numbe
 /** Forced three-lane costs require a resource budget until junction branches exist. */
 export function fillWorld(world: World, distance: number, fuel: number = balance.fuelCapacity,
   durability: number = balance.durabilityCapacity, fuelFactor = 1,
-  vehicle: VehicleDefinition = vehicles.motorcycle): World {
+  vehicle: VehicleDefinition = vehicles.motorcycle, now = 0): World {
   const w = { ...world, entities: world.entities.filter(e => e.kind === 'shop' ?
     e.distance + shopBalance.reach >= distance : e.distance + e.length / 2 > distance - 12),
     retired: world.retired.filter(e => e.expireDistance >= distance) };
@@ -349,7 +351,8 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
         Math.abs(e.distance - plan.distance) < eventBalance.corridor)) continue;
     const event = entity(plan.kind, branchEntityId(w, 'event', index), plan.distance,
       plan.kind === 'police' || plan.kind === 'militia' || plan.kind === 'train' ? 0 : plan.x);
-    w.entities.push(event);
+    if (w.integrated) w.entities.push(...movingEvent(event, index, w.branchSeed, now, distance, vehicle));
+    else w.entities.push(event);
   }
   return w;
 }

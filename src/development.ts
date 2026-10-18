@@ -6,7 +6,16 @@ import { newVehicle, vehicles, type VehicleKind } from './vehicles';
 import { balance, itemBalance } from './config';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null): Run {
+  if (scenario === 'integrated-checkpoint') {
+    // QA shortcut: generated normal world and director, with disclosed checkpoint resources.
+    const vehicle = newVehicle('car4', 'qa-integrated-car');
+    return { ...run, distance: 1450, money: 1000, vehicleInstances: [vehicle, newVehicle('motorcycle','qa-integrated-spare')],
+      activeVehicleId: vehicle.id, fuel: vehicle.fuel, durability: vehicle.durability, speed: vehicles.car4.cruiseSpeed,
+      inventory: ['banana','nitro'], route: { ...run.route, index: 1 },
+      world: fillWorld(initialWorld(run.seed,true),1450,vehicle.fuel,vehicle.durability,1,vehicles.car4,0) };
+  }
   if (scenario?.startsWith('p61-')) return movingScenario(run, scenario);
+  if (scenario) run = { ...run, world: { ...run.world, integrated: false, experimentalMotion: false, experimentalTraffic: false } };
   if (scenario?.startsWith('events')) {
     const requested = scenario.slice('events-'.length);
     const kind = ['police', 'militia', 'jam', 'accident', 'train', 'broken'].includes(requested) ? requested as import('./special-events').SpecialKind : 'police';

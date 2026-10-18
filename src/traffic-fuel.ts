@@ -3,7 +3,8 @@ import { vehicles } from './vehicles';
 import { sweptContact, type Entity } from './world';
 
 /** Fuel belongs to each instance. Use absolute travel for both traffic directions. */
-export function moveTrafficWithFuel(car: Entity, entities: Entity[], dt: number): void {
+export function moveTrafficWithFuel(car: Entity, entities: Entity[], dt: number, endX = car.x): void {
+  if (car.trafficStoppedByCollision) { car.speed = 0; car.trafficMotion = 'stopped'; return; }
   const definition = vehicles[car.trafficKind ?? 'car4'];
   car.fuel ??= definition.fuelCapacity;
   car.trafficMotion ??= 'powered';
@@ -13,7 +14,7 @@ export function moveTrafficWithFuel(car: Entity, entities: Entity[], dt: number)
   if (car.trafficMotion === 'stopped') { car.speed = 0; return; }
   const direction = Math.sign(car.speed || car.baseSpeed || 1);
   const water = entities.filter(e => !e.consumed && e.kind === 'water').flatMap(patch => {
-    const contact = sweptContact(car.x - patch.x, car.distance - patch.distance, car.x - patch.x,
+    const contact = sweptContact(car.x - patch.x, car.distance - patch.distance, endX - patch.x,
       car.distance + car.speed * dt - patch.distance, (car.width + patch.width) / 2, (car.length + patch.length) / 2);
     return contact ? [contact] : [];
   });

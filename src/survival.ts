@@ -30,7 +30,7 @@ export interface Run extends State {
 export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initialState(),
   runId, seed, fuel: balance.fuelCapacity, durability: balance.durabilityCapacity, score: 0,
   money: balance.initialMoney, activeSeconds: 0, motion: 'powered', coastRemaining: balance.coastDistance,
-  world: fillWorld(initialWorld(seed), 0), result: null, eventSequence: 0, feedback: '', feedbackAt: -100,
+  world: fillWorld(initialWorld(seed, true), 0), result: null, eventSequence: 0, feedback: '', feedbackAt: -100,
   feedbackKind: null, feedbackFlavor: '', feedbackCounts: initialFeedbackCounts(),
   crash: null, recovering: false, riderIds: [], lostPassengers: 0, crashRng: (seed ^ 0x9e3779b9) >>> 0, crashNumber: 0,
   protectedEntities: [],
@@ -154,11 +154,20 @@ export function stepRun(before: Run, input: Input): Run {
   }
   return { ...run, ticks: before.ticks + 1 };
 }
+function splitSegment(before: Run, input: Input, dt: number, cut: number): Run {
+  const first = stepRunSegment(before, input, cut);
+  const elapsed = first.activeSeconds - before.activeSeconds;
+  if (first.phase !== 'running') return first;
+  const remaining = dt - elapsed;
+  if (remaining <= 1e-10) return first;
+  const next = stepRunSegment(first, input, remaining);
+  return { ...next, ticks: before.ticks + 1 };
+}
 function stepRunSegment(before: Run, input: Input, dt: number): Run {
   const vehicle = activeVehicle(before);
   if (before.crash) {
     const world = fillWorld(before.world, before.distance, before.fuel, before.durability,
-      passengerDrive(before.riderIds.length, vehicle).fuelFactor, vehicle);
+      passengerDrive(before.riderIds.length, vehicle).fuelFactor, vehicle, before.activeSeconds);
     const elapsed = before.crash.elapsed + dt;
     const slideTime = Math.min(dt, before.speed / balance.crashSlideDeceleration);
     const speed = Math.max(0, before.speed - balance.crashSlideDeceleration * dt);
@@ -171,8 +180,9 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     const movedEntities = world.entities.map(e => ({ ...e, touching: false }));
     for (const e of movedEntities) if (e.kind === 'train') e.eventAt ??= before.activeSeconds;
     if (world.experimentalMotion) advanceCrossMotion(movedEntities, before.activeSeconds + dt);
-    if (world.experimentalTraffic) advanceInteractingTraffic(movedEntities, world.entities, dt);
-    else advanceTraffic(movedEntities, dt);
+    const npcCuts = world.experimentalTraffic ? advanceInteractingTraffic(movedEntities, world.entities, dt) : [];
+    if (world.integrated && npcCuts.length) return splitSegment(before, input, dt, npcCuts[0]);
+    if (!world.experimentalTraffic) advanceTraffic(movedEntities, dt);
     const protectedEntities = new Set(before.protectedEntities);
     for (let i = 0; i < movedEntities.length; i++) {
       const e = movedEntities[i], previousEntity = world.entities[i];
@@ -232,13 +242,33 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   }
   const ds = driven.distance - before.distance;
   const world = fillWorld(before.world, before.distance, before.fuel, before.durability, drive.fuelFactor,
-    boosted ? { ...vehicle, maxSpeed: drive.maxSpeed } : vehicle);
+    boosted ? { ...vehicle, maxSpeed: drive.maxSpeed } : vehicle, before.activeSeconds);
+  if (world.integrated && dt > 1e-6 && !hasStar(before) && world.entities.some(e => e.kind === 'traffic' &&
+      !e.consumed && !e.wrecked && e.lastHit < 0 && !before.protectedEntities.includes(e.id) &&
+      Math.abs(before.x-e.x) <= (vehicle.width+e.width)/2 && Math.abs(before.distance-e.distance) <= (vehicle.length+e.length)/2 &&
+      jumpHeight({ ...before, activeSeconds: before.activeSeconds + 5e-8 }) <
+        (['bus','truck','container'].includes(e.trafficKind ?? 'car4') ? itemBalance.highTrafficClearance : itemBalance.lowTrafficClearance) - 1e-9)) {
+    return splitSegment(before,input,dt,1e-7);
+  }
   const movedEntities = world.entities.map(e => ({ ...e }));
   if (world.experimentalMotion) advanceCrossMotion(movedEntities, before.activeSeconds + dt);
-  if (world.experimentalTraffic) advanceInteractingTraffic(movedEntities, world.entities, dt);
-  else advanceTraffic(movedEntities, dt);
+  const npcCuts = world.experimentalTraffic ? advanceInteractingTraffic(movedEntities, world.entities, dt) : [];
+  if (!world.experimentalTraffic) advanceTraffic(movedEntities, dt);
+  if (world.integrated) {
+    let cut = npcCuts[0] ?? dt;
+    // Before the earliest NPC transition its trajectory is linear. Do not use its post-impact endpoint.
+    if (npcCuts.length) return splitSegment(before, input, dt, cut);
+    for (let i = 0; i < movedEntities.length; i++) {
+      const e = movedEntities[i], old = world.entities[i];
+      if (e.kind !== 'traffic' || old.wrecked || old.consumed || old.lastHit >= 0 || before.protectedEntities.includes(e.id) || hasStar(before)) continue;
+      const hit = sweptContact(before.x - old.x, before.distance - old.distance, driven.x - e.x, driven.distance - e.distance,
+        (vehicle.width + e.width) / 2, (vehicle.length + e.length) / 2);
+      if (hit && hit[0] * dt > 1e-8) cut = Math.min(cut, hit[0] * dt);
+    }
+    if (cut < dt - 1e-8) return splitSegment(before, input, dt, cut);
+  }
   const r: Run = { ...before, world: { ...world, entities: movedEntities,
-    retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
+    retired: world.retired.map(entry => ({ ...entry, entity: (() => { const copy = { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt }; advanceCrossMotion([copy], before.activeSeconds + dt); return copy; })() })) },
     ticks: before.ticks + 1,
     x: driven.x, lateralVelocity: driven.lateralVelocity, speed: driven.speed,
     recovering: (before.recovering || (waitingAtTrain && input.brake)) && driven.speed < drive.cruiseSpeed - 1e-8 };
@@ -408,6 +438,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
       const target = trafficTypes[e.trafficKind ?? 'car4'];
       const ram = vehicleRam[vehicle.kind];
       e.hp = Math.max(0, (e.hp ?? target.hp) - ram.damage);
+      if (world.integrated) e.trafficPlayerSource = true;
       if (e.hp === 0) { e.wrecked = true; e.wreckedByPlayer = true; e.wreckAge = 0; e.speed = 0; }
       const impactDamage = ram.breaksThrough && e.wrecked ? Math.ceil(target.damage * balance.trafficHeavySelfDamageFactor) : target.damage;
       r.durability = Math.max(0, r.durability - impactDamage);

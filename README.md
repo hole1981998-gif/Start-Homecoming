@@ -57,3 +57,8 @@ Phím 1/2 dùng chuối trong cửa sổ bắt; gần ray giữ S để dừng c
 Mở http://127.0.0.1:5173/p61.html khi `pnpm dev` đang chạy. Mỗi link dùng seed 17; W/S tốc độ, A/D lái, 1/2 vật phẩm, Space nhảy khi nitro hiệu lực, F đón khách, Esc pause. Các ca traffic đặt người chơi ở lane trái để quan sát; có thể S chờ. Chơi lại để reset cùng tình huống. Đây là hub DEV, chưa nằm trong `pnpm preview`/production build. Bản thường chưa bật cơ chế P6.1 mới. Báo cáo: [P6.1](docs/PROTOTYPE_6_1_SCENARIOS_REVIEW.md).
 
 P6.1 cập nhật: hub hiện 19 ca; thêm công an/dân phòng chạy nhanh và lệch nhịp. Tàu qua toàn đường trong 4 s; hàng rong nhanh/dài hơn. Chỉ bản thử DEV; xem docs/P61_EVASION_TUNING_REVIEW.md.
+
+
+### P6.1 — bản chơi tích hợp
+Chơi từ đầu: http://127.0.0.1:5173/?seed=17 . Tàu chạy ngang4s, công an/dân phòng một/hai người với biến thể di chuyển, chuối vô hiệu nhóm, traffic va nhau/hazard, rào/hàng rong/cứu thương đã vào director. Event đầu1700m, có thể bỏ mẫu để giữ corridor an toàn. Bộ19fixture: /p61.html. Production: pnpm build rồi pnpm preview; bản thường có cơ chế mới, fixture vẫn DEV-only.
+QA shortcut DEV: ?scenario=integrated-checkpoint&seed=1 hoặc7, bắt đầu1450m với car4/xe máy dự phòng,1000tiền và chuối/nitro mẫu; đây không phải tài nguyên ván thường hay bằng chứng economy. Báo cáo: [P6.1 tích hợp](docs/PROTOTYPE_6_1_INTEGRATED_REVIEW.md).

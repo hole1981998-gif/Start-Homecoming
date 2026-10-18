@@ -86,6 +86,7 @@ export class ShopView {
       const price = item === 'nitro' ? itemBalance.nitroPrice : item === 'star' ? itemBalance.starPrice : item === 'banana' ? eventBalance.bananaPrice : itemBalance.grabPrice;
       const effect = item === 'nitro' ? 'Boost ' + itemBalance.boostSeconds + ' s; Space nhảy ' + itemBalance.jumpSeconds + ' s khi đang boost; không vượt xe cao' :
         item === 'star' ? 'Miễn damage/debuff ' + itemBalance.starSeconds + ' s; không bỏ qua event' :
+        item === 'banana' ? 'Trong cửa sổ cảnh báo: vô hiệu cả nhóm công an/dân phòng; họ đứng yên và chạm vào không bị bắt' :
         itemBalance.grabUses + ' lượt gọi khách Grab; F đón; thưởng khách ×' + itemBalance.grabMoneyMultiplier + ', không nhân thu nhập nền; còn khách chờ/không có chỗ thì không trừ lượt';
       return row(itemNames[item], effect + ' · ' + price + ' tiền · còn ' + (stock.items?.[item] ?? 0),
         button('Mua', 'data-power="' + item + '" aria-label="Mua ' + itemNames[item] + '"',

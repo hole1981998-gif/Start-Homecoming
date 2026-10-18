@@ -1,6 +1,6 @@
 import { balance, movingBalance } from './config';
 import { moveTrafficWithFuel } from './traffic-fuel';
-import { sweptContact, type Entity } from './world';
+import { advanceTraffic, sweptContact, type Entity } from './world';
 import { trafficTypes } from './vehicles';
 
 interface Track { car: Entity; vx: number; vz: number }
@@ -11,7 +11,23 @@ const overlap = (a: Entity, b: Entity) => Math.abs(a.x - b.x) <= (a.width + b.wi
   Math.abs(a.distance - b.distance) <= (a.length + b.length) / 2 + 1e-9;
 
 /** Experimental scenario-only event timeline. Stops/recomputes trajectories after every impact. */
-export function advanceInteractingTraffic(entities: Entity[], previous: Entity[], dt: number): void {
+export function advanceInteractingTraffic(entities: Entity[], previous: Entity[], dt: number): number[] {
+  const boundaries: number[] = [];
+  const cars = entities.filter(e => e.kind === 'traffic' && !e.consumed);
+  if (!cars.length) return boundaries;
+  // Most ticks have no nearby contact. Keep the established single-car fuel/coast path.
+  const near = (a: Entity, b: Entity) => Math.abs(a.distance-b.distance) <= (a.length+b.length)/2 + (Math.abs(a.speed)+Math.abs(b.speed))*dt + 1e-6 &&
+    Math.abs(a.x-b.x) <= (a.width+b.width)/2;
+  let interacting = false;
+  for (let i=0;i<cars.length && !interacting;i++) {
+    const a=cars[i];
+    if(a.crossMotion) { interacting=true; break; }
+    for(let j=i+1;j<cars.length;j++) if(near(a,cars[j])) { interacting=true; break; }
+    if(interacting) break;
+    for(const b of entities) if(!b.consumed && (b.kind==='pothole'||b.kind==='jam'||b.kind==='train'||b.kind==='accident'||b.kind==='broken') &&
+      (b.crossMotion || near(a,b))) { interacting=true; break; }
+  }
+  if (!interacting) { advanceTraffic(entities,dt); return boundaries; }
   const tracks: Track[] = [], pairs = new Set<string>();
   const holes = entities.filter(e => !e.consumed && e.kind === 'pothole');
   const blockers = entities.filter(e => !e.consumed && ['jam', 'train', 'accident', 'broken'].includes(e.kind));
@@ -27,10 +43,9 @@ export function advanceInteractingTraffic(entities: Entity[], previous: Entity[]
       if (car.wreckAge >= balance.trafficWreckSeconds) car.consumed = true;
       tracks.push({ car, vx: 0, vz: 0 });
     } else {
-      const from = car.distance;
-      moveTrafficWithFuel(car, entities, dt);
-      const vz = (car.distance - from) / dt;
-      car.distance = from;
+      const proposed = { ...car };
+      moveTrafficWithFuel(proposed, entities, dt, old.x + dx);
+      const vz = (proposed.distance - car.distance) / dt;
       tracks.push({ car, vx: dx / dt, vz });
     }
     for (const id of car.trafficPairContacts ?? []) pairs.add(pairKey(car.id, id));
@@ -43,7 +58,7 @@ export function advanceInteractingTraffic(entities: Entity[], previous: Entity[]
   let time = 0;
   const stop = (track: Track) => {
     track.vx = 0; track.vz = 0; track.car.speed = 0; track.car.baseSpeed = 0;
-    track.car.crossMotion = undefined; track.car.trafficStoppedByCollision = true;
+    track.car.crossMotion = undefined; track.car.trafficStoppedByCollision = true; track.car.trafficMotion = 'stopped';
   };
   const wreck = (track: Track, playerSource = false) => {
     const car = track.car;
@@ -105,13 +120,16 @@ export function advanceInteractingTraffic(entities: Entity[], previous: Entity[]
     for (const track of tracks) {
       const car = track.car;
       if (car.consumed) continue;
-      car.x += track.vx * delta; car.distance += track.vz * delta;
+      const from = car.distance, nextX = car.x + track.vx * delta;
+      if (!car.wrecked && !car.trafficStoppedByCollision && delta > 0) moveTrafficWithFuel(car, entities, delta, nextX);
+      car.x = nextX; car.distance = from + track.vz * delta;
       if (!car.wrecked) {
         const count = holes.filter(p => active.has(patchKey(car.id, p.id))).length;
         car.hp = Math.max(0, (car.hp ?? trafficTypes[car.trafficKind ?? 'car4'].hp) - count * balance.potholeDamagePerSecond * delta);
       }
     }
     time += delta;
+    if (events.length && time > 1e-9 && time < dt - 1e-9) boundaries.push(time);
     for (const track of tracks) if ((track.car.hp ?? 0) <= 1e-9) wreck(track);
     for (const event of events.filter(e => Math.abs(e.t - delta) <= 1e-10)) {
       const a = event.a;
@@ -161,4 +179,5 @@ export function advanceInteractingTraffic(entities: Entity[], previous: Entity[]
       car.speed = (car.baseSpeed ?? balance.trafficSpeed) * (inWater ? balance.trafficWaterSpeedFactor : 1);
     }
   }
+  return boundaries;
 }

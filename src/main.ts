@@ -66,7 +66,7 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   screen = view; modal.hidden = false; clearInput();
   testHome.hidden = !state.world.prototype;
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.prototype ? 'P6.1 · THỬ TÌNH HUỐNG · CHƯA TÍCH HỢP' : 'PROTOTYPE 06 · SỰ KIỆN · CHUỐI · TÀU');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.prototype ? 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P6.1 · BẢN CHƠI TÍCH HỢP');
   el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';

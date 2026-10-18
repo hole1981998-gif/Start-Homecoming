@@ -27,9 +27,9 @@ function tickActors(entities: Entity[], dt = balance.fixedStep, time = 0): void 
   advanceCrossMotion(entities, time + dt);
   advanceInteractingTraffic(entities, previous, dt);
 }
-it('new motion/interactions are opt-in fixtures; normal-route spawn and fuel/economy config remain unchanged', () => {
+it('normal route enables approved motion/interactions while isolated fixtures keep independent streams', () => {
   const run = seconds({ ...initialRun(17), phase: 'running' }, 10);
-  expect(run.world.experimentalTraffic).toBeUndefined(); expect(run.world.prototype).toBeUndefined();
+  expect(run.world.experimentalTraffic).toBe(true); expect(run.world.integrated).toBe(true); expect(run.world.prototype).toBeUndefined();
   expect(run.world.entities.some(e => e.crossMotion || e.groupId)).toBe(false);
   for (const [name] of movingScenarios) {
     const fixture = ready(name); expect(fixture.world.prototype?.version).toBe(movingVersion);
