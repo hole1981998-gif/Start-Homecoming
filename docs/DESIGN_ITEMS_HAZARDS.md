@@ -69,4 +69,4 @@ Chuối vào hai ô 1/2, bán 80 TẠM, một món/shop. Chỉ tiêu một món 
 
 
 ## P6.1: sửa chuối và hazard chuyển động theo chủ dự án
-Tàu và từng officer có chuyển động/hitbox ngang thật. Chuối làm NPC trúng đứng yên và vô hại, vẫn hiện tại vị trí đó; không consumed cả event như P6. Một/đôi khi hai officer: mặc định đề xuất một chuối cho một mục tiêu, người khác còn hoạt động. Traffic có thể va hazard và va nhau gây HP giảm/hỏng/tai nạn, không tự biến xác thường thành collider secret. Toàn bộ chi tiết và gate ván tích hợp: [DESIGN_MOVING_EVENTS_TRAFFIC.md](DESIGN_MOVING_EVENTS_TRAFFIC.md). Chưa sửa runtime.
+Tàu và từng officer có chuyển động/hitbox ngang thật. **ĐÃ CHỐT:** một chuối vô hiệu toàn bộ nhóm mục tiêu; nhóm hai officer thì cả hai đứng yên và vô hại khi người chơi chạm, chỉ tiêu một món. Giữ NPC tại vị trí hiện tại, không consumed/xóa cả event như P6; không tác động nhóm khác. Traffic có thể va hazard và va nhau gây HP giảm/hỏng/tai nạn, không tự biến xác thường thành collider secret. Toàn bộ chi tiết và gate ván tích hợp: [DESIGN_MOVING_EVENTS_TRAFFIC.md](DESIGN_MOVING_EVENTS_TRAFFIC.md). Chưa sửa runtime.
