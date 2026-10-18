@@ -1,5 +1,7 @@
 # Đường Về Nhà — Technical Specification
 
+> **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.
+
 ## Ràng buộc
 
 Three.js + TypeScript (strict) + Vite; trình duyệt desktop, canvas dọc 9:16 căn giữa, letterbox khi cần. WASD lái liên tục; lane chỉ là đơn vị thiết kế. Tạo model low-poly bằng geometry/material trong code. Không mặc định thêm backend, tài khoản, vật lý nặng hay dịch vụ trả phí. Quy tắc thiết kế ở GAME_DESIGN.md; toàn bộ số cân bằng ở BALANCE_CONFIG.md là tạm.
@@ -183,3 +185,7 @@ Khách Grab được gọi chỉ xuất hiện ngẫu nhiên ở hai mép ngoài
 
 ## P6: timeline event và thay xe
 EntityKind có police/militia/jam/accident/train/broken; eventAt dùng activeSeconds. Stream event seed/branch riêng không tiêu hazard RNG; director bỏ vùng shop/junction/Grab, để làn mở và corridor. Fork retire event cũ theo cùng tuyến render, event nhánh mới có ID/seed khác. Simulation phân đoạn fixed tick tại biên đóng/mở tàu và biên clearance; sweep toàn footprint trước sort theo t; tàu ưu tiên tie, không có pickup muộn cứu terminal. Fall miễn damage/debuff nhưng không bỏ terminal tàu. Kết ván persistence nhận reason train/police, ghi một lần/runId. Tịch thu khác hỏng xe: khi tự thay thành công bỏ instance tịch thu khỏi kho. Chuối chỉ tiêu khi có officer đã cảnh báo trong tầm phản ứng, không tiêu ngoài tầm/pause/ngã/kết ván. P7 còn phải triển khai chuỗi secret với chứng cứ bay qua và hạ cánh; P6 chưa phát badge.
+
+
+## P6.1: chuyển động ngang và va chạm traffic (chưa code)
+Theo [DESIGN_MOVING_EVENTS_TRAFFIC.md](DESIGN_MOVING_EVENTS_TRAFFIC.md): quỹ đạo ngang seeded thuộc simulation, renderer/hitbox cùng pose; sweep chuyển động hai phía và toàn footprint. Tàu hữu hạn ra khỏi từng lane theo đuôi thật, không tắt theo timer. Officer có collider từng NPC và trạng thái bị chuối đứng yên/không bắt; tách trạng thái này khỏi consumed/cleanup. Traffic–traffic dùng pair ID ổn định, damage hai phía theo timeline, HP=0/idempotent sinh khách; không tự coi mọi xác xe là tai nạn secret/instant-destroy. Gate gồm fixture lẫn ván chơi tích hợp, pause/rẽ/cleanup và nhiều render FPS.

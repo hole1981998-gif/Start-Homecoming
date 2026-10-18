@@ -1,5 +1,7 @@
 # Đường Về Nhà — Roadmap
 
+> **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.
+
 Roadmap là kế hoạch đề xuất, không phải báo cáo đã triển khai. Không có mốc thời gian cam kết. Mỗi feature dùng một branch và PR riêng theo AGENTS.md; milestone có thể gồm nhiều PR nhỏ. Tất cả số trong BALANCE_CONFIG.md cần playtest.
 
 | Mốc | Phạm vi | Điều kiện nghiệm thu |
@@ -17,7 +19,7 @@ Roadmap là kế hoạch đề xuất, không phải báo cáo đã triển khai
 | 5.1 — Vật phẩm tăng lực | Kho hai ô 1/2, nitro boost/nhảy, invincible star | Timer/pause/restart đúng; star không bỏ trigger event; nhảy/landing có swept collision |
 | 5.2 — Grab | Gói nhiều lượt sinh khách đặc biệt, thu nhập cao hơn khách thường | Spawn an toàn/idempotent; không trừ lượt khi thất bại; thưởng chỉ từ khách thực |
 | 6 — Nguy hiểm đặc biệt | Công an/dân phòng, kẹt xe, xe chết máy, tai nạn, tàu và chuối; tích hợp nitro/star từ P5.1 | Tiền phạt cố định; thiếu tiền đúng chính sách; tàu không xuyên collider; thay xe không chết dây chuyền |
-| 6.1 — Vật cản và chuyển lane | Rào/cây/xe ngang tối đa hai lane gây ngã; hàng rong và cứu thương đổi lane | Không instant lose riêng; lối thoát đủ xe dài/rộng; cue/swept công bằng |
+| 6.1 — Vật cản chuyển động và tai nạn phát sinh | Tàu chạy ngang/hitbox theo thân; officer 1–2 NPC qua lại, chuối làm đứng yên/vô hại; traffic va nhau/hazard gây hỏng; giữ rào/cây/xe ngang và hàng rong/cứu thương | Sweep hai phía, lối né công bằng; hỏng/sinh khách một lần; bản chơi tích hợp cùng shop/đồ/khách/giao lộ, không chỉ fixture |
 | 6.2 — Lực môi trường | Gió/nước đẩy ngang làm khó lái | Lực có giới hạn; crash/star miễn debuff; pause/restart không tích lực |
 | 6.3 — Đồ rơi từ traffic | Tải/container làm rơi vật lăn | Source/event seeded, không spawn dưới bánh, giới hạn pooling/cleanup, không chép qua nhánh |
 | 7 — Kết ván đặc biệt | Chuỗi secret 4 bước, badge, kết quả và leaderboard local | Đúng chuỗi thì kết secret trước HP=0; sai thứ tự không kích hoạt; ghi điểm đúng một lần |
@@ -148,3 +150,7 @@ Khách Grab được gọi chỉ xuất hiện ngẫu nhiên ở hai mép ngoài
 
 ## P6 — bản thử sau khi duyệt P5.2
 Đã có event công an/dân phòng, chuối, kẹt hai lane, xe chết máy, tai nạn và tàu; phạt cố định, tịch thu/thay xe, star vẫn trigger event, phanh chờ/nitro + Space qua tàu. Số thử chưa khóa cân bằng; chưa làm secret P7. Bước tiếp theo P6.1 (barrier và chướng ngại chuyển lane), rồi P6.2 lực ngang/P6.3 đồ rơi trước P7/P8; giữ UI/art ở mốc 9, SFX/VFX hoàn chỉnh mốc 10. Báo cáo [PROTOTYPE_6_REVIEW.md](PROTOTYPE_6_REVIEW.md); cần chủ dự án chơi và phản hồi, chưa merge.
+
+
+## Bổ sung phạm vi P6.1 theo feedback mới
+Chủ dự án chưa nghiệm thu tổng thể P6 từ các ca công an/tàu giả lập. P6.1 sửa chuyển động/hitbox tàu và officer, chuối làm đứng yên/vô hại, đồng thời bổ sung traffic va nhau/hazard gây tai nạn/hỏng xe thực. Có thể chia A/B trong cùng milestone để review; chưa gọi hoàn tất nếu thiếu bản chơi tích hợp và playtest tuyến có đủ hệ thống. Đặc tả: [DESIGN_MOVING_EVENTS_TRAFFIC.md](DESIGN_MOVING_EVENTS_TRAFFIC.md). Chưa đổi code trong lượt ghi nhận này; P8 mới tuning mật độ/curve/economy, P9 UI/art và P10 SFX/VFX giữ nguyên.

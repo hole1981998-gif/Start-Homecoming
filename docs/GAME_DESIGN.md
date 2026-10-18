@@ -1,5 +1,7 @@
 # Đường Về Nhà — Game Design
 
+> **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.
+
 ## Trạng thái và nguồn quyết định
 
 Tài liệu tổng hợp yêu cầu của chủ dự án trong hội thoại “Start coding with Codex” và yêu cầu bàn giao ngày 17/10/2026. Các câu trả lời cũ của assistant chỉ còn tham chiếu, không có nội dung để kiểm chứng; không coi lời khuyên bị thiếu là quyết định đã chốt.
@@ -240,3 +242,7 @@ Thông số TẠM: công an 300, dân phòng 100, chuối 80 (một món/shop), 
 Theo mặc định bảo thủ trong design: thiếu tiền công an lấy tới 0, tịch thu instance hiện tại, xe dự phòng còn 50% lượng xăng đang có rồi tự chuyển; đủ tiền không giảm xăng dự phòng. Xe tịch thu được bỏ khỏi kho khi đã chuyển thành công, giải phóng slot; không có xe hợp lệ thì kết ván. Dân phòng chỉ lấy tới 0. Tai nạn HP=0 rồi thay xe/thua; tàu luôn thua dù có star/xe dự phòng. Event idempotent, ưu tiên tàu khi va chạm trùng thời điểm.
 Xe chết máy tạo một NPC thực để F đón, không tự cộng khách/tiền/điểm; TẠM 25% thêm một chuối vào ô trống, kho đầy thì không ghi đè. Kẹt xe/tai nạn hiện chỉ che hai lane và để khoảng đủ rộng cho container; chưa sinh kẹt kín ba lane. P6.1–P6.3 theo roadmap làm barrier/chuyển lane, lực ngang và đồ rơi; P7 mới làm chuỗi secret/badge, chưa tự ghi thành tích nhảy tàu hay secret ở P6.
 Báo cáo kiểm tra và giới hạn: [PROTOTYPE_6_REVIEW.md](PROTOTYPE_6_REVIEW.md). Các trạng thái “P6 chưa làm” phía trên là lịch sử.
+
+
+## Chốt design P6.1 sau feedback P6
+Tàu chạy ngang hữu hạn, hitbox đi cùng thân/đuôi; bỏ cơ chế chiếm ba lane bằng timer bật/tắt. Công an/dân phòng là một NPC, đôi khi hai, đi qua lại nhanh, chỉ bắt khi va thật. Chuối làm NPC trúng đứng yên và vô hại khi người chơi chạm. Traffic va hazard và va nhau có thể tạo tai nạn/hỏng xe thực; không chỉ accident sinh sẵn. Các số tốc độ/tần suất chưa khóa, không tự tăng khó. Chi tiết đã chốt/đề xuất và bản chơi tích hợp bắt buộc: [DESIGN_MOVING_EVENTS_TRAFFIC.md](DESIGN_MOVING_EVENTS_TRAFFIC.md). Các dòng P6 ở trên mô tả bản code lịch sử, chưa đáp ứng đủ thiết kế này.

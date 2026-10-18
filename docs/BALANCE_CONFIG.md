@@ -1,5 +1,7 @@
 # Đường Về Nhà — Balance Config
 
+> **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.
+
 ## Quy ước
 
 **TẤT CẢ con số dưới đây là TẠM, chưa được playtest**, trừ các ràng buộc đã chốt: 3 lane, khung 9:16, tối đa 2 xe, chiều rộng xe < 1,5 lane, xe secret 4 chỗ có 1 tài xế + 3 khách, chuỗi secret 4 bước. Không coi bảng này là code config đã chạy. Dùng một nguồn config TypeScript có schema/range validation khi triển khai; không rải magic number trong systems. Đơn vị: m, s, m/s, L (xăng quy ước), HP, đồng game. Đây không phải mô phỏng chi phí hay luật giao thông thực tế.
@@ -230,3 +232,7 @@ Khách Grab được gọi chỉ xuất hiện ngẫu nhiên ở hai mép ngoài
 
 ## P6 — config thử, chưa cân bằng
 Nguồn runtime: eventBalance trong src/config.ts, config version p6-special-events-1. Công an 300, dân phòng 100; thiếu tiền công an giữ nửa xăng dự phòng đang có, dân phòng lấy tới 0. Chuối giá 80/món, 1 món/shop; cửa sổ 3,5 s có xét footprint xe (tầm tối thiểu 45 m). Event đầu 1.700 m, gap 1.250 m; director có thể bỏ mẫu cạnh shop/junction/Grab; corridor 110 m. Event đầu sau shop 1.200 m để không phá nhịp mua xe đầu. Tàu đóng 8 s/mở 8 s, clearance 1,8 m; S gần ray phanh tới 0. Xe chết máy 1 khách cần F, 25% thêm chuối nếu ô trống; không ghi đè vật phẩm. Chưa đổi thu nhập, giá xe, fuel/HP hay curve theo distance. Bằng chứng/giới hạn và đề xuất tuning: [PROTOTYPE_6_REVIEW.md](PROTOTYPE_6_REVIEW.md).
+
+
+## P6.1: thay cấu hình chiếm lane (chưa code/chưa cân bằng)
+Chu kỳ tàu 8/8 s của P6 không phải design tàu chạy ngang: P6.1 cần cấu hình độ dài đoàn, tốc độ ngang, hướng, khoảng cách/cue; thời gian chiếm lane suy ra từ quỹ đạo và kích thước. Officer cần width/length một người, số lượng một/đôi khi hai, tốc độ/phase đi qua lại và trạng thái trúng chuối; chưa chốt số hay thời gian hồi phục. Không đổi tiền phạt/giá, không mặc định nâng mật độ hoặc damage traffic ở lượt ghi design này. Xem DESIGN_MOVING_EVENTS_TRAFFIC.md; tuning curve và economy giữ tại P8.

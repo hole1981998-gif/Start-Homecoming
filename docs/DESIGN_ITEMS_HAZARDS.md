@@ -1,5 +1,7 @@
 # Vật phẩm và chướng ngại mở rộng — feedback 18/10/2026
 
+> **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.
+
 ## Trạng thái và thứ tự ưu tiên
 
 **ĐÃ CHỐT theo chủ dự án:** bỏ gói xăng/bộ sửa mang theo. Shop vẫn bán xe, nâng cấp và tiếp tế xăng/độ bền ngay tại chỗ; không bán hai gói hồi tài nguyên. Các pickup xăng/HP trên đường hiện có vẫn hồi trực tiếp, không đi vào kho. Chưa có yêu cầu bỏ các pickup đó.
@@ -64,3 +66,7 @@ Khách Grab được gọi chỉ xuất hiện ngẫu nhiên ở hai mép ngoài
 
 ## P6 — event và chuối đã có bản thử
 Chuối vào hai ô 1/2, bán 80 TẠM, một món/shop. Chỉ tiêu một món để vô hiệu một công an/dân phòng trong cửa sổ cảnh báo; ngoài tầm, pause, ngã hoặc kết ván không mất món. Star vẫn bị phạt/tịch thu, tai nạn hỏng xe và tàu kết ván. Tàu có collider sweep, phanh S dừng chờ hoặc boost rồi Space; nitro không tự nhảy. Kẹt hai lane gây ngã; xe chết máy sinh một NPC cần F và TẠM 25% chuối nếu ô trống. P6.1–3 chướng ngại mở rộng và P7 secret vẫn để bước sau. Hình/cue primitive, UI/art và SFX/VFX đầy đủ giữ đúng phase. Chi tiết luật triển khai trong GAME_DESIGN.md, số ở BALANCE_CONFIG.md; kết quả [PROTOTYPE_6_REVIEW.md](PROTOTYPE_6_REVIEW.md).
+
+
+## P6.1: sửa chuối và hazard chuyển động theo chủ dự án
+Tàu và từng officer có chuyển động/hitbox ngang thật. Chuối làm NPC trúng đứng yên và vô hại, vẫn hiện tại vị trí đó; không consumed cả event như P6. Một/đôi khi hai officer: mặc định đề xuất một chuối cho một mục tiêu, người khác còn hoạt động. Traffic có thể va hazard và va nhau gây HP giảm/hỏng/tai nạn, không tự biến xác thường thành collider secret. Toàn bộ chi tiết và gate ván tích hợp: [DESIGN_MOVING_EVENTS_TRAFFIC.md](DESIGN_MOVING_EVENTS_TRAFFIC.md). Chưa sửa runtime.

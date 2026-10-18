@@ -1,0 +1,36 @@
+# P6.1 — vật chắn chuyển động và tai nạn giao thông phát sinh
+
+## Trạng thái
+**ĐÃ CHỐT theo feedback chủ dự án 18/10/2026; CHƯA TRIỂN KHAI.** Chủ dự án chưa đánh giá được tổng thể từ các fixture công an/tàu riêng lẻ. P6 hiện có khối chắn bật/tắt là giới hạn implementation, không phải design đúng. Cập nhật này dành cho P6.1, chưa đổi code, giá hay độ khó.
+
+## Tàu chạy ngang đường
+- Tàu là đoàn vật thể có chiều dài hữu hạn, chạy liên tục từ phải qua trái hoặc trái qua phải. Đầu tàu tiến vào, các toa đi ngang, đuôi tàu rời đường; chuyển động primitive đủ đọc ở prototype, không chờ art production.
+- Hitbox bám vị trí/hình khối thật của đoàn tàu trong simulation. Lane bị chiếm khi phần thân tàu đi vào lane đó, thông khi đuôi tàu thực sự đi khỏi. Tàu dài có thể che cả ba lane một lúc; không dùng timer để tắt đồng loạt cả ba collider khi đuôi vẫn còn trên đường, không làm tàu biến mất ngay tại mặt đường.
+- Chạm thân tàu vẫn kết ván theo luật hiện có, kể cả star/dự phòng. Nitro + Space chỉ vượt khi xe thật sự đủ cao và toàn bộ footprint qua thân tàu, hạ cánh an toàn. Người chơi có thể né đoạn chưa bị chiếm/đã thông, chọn nhánh hợp lệ hoặc phanh chờ; director không tạo màn bắt buộc có nitro.
+- **CHƯA CHỐT số:** tốc độ ngang, độ dài/số toa, tần suất và khoảng giữa các đoàn. Chu kỳ P6 đóng 8 s/mở 8 s chỉ là số của placeholder cũ, không tiếp tục coi là quy tắc chiếm lane P6.1.
+
+## Công an/dân phòng di chuyển
+- Mỗi NPC có footprint tương đương một người, đôi khi nhóm có hai NPC. Họ đi ngang qua lại giữa các lane khá nhanh, khiến người chơi phải chủ động né hoặc dùng chuối; không phải một vùng bắt phủ cả ba lane.
+- Va chạm thật với **NPC còn khả năng bắt** mới áp dụng phạt/tịch thu theo loại và chính sách đủ/thiếu tiền đã có. Đi qua vị trí event hoặc băng qua cùng mốc quãng đường nhưng không chạm NPC thì không bị bắt. Star giữ luật không vô hiệu event khi thực sự chạm NPC đang bắt được.
+- Chuối trúng NPC làm NPC đứng yên và mất khả năng bắt; người chơi chạy qua chạm NPC đã trúng chuối không bị phạt, tịch thu hay tác động xấu từ NPC đó. Giữ NPC tại vị trí bị trúng để người chơi nhìn được hậu quả, không xóa cả nhóm event khỏi đường như placeholder P6.
+- **ĐỀ XUẤT mặc định:** một chuối tác động một NPC mục tiêu; trong nhóm hai người, người còn lại vẫn hoạt động. NPC đã trúng chuối giữ trạng thái vô hại tới khi event được thu hồi, tránh tái kích hoạt ngay dưới xe. Thời lượng nếu muốn hồi phục, cách chọn mục tiêu/đường ném, xác suất nhóm hai và tốc độ chính xác chưa được chủ dự án chốt. Không tự biến chuối thành miễn bắt với mọi NPC.
+
+## Traffic tự tương tác và gây tai nạn
+- **ĐÃ CHỐT về cơ chế:** xe chướng ngại tương tác với hazard khác và va lẫn nhau. Khi giao thông đông ở độ khó cao, các tương tác có thể gây tai nạn, giảm HP rồi hỏng xe; không chỉ sinh một khối accident có sẵn để người chơi chạm.
+- Dùng đặc tính riêng của từng loại xe đã có (HP/sức chịu va chạm/kích thước), xử lý hậu quả hai phía khi va nhau. Chạm hazard áp dụng các phần luật/tài nguyên tương ứng, ví dụ ổ gà giảm HP theo thời gian; không mặc định mọi lần chạm đều hỏng tức thì.
+- Phân biệt **cơ chế va chạm** với **tuning tần suất**: P6.1 bổ sung tương tác, P8 mới cân mật độ/curve và xác suất tai nạn theo quãng đường. Không tăng đông xe hay damage ngầm chỉ để dễ thấy tai nạn.
+- Xe HP=0 chuyển hỏng đúng một lần, không nhân khách/loot ở mỗi frame hay sau cleanup. Giữ luật khách từ xe bị người chơi húc hỏng không nhận lên xe người chơi; tai nạn môi trường/traffic–traffic dùng luật khách môi trường hiện có. Nếu có chuỗi va chạm, lưu nguồn gây hỏng rõ ràng; cách quy trách nhiệm gián tiếp còn là đề xuất triển khai cần ghi khi làm.
+- **CHƯA CHỐT:** mọi xác xe có trở thành event accident làm xe người chơi HP=0 hay chỉ là xác/vật cản thường. Mặc định bảo thủ giữ tách riêng: hỏng traffic không tự tạo collider secret hoặc instant-destroy mới. P7 chỉ tính đúng loại vụ tai nạn có ID/điều kiện được định nghĩa cho secret; không vô tình đổi luật húc phá đã duyệt.
+
+## Implementation đề xuất và gate P6.1
+1. Tọa độ/quỹ đạo ngang do fixed-step simulation quản lý, RNG seeded cho hướng/tốc độ/phase; renderer và cue đọc cùng pose. Pause/shop không làm NPC/tàu chạy tiếp. Di chuyển qua lại liên tục, không teleport tại mép đường; rẽ giữ dữ liệu nhánh và retire cảnh cũ như hiện có.
+2. Sweep chuyển động tương đối cả hai phía cho player–tàu, player–officer, traffic–traffic và traffic–hazard. Timestamp/tie-break ổn định, contact/pair ID chống damage/phạt lặp do đứng chồng nhau; xử lý hai xe đồng thời, không phụ thuộc thứ tự mảng. Không cộng hậu quả theo render FPS.
+3. Director xét cả quỹ đạo trong thời gian người chơi tới, bề rộng/chiều dài xe, tốc độ khép khoảng cách, quãng phanh và QTE. Nhóm hai NPC vẫn cần cửa sổ né công bằng; traffic tự tai nạn không được sinh vật cản ngay dưới xe người chơi mà không có tín hiệu/khoảng phản ứng hợp lý. Không bảo đảm an toàn chỉ bằng đếm lane trống ở thời điểm spawn.
+4. Bổ sung fixture hướng trái/phải, một/hai officer, chuối trúng một trong hai, tàu đầu/giữa/đuôi, chạm khi nhảy/hạ cánh, hai traffic va nhau/hazard/chuỗi hỏng. Chạy nhiều seed và đủ catalog xe; kiểm tra 30/60/144 FPS, pause, restart, rẽ/cleanup/idempotence.
+5. **Bắt buộc bản chơi tích hợp:** ván bình thường có shop, vật phẩm, hành khách, giao lộ, tài nguyên và các event mới cùng hoạt động. Fixture chỉ hỗ trợ tái hiện bug, không thay bản này. Bàn giao link ván thường và fixture, ghi seed/config cùng playtest tuyến dài có tương tác thật; tách rõ kết quả fixture và nhận xét tổng thể.
+6. P6.1 có thể chia PR nhỏ trong cùng milestone: A — sửa tàu/officer/chuối và chuyển động ngang chung; B — traffic va nhau/hazard, tai nạn phát sinh và bản chơi tích hợp. Không gọi milestone xong khi mới có A hoặc khi chỉ test tình huống đặt sẵn. Rào/cây/xe chắn và hàng rong/cứu thương theo scope P6.1 cũ vẫn được giữ, không tự xóa khỏi roadmap.
+
+Visual chỉ cần primitive chuyển động rõ và khớp collider để kiểm tra gameplay. UI/art đầy đủ ở P9, SFX/VFX hoàn chỉnh P10; đây không phải lý do hoãn chuyển động cơ học hoặc cue cần để né ở P6.1.
+
+## Kiểm tra lượt cập nhật tài liệu
+Branch local codex/p6-1-moving-events-design, base b75f447; chỉ sửa sáu file design, không sửa runtime/test/config TypeScript hay sources/. Đã chạy pnpm lint, pnpm typecheck, pnpm test (142 tests/23 files), pnpm build: tất cả exit 0; build còn cảnh báo chunk 577,88 kB. Đây chỉ là kiểm tra hồi quy bản code P6 hiện có, không chứng minh chuyển động P6.1 đã chạy. Manual gameplay mới: chưa chạy vì chưa triển khai các cơ chế mới. Git diff --check pass. Repo không có remote, chưa push/PR/CI; chưa merge, chờ chơi thử khi P6.1 có bản triển khai.
