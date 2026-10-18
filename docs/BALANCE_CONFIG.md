@@ -245,3 +245,5 @@ Các số mới đều TẠM: tàu dài ngang 24 m, sâu 2,8 m, tốc độ ngan
 
 ## P6.1 tuning tình huống — feedback 18/10/2026
 Version `p61-scenarios-2`, chỉ DEV, chưa tích hợp. Tàu chạy từ đầu vào tới đuôi rời toàn mặt đường trong 4 s (chủ dự án xác nhận), speed = (24 + 9,6)/4 = 8,4 m/s, giữ kích thước. Thời gian ở mỗi lane suy ra từ hình học, không timer tắt collider. Thêm 4 fixture công an/dân phòng: chạy nhanh 6,3 m/s; lệch nhịp 5,6 và 3,8 m/s, cách dọc 3 m, phạm vi ngang [-4,35;1,6] và [-1,6;4,35] m. Giữ nhóm/chuối/phạt như cũ. Hàng rong tăng 2,2→3,4 m/s, dài 1,5→2,1 m, rộng 0,8→1,1 m. Các số mới TẠM để chủ dự án chơi thử, chưa điều chỉnh director/difficulty curve/economy. Hub hiện có 19 ca. Báo cáo: [P61_EVASION_TUNING_REVIEW.md](P61_EVASION_TUNING_REVIEW.md).
+
+Feedback kế tiếp: P6.1 scenario version3 tăng bề rộng ngang hàng rong 1,1→1,8 m (TẠM), giữ chiều dài2,1m/tốc độ3,4m/s. Render và collider cùng đọc footprint; chỉ fixture DEV, chưa tích hợp.
