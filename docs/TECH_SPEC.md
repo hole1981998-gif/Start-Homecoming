@@ -179,3 +179,7 @@ P5.2: grab.ts sinh NPC đồng bộ với ID runId/branch/sequence, không dùng
 
 ## Grab chờ ở ven đường — cập nhật theo chủ dự án
 Khách Grab được gọi chỉ xuất hiện ngẫu nhiên ở hai mép ngoài mặt đường, không ở tâm hay trong lane. Bên ưu tiên lấy từ seed/branch/sequence riêng, không ưu tiên gần xe và không tiêu hazard RNG. Nếu bên đó không an toàn thì thử bên kia; cả hai không hợp lệ thì giữ lượt. Vị trí đứng tính từ nửa bề rộng đường + nửa collider NPC; kiểm tra đường tiếp cận và hazard theo vị trí xe có thể chạy sát lề, không lấy tâm NPC ngoài đường làm tâm xe. Tầm F giữ nguyên; có test đón cho cả 8 loại xe. Không đổi giá/thưởng/lượt hay layout/art. Xem [GRAB_ROADSIDE_REVIEW.md](GRAB_ROADSIDE_REVIEW.md).
+
+
+## P6: timeline event và thay xe
+EntityKind có police/militia/jam/accident/train/broken; eventAt dùng activeSeconds. Stream event seed/branch riêng không tiêu hazard RNG; director bỏ vùng shop/junction/Grab, để làn mở và corridor. Fork retire event cũ theo cùng tuyến render, event nhánh mới có ID/seed khác. Simulation phân đoạn fixed tick tại biên đóng/mở tàu và biên clearance; sweep toàn footprint trước sort theo t; tàu ưu tiên tie, không có pickup muộn cứu terminal. Fall miễn damage/debuff nhưng không bỏ terminal tàu. Kết ván persistence nhận reason train/police, ghi một lần/runId. Tịch thu khác hỏng xe: khi tự thay thành công bỏ instance tịch thu khỏi kho. Chuối chỉ tiêu khi có officer đã cảnh báo trong tầm phản ứng, không tiêu ngoài tầm/pause/ngã/kết ván. P7 còn phải triển khai chuỗi secret với chứng cứ bay qua và hạ cánh; P6 chưa phát badge.

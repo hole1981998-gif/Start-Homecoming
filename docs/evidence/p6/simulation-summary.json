@@ -1,0 +1,90 @@
+{
+  "revision": {
+    "branch": "codex/p6-special-events",
+    "base": "4cf9808",
+    "sourceSha256": "7c503a935da6ca0a846c6e0b277266b6984c6acbcaf6101ebfb2130349381e36"
+  },
+  "config": "p6-special-events-1",
+  "environment": {
+    "os": "Windows",
+    "node": "v24.19.0",
+    "pnpm": "11.25.0"
+  },
+  "matrix": {
+    "seeds": "1–30",
+    "vehicles": 8,
+    "eventTypes": 6,
+    "cases": 1440,
+    "bananaEscapes": 480,
+    "trainStops": 240,
+    "accidentReplacements": 240,
+    "terminalTrains": 240,
+    "scope": "Controlled fixture responses, not natural-route survival probability"
+  },
+  "manual": {
+    "browser": "Codex IAB",
+    "seed": 17,
+    "frameSample": {
+      "frames": 240,
+      "fps": 60.003,
+      "frameP95Ms": 16.8,
+      "meanRenderCpuMs": 1.382
+    },
+    "note": "Short sample; not all devices or long-run performance"
+  },
+  "gates": {
+    "lint": 0,
+    "typecheck": 0,
+    "tests": {
+      "exitCode": 0,
+      "files": 23,
+      "tests": 142
+    },
+    "build": {
+      "exitCode": 0,
+      "jsKB": 577.88,
+      "warning": "chunk >500kB"
+    },
+    "simulate": {
+      "exitCode": 0,
+      "files": 5,
+      "tests": 55
+    }
+  },
+  "baseline": {
+    "specialEventsDisabled": true,
+    "cruise": {
+      "afforded": 30,
+      "median": 85.7167,
+      "deaths": 9
+    },
+    "fast": {
+      "afforded": 30,
+      "median": 60.1833,
+      "deaths": 13
+    },
+    "slow": {
+      "afforded": 30,
+      "median": 149.7833,
+      "deaths": 2
+    }
+  },
+  "purchase": {
+    "seeds": 30,
+    "cruise": {
+      "purchased": 29,
+      "median": 85.7167,
+      "missed": [
+        115
+      ]
+    },
+    "fast": {
+      "purchased": 28,
+      "median": 60.1833,
+      "missed": [
+        102,
+        126
+      ]
+    }
+  }
+}

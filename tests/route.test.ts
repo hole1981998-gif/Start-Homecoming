@@ -91,7 +91,8 @@ describe('P3B junction decisions', () => {
         at >= distance + balance.junctionClearance && at <= distance + balance.worldLookAhead - 10);
     })!;
     const crossing = junction(seed, junctionIndex), decisionDistance = crossing.distance - 10;
-    const world = fillWorld(initialWorld(seed), decisionDistance);
+    // Isolate ordinary branch hazards from the independent P6 event corridor.
+    const world = fillWorld({ ...initialWorld(seed), nextSpecial: 1e9 }, decisionDistance);
     const old = world.entities.find(e => e.id.startsWith('hazard-') &&
       e.distance >= crossing.distance + balance.junctionClearance)!;
     expect(old).toBeDefined();

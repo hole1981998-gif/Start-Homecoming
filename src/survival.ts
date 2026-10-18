@@ -1,3 +1,5 @@
+import { eventBalance } from './config';
+import { isSpecial, trainClosed } from './special-events';
 import { balance, itemBalance } from './config';
 import { initialState, step, type Input, type State } from './simulation';
 import { advancePassengers, advanceTraffic, entity, fillWorld, forkWorld, initialWorld, passengerMotion, spawnWreckPassengers, sweptContact, trafficTypes, type EntityKind, type World } from './world';
@@ -8,7 +10,7 @@ import { splitCrashRiders } from './passenger-outcomes';
 
 import { jumpHeight, hasBoost, hasStar, newPowers, powerBoundaries, type PowerItem, type Powers } from './items';
 
-export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage'; distance: number; score: number; money: number; seconds: number }
+export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage' | 'train' | 'police'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
   returningRiderIds: string[]; strandedRiderIds: string[] }
 export interface Run extends State {
@@ -36,7 +38,7 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   grabUses: [0, 0], grabSequence: 0, nextGrabAt: 0, grabRiderIds: [],
   shopId: null, economySequence: 0, inventory: [null, null], powers: newPowers(),
 });
-export const names: Record<EntityKind, string> = { water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường' };
+export const names: Record<EntityKind, string> = { water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường', police: 'Công an', militia: 'Dân phòng', jam: 'Kẹt xe', accident: 'Tai nạn', train: 'Tàu hoả', broken: 'Xe chết máy' };
 
 export const activeVehicle = (run: Run): VehicleDefinition =>
   effectiveVehicle(run.vehicleInstances.find(v => v.id === run.activeVehicleId)!);
@@ -127,9 +129,18 @@ export function selectTurn(run: Run, turn: Turn): Run {
 
 export function stepRun(before: Run, input: Input): Run {
   if (before.phase !== 'running') return before;
-  if (before.activeSeconds >= before.powers.boostUntil && before.activeSeconds >= before.powers.starUntil &&
+  const trainCuts: number[] = [];
+  for (const e of before.world.entities) if (e.kind === 'train' && !e.consumed && e.eventAt !== undefined) {
+    const age = before.activeSeconds - e.eventAt;
+    const cycle = Math.floor(age / eventBalance.trainPeriod);
+    for (const offset of [eventBalance.trainClosedSeconds, eventBalance.trainPeriod]) {
+      const at = e.eventAt + cycle * eventBalance.trainPeriod + offset;
+      if (at > before.activeSeconds + 1e-9 && at < before.activeSeconds + balance.fixedStep - 1e-9) trainCuts.push(at);
+    }
+  }
+  if (trainCuts.length === 0 && before.activeSeconds >= before.powers.boostUntil && before.activeSeconds >= before.powers.starUntil &&
       before.activeSeconds >= before.powers.jumpAt + itemBalance.jumpSeconds) return stepRunSegment(before, input, balance.fixedStep);
-  const cuts = powerBoundaries(before, balance.fixedStep);
+  const cuts = [...new Set([...trainCuts, ...powerBoundaries(before, balance.fixedStep)])].sort((a, b) => a - b);
   if (cuts.length === 0) return stepRunSegment(before, input, balance.fixedStep);
   const end = before.activeSeconds + balance.fixedStep;
   let run = before;
@@ -155,6 +166,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
         before.crash.originX + before.crash.side * balance.crashSkidLateralMetres * skidProgress));
     const returned = elapsed >= balance.driverFallSeconds + balance.driverPauseSeconds + balance.driverReturnSeconds && speed === 0;
     const movedEntities = world.entities.map(e => ({ ...e, touching: false }));
+    for (const e of movedEntities) if (e.kind === 'train') e.eventAt ??= before.activeSeconds;
     advanceTraffic(movedEntities, dt);
     const protectedEntities = new Set(before.protectedEntities);
     for (let i = 0; i < movedEntities.length; i++) {
@@ -166,6 +178,18 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     }
     advancePassengers(movedEntities, before.activeSeconds + dt);
     spawnWreckPassengers({ ...world, entities: movedEntities }, before.activeSeconds + dt, vehicle);
+    // Falling grants damage/debuff immunity, never immunity to a train's terminal collider.
+    const trainHit = movedEntities.find(e => e.kind === 'train' && !e.consumed && trainClosed(e, before.activeSeconds + dt / 2) &&
+      sweptContact(before.x - e.x, before.distance - e.distance, x - e.x, distance - e.distance,
+        (vehicle.width + e.width) / 2, (vehicle.length + e.length) / 2));
+    if (trainHit) {
+      const hit = sweptContact(before.x - trainHit.x, before.distance - trainHit.distance, x - trainHit.x, distance - trainHit.distance,
+        (vehicle.width + trainHit.width) / 2, (vehicle.length + trainHit.length) / 2)![0];
+      const at = before.activeSeconds + hit * dt, stop = before.distance + (distance - before.distance) * hit;
+      return { ...before, phase: 'ended', speed: 0, distance: stop, activeSeconds: at,
+        result: { runId: before.runId, seed: before.seed, config: balance.version, reason: 'train', distance: stop,
+          score: before.score, money: before.money, seconds: at } };
+    }
     const crashed: Run = { ...before, world: { ...world, entities: movedEntities,
       retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
       protectedEntities: [...protectedEntities],
@@ -188,6 +212,13 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     const speed = Math.min(target, before.speed + rate * dt);
     return { ...steering, speed, distance: before.distance + (before.speed + speed) * dt / 2 };
   })() : step(before, driveInput, dt, driveConfig);
+  // S can stop at a crossing; after releasing it recovery smoothly returns to cruise.
+  const waitingAtTrain = before.world.entities.some(e => e.kind === 'train' && !e.consumed &&
+    e.distance >= before.distance && e.distance - before.distance < Math.max(60, before.speed * before.speed / (2 * balance.braking) + vehicle.length));
+  if (waitingAtTrain && input.brake && before.fuel > 0) {
+    driven.speed = Math.max(0, before.speed - balance.braking * dt);
+    driven.distance = before.distance + (before.speed + driven.speed) * dt / 2;
+  }
   if (before.motion === 'coasting' || before.fuel <= 0) {
     driven.speed = Math.max(Math.min(balance.coastCrawlSpeed, vehicle.minSpeed),
       before.speed - (input.brake ? balance.braking : balance.coastDrag) * dt);
@@ -202,7 +233,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     retired: world.retired.map(entry => ({ ...entry, entity: { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt } })) },
     ticks: before.ticks + 1,
     x: driven.x, lateralVelocity: driven.lateralVelocity, speed: driven.speed,
-    recovering: before.recovering && driven.speed < drive.cruiseSpeed - 1e-8 };
+    recovering: (before.recovering || (waitingAtTrain && input.brake)) && driven.speed < drive.cruiseSpeed - 1e-8 };
   // A depleted imported/test state starts coasting immediately, never receives cruise thrust.
   if (r.fuel <= 0 && r.motion === 'powered') { r.motion = 'coasting'; r.coastRemaining = balance.coastDistance; r.speed = Math.min(before.speed, driven.speed); }
   const feedback = (kind: FeedbackKind, text: string) => {
@@ -211,10 +242,11 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     r.feedbackFlavor = captions[kind][count % captions[kind].length];
   };
   let replacementPending = false;
+  let confiscatedId: string | null = null;
   const finish = (reason: RunResult['reason']) => {
     if (r.result) return;
     r.phase = 'ended'; r.speed = 0;
-    if (r.vehicleInstances.some(v => v.id !== r.activeVehicleId && !v.disabled && v.fuel > 0 && v.durability > 0)) {
+    if (reason !== 'train' && r.vehicleInstances.some(v => v.id !== r.activeVehicleId && !v.disabled && v.fuel > 0 && v.durability > 0)) {
       replacementPending = true; return;
     }
     r.result = { runId: r.runId, seed: r.seed, config: balance.version, reason,
@@ -256,7 +288,11 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   for (let index = 0; index < r.world.entities.length; index++) {
     const e = r.world.entities[index];
     const endDistance = e.distance;
-    const height = sampledHeight > 0 ? e.kind === 'traffic' ?
+    if (e.kind === 'train') {
+      e.eventAt ??= before.activeSeconds;
+      if (!trainClosed(e, before.activeSeconds + dt / 2)) continue;
+    }
+    const height = sampledHeight > 0 ? isSpecial(e.kind) ? e.kind === 'train' ? eventBalance.trainClearance : Infinity : e.kind === 'traffic' ?
       (e.trafficKind === 'bus' || e.trafficKind === 'truck' || e.trafficKind === 'container') ? itemBalance.highTrafficClearance : itemBalance.lowTrafficClearance :
       harmful(e.kind) ? itemBalance.groundClearance : itemBalance.pickupClearance : Infinity;
     const airborne = sampledHeight >= height - 1e-9;
@@ -266,6 +302,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
       sweptContact(before.x - e.x, before.distance - world.entities[index].distance,
         driven.x - e.x, driven.distance - endDistance, (vehicle.width + e.width) / 2, (vehicle.length + e.length) / 2);
     if (!contact || before.protectedEntities.includes(e.id)) { e.touching = false; continue; }
+    if (isSpecial(e.kind) && e.kind !== 'train' && before.activeSeconds < before.replacementProtectedUntil) { e.consumed = true; continue; }
     const [enter, exit] = contact;
     if (e.kind === 'water') {
       events.push({ t: enter, index, type: 'enter-water' }, { t: exit, index, type: 'exit-water' });
@@ -276,7 +313,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     }
   }
   // Damage precedes pickups on exact ties. No later event can rescue an earlier terminal collision.
-  const priority = (event: Event) => event.type === 'hit' && r.world.entities[event.index].kind === 'traffic' ? 0 :
+  const priority = (event: Event) => r.world.entities[event.index].kind === 'train' ? -1 : event.type === 'hit' && (r.world.entities[event.index].kind === 'traffic' || isSpecial(r.world.entities[event.index].kind)) ? 0 :
     event.type === 'enter-pothole' ? 1 : event.type === 'enter-water' ? 2 :
       event.type === 'exit-water' || event.type === 'exit-pothole' ? 3 : 4;
   events.sort((a, b) => a.t - b.t || priority(a) - priority(b) || a.index - b.index);
@@ -326,6 +363,35 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
       e.touching = true; continue;
     }
     if (event.type === 'exit-pothole') { potholeCount = Math.max(0, potholeCount - 1); if (event.t < 1) e.touching = false; continue; }
+    if (isSpecial(e.kind)) {
+      e.consumed = true;
+      if (e.kind === 'train') { feedback('train', 'Va chạm tàu'); finish('train'); }
+      else if (e.kind === 'police' || e.kind === 'militia') {
+        const fine = e.kind === 'police' ? eventBalance.policeFine : eventBalance.militiaFine;
+        const short = r.money < fine, paid = Math.min(fine, r.money);
+        r.money -= paid;
+        feedback(e.kind, '−' + paid.toFixed(1) + ' tiền' + (e.kind === 'police' ? ' · tịch thu xe' : ''));
+        if (e.kind === 'police') {
+          confiscatedId = r.activeVehicleId;
+          r.vehicleInstances = saveVehicle(r).map(v => v.id === r.activeVehicleId ? { ...v, disabled: true } :
+            short ? { ...v, fuel: v.fuel * eventBalance.reserveFuelFactor } : v);
+          finish('police');
+        }
+      } else if (e.kind === 'accident') { r.durability = 0; feedback('accident', 'Xe hỏng · 0 HP'); finish('damage'); }
+      else if (e.kind === 'jam') {
+        feedback('jam', 'Kẹt xe · ngã xe');
+        if (!hasStar(r)) crashDriver(before.speed + (driven.speed - before.speed) * fraction);
+      } else if (e.kind === 'broken') {
+        const npc = entity('passenger', e.id + '-passenger', e.distance + 4, e.x < 0 ? balance.laneWidth : -balance.laneWidth);
+        npc.motionKey = e.id; r.world.entities.push(npc);
+        const hash = (Math.imul(r.seed ^ e.id.split('').reduce((a, c) => Math.imul(a, 31) + c.charCodeAt(0), 0), 1664525) >>> 0);
+        const slot = r.inventory.indexOf(null);
+        if (slot >= 0 && hash / 4294967296 < eventBalance.brokenItemChance)
+          r.inventory = r.inventory.map((v, i) => i === slot ? 'banana' : v);
+        feedback('broken', 'Có khách cần đi nhờ · F đón');
+      }
+      continue;
+    }
     if (e.kind === 'traffic') {
       if (hasStar(r)) continue;
       const target = trafficTypes[e.trafficKind ?? 'car4'];
@@ -371,6 +437,10 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   r.route = compactRoute(r.route, r.distance, r.seed);
   r.vehicleInstances = saveVehicle(r).map(v => v.id === r.activeVehicleId &&
     (r.durability <= 0 || (r.fuel <= 0 && r.coastRemaining <= 0)) ? { ...v, disabled: true } : v);
-  if (replacementPending) { r.phase = 'running'; return switchVehicle(r, undefined, true); }
+  if (replacementPending) {
+    r.phase = 'running';
+    const replaced = switchVehicle(r, undefined, true);
+    return confiscatedId ? { ...replaced, vehicleInstances: replaced.vehicleInstances.filter(v => v.id !== confiscatedId) } : replaced;
+  }
   return r;
 }

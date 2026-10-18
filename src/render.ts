@@ -1,3 +1,4 @@
+import { isSpecial, trainClosed } from './special-events';
 import * as THREE from 'three';
 import { balance } from './config';
 import { jumpHeight, hasStar, hasBoost } from './items';
@@ -25,7 +26,7 @@ export class RoadRenderer {
   private ground!: THREE.Mesh;
   private viewState!: Run;
   private entityMeshes = new Map<string, { kind: EntityKind; trafficKind?: TrafficKind; mesh: THREE.Group }>();
-  private pools: Record<EntityKind, THREE.Group[]> = { water: [], pothole: [], traffic: [], fuel: [], repair: [], passenger: [], shop: [] };
+  private pools: Record<EntityKind, THREE.Group[]> = { water: [], pothole: [], traffic: [], fuel: [], repair: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
   private trafficPools = new Map<TrafficKind, THREE.Group[]>();
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
   private observer: ResizeObserver;
@@ -112,7 +113,11 @@ export class RoadRenderer {
     const part = (w: number, h: number, d: number, color: string, x: number, y: number, z: number) => {
       const m = box(w, h, d, color, g); m.position.set(x, y, z); return m;
     };
-    if (kind === 'shop') {
+    if (isSpecial(kind)) {
+      const color = kind === 'police' ? '#698da8' : kind === 'militia' ? '#85906b' : kind === 'train' ? '#d6a165' : kind === 'accident' ? '#ad655d' : '#9a8e78';
+      part(.8, kind === 'train' ? 1.8 : 1.1, .8, color, 0, kind === 'train' ? .9 : .55, 0);
+      part(.8, .1, .15, '#eee3bc', 0, .7, .42);
+    } else if (kind === 'shop') {
       part(1.8, 1.6, 3, '#688e88', 0, .8, 0); part(2.2, .2, 3.4, '#cdb376', 0, 1.7, 0);
       part(.6, .8, .12, '#e1d9af', 0, 1.05, 1.55);
     }
@@ -275,6 +280,7 @@ export class RoadRenderer {
         (body.material as THREE.MeshLambertMaterial).color.set(e.wrecked ? '#4e5558' :
           trafficTypes[e.trafficKind ?? 'car4'].color);
       }
+      if (e.kind === 'train') entry.mesh.visible = trainClosed(e, s.activeSeconds);
       if (e.kind === 'passenger') (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
       const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;

@@ -1,3 +1,4 @@
+import { eventBalance } from './config';
 import { balance, itemBalance, shopBalance } from './config';
 import type { Run } from './survival';
 import { buyVehicle, effectiveVehicle, vehicles, type VehicleKind } from './vehicles';
@@ -60,12 +61,12 @@ export function transact(run: Run, command: ShopCommand): { run: Run; message: s
     updatedStock.vehicles = stock.vehicles.filter(k => k !== command.vehicle);
     message = `Đã mua ${d.name}; khách giữ nguyên.${command.discardId ? ' Đã bỏ xe đã chọn.' : ''}`;
   } else if (command.kind === 'power-item') {
-    if (command.item !== 'nitro' && command.item !== 'star' && command.item !== 'grab') return fail('Vật phẩm không hợp lệ.');
+    if (command.item !== 'nitro' && command.item !== 'star' && command.item !== 'grab' && command.item !== 'banana') return fail('Vật phẩm không hợp lệ.');
     const slot = run.inventory.indexOf(null);
     if (slot < 0) return fail('Kho hai ô đã đầy.');
     const count = stock.items?.[command.item] ?? 0;
     if (count <= 0) return fail('Món này đã hết.');
-    price = command.item === 'nitro' ? itemBalance.nitroPrice : command.item === 'star' ? itemBalance.starPrice : itemBalance.grabPrice;
+    price = command.item === 'nitro' ? itemBalance.nitroPrice : command.item === 'star' ? itemBalance.starPrice : command.item === 'banana' ? eventBalance.bananaPrice : itemBalance.grabPrice;
     next.grabUses = run.grabUses.map((uses, index) => index === slot ? command.item === 'grab' ? itemBalance.grabUses : 0 : uses);
     next.inventory = run.inventory.map((value, index) => index === slot ? command.item : value);
     updatedStock.items = { ...stock.items!, [command.item]: count - 1 };

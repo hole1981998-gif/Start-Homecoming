@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p5-2-grab-roadside-2', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p6-special-events-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -92,3 +92,13 @@ if (itemBalance.jumpSeconds > itemBalance.boostSeconds || itemBalance.jumpHeight
 
 if (!Number.isInteger(itemBalance.grabUses) || itemBalance.grabMinAhead > itemBalance.grabMaxAhead ||
     itemBalance.grabMaxAhead > balance.worldLookAhead || itemBalance.grabMoneyMultiplier <= 1) throw new Error('Invalid Grab bounds');
+
+/** P6 trial values: money, metres, seconds, probability. */
+export const eventBalance = Object.freeze({ policeFine: 300, militiaFine: 100, reserveFuelFactor: .5,
+  firstDistance: 1700, gap: 1250, reactionSeconds: 3.5, bananaReach: 45, bananaPrice: 80,
+  trainPeriod: 16, trainClosedSeconds: 8, trainClearance: 1.8, brokenItemChance: .25,
+  corridor: 110 });
+for (const value of Object.values(eventBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid event config');
+if (eventBalance.trainClosedSeconds >= eventBalance.trainPeriod || eventBalance.reserveFuelFactor > 1 ||
+    eventBalance.brokenItemChance > 1 || eventBalance.trainClearance >= itemBalance.jumpHeight ||
+    eventBalance.gap < 1200) throw new Error('Invalid event bounds');

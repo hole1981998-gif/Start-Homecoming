@@ -63,7 +63,7 @@ function clearInput(): void { input = noInput(); clock.reset(); previous = state
 function show(view: Exclude<Screen, null>, title: string, description: string): void {
   screen = view; modal.hidden = false; clearInput();
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 05.2 · GRAB · KHÁCH ĐẶC BIỆT');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 06 · SỰ KIỆN · CHUỐI · TÀU');
   el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
@@ -86,14 +86,14 @@ function resume(): void {
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
   state = newRun(); previous = state;
-  show('start', 'Đường về nhà', `R ghé cửa hàng ven đường để mua xe, tiếp tế, nâng cấp và vật phẩm. Phím 1/2 dùng món trong ô: nitro boost, star miễn damage/debuff hoặc Grab gọi khách đặc biệt rồi F đón. Space nhảy khi nitro đang bật. Tab đổi xe; F/G đón hoặc cho khách xuống. Giữ xe còn xăng và độ bền, W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
+  show('start', 'Đường về nhà', `R ghé cửa hàng ven đường để mua xe, tiếp tế, nâng cấp và vật phẩm. Phím 1/2 dùng món trong ô: nitro boost, star miễn damage/debuff, chuối tránh bị bắt khi cảnh báo hoặc Grab gọi khách đặc biệt rồi F đón. Space nhảy khi nitro đang bật. Tab đổi xe; F/G đón hoặc cho khách xuống. Giữ xe còn xăng và độ bền, W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
   text('result-distance', `${Math.floor(result.distance)} m`); text('result-score', `${Math.floor(result.score)}`);
   text('result-money', formatter.format(result.money)); text('result-time', `${Math.floor(result.seconds / 60)}:${String(Math.floor(result.seconds % 60)).padStart(2, '0')}`);
-  show('result', result.reason === 'fuel' ? 'Hết xăng, hết đà' : 'Xe không chạy tiếp được',
-    result.reason === 'fuel' ? `Xe đã trôi thêm đủ ${balance.coastDistance} m sau khi hết xăng. Lượt sau hãy tìm bình xăng ven đường.` : 'Độ bền đã về 0 sau va chạm. Lượt sau hãy đọc cảnh báo và chừa thời gian đổi hướng.');
+  show('result', result.reason === 'train' ? 'Va chạm tàu hoả' : result.reason === 'police' ? 'Xe bị tịch thu' : result.reason === 'fuel' ? 'Hết xăng, hết đà' : 'Xe không chạy tiếp được',
+    result.reason === 'train' ? 'Tàu luôn kết thúc ván khi va chạm. Giữ S chờ mở đường hoặc nhảy bằng nitro + Space.' : result.reason === 'police' ? 'Không còn xe dự phòng hợp lệ. Dùng chuối trong cửa sổ cảnh báo ở lượt sau.' : result.reason === 'fuel' ? `Xe đã trôi thêm đủ ${balance.coastDistance} m sau khi hết xăng. Lượt sau hãy tìm bình xăng ven đường.` : 'Độ bền đã về 0 sau va chạm. Lượt sau hãy đọc cảnh báo và chừa thời gian đổi hướng.');
 }
 function openHelp(): void {
   if (state.shopId) state = leaveShop(state);
@@ -102,6 +102,12 @@ function openHelp(): void {
   show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị của ${vehicle.name}. A/D lái; Q/E rẽ; F đón khách; G cho khách xuống. Tab đổi nhanh xe khi có xe dự phòng; khách và tài nguyên của từng xe được giữ nguyên. Xe hiện tại ${vehicle.name}: ${vehicle.capacity} chỗ tính cả tài xế, cruise ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h khi trống, bình ${formatter.format(vehicle.fuelCapacity)} L, hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Chở khách giảm cruise và quá tải tăng hao xăng. Nước hao xăng, ổ gà trừ HP theo thời gian, xe giao thông gây va/ngã; pha ngã/trôi/quay lại miễn tác động xấu. Hết xăng trôi ${balance.coastDistance} m; HP về 0 hoặc hết đà sẽ tự chuyển xe còn chạy được. R ghé cửa hàng đủ gần; Xăng/sửa chỉ tại chỗ. Phím 1/2 dùng nitro boost, star hoặc Grab (gọi khách phía trước rồi F đón); Space nhảy khi nitro đang bật; star không bỏ qua event, nitro không vượt xe cao.`);
 }
 const cardDescriptions: Record<EntityKind, string> = {
+  police: 'Công an phạt 300 và tịch thu xe. Dùng chuối bằng phím ô 1/2 khi cảnh báo xuất hiện để tránh bị bắt. Thiếu tiền: lấy tới 0, xe dự phòng còn nửa xăng hiện có; không có xe hợp lệ thì kết ván. Star không tránh sự kiện.',
+  militia: 'Dân phòng phạt 100, không tịch thu. Thiếu tiền chỉ lấy tới 0. Chuối trong cửa sổ cảnh báo tránh lần bắt này; dùng ngoài cửa sổ không mất vật phẩm.',
+  jam: 'Hai làn bị kẹt: chuyển sang làn trống. Chạm vào gây ngã, không kết ván ngay. Star miễn ngã.',
+  accident: 'Tai nạn chắn hai làn. Né làn trống; chạm làm xe hỏng hoàn toàn, tự chuyển xe dự phòng hợp lệ hoặc kết ván. Star vẫn kích hoạt sự kiện.',
+  train: 'Tàu chắn ngang: giữ S để phanh tới dừng và đợi tín hiệu mở. Hoặc bật nitro rồi Space đúng lúc để nhảy qua. Chạm tàu luôn kết ván, kể cả có star hay xe dự phòng.',
+  broken: 'Xe chết máy: chạm một lần sẽ xuất hiện khách bên cạnh để F đón, đôi khi có một chuối nếu kho còn chỗ.',
   shop: `Nhà ven đường có biểu tượng cửa hàng. Lái tới cùng phía, nhấn R trong khoảng ${shopBalance.reach} m để ghé; game tạm dừng khi mua. Có xăng, sửa, xe và nâng cấp. Kho tối đa hai xe; mua xe thứ ba phải chọn xe bỏ. Bán nitro/star/Grab cho hai ô 1/2; xăng/sửa chỉ tại chỗ. Tab vẫn đổi xe. Hàng của cùng cửa hàng không đổi khi mở lại.`,
   water: `Mảng nước làm hao thêm ${formatter.format(balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Có đoạn dài tới 30 m và phủ ba làn: lúc đó phải chấp nhận hao xăng cho đến khi có nhánh rẽ ở prototype sau.`,
   pothole: `Ổ gà viền vàng lấy ${balance.potholeImpactDamage} HP và tối đa ${balance.potholeMoneyLoss} tiền ở lần chạm đầu; tiếp tục lấy ${balance.potholeDamagePerSecond} HP mỗi giây xe còn chạm. Có đoạn dài tới 24 m hoặc phủ cả ba làn; chạy nhanh qua sẽ giảm thời gian chịu hại.`,
@@ -118,7 +124,7 @@ function discover(): void {
   if (state.phase !== 'running') return;
   const candidate = state.world.entities.filter(e => !e.consumed && (e.kind !== 'passenger' || e.pickupable !== false) &&
     !seen.has(e.kind) && e.distance > state.distance &&
-    e.distance - state.distance <= warningDistance(state.speed, e)).sort((a, b) => a.distance - b.distance)[0];
+    e.distance - state.distance <= warningDistance(state.speed, e, activeVehicle(state).length)).sort((a, b) => a.distance - b.distance)[0];
   if (!candidate) return;
   discovery = candidate.kind; state = { ...state, phase: 'paused' };
   show('card', names[candidate.kind], cardDescriptions[candidate.kind]);
@@ -196,7 +202,7 @@ function updateHud(): void {
   const effects = [hasBoost(state) ? '↟ NITRO ' + Math.max(0, state.powers.boostUntil - state.activeSeconds).toFixed(1) + 's' : '',
     hasStar(state) ? '☆ STAR ' + Math.max(0, state.powers.starUntil - state.activeSeconds).toFixed(1) + 's' : ''].filter(Boolean);
   el('item-cue').hidden = !state.inventory.some(Boolean) && effects.length === 0;
-  text('item-cue', state.inventory.map((item, i) => (i + 1) + ' · ' + (item ? item === 'nitro' ? '↟' : item === 'grab' ? 'Grab×' + state.grabUses[i] : '☆' : '—')).join('  ') + '  ' + effects.join(' · '));
+  text('item-cue', state.inventory.map((item, i) => (i + 1) + ' · ' + (item ? item === 'nitro' ? '↟' : item === 'banana' ? 'Chuối' : item === 'grab' ? 'Grab×' + state.grabUses[i] : '☆' : '—')).join('  ') + '  ' + effects.join(' · '));
   el('item-cue').setAttribute('aria-label', state.inventory.map((item, i) => 'Phím ' + (i + 1) + ': ' + (item ? itemNames[item] + (item === 'grab' ? ', còn ' + state.grabUses[i] + ' lượt' : '') : 'trống')).join('; ') + '; ' + effects.join('; '));
   el('rider-count').setAttribute('aria-label', `${occupants} người trên xe gồm tài xế, sức chứa ${vehicle.capacity}`);
   el('rider-count').classList.toggle('overloaded', state.riderIds.length + 1 > vehicle.capacity);

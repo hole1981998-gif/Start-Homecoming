@@ -226,3 +226,7 @@ Nguồn chờ giữ vị trí đã kiểm tra để không đi vào hazard; ch�
 
 ## Grab chờ ở ven đường — cập nhật theo chủ dự án
 Khách Grab được gọi chỉ xuất hiện ngẫu nhiên ở hai mép ngoài mặt đường, không ở tâm hay trong lane. Bên ưu tiên lấy từ seed/branch/sequence riêng, không ưu tiên gần xe và không tiêu hazard RNG. Nếu bên đó không an toàn thì thử bên kia; cả hai không hợp lệ thì giữ lượt. Vị trí đứng tính từ nửa bề rộng đường + nửa collider NPC; kiểm tra đường tiếp cận và hazard theo vị trí xe có thể chạy sát lề, không lấy tâm NPC ngoài đường làm tâm xe. Tầm F giữ nguyên; có test đón cho cả 8 loại xe. Không đổi giá/thưởng/lượt hay layout/art. Xem [GRAB_ROADSIDE_REVIEW.md](GRAB_ROADSIDE_REVIEW.md).
+
+
+## P6 — config thử, chưa cân bằng
+Nguồn runtime: eventBalance trong src/config.ts, config version p6-special-events-1. Công an 300, dân phòng 100; thiếu tiền công an giữ nửa xăng dự phòng đang có, dân phòng lấy tới 0. Chuối giá 80/món, 1 món/shop; cửa sổ 3,5 s có xét footprint xe (tầm tối thiểu 45 m). Event đầu 1.700 m, gap 1.250 m; director có thể bỏ mẫu cạnh shop/junction/Grab; corridor 110 m. Event đầu sau shop 1.200 m để không phá nhịp mua xe đầu. Tàu đóng 8 s/mở 8 s, clearance 1,8 m; S gần ray phanh tới 0. Xe chết máy 1 khách cần F, 25% thêm chuối nếu ô trống; không ghi đè vật phẩm. Chưa đổi thu nhập, giá xe, fuel/HP hay curve theo distance. Bằng chứng/giới hạn và đề xuất tuning: [PROTOTYPE_6_REVIEW.md](PROTOTYPE_6_REVIEW.md).

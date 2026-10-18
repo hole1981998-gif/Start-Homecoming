@@ -144,3 +144,7 @@ Nguồn chờ giữ vị trí đã kiểm tra để không đi vào hazard; ch�
 
 ## Grab chờ ở ven đường — cập nhật theo chủ dự án
 Khách Grab được gọi chỉ xuất hiện ngẫu nhiên ở hai mép ngoài mặt đường, không ở tâm hay trong lane. Bên ưu tiên lấy từ seed/branch/sequence riêng, không ưu tiên gần xe và không tiêu hazard RNG. Nếu bên đó không an toàn thì thử bên kia; cả hai không hợp lệ thì giữ lượt. Vị trí đứng tính từ nửa bề rộng đường + nửa collider NPC; kiểm tra đường tiếp cận và hazard theo vị trí xe có thể chạy sát lề, không lấy tâm NPC ngoài đường làm tâm xe. Tầm F giữ nguyên; có test đón cho cả 8 loại xe. Không đổi giá/thưởng/lượt hay layout/art. Xem [GRAB_ROADSIDE_REVIEW.md](GRAB_ROADSIDE_REVIEW.md).
+
+
+## P6 — bản thử sau khi duyệt P5.2
+Đã có event công an/dân phòng, chuối, kẹt hai lane, xe chết máy, tai nạn và tàu; phạt cố định, tịch thu/thay xe, star vẫn trigger event, phanh chờ/nitro + Space qua tàu. Số thử chưa khóa cân bằng; chưa làm secret P7. Bước tiếp theo P6.1 (barrier và chướng ngại chuyển lane), rồi P6.2 lực ngang/P6.3 đồ rơi trước P7/P8; giữ UI/art ở mốc 9, SFX/VFX hoàn chỉnh mốc 10. Báo cáo [PROTOTYPE_6_REVIEW.md](PROTOTYPE_6_REVIEW.md); cần chủ dự án chơi và phản hồi, chưa merge.

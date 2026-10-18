@@ -1,7 +1,7 @@
 import type { RunResult } from './survival';
 import type { EntityKind } from './world';
 const resultsKey = 'dvn.results.v1', seenKey = 'dvn.cards.v1';
-const kinds: EntityKind[] = ['water', 'pothole', 'traffic', 'fuel', 'repair', 'passenger', 'shop'];
+const kinds: EntityKind[] = ['water', 'pothole', 'traffic', 'fuel', 'repair', 'passenger', 'shop', 'police', 'militia', 'jam', 'accident', 'train', 'broken'];
 function read(key: string): unknown {
   try { return JSON.parse(localStorage.getItem(key) ?? 'null') as unknown; } catch { return null; }
 }
@@ -12,7 +12,7 @@ function validResult(value: unknown): value is RunResult {
   if (!value || typeof value !== 'object') return false;
   const r = value as RunResult;
   return typeof r.runId === 'string' && typeof r.config === 'string' && Number.isFinite(r.seed) &&
-    ['fuel', 'damage'].includes(r.reason) && [r.distance, r.score, r.money, r.seconds].every(n => Number.isFinite(n) && n >= 0);
+    ['fuel', 'damage', 'train', 'police'].includes(r.reason) && [r.distance, r.score, r.money, r.seconds].every(n => Number.isFinite(n) && n >= 0);
 }
 export function results(): RunResult[] {
   const data = read(resultsKey);

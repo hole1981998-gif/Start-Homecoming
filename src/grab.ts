@@ -1,3 +1,4 @@
+import { isSpecial } from './special-events';
 import { balance, itemBalance, shopBalance } from './config';
 import type { Run } from './survival';
 import { effectiveVehicle } from './vehicles';
@@ -33,6 +34,7 @@ export function callGrab(run: Run, slot: number): Run {
         if (e.consumed) return true;
         if (e.kind === 'passenger') return Math.abs(e.x - x) > itemBalance.grabClearance || Math.abs(e.distance - distance) > balance.passengerReach;
         if (e.kind === 'shop') return Math.abs(e.distance - distance) > shopBalance.clearance;
+        if (isSpecial(e.kind)) return Math.abs(e.distance - distance) > 110;
         if (!['traffic', 'water', 'pothole'].includes(e.kind)) return true;
         const clearance = (vehicle.length + e.length) / 2 + itemBalance.grabClearance;
         const from = Math.min(e.distance, e.distance + e.speed * early, e.distance + e.speed * late);

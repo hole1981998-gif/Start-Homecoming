@@ -22,13 +22,14 @@ function pilot(r: Run, strategy: 'cruise' | 'fast' | 'slow'): Input {
   return { accelerate: strategy === 'fast', brake: strategy === 'slow', left: r.x - target > .18, right: target - r.x > .18 };
 }
 
-it('seeded survival/economy sampling across cruise, W and S strategies', () => {
+it('P5 baseline without special events: seeded survival/economy across cruise, W and S strategies', () => {
   const observations: { seed: number; strategy: string; seconds: number; distance: number; hp: number; fuel: number;
     minFuel: number; secondsBelow2: number; crashes: number; money: number; end: string; affordAt: number | null;
     fuelPickups: number; maxEntities: number }[] = [];
   const affordTimes = { cruise: [] as number[], fast: [] as number[], slow: [] as number[] };
   for (const seed of [17, 42, 20261017, ...Array.from({ length: 27 }, (_, i) => 100 + i)]) for (const strategy of ['cruise', 'fast', 'slow'] as const) {
-    let r = { ...initialRun(seed), phase: 'running' as Run['phase'] };
+    const initial = initialRun(seed);
+    let r: Run = { ...initial, world: { ...initial.world, nextSpecial: 1e9 }, phase: 'running' as Run['phase'] };
     let affordAt: number | null = null, maxEntities = 0, fuelPickups = 0, oldSequence = 0, violations = 0;
     let minFuel = r.fuel, secondsBelow2 = 0, crashes = 0;
     for (let tick = 0; tick < 60 * 600 && r.phase === 'running'; tick++) {
@@ -58,7 +59,7 @@ it('seeded survival/economy sampling across cruise, W and S strategies', () => {
   }
   expect(observations.filter(o => o.strategy === 'cruise' && o.end !== 'running').length).toBeLessThanOrEqual(15);
   expect(observations.filter(o => o.strategy === 'fast' && o.end !== 'running').length).toBeLessThanOrEqual(18);
-  console.log(JSON.stringify({ config: balance.version, summary: (['cruise', 'fast', 'slow'] as const).map(strategy => ({
+  console.log(JSON.stringify({ config: balance.version, scenario: 'P5 baseline: special events disabled, ordinary hazards retained', summary: (['cruise', 'fast', 'slow'] as const).map(strategy => ({
     strategy, afforded: affordTimes[strategy].length, medianAfford: median(affordTimes[strategy]),
     deaths: observations.filter(o => o.strategy === strategy && o.end !== 'running').length,
     lowFuelRuns: observations.filter(o => o.strategy === strategy && o.minFuel < 2).length,

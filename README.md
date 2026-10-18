@@ -45,3 +45,9 @@ Các tài liệu thiết kế trong `docs/` xuất phát từ bộ tài liệu c
 Chỉ số phủ lên gameplay, tài nguyên gọn sau đuôi xe, không hiển thị số cruise/target; nút điều khiển dạng icon. Cảnh báo hazard/tiếp tế có icon, khoảng cách và vị trí theo thế giới; số hậu quả ngắn tại xe thay bảng log. Help/discovery/kết quả giữ phần giải thích an toàn. Giữ economy 0,50/m và gameplay; chưa tăng mật độ, thêm QTE hoặc VFX/SFX hoàn chỉnh. Xem [HUD_REVIEW.md](docs/HUD_REVIEW.md) cho kiểm tra và giới hạn.
 
 Chủ dự án thấy hai cung xăng/độ bền còn hơi nhọn; ghi để chỉnh hình cung ở lượt HUD sau, không đổi trong P3A. Báo cáo kiểm tra P3A ở [PROTOTYPE_3A_REVIEW.md](docs/PROTOTYPE_3A_REVIEW.md).
+
+
+### P6 — sự kiện đặc biệt
+Chơi bình thường: http://127.0.0.1:5173/?seed=17 . Event seeded bắt đầu từ khoảng 1.700 m (có thể bỏ mẫu để bảo đảm an toàn).
+Ca thử nhanh (DEV): ?scenario=events-police&seed=17, events-militia, events-jam, events-accident, events-broken, events-train. Mỗi ca có xe dự phòng và hai vật phẩm mẫu để thử; không dùng nguồn miễn phí này để đánh giá economy.
+Phím 1/2 dùng chuối trong cửa sổ bắt; gần ray giữ S để dừng chờ mở đường hoặc bật nitro rồi Space nhảy. Chạm tàu vẫn kết ván khi có star. Báo cáo: docs/PROTOTYPE_6_REVIEW.md. UI/art/SFX hoàn chỉnh theo phase riêng.
