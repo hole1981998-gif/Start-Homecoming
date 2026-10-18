@@ -6,7 +6,7 @@ vi.mock('../src/render', () => ({ RoadRenderer: class {
   project() { return { x: 50, y: 40 }; }
   dispose() { /* no graphics resources */ }
 } }));
-it('R opens service-only shop, removed item keys do not heal, services apply immediately and restart restores state', async () => {
+it('R opens shop without fuel/repair packs, empty item keys do not heal, and services apply immediately', async () => {
   document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
   history.replaceState({}, '', '/?scenario=shop&seed=17');
   localStorage.setItem('dvn.cards.v1', JSON.stringify(['shop']));

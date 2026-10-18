@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { balance } from './config';
+import { jumpHeight, hasStar, hasBoost } from './items';
 import { activeVehicle, type Run } from './survival';
 import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from './world';
 import { junction, pathPose } from './route';
@@ -11,6 +12,7 @@ export class RoadRenderer {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(52, 9 / 16, 0.1, 180);
   private bike = new THREE.Group();
+  private powerRing!: THREE.Mesh;
   private openFrame = new THREE.Group();
   private closedFrame = new THREE.Group();
   private rider!: THREE.Mesh;
@@ -74,6 +76,8 @@ export class RoadRenderer {
     }
     this.scene.add(this.bike);
     this.bike.add(this.openFrame, this.closedFrame);
+    this.powerRing = new THREE.Mesh(new THREE.TorusGeometry(1.5, .06, 4, 20), new THREE.MeshBasicMaterial({ color: '#f7df85' }));
+    this.powerRing.rotation.x = Math.PI / 2; this.powerRing.position.y = .15; this.bike.add(this.powerRing);
     const body = box(0.65, 0.42, 1.5, '#dbb55c', this.openFrame); body.position.y = 0.65;
     for (const z of [-0.68, 0.68]) { const wheel = box(0.22, 0.48, 0.46, '#172126', this.openFrame); wheel.position.set(0, 0.25, z); }
     const shell = box(1, .8, 2, '#d0ad68', this.closedFrame); shell.position.y = .75;
@@ -160,6 +164,8 @@ export class RoadRenderer {
   draw(s: Run, previous: Run, alpha: number): void {
     this.viewState = s;
     const vehicle = activeVehicle(s);
+    this.powerRing.visible = hasStar(s) || hasBoost(s);
+    (this.powerRing.material as THREE.MeshBasicMaterial).color.set(hasStar(s) ? '#f7df85' : '#86d6ec');
     const open = ['motorcycle', 'motorbike', 'tricycle'].includes(vehicle.kind);
     this.openFrame.visible = open; this.closedFrame.visible = !open;
     this.bike.scale.set(vehicle.width / (open ? balance.vehicleWidth : 1), 1,
@@ -169,7 +175,7 @@ export class RoadRenderer {
     const playerPose = pathPose(distance, s.route, s.seed);
     const playerX = playerPose.x + Math.cos(playerPose.heading) * x;
     const playerZ = playerPose.z + Math.sin(playerPose.heading) * x;
-    this.bike.position.set(playerX, 0, playerZ);
+    this.bike.position.set(playerX, jumpHeight(s), playerZ);
     this.bike.rotation.set(0, -playerPose.heading, -s.lateralVelocity * .035, 'YXZ');
     this.rider.visible = !s.crash && open; this.helmet.visible = !s.crash && open;
     this.bikePassengers.forEach((person, i) => {

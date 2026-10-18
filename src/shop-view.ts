@@ -1,11 +1,13 @@
-import { shopBalance } from './config';
+import { itemBalance, shopBalance } from './config';
 import type { Run } from './survival';
 import { effectiveVehicle, vehicles, type VehicleKind } from './vehicles';
 import { reachableShop, upgradeNames, upgradePrice, vehicleSummary, type ShopCommand, type UpgradeKind } from './shop';
 
+import { itemNames, type PowerItem } from './items';
+
 /** Prototype shop UI. Transactions remain pure and revalidate every command. */
 export class ShopView {
-  private tab: 'service' | 'vehicle' | 'upgrade' = 'service';
+  private tab: 'service' | 'vehicle' | 'upgrade' | 'power-item' = 'service';
   private pending: VehicleKind | null = null;
   private upgradeTarget: string | null = null;
   constructor(private host: HTMLElement, private read: () => Run,
@@ -30,6 +32,7 @@ export class ShopView {
         this.render(); return;
       }
       if (button.dataset.service) command({ kind: 'service', item: button.dataset.service as 'fuel' | 'repair', sequence });
+      if (button.dataset.power) command({ kind: 'power-item', item: button.dataset.power as PowerItem, sequence });
       if (button.dataset.upgrade) command({ kind: 'upgrade', upgrade: button.dataset.upgrade as UpgradeKind,
         targetId: this.upgradeTarget ?? run.activeVehicleId, sequence });
       this.render();
@@ -78,9 +81,17 @@ export class ShopView {
       return row(`${upgradeNames[kind]} · ${level}/3`, `${details[kind]}${price === undefined ? '' : ` · ${price} tiền`}`,
         button(price === undefined ? 'Tối đa' : 'Nâng cấp', `data-upgrade="${kind}" aria-label="Nâng cấp ${upgradeNames[kind]}"`, price === undefined || run.money < price));
     }).join('');
+    if (this.tab === 'power-item') content = (['nitro', 'star'] as const).map(item => {
+      const price = item === 'nitro' ? itemBalance.nitroPrice : itemBalance.starPrice;
+      const effect = item === 'nitro' ? 'Boost ' + itemBalance.boostSeconds + ' s + nhảy ' + itemBalance.jumpSeconds + ' s; không vượt xe cao' :
+        'Miễn damage/debuff ' + itemBalance.starSeconds + ' s; không bỏ qua event';
+      return row(itemNames[item], effect + ' · ' + price + ' tiền · còn ' + (stock.items?.[item] ?? 0),
+        button('Mua', 'data-power="' + item + '" aria-label="Mua ' + itemNames[item] + '"',
+          run.money < price || !run.inventory.includes(null) || !(stock.items?.[item]))) }).join('') +
+      '<p>Kho 1/2: ' + run.inventory.map((item, i) => (i + 1) + ': ' + (item ? itemNames[item] : 'Trống')).join(' · ') + '</p>';
     this.host.innerHTML = `<p class="shop-wallet">${money} tiền · ${d.name}<br>${run.fuel.toFixed(1)}/${d.fuelCapacity.toFixed(1)} L · ${Math.ceil(run.durability)}/${Math.ceil(d.durabilityCapacity)} HP</p>
-      <nav aria-label="Danh mục cửa hàng">${(['service', 'vehicle', 'upgrade'] as const).map((tab, i) =>
-      button(['Tiếp tế', 'Mua xe', 'Nâng cấp'][i], `data-tab="${tab}" aria-pressed="${tab === this.tab}"`)).join('')}</nav><div class="shop-content">${content}</div>`;
+      <nav aria-label="Danh mục cửa hàng">${(['service', 'vehicle', 'upgrade', 'power-item'] as const).map((tab, i) =>
+      button(['Tiếp tế', 'Mua xe', 'Nâng cấp', 'Vật phẩm'][i], `data-tab="${tab}" aria-pressed="${tab === this.tab}"`)).join('')}</nav><div class="shop-content">${content}</div>`;
     if (hadFocus) (this.host.querySelector<HTMLSelectElement>('#shop-discard, #shop-upgrade-target') ??
       this.host.querySelector<HTMLButtonElement>('nav button[aria-pressed="true"]'))?.focus({ preventScroll: true });
   }

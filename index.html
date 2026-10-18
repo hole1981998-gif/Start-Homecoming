@@ -2,11 +2,11 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#172329" /><title>Đường Về Nhà · P5</title>
+  <meta name="theme-color" content="#172329" /><title>Đường Về Nhà · P5.1</title>
 </head>
 <body>
 <main id="app">
-  <aside class="outside"><span>ĐƯỜNG VỀ NHÀ</span><p>Giữ tay lái.<br>Giữ xe còn chạy.</p><small>PROTOTYPE 05<br>Cửa hàng ven đường</small></aside>
+  <aside class="outside"><span>ĐƯỜNG VỀ NHÀ</span><p>Giữ tay lái.<br>Giữ xe còn chạy.</p><small>PROTOTYPE 05.1<br>Nitro · nhảy · star</small></aside>
   <section id="game" aria-label="Khung chơi Đường Về Nhà">
     <canvas id="scene" aria-label="Đường ba làn và xe đang lái, điều khiển bằng W A S D" tabindex="0"></canvas>
     <header id="hud" aria-label="Thông số chuyến đi">
@@ -29,10 +29,10 @@
     <div id="impact-cue" hidden><i data-lucide="circle-alert" aria-hidden="true"></i><strong id="impact-value"></strong><small id="impact-flavor"></small></div>
     <div id="crash-cue" role="status" aria-label="Xe đang trôi, tài xế quay lại, miễn nhiễm" hidden><span aria-hidden="true">↶</span><b id="crash-time" aria-hidden="true"></b></div>
     <div class="sr-only" id="drive-mode"></div><div class="sr-only" id="feedback" aria-live="polite"></div>
-    <footer><div class="keys"><span><kbd>W/S</kbd> tốc độ</span><span><kbd>A/D</kbd> lái</span><span><kbd>Q/E</kbd> rẽ</span><span><kbd>F</kbd> đón</span><span><kbd>G</kbd> cho xuống</span><span><kbd>Tab</kbd> đổi xe</span><span><kbd>R</kbd> shop</span></div><div class="actions"><button id="pause" aria-label="Tạm dừng" title="Tạm dừng · Esc" disabled><i data-lucide="pause" aria-hidden="true"></i></button><button id="help" aria-label="Hướng dẫn" title="Hướng dẫn"><i data-lucide="circle-help" aria-hidden="true"></i></button><button id="restart" aria-label="Chơi lại" title="Chơi lại" disabled><i data-lucide="rotate-ccw" aria-hidden="true"></i></button></div></footer>
+    <footer><div class="keys"><span><kbd>W/S</kbd> tốc độ</span><span><kbd>A/D</kbd> lái</span><span><kbd>Q/E</kbd> rẽ</span><span><kbd>F</kbd> đón</span><span><kbd>G</kbd> cho xuống</span><span><kbd>Tab</kbd> đổi xe</span><span><kbd>R</kbd> shop</span><span><kbd>1/2</kbd> đồ</span></div><div class="actions"><button id="pause" aria-label="Tạm dừng" title="Tạm dừng · Esc" disabled><i data-lucide="pause" aria-hidden="true"></i></button><button id="help" aria-label="Hướng dẫn" title="Hướng dẫn"><i data-lucide="circle-help" aria-hidden="true"></i></button><button id="restart" aria-label="Chơi lại" title="Chơi lại" disabled><i data-lucide="rotate-ccw" aria-hidden="true"></i></button></div></footer>
     <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="panel">
-      <span class="eyebrow" id="modal-label">PROTOTYPE 05 · KINH TẾ VEN ĐƯỜNG</span><h1 id="modal-title">Đường về nhà</h1><p id="modal-description"></p>
-      <div id="instructions"><p><kbd>W</kbd> Giữ tăng tốc <kbd>S</kbd> Giữ hãm</p><p id="release-help"></p><p><kbd>A</kbd><kbd>D</kbd> Lái tự do <kbd>Q</kbd><kbd>E</kbd> Rẽ <kbd>F</kbd> Đón <kbd>G</kbd> Cho xuống <kbd>Tab</kbd> Đổi xe <kbd>Esc</kbd> Tạm dừng</p><p class="quiet">F đón và G cho khách xuống ngay. Tab đổi nhanh xe dự phòng, giữ khách và tài nguyên từng xe. R ghé cửa hàng khi đủ gần; chỉ tiếp tế xăng/sửa xe tại chỗ. Giao lộ Q/E vẫn cần chọn kịp khi đường thẳng bị chắn.</p></div>
+      <span class="eyebrow" id="modal-label">PROTOTYPE 05.1 · VẬT PHẨM TĂNG LỰC</span><h1 id="modal-title">Đường về nhà</h1><p id="modal-description"></p>
+      <div id="instructions"><p><kbd>W</kbd> Giữ tăng tốc <kbd>S</kbd> Giữ hãm</p><p id="release-help"></p><p><kbd>A</kbd><kbd>D</kbd> Lái tự do <kbd>Q</kbd><kbd>E</kbd> Rẽ <kbd>F</kbd> Đón <kbd>G</kbd> Cho xuống <kbd>Tab</kbd> Đổi xe <kbd>Esc</kbd> Tạm dừng</p><p class="quiet">F đón và G cho khách xuống ngay. Tab đổi nhanh xe dự phòng, giữ khách và tài nguyên từng xe. R ghé cửa hàng khi đủ gần; xăng/sửa tại chỗ, phím 1/2 dùng nitro nhảy hoặc star mua trong shop. Giao lộ Q/E vẫn cần chọn kịp khi đường thẳng bị chắn.</p></div>
       <div id="shop-panel" hidden></div><p id="shop-status" role="status" hidden></p><p id="discovery-hint" class="quiet" hidden></p>
       <dl id="result-summary" hidden><div><dt>Quãng đường</dt><dd id="result-distance"></dd></div><div><dt>Điểm</dt><dd id="result-score"></dd></div><div><dt>Tiền còn</dt><dd id="result-money"></dd></div><div><dt>Thời gian chạy</dt><dd id="result-time"></dd></div></dl>
       <button class="primary" id="play">Bắt đầu lái</button><button id="close-help" hidden>Đóng hướng dẫn</button>

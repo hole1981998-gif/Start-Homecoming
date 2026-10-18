@@ -41,7 +41,7 @@ it('removed takeaway commands cannot charge, heal or create inventory, even from
     expect(transact(run, stale).run).toBe(run);
   }
   expect(run).toEqual(before);
-  expect('inventory' in run).toBe(false);
+  expect(run.inventory).toEqual([null, null]);
   const repaired = apply(run, { kind: 'service', item: 'repair' });
   expect(repaired.durability).toBe(70);
   expect(repaired.vehicleInstances[0].durability).toBe(70);

@@ -9,7 +9,7 @@
     "lint": "eslint src tests",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --configLoader native",
-    "simulate": "vitest run --configLoader native tests/simulation.test.ts tests/playtest.test.ts --reporter=verbose",
+    "simulate": "vitest run --configLoader native tests/simulation.test.ts tests/playtest.test.ts tests/items.test.ts --reporter=verbose",
     "build": "vite build --configLoader native",
     "preview": "vite preview --configLoader native --host 127.0.0.1"
   },

@@ -6,7 +6,7 @@ import { moveTrafficWithFuel } from './traffic-fuel';
 const maxTrafficSpeed = Math.max(...Object.values(trafficTypes).map(type => type.speed));
 
 export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger' | 'shop';
-export interface ShopStock { vehicles: VehicleKind[] }
+export interface ShopStock { vehicles: VehicleKind[]; items?: { nitro: number; star: number } }
 export type TrafficKind = VehicleKind;
 export interface PassengerMotion { homeX: number; homeDistance: number; startedAt: number; phase: number; idle: boolean;
   ejectedAt?: number; fromX?: number; fromDistance?: number; crashRecovery?: boolean }
@@ -243,7 +243,7 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
   while (w.nextShopDistance <= ahead) {
     const index = w.nextShop, at = w.nextShopDistance;
     const shop = entity('shop', branchEntityId(w, 'shop', index), at, index % 2 ? balance.laneWidth : -balance.laneWidth);
-    shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[] };
+    shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[], items: { nitro: 1, star: 1 } };
     w.entities.push(shop);
     w.nextShopDistance = nextShopDistance(at, index, w.branchSeed); w.nextShop++;
   }

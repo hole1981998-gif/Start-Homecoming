@@ -1,10 +1,12 @@
-import { balance } from './config';
+import { balance, itemBalance } from './config';
 import { initialState, step, type Input, type State } from './simulation';
 import { advancePassengers, advanceTraffic, entity, fillWorld, forkWorld, initialWorld, passengerMotion, spawnWreckPassengers, sweptContact, trafficTypes, type EntityKind, type World } from './world';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
 import { effectiveVehicle, newVehicle, vehicleRam, vehicles, type VehicleDefinition, type VehicleInstance } from './vehicles';
 import { splitCrashRiders } from './passenger-outcomes';
+
+import { jumpHeight, hasBoost, hasStar, newPowers, powerBoundaries, type PowerItem, type Powers } from './items';
 
 export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
@@ -18,7 +20,7 @@ export interface Run extends State {
   protectedEntities: string[];
   route: RouteState;
   vehicleInstances: VehicleInstance[]; activeVehicleId: string; replacementProtectedUntil: number;
-  shopId: string | null; economySequence: number;
+  shopId: string | null; economySequence: number; inventory: Array<PowerItem | null>; powers: Powers;
 }
 export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initialState(),
   runId, seed, fuel: balance.fuelCapacity, durability: balance.durabilityCapacity, score: 0,
@@ -30,7 +32,7 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   route: initialRoute(),
   vehicleInstances: [newVehicle('motorcycle', `${runId}-motorcycle`)],
   activeVehicleId: `${runId}-motorcycle`, replacementProtectedUntil: 0,
-  shopId: null, economySequence: 0,
+  shopId: null, economySequence: 0, inventory: [null, null], powers: newPowers(),
 });
 export const names: Record<EntityKind, string> = { water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường' };
 
@@ -120,7 +122,20 @@ export function selectTurn(run: Run, turn: Turn): Run {
 
 export function stepRun(before: Run, input: Input): Run {
   if (before.phase !== 'running') return before;
-  const dt = balance.fixedStep;
+  if (before.activeSeconds >= before.powers.boostUntil && before.activeSeconds >= before.powers.starUntil &&
+      before.activeSeconds >= before.powers.jumpAt + itemBalance.jumpSeconds) return stepRunSegment(before, input, balance.fixedStep);
+  const cuts = powerBoundaries(before, balance.fixedStep);
+  if (cuts.length === 0) return stepRunSegment(before, input, balance.fixedStep);
+  const end = before.activeSeconds + balance.fixedStep;
+  let run = before;
+  for (const boundary of [...cuts, end]) {
+    if (run.phase !== 'running') break;
+    const dt = boundary - run.activeSeconds;
+    if (dt > 1e-10) run = stepRunSegment(run, input, dt);
+  }
+  return { ...run, ticks: before.ticks + 1 };
+}
+function stepRunSegment(before: Run, input: Input, dt: number): Run {
   const vehicle = activeVehicle(before);
   if (before.crash) {
     const world = fillWorld(before.world, before.distance, before.fuel, before.durability,
@@ -154,23 +169,28 @@ export function stepRun(before: Run, input: Input): Run {
       riderIds: returned ? before.crash.returningRiderIds : before.riderIds };
     return { ...crashed, vehicleInstances: saveVehicle(crashed) };
   }
-  const drive = passengerDrive(before.riderIds.length, vehicle);
+  const baseDrive = passengerDrive(before.riderIds.length, vehicle);
+  const boosted = hasBoost(before) && before.fuel > 0 && before.motion === 'powered';
+  const drive = boosted ? { ...baseDrive, maxSpeed: baseDrive.maxSpeed * (boosted ? itemBalance.boostFactor : 1),
+    cruiseSpeed: baseDrive.cruiseSpeed * itemBalance.boostFactor } : baseDrive;
   const driveConfig = { ...balance, minSpeed: Math.min(vehicle.minSpeed, drive.maxSpeed), cruiseSpeed: drive.cruiseSpeed,
     maxSpeed: drive.maxSpeed, vehicleWidth: vehicle.width };
+  const driveInput = boosted ? { ...input, accelerate: !input.brake } : input;
   const driven = before.recovering ? (() => {
-    const steering = step({ ...before, speed: driveConfig.minSpeed }, input, dt, driveConfig);
-    const target = input.accelerate ? drive.maxSpeed : input.brake ? before.speed : drive.cruiseSpeed;
-    const rate = input.accelerate ? balance.acceleration : input.brake ? 0 : balance.returnAcceleration;
+    const steering = step({ ...before, speed: driveConfig.minSpeed }, driveInput, dt, driveConfig);
+    const target = driveInput.accelerate ? drive.maxSpeed : driveInput.brake ? before.speed : drive.cruiseSpeed;
+    const rate = driveInput.accelerate ? balance.acceleration : driveInput.brake ? 0 : balance.returnAcceleration;
     const speed = Math.min(target, before.speed + rate * dt);
     return { ...steering, speed, distance: before.distance + (before.speed + speed) * dt / 2 };
-  })() : step(before, input, dt, driveConfig);
+  })() : step(before, driveInput, dt, driveConfig);
   if (before.motion === 'coasting' || before.fuel <= 0) {
     driven.speed = Math.max(Math.min(balance.coastCrawlSpeed, vehicle.minSpeed),
       before.speed - (input.brake ? balance.braking : balance.coastDrag) * dt);
     driven.distance = before.distance + (before.speed + driven.speed) * .5 * dt;
   }
   const ds = driven.distance - before.distance;
-  const world = fillWorld(before.world, before.distance, before.fuel, before.durability, drive.fuelFactor, vehicle);
+  const world = fillWorld(before.world, before.distance, before.fuel, before.durability, drive.fuelFactor,
+    boosted ? { ...vehicle, maxSpeed: drive.maxSpeed } : vehicle);
   const movedEntities = world.entities.map(e => ({ ...e }));
   advanceTraffic(movedEntities, dt);
   const r: Run = { ...before, world: { ...world, entities: movedEntities,
@@ -218,13 +238,21 @@ export function stepRun(before: Run, input: Input): Run {
       r.world.entities.push(passenger);
     }
     r.speed = impactSpeed; r.recovering = false;
+    r.powers = { ...r.powers, boostUntil: r.activeSeconds, jumpAt: -100 };
   };
   type Event = { t: number; index: number; type: 'enter-water' | 'exit-water' | 'enter-pothole' | 'exit-pothole' | 'hit' };
   const events: Event[] = [];
+  const flightAge = before.activeSeconds - before.powers.jumpAt;
+  const sampledHeight = flightAge >= 0 && flightAge < itemBalance.jumpSeconds ?
+    jumpHeight({ ...before, activeSeconds: before.activeSeconds + dt / 2 }) : 0;
   for (let index = 0; index < r.world.entities.length; index++) {
     const e = r.world.entities[index];
     const endDistance = e.distance;
-    const contact = !e.consumed && e.kind !== 'passenger' && e.kind !== 'shop' &&
+    const height = sampledHeight > 0 ? e.kind === 'traffic' ?
+      (e.trafficKind === 'bus' || e.trafficKind === 'truck' || e.trafficKind === 'container') ? itemBalance.highTrafficClearance : itemBalance.lowTrafficClearance :
+      harmful(e.kind) ? itemBalance.groundClearance : itemBalance.pickupClearance : Infinity;
+    const airborne = sampledHeight >= height - 1e-9;
+    const contact = !airborne && !e.consumed && e.kind !== 'passenger' && e.kind !== 'shop' &&
       (e.kind !== 'traffic' || !e.wrecked) &&
       (!harmful(e.kind) || before.activeSeconds >= before.replacementProtectedUntil) &&
       sweptContact(before.x - e.x, before.distance - world.entities[index].distance,
@@ -248,8 +276,8 @@ export function stepRun(before: Run, input: Input): Run {
   const advance = (target: number) => {
     while (target - fraction > 1e-12 && r.phase !== 'ended' && !r.crash) {
       const powered = r.motion === 'powered';
-      const fuelRate = powered ? ds * vehicle.fuelPerMeter * drive.fuelFactor + dt * waterCount * balance.waterFuelPerSecond : 0;
-      const damageRate = dt * potholeCount * balance.potholeDamagePerSecond;
+      const fuelRate = powered ? ds * vehicle.fuelPerMeter * drive.fuelFactor + dt * waterCount * (hasStar(r) ? 0 : balance.waterFuelPerSecond) : 0;
+      const damageRate = dt * potholeCount * (hasStar(r) ? 0 : balance.potholeDamagePerSecond);
       let segment = target - fraction;
       if (fuelRate > 0) segment = Math.min(segment, r.fuel / fuelRate);
       if (damageRate > 0) segment = Math.min(segment, r.durability / damageRate);
@@ -274,12 +302,12 @@ export function stepRun(before: Run, input: Input): Run {
     if (r.phase === 'ended' || r.crash) break;
     const e = r.world.entities[event.index];
     if (event.type === 'enter-water') {
-      waterCount++; if (!e.touching) feedback('water', 'Vũng nước · hao thêm xăng khi đi qua'); e.touching = true; continue;
+      waterCount++; if (!hasStar(r) && !e.touching) feedback('water', 'Vũng nước · hao thêm xăng khi đi qua'); e.touching = true; continue;
     }
     if (event.type === 'exit-water') { waterCount = Math.max(0, waterCount - 1); if (event.t < 1) e.touching = false; continue; }
     if (event.type === 'enter-pothole') {
       potholeCount++;
-      if (e.lastHit < 0) {
+      if (e.lastHit < 0 && !hasStar(r)) {
         const loss = Math.min(r.money, balance.potholeMoneyLoss);
         r.durability = Math.max(0, r.durability - balance.potholeImpactDamage);
         r.money -= loss; e.lastHit = r.activeSeconds;
@@ -290,6 +318,7 @@ export function stepRun(before: Run, input: Input): Run {
     }
     if (event.type === 'exit-pothole') { potholeCount = Math.max(0, potholeCount - 1); if (event.t < 1) e.touching = false; continue; }
     if (e.kind === 'traffic') {
+      if (hasStar(r)) continue;
       const target = trafficTypes[e.trafficKind ?? 'car4'];
       const ram = vehicleRam[vehicle.kind];
       e.hp = Math.max(0, (e.hp ?? target.hp) - ram.damage);
@@ -317,7 +346,7 @@ export function stepRun(before: Run, input: Input): Run {
     r.route = { ...r.route, index: r.route.index + 1, choice: null, turns: r.route.turns + Number(choice !== 'straight'),
       lastTurn: choice, turnAt: r.activeSeconds, misses: r.route.misses + Number(choice === 'straight' && crossing.blockedStraight),
       history: choice === 'straight' ? r.route.history : [...r.route.history, { distance: crossing.distance, turn: choice }] };
-    if (choice === 'straight' && crossing.blockedStraight) {
+    if (choice === 'straight' && crossing.blockedStraight && !hasStar(r)) {
       r.durability = Math.max(0, r.durability - balance.trafficDamage);
       feedback('traffic', `Đường thẳng bị chắn · −${balance.trafficDamage} HP`);
       if (r.durability === 0) finish('damage'); else crashDriver(r.speed);

@@ -43,3 +43,6 @@ Mỗi P cần fixture seed cố định để chơi thử, simulation nhiều se
 ## Đề xuất tự review thiết kế (chưa áp dụng cân bằng)
 
 Vật phẩm có thể làm game vốn đang dễ trở nên dễ hơn: đo tỷ lệ sống, thời gian dưới ngưỡng xăng, số event né bằng món và tiền ròng/phút theo từng khoảng quãng đường, so với baseline không món trên cùng seed. Grab có nguy cơ biến thành nguồn tiền tự nuôi; thử chi phí/lượt so với phần thưởng tăng thêm thực nhận, không chỉ tiền lý thuyết. Chướng ngại ngang/đồ rơi tăng tải đọc cảnh; thử riêng từng loại trước phối hợp. Các nhận định này là dự đoán từ thiết kế, chưa phải kết quả playtest tính năng mới.
+
+## Trạng thái triển khai sau P5.1
+P5.1 đã có bản thử với mặc định kích hoạt nitro kèm nhảy và giá/nguồn shop TẠM ở GAME_DESIGN.md/BALANCE_CONFIG.md. Các dòng “chưa có” phía trên mô tả thời điểm lập kế hoạch; P5.2/P6 vẫn chưa làm. Star với event thật vẫn cần gate P6. Chi tiết kiểm tra: [PROTOTYPE_5_1_REVIEW.md](PROTOTYPE_5_1_REVIEW.md).

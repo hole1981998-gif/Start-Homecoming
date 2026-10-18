@@ -1,13 +1,15 @@
-import { balance, shopBalance } from './config';
+import { balance, itemBalance, shopBalance } from './config';
 import type { Run } from './survival';
 import { buyVehicle, effectiveVehicle, vehicles, type VehicleKind } from './vehicles';
 import type { Entity } from './world';
+
+import { itemNames, type PowerItem } from './items';
 
 export type ServiceKind = 'fuel' | 'repair';
 export type UpgradeKind = 'engine' | 'tank' | 'armour' | 'economy';
 export type ShopCommand = { sequence: number } & (
   { kind: 'vehicle'; vehicle: VehicleKind; discardId?: string } |
-  { kind: 'service'; item: ServiceKind } | { kind: 'upgrade'; upgrade: UpgradeKind; targetId?: string });
+  { kind: 'service'; item: ServiceKind } | { kind: 'power-item'; item: PowerItem } | { kind: 'upgrade'; upgrade: UpgradeKind; targetId?: string });
 export const upgradeNames: Record<UpgradeKind, string> = {
   engine: 'Động cơ', tank: 'Bình xăng', armour: 'Gia cố', economy: 'Tiết kiệm xăng' };
 export function upgradePrice(kind: UpgradeKind, level: number): number | undefined {
@@ -30,7 +32,7 @@ const sync = (run: Run) => run.vehicleInstances.map(v => v.id === run.activeVehi
 /** Validate then apply once; repeated/stale commands never repeat a charge. */
 export function transact(run: Run, command: ShopCommand): { run: Run; message: string } {
   const fail = (message: string) => ({ run, message });
-  if (!['vehicle', 'upgrade', 'service'].includes(command.kind)) return fail('Mặt hàng không còn được bán.');
+  if (!['vehicle', 'upgrade', 'service', 'power-item'].includes(command.kind)) return fail('Mặt hàng không còn được bán.');
   const shop = reachableShop(run);
   if (run.phase !== 'paused' || !shop || shop.id !== run.shopId || command.sequence !== run.economySequence ||
     !Number.isFinite(run.money) || run.money < 0) return fail('Giao dịch đã cũ hoặc ngoài cửa hàng.');
@@ -57,6 +59,17 @@ export function transact(run: Run, command: ShopCommand): { run: Run; message: s
     next.protectedEntities = [...new Set([...run.protectedEntities, ...overlaps.map(e => e.id)])];
     updatedStock.vehicles = stock.vehicles.filter(k => k !== command.vehicle);
     message = `Đã mua ${d.name}; khách giữ nguyên.${command.discardId ? ' Đã bỏ xe đã chọn.' : ''}`;
+  } else if (command.kind === 'power-item') {
+    if (command.item !== 'nitro' && command.item !== 'star') return fail('Vật phẩm không hợp lệ.');
+    const slot = run.inventory.indexOf(null);
+    if (slot < 0) return fail('Kho hai ô đã đầy.');
+    const count = stock.items?.[command.item] ?? 0;
+    if (count <= 0) return fail('Món này đã hết.');
+    price = command.item === 'nitro' ? itemBalance.nitroPrice : itemBalance.starPrice;
+    next.inventory = run.inventory.map((value, index) => index === slot ? command.item : value);
+    updatedStock.items = { ...stock.items!, [command.item]: count - 1 };
+    next.vehicleInstances = instances;
+    message = 'Đã mua ' + itemNames[command.item] + ' vào ô ' + (slot + 1) + '.';
   } else if (command.kind === 'upgrade') {
     const target = instances.find(v => v.id === (command.targetId ?? active.id));
     if (!target) return fail('Xe được chọn không còn trong kho.');

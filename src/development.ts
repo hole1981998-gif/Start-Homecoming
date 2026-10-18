@@ -5,9 +5,19 @@ import { newVehicle, vehicles, type VehicleKind } from './vehicles';
 import { balance } from './config';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null): Run {
+  if (scenario === 'items' || scenario === 'items-container') {
+    const chosen = newVehicle(scenario === 'items-container' ? 'container' : 'motorcycle', 'qa-items');
+    const hole = entity('pothole', 'qa-jump-hole', 24, 0); hole.width = 9.6; hole.length = 6;
+    const water = entity('water', 'qa-star-water', 70, 0); water.width = 9.6; water.length = 35;
+    const car = entity('traffic', 'qa-star-car', 80, 0); car.speed = 0; car.baseSpeed = 0;
+    return { ...run, inventory: ['nitro', 'star'], vehicleInstances: [chosen], activeVehicleId: chosen.id,
+      fuel: chosen.fuel, durability: chosen.durability, speed: vehicles[chosen.kind].cruiseSpeed,
+      world: { ...run.world, entities: [hole, water, car], nextHazard: 1e9, nextFuel: 1e9,
+        nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9 } };
+  }
   if (scenario === 'shop' || scenario === 'shop-third' || scenario === 'shop-insufficient') {
     const shop = entity('shop', 'qa-shop', 12, 0);
-    shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[] };
+    shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[], items: { nitro: 1, star: 1 } };
     return { ...run, money: scenario === 'shop-insufficient' ? 20 : 4000, fuel: 1, durability: 30,
       riderIds: ['qa-shop-rider'],
       vehicleInstances: scenario === 'shop-third' ? [...run.vehicleInstances, newVehicle('car7', 'qa-spare')] : run.vehicleInstances,

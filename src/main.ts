@@ -11,6 +11,7 @@ import { createIcons, Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw,
 import { RoadHud } from './road-hud';
 import { vehicles } from './vehicles';
 import { enterShop, leaveShop, transact } from './shop';
+import { hasBoost, hasStar, itemNames, usePowerItem } from './items';
 import { ShopView } from './shop-view';
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } });
 
@@ -62,7 +63,7 @@ function clearInput(): void { input = noInput(); clock.reset(); previous = state
 function show(view: Exclude<Screen, null>, title: string, description: string): void {
   screen = view; modal.hidden = false; clearInput();
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 05 · KINH TẾ VEN ĐƯỜNG');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : 'PROTOTYPE 05.1 · VẬT PHẨM TĂNG LỰC');
   el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
@@ -85,7 +86,7 @@ function resume(): void {
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
   state = newRun(); previous = state;
-  show('start', 'Đường về nhà', `R ghé cửa hàng ven đường để mua xe, tiếp tế và nâng cấp. Tab đổi xe; F/G đón hoặc cho khách xuống. Giữ xe còn xăng và độ bền, W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
+  show('start', 'Đường về nhà', `R ghé cửa hàng ven đường để mua xe, tiếp tế, nâng cấp và vật phẩm. Phím 1/2 dùng món trong ô: nitro kèm nhảy, star miễn damage/debuff. Tab đổi xe; F/G đón hoặc cho khách xuống. Giữ xe còn xăng và độ bền, W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
@@ -98,10 +99,10 @@ function openHelp(): void {
   if (state.shopId) state = leaveShop(state);
   pauseRun();
   const vehicle = activeVehicle(state);
-  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị của ${vehicle.name}. A/D lái; Q/E rẽ; F đón khách; G cho khách xuống. Tab đổi nhanh xe khi có xe dự phòng; khách và tài nguyên của từng xe được giữ nguyên. Xe hiện tại ${vehicle.name}: ${vehicle.capacity} chỗ tính cả tài xế, cruise ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h khi trống, bình ${formatter.format(vehicle.fuelCapacity)} L, hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Chở khách giảm cruise và quá tải tăng hao xăng. Nước hao xăng, ổ gà trừ HP theo thời gian, xe giao thông gây va/ngã; pha ngã/trôi/quay lại miễn tác động xấu. Hết xăng trôi ${balance.coastDistance} m; HP về 0 hoặc hết đà sẽ tự chuyển xe còn chạy được. R ghé cửa hàng đủ gần; Chỉ bơm xăng/sửa tại chỗ, không bán gói mang theo.`);
+  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị của ${vehicle.name}. A/D lái; Q/E rẽ; F đón khách; G cho khách xuống. Tab đổi nhanh xe khi có xe dự phòng; khách và tài nguyên của từng xe được giữ nguyên. Xe hiện tại ${vehicle.name}: ${vehicle.capacity} chỗ tính cả tài xế, cruise ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h khi trống, bình ${formatter.format(vehicle.fuelCapacity)} L, hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Chở khách giảm cruise và quá tải tăng hao xăng. Nước hao xăng, ổ gà trừ HP theo thời gian, xe giao thông gây va/ngã; pha ngã/trôi/quay lại miễn tác động xấu. Hết xăng trôi ${balance.coastDistance} m; HP về 0 hoặc hết đà sẽ tự chuyển xe còn chạy được. R ghé cửa hàng đủ gần; Xăng/sửa chỉ tại chỗ. Phím 1/2 dùng nitro kèm nhảy hoặc star; star không bỏ qua event, nitro không vượt xe cao.`);
 }
 const cardDescriptions: Record<EntityKind, string> = {
-  shop: `Nhà ven đường có biểu tượng cửa hàng. Lái tới cùng phía, nhấn R trong khoảng ${shopBalance.reach} m để ghé; game tạm dừng khi mua. Có xăng, sửa, xe và nâng cấp. Kho tối đa hai xe; mua xe thứ ba phải chọn xe bỏ. Chỉ bơm xăng/sửa tại chỗ; Tab vẫn đổi xe. Hàng của cùng cửa hàng không đổi khi mở lại.`,
+  shop: `Nhà ven đường có biểu tượng cửa hàng. Lái tới cùng phía, nhấn R trong khoảng ${shopBalance.reach} m để ghé; game tạm dừng khi mua. Có xăng, sửa, xe và nâng cấp. Kho tối đa hai xe; mua xe thứ ba phải chọn xe bỏ. Bán nitro/star cho hai ô 1/2; xăng/sửa chỉ tại chỗ. Tab vẫn đổi xe. Hàng của cùng cửa hàng không đổi khi mở lại.`,
   water: `Mảng nước làm hao thêm ${formatter.format(balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Có đoạn dài tới 30 m và phủ ba làn: lúc đó phải chấp nhận hao xăng cho đến khi có nhánh rẽ ở prototype sau.`,
   pothole: `Ổ gà viền vàng lấy ${balance.potholeImpactDamage} HP và tối đa ${balance.potholeMoneyLoss} tiền ở lần chạm đầu; tiếp tục lấy ${balance.potholeDamagePerSecond} HP mỗi giây xe còn chạm. Có đoạn dài tới 24 m hoặc phủ cả ba làn; chạy nhanh qua sẽ giảm thời gian chịu hại.`,
   traffic: `Xe giao thông có đủ loại từ xe máy, ô tô, ba gác tới buýt, tải và container; mỗi loại có HP, kích cỡ và sát thương riêng. Làn trái ngược chiều, phải cùng chiều, giữa chọn hướng theo seed. Va xe thường làm tài xế ngã; buýt, tải và container có thể húc hỏng xe yếu nhưng vẫn mất HP. Xe giao thông chịu ổ gà, chậm và hao thêm xăng trong nước. Mỗi loại có bình và mức hao riêng; hết xăng trôi thêm rồi dừng nhưng vẫn còn HP và gây va chạm. Khi xe hỏng, khách xuất hiện bên cạnh nếu có chỗ an toàn; nhấn F khi đủ gần để đón nếu xe tự hỏng vì ổ gà. Khách từ xe bị bạn húc hỏng từ chối lên xe; không tự nhận khách hay thưởng.`,
@@ -151,6 +152,9 @@ window.addEventListener('keydown', event => {
   if (state.phase !== 'running' || document.activeElement !== canvas) return;
   if (['Space', 'Tab'].includes(event.code)) event.preventDefault();
   if (!event.repeat && event.code === 'KeyR') { event.preventDefault(); openShop(); return; }
+  if (!event.repeat && ['Digit1', 'Digit2', 'Numpad1', 'Numpad2'].includes(event.code)) {
+    event.preventDefault(); state = usePowerItem(state, event.code.endsWith('1') ? 0 : 1); return;
+  }
   if (!event.repeat && event.code === 'Tab') { state = switchVehicle(state); return; }
   if (!event.repeat && event.code === 'KeyF') { state = pickUpPassenger(state); return; }
   if (!event.repeat && event.code === 'KeyG') { state = dropPassenger(state); return; }
@@ -188,6 +192,11 @@ function updateHud(): void {
   const occupants = state.crash ? 0 : state.riderIds.length + 1;
   text('rider-count', `${occupants}/${vehicle.capacity}`);
   text('vehicle-name', vehicle.name);
+  const effects = [hasBoost(state) ? '↟ NITRO ' + Math.max(0, state.powers.boostUntil - state.activeSeconds).toFixed(1) + 's' : '',
+    hasStar(state) ? '☆ STAR ' + Math.max(0, state.powers.starUntil - state.activeSeconds).toFixed(1) + 's' : ''].filter(Boolean);
+  el('item-cue').hidden = !state.inventory.some(Boolean) && effects.length === 0;
+  text('item-cue', state.inventory.map((item, i) => (i + 1) + ' · ' + (item ? item === 'nitro' ? '↟' : '☆' : '—')).join('  ') + '  ' + effects.join(' · '));
+  el('item-cue').setAttribute('aria-label', state.inventory.map((item, i) => 'Phím ' + (i + 1) + ': ' + (item ? itemNames[item] : 'trống')).join('; ') + '; ' + effects.join('; '));
   el('rider-count').setAttribute('aria-label', `${occupants} người trên xe gồm tài xế, sức chứa ${vehicle.capacity}`);
   el('rider-count').classList.toggle('overloaded', state.riderIds.length + 1 > vehicle.capacity);
   const fuel = el<HTMLProgressElement>('fuel'), hp = el<HTMLProgressElement>('hp');
@@ -202,7 +211,7 @@ function updateHud(): void {
   text('drive-mode', state.phase !== 'running' ? state.phase === 'ready' ? 'Sẵn sàng' : state.phase === 'ended' ? 'Đã kết ván' : 'Đã tạm dừng' :
     state.crash ? state.speed > 0 ? 'Xe đang trôi · tài xế quay lại · miễn nhiễm' : 'Tài xế đang quay lại xe · miễn nhiễm' :
     state.recovering ? 'Đang tăng tốc lại' :
-    state.motion === 'coasting' ? `Hết xăng · trôi ${Math.ceil(state.coastRemaining)} m` : input.brake ? 'Giữ S · hãm' : input.accelerate ? 'Giữ W · tăng' :
+    state.motion === 'coasting' ? `Hết xăng · trôi ${Math.ceil(state.coastRemaining)} m` : input.brake ? 'Giữ S · hãm' : hasBoost(state) ? 'Nitro boost' : input.accelerate ? 'Giữ W · tăng' :
       Math.abs(state.speed - passengerDrive(state.riderIds.length, vehicle).cruiseSpeed) > 1e-8 ? 'Đang hồi về trung vị' : 'Tự chạy trung vị');
   roadHud.update(state, graphics, flavorToggle.checked);
   pause.disabled = state.phase === 'ready' || state.phase === 'ended'; restart.disabled = state.phase === 'ready';
