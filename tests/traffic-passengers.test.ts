@@ -3,7 +3,7 @@ import { balance } from '../src/config';
 import { developmentScenario } from '../src/development';
 import { FixedClock, noInput } from '../src/simulation';
 import { initialRun, pickUpPassenger, stepRun } from '../src/survival';
-import { advanceTraffic, entity, forkWorld, initialWorld, spawnWreckPassengers } from '../src/world';
+import { advanceTraffic, entity, forkWorld, initialWorld, spawnWreckPassengers, trafficPassengerCount } from '../src/world';
 import { initialRoute } from '../src/route';
 import { vehicles } from '../src/vehicles';
 
@@ -20,6 +20,7 @@ it('every vehicle leaves a deterministic bounded roster once; removal of the wre
     spawnWreckPassengers(replay, 1, vehicles.motorcycle);
     expect(world).toEqual(replay);
     const riders = world.entities.filter(e => e.kind === 'passenger');
+    expect(riders).toHaveLength(trafficPassengerCount(seed, world.entities[0]));
     expect(riders.length).toBeGreaterThan(0);
     expect(riders.length).toBeLessThanOrEqual(Math.min(vehicles[kind].capacity - 1, balance.trafficPassengerLimit));
     for (let i = 0; i < 200; i++) {

@@ -113,13 +113,18 @@ function passengerHash(id: string): number {
   for (const character of id) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0;
   return hash >>> 0;
 }
+/** The visible traffic occupants and the people leaving a wreck share one seeded count. */
+export function trafficPassengerCount(seed: number, car: Pick<Entity, 'id' | 'trafficKind'>): number {
+  const limit = Math.min(balance.trafficPassengerLimit, vehicles[car.trafficKind ?? 'car4'].capacity - 1);
+  return limit > 0 ? 1 + passengerHash(`${seed}:${car.id}:occupants`) % limit : 0;
+}
 /** Resolve each wreck once, after collision events. Unsafe exits wait; retired branches never spawn. */
 export function spawnWreckPassengers(world: World, now: number, vehicle: VehicleDefinition): void {
   const additions: Entity[] = [];
   for (const car of world.entities) {
     if (car.kind !== 'traffic' || !car.wrecked || car.wreckPassengersSpawned) continue;
     const hash = passengerHash(`${world.seed}:${car.id}:occupants`);
-    const count = 1 + hash % Math.min(balance.trafficPassengerLimit, vehicles[car.trafficKind ?? 'car4'].capacity - 1);
+    const count = trafficPassengerCount(world.seed, car);
     const side = hash & 1 ? 1 : -1;
     const exits = [side * balance.laneWidth, -side * balance.laneWidth, 0]
       .filter(x => Math.abs(x - car.x) > (car.width + .7) / 2 + balance.trafficPassengerClearance)

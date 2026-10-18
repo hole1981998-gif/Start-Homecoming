@@ -98,6 +98,16 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
     const kind: VehicleKind = requested in vehicles ? requested as VehicleKind : 'car4';
     return { ...run, vehicleInstances: [...run.vehicleInstances, newVehicle(kind, `${run.runId}-${kind}`)] };
   }
+  if (scenario?.startsWith('visual-vehicles-')) {
+    const requested = scenario.slice('visual-vehicles-'.length);
+    const kind: VehicleKind = requested in vehicles ? requested as VehicleKind : 'car4';
+    const vehicle = newVehicle(kind, `${run.runId}-visual-${kind}`);
+    return { ...run, activeVehicleId: vehicle.id, vehicleInstances: [vehicle],
+      fuel: vehicle.fuel, durability: vehicle.durability,
+      riderIds: Array.from({ length: vehicles[kind].capacity - 1 }, (_, i) => `visual-rider-${i}`),
+      world: { ...run.world, nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9,
+        nextRepair: 1e9, nextPassenger: 1e9 } };
+  }
   if (scenario === 'passenger') return { ...run, world: { ...run.world, entities: [entity('passenger', 'qa-passenger', 5, 0)],
     nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
   if (scenario === 'passenger-crash' || scenario === 'passenger-crash-car') {
