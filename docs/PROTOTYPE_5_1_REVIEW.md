@@ -64,3 +64,6 @@ CHƯA KIỂM TRA THỦ CÔNG: toàn bộ tám xe ở mọi timing đáp đất, 
 ## Git và phê duyệt
 
 P5 đã được lưu thành commit local `ebd0b2c` trước tạo branch này, giữ nguyên feedback đã duyệt. Repo chưa có remote cấu hình/main cập nhật nên base P5.1 là local; không giả vờ fetch/main/PR/CI đã hoàn tất. P5.1 chỉ bàn giao local; chưa push/tạo PR, CI chưa chạy, chưa merge. Chờ chủ dự án chơi và đánh giá revision P5.1. Phê duyệt P5 không phải phê duyệt merge P5.1.
+
+
+Điều khiển tự nhảy ở báo cáo này là lịch sử P5.1 đầu. Yêu cầu mới đã tách nitro boost và Space nhảy; xem [NITRO_SPACE_REVIEW.md](NITRO_SPACE_REVIEW.md) cho revision/test hiện tại.

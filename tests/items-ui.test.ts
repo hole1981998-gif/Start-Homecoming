@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { expect, it, vi } from 'vitest';
+import type { Run } from '../src/survival';
+import { jumpHeight } from '../src/items';
+const drawn = vi.hoisted(() => ({ run: undefined as Run | undefined }));
 vi.mock('../src/render', () => ({ RoadRenderer: class {
-  draw() { /* DOM integration uses the real simulation without WebGL. */ }
+  draw(run: Run) { drawn.run = run; }
   project() { return { x: 50, y: 40 }; }
   dispose() { /* no graphics resources */ }
 } }));
@@ -19,7 +22,13 @@ it('real keys use fixed slots once, paused time freezes effects, and restart cle
   const key = (code: string, repeat = false) => window.dispatchEvent(new KeyboardEvent('keydown', { code, repeat, bubbles: true }));
   el('play').click(); key('Digit1', true); tick(.1);
   expect(el('item-cue').textContent).not.toContain('NITRO');
+  key('Space'); tick(.1); expect(drawn.run!.powers.jumpAt).toBe(-100);
   key('Digit1'); tick(.1);
+  expect(jumpHeight(drawn.run!)).toBe(0);
+  key('Space', true); tick(.1); expect(drawn.run!.powers.jumpAt).toBe(-100);
+  key('Space'); tick(.1); expect(jumpHeight(drawn.run!)).toBeGreaterThan(0);
+  const jumpAt = drawn.run!.powers.jumpAt;
+  key('Space'); tick(.1); expect(drawn.run!.powers.jumpAt).toBe(jumpAt);
   expect(el('item-cue').textContent).toContain('1 · —'); expect(el('item-cue').textContent).toContain('2 · ☆');
   expect(el('item-cue').textContent).toContain('NITRO');
   key('Escape'); tick(.1); const frozen = el('item-cue').textContent;

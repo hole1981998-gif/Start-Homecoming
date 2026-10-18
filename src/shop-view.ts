@@ -83,7 +83,7 @@ export class ShopView {
     }).join('');
     if (this.tab === 'power-item') content = (['nitro', 'star'] as const).map(item => {
       const price = item === 'nitro' ? itemBalance.nitroPrice : itemBalance.starPrice;
-      const effect = item === 'nitro' ? 'Boost ' + itemBalance.boostSeconds + ' s + nhảy ' + itemBalance.jumpSeconds + ' s; không vượt xe cao' :
+      const effect = item === 'nitro' ? 'Boost ' + itemBalance.boostSeconds + ' s; Space nhảy ' + itemBalance.jumpSeconds + ' s khi đang boost; không vượt xe cao' :
         'Miễn damage/debuff ' + itemBalance.starSeconds + ' s; không bỏ qua event';
       return row(itemNames[item], effect + ' · ' + price + ' tiền · còn ' + (stock.items?.[item] ?? 0),
         button('Mua', 'data-power="' + item + '" aria-label="Mua ' + itemNames[item] + '"',

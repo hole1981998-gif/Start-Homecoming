@@ -27,7 +27,7 @@ Chạy → đọc cảnh báo → né hoặc rẽ → đón khách/nhặt đồ 
 | W / S | Giữ W để tăng/duy trì tốc độ cao; giữ S để giảm/duy trì tốc độ thấp. Thả cả hai: tốc độ tự trở về tốc độ trung vị riêng của loại xe |
 | A / D | Lái ngang liên tục trong bề rộng đường; không khóa tâm lane |
 | Q / E | Chọn rẽ trái / phải trong cửa sổ QTE giao lộ |
-| Space | Chưa gán trong P5; input nhảy mới theo P5.1, không giữ luật kho nitro riêng cũ |
+| Space | Nhảy khi nitro đang boost và xe ở mặt đường; bấm riêng, không tự nhảy khi dùng món |
 | 1 / 2 | Dành cho hai ô vật phẩm mới từ P5.1; P5 hiện chưa có món để dùng |
 | F | Đón/tương tác hành khách đủ gần |
 | G | Cho đúng một khách đang đi nhờ xuống xe, không mở menu và không dừng ván |
@@ -215,6 +215,10 @@ Xem [DESIGN_ITEMS_HAZARDS.md](DESIGN_ITEMS_HAZARDS.md) cho cơ chế đã chốt
 
 
 ## P5.1 — bản thử vật phẩm tăng lực (18/10/2026)
-Đã triển khai kho hai ô cố định 1/2 (cả numpad), nitro tự boost kèm một cú nhảy, star miễn damage/debuff thường. Xăng/sửa chỉ là service tại chỗ, không đưa lại gói hồi tài nguyên. Nguồn thử TẠM: mỗi shop một nitro và một star, không reroll; giá 120/180. Bản thường bắt đầu kho trống; fixture DEV items có sẵn hai món. Nitro boost 4 s, trần tốc độ ×1,3, nhảy 1,6 s cao 2,4 m; star 5 s. Bấm nitro khi hết xăng/coasting hoặc dùng lại cùng hiệu lực đang chạy không tiêu món; pause/crash/kết ván không cho dùng. Hai hiệu lực khác loại có thể dùng cùng lúc, không cộng dồn cùng loại. Timer theo thời gian gameplay; pause/shop/Help không làm hết hiệu lực.
+Đã triển khai kho hai ô cố định 1/2 (cả numpad), nitro chỉ boost, Space mới nhảy khi hiệu lực còn, star miễn damage/debuff thường. Xăng/sửa chỉ là service tại chỗ, không đưa lại gói hồi tài nguyên. Nguồn thử TẠM: mỗi shop một nitro và một star, không reroll; giá 120/180. Bản thường bắt đầu kho trống; fixture DEV items có sẵn hai món. Nitro boost 4 s, trần tốc độ ×1,3, nhảy 1,6 s cao 2,4 m; star 5 s. Bấm nitro khi hết xăng/coasting hoặc dùng lại cùng hiệu lực đang chạy không tiêu món; pause/crash/kết ván không cho dùng. Hai hiệu lực khác loại có thể dùng cùng lúc, không cộng dồn cùng loại. Timer theo thời gian gameplay; pause/shop/Help không làm hết hiệu lực.
 Nitro không miễn va chạm: chỉ vượt mặt đường/xe thấp khi đủ cao và toàn bộ footprint thoát trước hạ cánh; không vượt bus/truck/container. Đụng trong lúc nhảy vẫn có thể ngã; ngã hủy boost/flight. Star không hồi/cấp xăng, tiêu hao chạy nền vẫn có; không tự phá traffic khi lướt qua. Hết star khi vẫn chạm hazard sẽ chịu hậu quả tiếp. Tại giao lộ, star vẫn ghi event/miss nhưng chặn damage/ngã của rào thường. Tàu/công an/dân phòng chưa có, chưa nghiệm thu luật terminal/trigger thực của P6; thiết kế star không bỏ trigger và tàu vẫn terminal khi đụng được giữ. Grab/chuối/hazard mới chưa triển khai.
 Các số trên đều TẠM, chưa khóa economy/difficulty. Xem [PROTOTYPE_5_1_REVIEW.md](PROTOTYPE_5_1_REVIEW.md) cho command, seed, bằng chứng manual, giới hạn và tự review.
+
+
+## Sửa điều khiển nitro theo chủ dự án — Space nhảy
+Thay luật tự nhảy của P5.1 đầu: dùng nitro bằng phím ô 1/2 chỉ boost tốc độ trong thời lượng hiện có (TẠM 4 s). Nhấn Space riêng khi nitro đang hiệu lực và xe đang ở mặt đường để nhảy. Không tiêu thêm món/không reset thời lượng boost; giữ Space không tự nhảy lặp. Sau hạ cánh có thể nhấn Space lại nếu boost còn. Không nhảy khi pause/ngã/kết ván/hết xăng/coasting hoặc không có nitro; star riêng không cho nhảy. Cú nhảy đã bắt đầu vẫn đáp bình thường nếu boost hết giữa không trung. Không đổi giá/thời lượng, không chỉnh layout/art; UX/UI hoàn chỉnh để P tương ứng. Kết quả: [NITRO_SPACE_REVIEW.md](NITRO_SPACE_REVIEW.md).

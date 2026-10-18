@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { balance, itemBalance } from '../src/config';
-import { clears, hasBoost, hasStar, jumpHeight, usePowerItem } from '../src/items';
+import { clears, hasBoost, hasStar, jumpHeight, requestJump, usePowerItem } from '../src/items';
 import { initialRun, stepRun, switchVehicle, type Run } from '../src/survival';
 import { FixedClock, noInput } from '../src/simulation';
 import { entity, initialWorld } from '../src/world';
@@ -19,6 +19,34 @@ function seconds(run: Run, duration: number): Run {
   for (let i = 0; i < Math.round(duration / balance.fixedStep); i++) run = stepRun(run, noInput());
   return run;
 }
+it('nitro boosts on the ground until Space; jumping does not reset the boost timer or consume another item', () => {
+  const run = seconds(usePowerItem(ready(), 0), .5);
+  expect(run.speed).toBeGreaterThan(vehicles.motorcycle.cruiseSpeed);
+  expect(jumpHeight(run)).toBe(0); expect(run.powers.jumpAt).toBe(-100);
+  const jumping = requestJump(run);
+  expect(jumping.powers.boostUntil).toBe(run.powers.boostUntil);
+  expect(jumping.inventory).toEqual(run.inventory);
+  expect(requestJump(jumping)).toBe(jumping);
+  expect(jumpHeight(seconds(jumping, .2))).toBeGreaterThan(0);
+  const landed = seconds(jumping, itemBalance.jumpSeconds);
+  expect(jumpHeight(landed)).toBe(0);
+  expect(requestJump(landed).powers.jumpAt).toBeCloseTo(landed.activeSeconds);
+});
+it('Space requires active nitro and driving state; a late jump lands normally after boost expires', () => {
+  const plain = ready(); expect(requestJump(plain)).toBe(plain);
+  const star = usePowerItem(plain, 1); expect(requestJump(star)).toBe(star);
+  const boosted = usePowerItem(plain, 0);
+  for (const phase of ['ready', 'paused', 'ended'] as const) {
+    const blocked = { ...boosted, phase }; expect(requestJump(blocked)).toBe(blocked);
+  }
+  const empty = { ...boosted, fuel: 0 }; expect(requestJump(empty)).toBe(empty);
+  const late = requestJump(seconds(boosted, itemBalance.boostSeconds - .1));
+  const flying = seconds(late, .3);
+  expect(hasBoost(flying)).toBe(false); expect(jumpHeight(flying)).toBeGreaterThan(0);
+  expect(requestJump(flying)).toBe(flying);
+  const landed = seconds(flying, itemBalance.jumpSeconds);
+  expect(jumpHeight(landed)).toBe(0); expect(requestJump(landed)).toBe(landed);
+});
 it('two fixed slots consume only the selected valid item and reject pause/crash/end/repeat activation', () => {
   const run = ready(), used = usePowerItem(run, 0);
   expect(used.inventory).toEqual([null, 'star']); expect(run.inventory).toEqual(['nitro', 'star']);
@@ -65,7 +93,7 @@ it('boost accelerates above normal max, ends on active time, and returns smoothl
 it('jump clears a short hole but landing in a long hole resumes contact damage for every vehicle footprint', () => {
   for (const kind of Object.keys(vehicles) as VehicleKind[]) {
     let run = ready(kind); const hole = entity('pothole', 'long', 5, 0); hole.length = 150; hole.width = 9.6;
-    run.world.entities = [hole]; run = usePowerItem(run, 0);
+    run.world.entities = [hole]; run = requestJump(usePowerItem(run, 0));
     // Beginning inside the hole is not immune before lift-off.
     run = seconds(run, .5); const hp = run.durability;
     expect(jumpHeight(run)).toBeGreaterThan(0); expect(clears(run, .15)).toBe(true);
@@ -73,11 +101,11 @@ it('jump clears a short hole but landing in a long hole resumes contact damage f
     run = seconds(run, 1); expect(run.durability).toBeLessThan(hp);
   }
   let run = ready(); const hole = entity('pothole', 'short', 15, 0); hole.length = 3;
-  run.world.entities = [hole]; run = seconds(usePowerItem(run, 0), 2);
+  run.world.entities = [hole]; run = seconds(requestJump(usePowerItem(run, 0)), 2);
   expect(run.durability).toBe(vehicles.motorcycle.durabilityCapacity);
 });
 it('jump does not grant blanket immunity to tall traffic and crash cancels boost/flight', () => {
-  let run = usePowerItem(ready(), 0);
+  let run = requestJump(usePowerItem(ready(), 0));
   const truck = entity('traffic', 'tall', 18, 0); truck.trafficKind = 'container'; truck.width = 2; truck.length = 2;
   truck.speed = 0; truck.baseSpeed = 0; truck.hp = 300;
   run.world.entities = [truck]; run = seconds(run, 1);
@@ -129,6 +157,7 @@ it('seeded runs using both powers stay finite and reproducible with no mutation 
       let run: Run = { ...initialRun(seed), phase: 'running', inventory: ['nitro', 'star'] };
       for (let tick = 0; tick < 1800 && run.phase === 'running'; tick++) {
         if (tick === 180) run = usePowerItem(run, 0);
+        if (tick === 210) run = requestJump(run);
         if (tick === 600) run = usePowerItem(run, 1);
         run = stepRun(run, { ...noInput(), left: tick % 360 < 180, right: tick % 360 >= 180 });
         if (!Number.isFinite(run.distance + run.speed + run.fuel + run.durability)) throw new Error('Non-finite power simulation');
@@ -142,7 +171,7 @@ it('seeded runs using both powers stay finite and reproducible with no mutation 
 
 it('active effects and landing produce the same state at 30/60/144 render FPS', () => {
   const play = (fps: number) => {
-    let run = usePowerItem(usePowerItem(ready('container'), 0), 1);
+    let run = requestJump(usePowerItem(usePowerItem(ready('container'), 0), 1));
     const hole = entity('pothole', 'long-fps-hole', 20, 0); hole.width = 9.6; hole.length = 140;
     run.world.entities = [hole]; const clock = new FixedClock();
     for (let frame = 0; frame < fps * 6; frame++) clock.advance(1 / fps, () => { run = stepRun(run, noInput()); });
@@ -152,10 +181,10 @@ it('active effects and landing produce the same state at 30/60/144 render FPS', 
 });
 it('flight clears low traffic only while the entire footprint passes before landing', () => {
   const small = entity('traffic', 'low-car', 16, 0); small.length = 2; small.speed = 0; small.baseSpeed = 0;
-  let run = usePowerItem(ready(), 0); run.world.entities = [small];
+  let run = requestJump(usePowerItem(ready(), 0)); run.world.entities = [small];
   run = seconds(run, 2); expect(run.crash).toBeNull(); expect(run.durability).toBe(70);
   const long = { ...small, id: 'long-contact', distance: 25, length: 70, hp: 10000 };
-  run = usePowerItem(ready('container'), 0); run.world.entities = [long];
+  run = requestJump(usePowerItem(ready('container'), 0)); run.world.entities = [long];
   // Start at the jump apex to isolate the rear footprint remaining in contact at landing.
   run.activeSeconds = itemBalance.jumpSeconds / 2;
   run = seconds(run, 1); expect(run.crash).not.toBeNull();

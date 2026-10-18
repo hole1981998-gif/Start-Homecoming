@@ -11,7 +11,7 @@ import { createIcons, Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw,
 import { RoadHud } from './road-hud';
 import { vehicles } from './vehicles';
 import { enterShop, leaveShop, transact } from './shop';
-import { hasBoost, hasStar, itemNames, usePowerItem } from './items';
+import { hasBoost, hasStar, itemNames, requestJump, usePowerItem } from './items';
 import { ShopView } from './shop-view';
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } });
 
@@ -86,7 +86,7 @@ function resume(): void {
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
   state = newRun(); previous = state;
-  show('start', 'Đường về nhà', `R ghé cửa hàng ven đường để mua xe, tiếp tế, nâng cấp và vật phẩm. Phím 1/2 dùng món trong ô: nitro kèm nhảy, star miễn damage/debuff. Tab đổi xe; F/G đón hoặc cho khách xuống. Giữ xe còn xăng và độ bền, W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
+  show('start', 'Đường về nhà', `R ghé cửa hàng ven đường để mua xe, tiếp tế, nâng cấp và vật phẩm. Phím 1/2 dùng món trong ô: nitro boost hoặc star miễn damage/debuff. Space nhảy khi nitro đang bật. Tab đổi xe; F/G đón hoặc cho khách xuống. Giữ xe còn xăng và độ bền, W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
@@ -99,7 +99,7 @@ function openHelp(): void {
   if (state.shopId) state = leaveShop(state);
   pauseRun();
   const vehicle = activeVehicle(state);
-  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị của ${vehicle.name}. A/D lái; Q/E rẽ; F đón khách; G cho khách xuống. Tab đổi nhanh xe khi có xe dự phòng; khách và tài nguyên của từng xe được giữ nguyên. Xe hiện tại ${vehicle.name}: ${vehicle.capacity} chỗ tính cả tài xế, cruise ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h khi trống, bình ${formatter.format(vehicle.fuelCapacity)} L, hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Chở khách giảm cruise và quá tải tăng hao xăng. Nước hao xăng, ổ gà trừ HP theo thời gian, xe giao thông gây va/ngã; pha ngã/trôi/quay lại miễn tác động xấu. Hết xăng trôi ${balance.coastDistance} m; HP về 0 hoặc hết đà sẽ tự chuyển xe còn chạy được. R ghé cửa hàng đủ gần; Xăng/sửa chỉ tại chỗ. Phím 1/2 dùng nitro kèm nhảy hoặc star; star không bỏ qua event, nitro không vượt xe cao.`);
+  show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị của ${vehicle.name}. A/D lái; Q/E rẽ; F đón khách; G cho khách xuống. Tab đổi nhanh xe khi có xe dự phòng; khách và tài nguyên của từng xe được giữ nguyên. Xe hiện tại ${vehicle.name}: ${vehicle.capacity} chỗ tính cả tài xế, cruise ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h khi trống, bình ${formatter.format(vehicle.fuelCapacity)} L, hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Chở khách giảm cruise và quá tải tăng hao xăng. Nước hao xăng, ổ gà trừ HP theo thời gian, xe giao thông gây va/ngã; pha ngã/trôi/quay lại miễn tác động xấu. Hết xăng trôi ${balance.coastDistance} m; HP về 0 hoặc hết đà sẽ tự chuyển xe còn chạy được. R ghé cửa hàng đủ gần; Xăng/sửa chỉ tại chỗ. Phím 1/2 dùng nitro boost hoặc star; Space nhảy khi nitro đang bật; star không bỏ qua event, nitro không vượt xe cao.`);
 }
 const cardDescriptions: Record<EntityKind, string> = {
   shop: `Nhà ven đường có biểu tượng cửa hàng. Lái tới cùng phía, nhấn R trong khoảng ${shopBalance.reach} m để ghé; game tạm dừng khi mua. Có xăng, sửa, xe và nâng cấp. Kho tối đa hai xe; mua xe thứ ba phải chọn xe bỏ. Bán nitro/star cho hai ô 1/2; xăng/sửa chỉ tại chỗ. Tab vẫn đổi xe. Hàng của cùng cửa hàng không đổi khi mở lại.`,
@@ -151,6 +151,7 @@ window.addEventListener('keydown', event => {
   }
   if (state.phase !== 'running' || document.activeElement !== canvas) return;
   if (['Space', 'Tab'].includes(event.code)) event.preventDefault();
+  if (!event.repeat && event.code === 'Space') { state = requestJump(state); return; }
   if (!event.repeat && event.code === 'KeyR') { event.preventDefault(); openShop(); return; }
   if (!event.repeat && ['Digit1', 'Digit2', 'Numpad1', 'Numpad2'].includes(event.code)) {
     event.preventDefault(); state = usePowerItem(state, event.code.endsWith('1') ? 0 : 1); return;

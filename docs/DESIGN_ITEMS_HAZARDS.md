@@ -46,3 +46,7 @@ Vật phẩm có thể làm game vốn đang dễ trở nên dễ hơn: đo tỷ
 
 ## Trạng thái triển khai sau P5.1
 P5.1 đã có bản thử với mặc định kích hoạt nitro kèm nhảy và giá/nguồn shop TẠM ở GAME_DESIGN.md/BALANCE_CONFIG.md. Các dòng “chưa có” phía trên mô tả thời điểm lập kế hoạch; P5.2/P6 vẫn chưa làm. Star với event thật vẫn cần gate P6. Chi tiết kiểm tra: [PROTOTYPE_5_1_REVIEW.md](PROTOTYPE_5_1_REVIEW.md).
+
+
+## Sửa điều khiển nitro theo chủ dự án — Space nhảy
+Thay luật tự nhảy của P5.1 đầu: dùng nitro bằng phím ô 1/2 chỉ boost tốc độ trong thời lượng hiện có (TẠM 4 s). Nhấn Space riêng khi nitro đang hiệu lực và xe đang ở mặt đường để nhảy. Không tiêu thêm món/không reset thời lượng boost; giữ Space không tự nhảy lặp. Sau hạ cánh có thể nhấn Space lại nếu boost còn. Không nhảy khi pause/ngã/kết ván/hết xăng/coasting hoặc không có nitro; star riêng không cho nhảy. Cú nhảy đã bắt đầu vẫn đáp bình thường nếu boost hết giữa không trung. Không đổi giá/thời lượng, không chỉnh layout/art; UX/UI hoàn chỉnh để P tương ứng. Kết quả: [NITRO_SPACE_REVIEW.md](NITRO_SPACE_REVIEW.md).

@@ -9,7 +9,7 @@ export const hasStar = (run: Run): boolean => run.activeSeconds < run.powers.sta
 export const hasBoost = (run: Run): boolean => run.activeSeconds < run.powers.boostUntil - 1e-9;
 export function jumpHeight(run: Run): number {
   const age = run.activeSeconds - run.powers.jumpAt;
-  return age > 0 && age < itemBalance.jumpSeconds ?
+  return age > 1e-9 && age < itemBalance.jumpSeconds - 1e-9 ?
     itemBalance.jumpHeight * Math.sin(Math.PI * age / itemBalance.jumpSeconds) : 0;
 }
 /** Ordinary collision clearance; terminal/event policies are deliberately separate. */
@@ -20,8 +20,14 @@ export function usePowerItem(run: Run, slot: number): Run {
   if (!item || (item === 'nitro' && (hasBoost(run) || run.fuel <= 0 || run.motion !== 'powered')) ||
     (item === 'star' && hasStar(run))) return run;
   return { ...run, inventory: run.inventory.map((value, i) => i === slot ? null : value),
-    powers: item === 'nitro' ? { ...run.powers, boostUntil: run.activeSeconds + itemBalance.boostSeconds, jumpAt: run.activeSeconds } :
+    powers: item === 'nitro' ? { ...run.powers, boostUntil: run.activeSeconds + itemBalance.boostSeconds } :
       { ...run.powers, starUntil: run.activeSeconds + itemBalance.starSeconds } };
+}
+/** Space starts flight independently; neither jumping nor landing extends the boost. */
+export function requestJump(run: Run): Run {
+  if (run.phase !== 'running' || run.crash || run.result || !hasBoost(run) || run.fuel <= 0 || run.motion !== 'powered' ||
+    run.activeSeconds - run.powers.jumpAt < itemBalance.jumpSeconds - 1e-9) return run;
+  return { ...run, powers: { ...run.powers, jumpAt: run.activeSeconds } };
 }
 /** Split a fixed tick at effect/clearance boundaries so landing and expiration cannot grant a spare tick. */
 export function powerBoundaries(run: Run, dt: number): number[] {
