@@ -25,7 +25,10 @@ it('real input calls Grab once, shows charges/type, requires F, keeps riders thr
   expect(drawn.run!.riderIds).toEqual([]);
   expect(el('world-cues').querySelector('[data-kind="passenger"]')?.getAttribute('aria-label')).toContain('Khách Grab');
   key('Digit1'); tick(.1); expect(drawn.run!.grabSequence).toBe(1);
-  tick(3); key('KeyF'); tick(.1);
+  const npc = drawn.run!.world.entities.find(e => e.passengerType === 'grab')!;
+  const steer = npc.x > 0 ? 'KeyD' : 'KeyA';
+  key(steer); tick(3); window.dispatchEvent(new KeyboardEvent('keyup', { code: steer, bubbles: true }));
+  key('KeyF'); tick(.1);
   expect(el('rider-count').textContent).toBe('2/2'); expect(drawn.run!.grabRiderIds).toHaveLength(1);
   const id = drawn.run!.grabRiderIds[0];
   key('Tab'); tick(.1); expect(el('rider-count').textContent).toBe('2/4');

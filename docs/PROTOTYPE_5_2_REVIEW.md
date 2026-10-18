@@ -78,3 +78,6 @@ CHƯA KIỂM TRA THỦ CÔNG lại mọi xe/seed/timing rẽ, terminal failure h
 ## Git / PR
 
 Branch riêng từ bản P5.1 đã được chủ dự án chấp nhận chơi thử. Repo vẫn chưa cấu hình remote/main mới để fetch; đây là bản local có thể review, không giả vờ đã dựa remote main. Chưa push/tạo PR/CI, chưa merge. Kết quả test không thay thế phê duyệt con người cho revision mới; commit local báo ở bàn giao. Phê duyệt prototype trước không được coi là phê duyệt merge P5.2.
+
+
+Cập nhật vị trí chờ: khách Grab chỉ spawn ở hai ven đường theo seed, thay vị trí trong lane của P5.2 đầu. Xem [GRAB_ROADSIDE_REVIEW.md](GRAB_ROADSIDE_REVIEW.md) cho kết quả mới.

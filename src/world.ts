@@ -290,7 +290,9 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
         const from = Math.min(hazard.distance, hazard.distance + hazard.speed * t);
         const to = Math.max(hazard.distance, hazard.distance + hazard.speed * t);
         const clearance = (vehicle.length + hazard.length) / 2 + itemBalance.grabClearance;
-        return Math.abs(npc.x - hazard.x) <= (vehicle.width + hazard.width) / 2 + itemBalance.grabClearance &&
+        const bound = (balance.laneWidth * balance.laneCount - vehicle.width) / 2;
+        const pickupX = Math.max(-bound, Math.min(bound, npc.x));
+        return Math.abs(pickupX - hazard.x) <= (vehicle.width + hazard.width) / 2 + itemBalance.grabClearance &&
           npc.distance >= from - clearance && npc.distance <= to + clearance;
       })());
     if (grabPocket) continue;

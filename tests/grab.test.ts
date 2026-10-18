@@ -21,7 +21,9 @@ function drive(run: Run, seconds: number): Run {
 function board(run: Run): Run {
   const npc = run.world.entities.find(e => e.passengerType === 'grab' && !e.consumed)!;
   // Unit setup moves into the real pickup window; money is still earned only by stepRun.
-  return pickUpPassenger({ ...run, distance: npc.distance, x: npc.x });
+  const vehicle = vehicles[run.vehicleInstances.find(v => v.id === run.activeVehicleId)!.kind];
+  const bound = (balance.laneWidth * balance.laneCount - vehicle.width) / 2;
+  return pickUpPassenger({ ...run, distance: npc.distance, x: Math.max(-bound, Math.min(bound, npc.x)) });
 }
 
 it('a package keeps its slot for three successful calls, requires F, and never rewards on call or pickup', () => {
@@ -84,8 +86,57 @@ it('safe spawn is seeded, respects current footprint, and preserves hazard RNG f
     expect(called.world.rng).toBe(run.world.rng);
     const npc = called.world.entities.find(e => e.passengerType === 'grab')!;
     expect(npc).toBeDefined(); expect(npc.distance - run.distance).toBeGreaterThanOrEqual(run.speed * balance.warningSeconds);
+    expect(Math.abs(npc.x) - npc.width / 2).toBeGreaterThanOrEqual(balance.laneWidth * balance.laneCount / 2 - 1e-9);
+    const bound = (balance.laneWidth * balance.laneCount - vehicles[kind].width) / 2;
+    expect(Math.abs(npc.x) - bound).toBeLessThanOrEqual(balance.passengerLateralReach);
+    expect(board(called).riderIds).toContain(npc.id);
     expect(npc.passengerMotion?.idle).toBe(true);
   }
+});
+
+it('clear roads select both verges by seed/sequence, never the middle or simply the nearest player side', () => {
+  const banks = new Set<number>(), sequenceBanks = new Set<number>();
+  for (let seed = 1; seed <= 100; seed++) {
+    const run = ready(seed);
+    const spawn = (x: number) => usePowerItem({ ...run, x }, 0).world.entities.find(e => e.passengerType === 'grab')!;
+    const middle = spawn(0), left = spawn(-4), right = spawn(4);
+    expect(Math.sign(left.x)).toBe(Math.sign(middle.x)); expect(Math.sign(right.x)).toBe(Math.sign(middle.x));
+    banks.add(Math.sign(middle.x));
+  }
+  for (let sequence = 0; sequence < 12; sequence++) {
+    const npc = usePowerItem({ ...ready(), grabSequence: sequence }, 0).world.entities.find(e => e.passengerType === 'grab')!;
+    sequenceBanks.add(Math.sign(npc.x));
+  }
+  expect([...banks].sort()).toEqual([-1, 1]); expect([...sequenceBanks].sort()).toEqual([-1, 1]);
+});
+
+it('a blocked preferred verge can fall back only to the other safe verge, without moving the passenger onto the road', () => {
+  const run = ready(), preferred = usePowerItem(run, 0).world.entities.find(e => e.passengerType === 'grab')!;
+  const wall = entity('water', 'blocked-one-verge', 80, Math.sign(preferred.x) * balance.laneWidth);
+  wall.width = balance.laneWidth; wall.length = 250;
+  const called = usePowerItem({ ...run, world: { ...run.world, entities: [wall] } }, 0);
+  const npc = called.world.entities.find(e => e.passengerType === 'grab')!;
+  expect(Math.sign(npc.x)).toBe(-Math.sign(preferred.x));
+  expect(Math.abs(npc.x)).toBeGreaterThan(balance.laneWidth * balance.laneCount / 2);
+  expect(called.grabUses[0]).toBe(2);
+});
+
+it('future hazards reserve the on-road pickup footprint for a passenger waiting beyond either verge', () => {
+  let checked = 0;
+  for (let seed = 1; seed <= 30; seed++) for (const side of [-1, 1]) {
+    const pocket = entity('passenger', 'verge', 130, 0); pocket.passengerType = 'grab';
+    pocket.x = side * (balance.laneWidth * balance.laneCount / 2 + pocket.width / 2);
+    const world = initialWorld(seed), plain = fillWorld(world, 0);
+    const reserved = fillWorld({ ...world, entities: [pocket] }, 0);
+    expect(reserved.rng).toBe(plain.rng);
+    const pickupX = side * (balance.laneWidth * balance.laneCount - vehicles.motorcycle.width) / 2;
+    const blocks = (e: typeof pocket) => e.kind === 'water' &&
+      Math.abs(e.x - pickupX) <= (e.width + vehicles.motorcycle.width) / 2 + itemBalance.grabClearance &&
+      Math.abs(e.distance - pocket.distance) <= (e.length + vehicles.motorcycle.length) / 2 + itemBalance.grabClearance;
+    if (plain.entities.some(blocks)) checked++;
+    expect(reserved.entities.some(blocks)).toBe(false);
+  }
+  expect(checked).toBeGreaterThan(0);
 });
 
 it('Grab changes only the boarded rider bonus, retains ordinary score and load penalties, and never earns during pause', () => {

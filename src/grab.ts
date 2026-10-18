@@ -12,16 +12,23 @@ export function callGrab(run: Run, slot: number): Run {
   const vehicle = effectiveVehicle(run.vehicleInstances.find(v => v.id === run.activeVehicleId)!);
   const nextJunction = junction(run.seed, run.route.index);
   const ahead = Math.max(itemBalance.grabMinAhead, run.speed * balance.warningSeconds);
-  const hash = (Math.imul(run.seed ^ run.world.branchSeed ^ run.grabSequence, 1664525) >>> 0) % 3;
-  const lanes = [-balance.laneWidth, 0, balance.laneWidth].map((x, i) => ({ x, rank: (i + hash) % 3 }))
-    .sort((a, b) => Math.abs(a.x - run.x) - Math.abs(b.x - run.x) || a.rank - b.rank);
+  const mixed = Math.imul(run.seed ^ 0x85ebca6b, 2246822519) >>> 0;
+  const hash = Math.imul(mixed ^ run.world.branchSeed ^ run.grabSequence, 3266489917) >>> 0;
+  const preferredSide = (hash >>> 16) & 1 ? 1 : -1;
+  const roadHalfWidth = balance.laneWidth * balance.laneCount / 2;
+  const vehicleBound = roadHalfWidth - vehicle.width / 2;
+  const npcHalfWidth = entity('passenger', 'geometry', 0, 0).width / 2;
+  const sides = [preferredSide, -preferredSide];
   for (let offset = ahead; offset <= itemBalance.grabMaxAhead; offset += itemBalance.grabSearchStep) {
     const distance = run.distance + offset;
     if (nearJunction(distance) || (!run.route.choice && run.distance < nextJunction.distance + 4 &&
       distance >= nextJunction.distance - 8)) continue;
     const early = offset / Math.max(run.speed, vehicle.maxSpeed), late = offset / vehicle.minSpeed;
-    for (const { x } of lanes) {
-      if (Math.abs(x - run.x) > balance.lateralSpeed * Math.max(0, early - itemBalance.grabSteeringMarginSeconds)) continue;
+    for (const side of sides) {
+      const x = side * (roadHalfWidth + npcHalfWidth);
+      const pickupX = side * vehicleBound;
+      if (Math.abs(x - pickupX) > balance.passengerLateralReach) continue;
+      if (Math.abs(pickupX - run.x) > balance.lateralSpeed * Math.max(0, early - itemBalance.grabSteeringMarginSeconds)) continue;
       const safe = run.world.entities.every(e => {
         if (e.consumed) return true;
         if (e.kind === 'passenger') return Math.abs(e.x - x) > itemBalance.grabClearance || Math.abs(e.distance - distance) > balance.passengerReach;
@@ -30,7 +37,7 @@ export function callGrab(run: Run, slot: number): Run {
         const clearance = (vehicle.length + e.length) / 2 + itemBalance.grabClearance;
         const from = Math.min(e.distance, e.distance + e.speed * early, e.distance + e.speed * late);
         const to = Math.max(e.distance, e.distance + e.speed * early, e.distance + e.speed * late);
-        return Math.abs(e.x - x) > (vehicle.width + e.width) / 2 + itemBalance.grabClearance ||
+        return Math.abs(e.x - pickupX) > (vehicle.width + e.width) / 2 + itemBalance.grabClearance ||
           distance < from - clearance || distance > to + clearance;
       });
       if (!safe) continue;
