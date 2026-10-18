@@ -33,7 +33,8 @@ export function releaseCargo(entities: Entity[], now: number, playerDistance: nu
     cargo.cargoSourceId = source.id;
     cargo.cargoVelocityX = (hash & 1 ? 1 : -1) * (cargoBalance.rollSpeed + ((hash >>> 1) % 8) * .1);
     cargo.cargoExpiresAt = now + cargoBalance.lifetime;
-    cargo.speed = -(cargoBalance.backwardSpeed + ((hash >>> 5) % 6) * .2);
+    cargo.speed = -((cargo.cargoType === 'barrel' ? cargoBalance.barrelBackwardSpeed : cargoBalance.backwardSpeed) +
+      ((hash >>> 5) % 6) * .2);
     cargo.displayName = cargo.cargoType === 'barrel' ? 'Thùng lăn' : 'Kiện hàng rơi';
     entities.push(cargo); active++;
   }

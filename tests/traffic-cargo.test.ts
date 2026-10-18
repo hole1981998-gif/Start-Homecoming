@@ -35,12 +35,38 @@ it('releases one deterministic rolling object per living source, and skips wreck
   expect(moved[1].x).toBeLessThan(cargo.x);
   advanceCargo(moved, cargoBalance.lifetime, cargo.cargoExpiresAt!);
   expect(moved[1].consumed).toBe(true);
-  for (const blocked of [ready('p63-wrecked').world.entities[0], { ...source, id: 'behind', distance: 5 },
+  for (const blocked of [{ ...source, id: 'wrecked', wrecked: true, hp: 0 }, { ...source, id: 'behind', distance: 5 },
     { ...source, id: 'far', distance: 300 }, { ...source, id: 'opposite', speed: -2, baseSpeed: -2 },
     { ...source, id: 'stopped', speed: 0 }, { ...source, id: 'car', trafficKind: 'car4' as const }]) {
     const batch = [{ ...blocked }]; releaseCargo(batch, 10, 30, 17);
     expect(batch).toHaveLength(1);
   }
+});
+it('releases the heavy barrel earlier and sends it backward faster than a crate', () => {
+  const heavy = ready('p63-barrel-left').world.entities[0];
+  const light = ready('p63-crate-right').world.entities[0];
+  expect(heavy.cargoReleaseAt).toBeLessThan(light.cargoReleaseAt!);
+  const barrels = [{ ...heavy }], crates = [{ ...light }];
+  releaseCargo(barrels, heavy.cargoReleaseAt!, 30, 17);
+  releaseCargo(crates, light.cargoReleaseAt!, 30, 17);
+  expect(barrels[1].kind).toBe('cargo');
+  expect(barrels[1].speed).toBeLessThan(crates[1].speed);
+});
+it('wreck trial starts with passengers aboard, then wrecks and spawns riders before its drop', () => {
+  let run = ready('p63-wrecked');
+  const sourceId = run.world.entities[0].id;
+  expect(run.world.entities[0].wrecked).toBe(false);
+  expect(run.world.entities.some(e => e.kind === 'passenger')).toBe(false);
+  let wreckAt = -1, ridersAt = -1;
+  for (let frame = 0; frame < 360; frame++) {
+    run = stepRun(run, noInput());
+    if (wreckAt < 0 && run.world.entities.find(e => e.id === sourceId)?.wrecked) wreckAt = frame;
+    if (ridersAt < 0 && run.world.entities.some(e => e.id.startsWith(`wreck-rider:${sourceId}:`))) ridersAt = frame;
+  }
+  expect(wreckAt).toBeGreaterThan(0);
+  expect(wreckAt).toBeLessThan(3.5 * 60);
+  expect(ridersAt).toBeGreaterThanOrEqual(wreckAt);
+  expect(run.world.entities.some(e => e.kind === 'cargo')).toBe(false);
 });
 it('caps active cargo across multiple sources and never recreates an expired event', () => {
   const source = ready().world.entities[0];
