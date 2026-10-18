@@ -117,3 +117,8 @@ if (movingBalance.npcWidth + 2 * movingBalance.patrolBound > balance.laneWidth *
 /** DEV stress values, deliberately unbalanced: metres, traffic per station, in-run money. */
 export const stressBalance = Object.freeze({ first: 80, gap: 24, trafficPerStation: 2, specialEvery: 3, lookAhead: 480, money: 10000 });
 for (const value of Object.values(stressBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid stress config');
+
+/** P6.2 fixture-only push speeds m/s and zone geometry m; provisional. */
+export const forceBalance = Object.freeze({ windPush: 1.5, currentPush: 2, maxPush: 2.2, zoneStart: 45, zoneLength: 65, windWidth: 9.6 });
+for(const value of Object.values(forceBalance)) if(!Number.isFinite(value)||value<=0)throw new Error('Invalid force config');
+if(forceBalance.maxPush>=balance.lateralSpeed||forceBalance.windWidth>balance.laneWidth*balance.laneCount)throw new Error('Force must remain countersteerable');

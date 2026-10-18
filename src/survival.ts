@@ -1,3 +1,4 @@
+import { environmentalPush } from './environment-forces';
 import { advanceCrossMotion, crossBoundaries, retireCrossers } from './cross-motion';
 import { advanceInteractingTraffic } from './traffic-interactions';
 import { eventBalance } from './config';
@@ -40,7 +41,7 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   grabUses: [0, 0], grabSequence: 0, nextGrabAt: 0, grabRiderIds: [],
   shopId: null, economySequence: 0, inventory: [null, null], powers: newPowers(),
 });
-export const names: Record<EntityKind, string> = { water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường', police: 'Công an', militia: 'Dân phòng', jam: 'Kẹt xe', accident: 'Tai nạn', train: 'Tàu hoả', broken: 'Xe chết máy' };
+export const names: Record<EntityKind, string> = { wind: 'Gió ngang', water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường', police: 'Công an', militia: 'Dân phòng', jam: 'Kẹt xe', accident: 'Tai nạn', train: 'Tàu hoả', broken: 'Xe chết máy' };
 
 export const activeVehicle = (run: Run): VehicleDefinition =>
   effectiveVehicle(run.vehicleInstances.find(v => v.id === run.activeVehicleId)!);
@@ -114,7 +115,7 @@ export function dropPassenger(run: Run): Run {
     world: { ...run.world, entities: [...run.world.entities, passenger] } }, 'drop', 'Khách xuống xe · −1 người');
 }
 
-const harmful = (kind: EntityKind) => kind === 'water' || kind === 'pothole' || kind === 'traffic';
+const harmful = (kind: EntityKind) => kind === 'wind' || kind === 'water' || kind === 'pothole' || kind === 'traffic';
 function overlapsVehicle(x: number, distance: number, e: World['entities'][number], vehicle: VehicleDefinition): boolean {
   return Math.abs(x - e.x) <= (vehicle.width + e.width) / 2 &&
     Math.abs(distance - e.distance) <= (vehicle.length + e.length) / 2;
@@ -240,6 +241,8 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
       before.speed - (input.brake ? balance.braking : balance.coastDrag) * dt);
     driven.distance = before.distance + (before.speed + driven.speed) * .5 * dt;
   }
+  const push = environmentalPush(before, driven, before.world.entities, dt, vehicle.width, vehicle.length);
+  driven.x = push.x;
   const ds = driven.distance - before.distance;
   const world = fillWorld(before.world, before.distance, before.fuel, before.durability, drive.fuelFactor,
     boosted ? { ...vehicle, maxSpeed: drive.maxSpeed } : vehicle, before.activeSeconds, before.speed);
@@ -326,7 +329,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   for (let index = 0; index < r.world.entities.length; index++) {
     const e = r.world.entities[index];
     const endDistance = e.distance;
-    if (e.stunned) { e.touching = false; continue; }
+    if (e.stunned || e.kind === 'wind') { e.touching = false; continue; }
     if (e.kind === 'train') {
       e.eventAt ??= before.activeSeconds;
       if (!e.crossMotion && !trainClosed(e, before.activeSeconds + dt / 2)) continue;

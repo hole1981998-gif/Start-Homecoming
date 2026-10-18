@@ -1,12 +1,12 @@
 import { trainClosed, bananaTarget } from './special-events';
-import { createElement, Waves, CircleDot, CarFront, Fuel, Wrench, ChevronDown, UserRound, Store, ShieldAlert, TrainFront, TriangleAlert, Ban } from 'lucide';
+import { createElement, Wind, Waves, CircleDot, CarFront, Fuel, Wrench, ChevronDown, UserRound, Store, ShieldAlert, TrainFront, TriangleAlert, Ban } from 'lucide';
 import { balance, shopBalance } from './config';
 import { reachableShop } from './shop';
 import { activeVehicle, names, type Run } from './survival';
 import { trafficTypes, warningDistance, type EntityKind } from './world';
 
 interface Projection { project(x: number, y: number, z: number): { x: number; y: number } }
-const icons = { water: Waves, pothole: CircleDot, traffic: CarFront, fuel: Fuel, repair: Wrench, passenger: UserRound, shop: Store, police: ShieldAlert, militia: ShieldAlert, train: TrainFront, accident: TriangleAlert, jam: Ban, broken: Wrench };
+const icons = { wind: Wind, water: Waves, pothole: CircleDot, traffic: CarFront, fuel: Fuel, repair: Wrench, passenger: UserRound, shop: Store, police: ShieldAlert, militia: ShieldAlert, train: TrainFront, accident: TriangleAlert, jam: Ban, broken: Wrench };
 const supplyKind = (kind: EntityKind) => kind === 'fuel' || kind === 'repair' || kind === 'passenger' || kind === 'shop';
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -50,6 +50,7 @@ export class RoadHud {
       const distance = Math.max(0, Math.ceil(e.distance - s.distance));
       cue.value.textContent = e.kind === 'shop' && reachableShop(s)?.id === e.id ? 'R · GHÉ' : e.kind === 'passenger' && Math.abs(e.distance - s.distance) <= balance.passengerReach &&
         Math.abs(e.x - s.x) <= balance.passengerLateralReach ? 'F · ĐÓN' : `${distance} m`;
+      if (e.lateralPush) cue.value.textContent = (e.lateralPush>0? Math.abs(e.lateralPush)>=1.8?'→→':'→' : Math.abs(e.lateralPush)>=1.8?'←←':'←') + ' · ' + distance + ' m';
       if (e.kind === 'train') cue.value.textContent = e.crossMotion ?
         (trainClosed(e, s.activeSeconds) ? (e.crossMotion.velocity < 0 ? '← · S CHỜ' : '→ · S CHỜ') :
           e.x * e.crossMotion.velocity < 0 ? 'S · TÀU SẮP TỚI' : '↑ · ĐƯỜNG MỞ') :

@@ -9,3 +9,7 @@ if (host) for (const [scenario, title, description] of movingScenarios) {
   link.setAttribute('aria-label', 'Chơi thử: ' + title);
   card.append(heading, text, link); host.append(card);
 }
+
+import { forceScenarios } from './force-scenarios';
+const forceHost=document.getElementById('forces');
+if(forceHost) for(const [scenario,title] of forceScenarios){const link=document.createElement('a');link.href='/?scenario='+scenario+'&seed=17';link.textContent=title;link.style.display='block';forceHost.append(link);}

@@ -26,7 +26,7 @@ export class RoadRenderer {
   private ground!: THREE.Mesh;
   private viewState!: Run;
   private entityMeshes = new Map<string, { kind: EntityKind; trafficKind?: TrafficKind; mesh: THREE.Group }>();
-  private pools: Record<EntityKind, THREE.Group[]> = { water: [], pothole: [], traffic: [], fuel: [], repair: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
+  private pools: Record<EntityKind, THREE.Group[]> = { wind: [], water: [], pothole: [], traffic: [], fuel: [], repair: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
   private trafficPools = new Map<TrafficKind, THREE.Group[]>();
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
   private observer: ResizeObserver;
@@ -137,6 +137,7 @@ export class RoadRenderer {
       part(1.8, 1.6, 3, '#688e88', 0, .8, 0); part(2.2, .2, 3.4, '#cdb376', 0, 1.7, 0);
       part(.6, .8, .12, '#e1d9af', 0, 1.05, 1.55);
     }
+    else if (kind === 'wind') { part(9.6, .025, 65, '#809c91', 0, .02, 0); }
     else if (kind === 'water') { part(3.2, .05, 7, '#5799aa', 0, .035, 0); part(2.5, .01, .1, '#abd1d5', 0, .065, -1.5); }
     else if (kind === 'pothole') {
       part(1.5, .03, 1.8, '#191d23', 0, .025, 0);
@@ -315,8 +316,8 @@ export class RoadRenderer {
         ((entry.mesh.userData.torso as THREE.Mesh).material as THREE.MeshLambertMaterial).color.set(e.stunned ? '#d3b66a' : e.kind === 'police' ? '#698da8' : '#85906b');
       }
       if (e.kind === 'passenger') (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
-      const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
-      const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
+      const baseWidth = e.kind === 'wind' ? 9.6 : e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
+      const baseLength = e.kind === 'wind' ? 65 : e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
       entry.mesh.scale.set(e.kind === 'traffic' || e.kind === 'shop' ? 1 : e.width / baseWidth, 1,
         e.kind === 'traffic' || e.kind === 'shop' ? 1 : e.length / baseLength);
     }

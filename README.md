@@ -66,3 +66,7 @@ QA shortcut DEV: ?scenario=integrated-checkpoint&seed=1 hoặc7, bắt đầu145
 
 ### Stress test tích hợp (DEV, không cân bằng)
 http://127.0.0.1:5173/?scenario=stress&seed=17 . Hai traffic mỗi24m,patch dài và special xen kẽ; container+bus/10000tiền/chuối+nitro mẫu. Damage,ngã,hỏng,police và tàu terminal vẫn thật. Bắt đầu đoạn sau: thêm &start=288 hoặc &start=576; Chơi lại reset cùng seed/checkpoint. Không dùng kết quả để tuning economy. Hub /p61.html có link. Tàu trong bản thường cũng đã sửa kích hoạt theo tiếp cận thật; xem docs/P61_STRESS_TRAIN_REVIEW.md.
+
+
+### P6.2 — gió/nước đẩy ngang (fixture trước tích hợp)
+Mở http://127.0.0.1:5173/p61.html#forces để chọn8ca. Thử nhanh ?scenario=p62-wind-right&seed=17 hoặc p62-current-left. Vùng xanh lục=gió,xanh lam=nước;cue mũi tên chỉ hướng,hai mũi tên cho lực mạnh hơn. A/D bù,1star,2nitro rồi Space;Esc pause. Bản thường và stress chưa sinh các vùng này. Báo cáo: docs/PROTOTYPE_6_2_REVIEW.md.

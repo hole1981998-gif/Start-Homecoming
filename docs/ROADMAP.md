@@ -176,3 +176,7 @@ Sửa runtime thường thành `p61-integrated-2`: tàu chờ ngoài vùng vẽ,
 
 ## P8 — câu hỏi bắt buộc trước cân bằng xăng traffic
 Theo yêu cầu chủ dự án18/10/2026, khi bắt đầu bước tuning/cân bằng phải hỏi: **“Có nên tắt tính năng xăng cho xe chướng ngại không?”** Chờ chủ dự án trả lời trước khi thay đổi luật fuel của traffic; hiện vẫn giữ bật. Không hiểu yêu cầu ghi chú này là đồng ý tắt. Lưu ý tác động tới xe hết xăng/coasting/dừng, mật độ ùn tắc/tai nạn phát sinh và khách từ xe hỏng; nếu cần so A/B phải giữ cùng seed/input/xe. Mốc stress và dữ liệu đã đóng băng: [BALANCE_REFERENCE_P61_STRESS.md](BALANCE_REFERENCE_P61_STRESS.md).
+
+
+## P6.2 — bản thử lực ngang, chờ duyệt tích hợp
+Đã có8fixture DEV tại /p61.html#forces: gió trái/phải,nước đẩy trái/phải,hai vùng ngược hướng,star,ngã,coasting. Version p62-forces-1. Mô hình TẠM là tốc độ đẩy ngang có giới hạn,không tích vận tốc:wind1,5m/s,current2m/s,tổng cap2,2m/s nhỏ hơn AD5m/s;vùng45–110m rộng9,6m. Star/crash/protected footprint miễn lực;gió vẫn tác động khi nhảy,nước đẩy không tác động khi đủ độ cao;coasting vẫn có thể trôi ngang. Rời vùng/pause không có impulse bù. Nước giữ fuel cost cũ,gió không thêm HP/fuel cost. Chỉ source lực P6.2 áp dụng cho người chơi;chưa director/NPC-force/density/economy mới. P6.1 thường và stress snapshot giữ nguyên,quyết định fuel traffic vẫn hỏi chủ dự án tại P8. Báo cáo: [PROTOTYPE_6_2_REVIEW.md](PROTOTYPE_6_2_REVIEW.md).

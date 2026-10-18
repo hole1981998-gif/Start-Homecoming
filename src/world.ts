@@ -10,7 +10,7 @@ import { nearJunction, type RouteState, type Turn } from './route';
 import { moveTrafficWithFuel } from './traffic-fuel';
 const maxTrafficSpeed = Math.max(...Object.values(trafficTypes).map(type => type.speed));
 
-export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger' | 'shop' | 'police' | 'militia' | 'jam' | 'accident' | 'train' | 'broken';
+export type EntityKind = 'wind' | 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger' | 'shop' | 'police' | 'militia' | 'jam' | 'accident' | 'train' | 'broken';
 export interface ShopStock { vehicles: VehicleKind[]; items?: { nitro: number; star: number; grab?: number; banana?: number } }
 export type TrafficKind = VehicleKind;
 export interface PassengerMotion { homeX: number; homeDistance: number; startedAt: number; phase: number; idle: boolean;
@@ -23,7 +23,7 @@ export interface Entity {
   wreckPassengersSpawned?: boolean; wreckedByPlayer?: boolean;
   fuel?: number; trafficMotion?: 'powered' | 'coasting' | 'stopped'; coastRemaining?: number;
   shopStock?: ShopStock; eventAt?: number;
-  motionWaiting?: boolean; crossMotion?: CrossMotion; groupId?: string; stunned?: boolean;
+  lateralPush?: number; motionWaiting?: boolean; crossMotion?: CrossMotion; groupId?: string; stunned?: boolean;
   trafficPairContacts?: string[]; trafficStoppedByCollision?: boolean; trafficPlayerSource?: boolean;
   serviceRole?: 'ambulance';
   displayName?: string; help?: string;
@@ -71,7 +71,7 @@ export function forkWorld(world: World, route: RouteState, turn: Turn, junctionD
     nextShop: shopIndex, nextShopDistance: shopDistance, rng: branchSeed, branchSeed, branchId, branchVariant };
 }
 export function entity(kind: EntityKind, id: string, distance: number, x: number): Entity {
-  const sizes: Record<EntityKind, [number, number]> = { water: [3.2, 7], pothole: [1.5, 1.8], traffic: [trafficTypes.car4.width, trafficTypes.car4.length], fuel: [.8, .8], repair: [.8, .8], passenger: [.7, .7], shop: [1, 3], police: [9.6, .8], militia: [9.6, .8], jam: [6.2, 6], accident: [6.2, 5], train: [9.6, 2], broken: [1.9, 4.2] };
+  const sizes: Record<EntityKind, [number, number]> = { wind: [9.6, 65], water: [3.2, 7], pothole: [1.5, 1.8], traffic: [trafficTypes.car4.width, trafficTypes.car4.length], fuel: [.8, .8], repair: [.8, .8], passenger: [.7, .7], shop: [1, 3], police: [9.6, .8], militia: [9.6, .8], jam: [6.2, 6], accident: [6.2, 5], train: [9.6, 2], broken: [1.9, 4.2] };
   return { id, kind, distance, x, width: sizes[kind][0], length: sizes[kind][1],
     speed: kind === 'traffic' ? balance.trafficSpeed : 0, consumed: false, touching: false, lastHit: -1e10,
     ...(kind === 'traffic' ? { trafficKind: 'car4' as const, hp: trafficTypes.car4.hp, wrecked: false,

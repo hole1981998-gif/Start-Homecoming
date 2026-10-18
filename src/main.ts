@@ -66,7 +66,7 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   screen = view; modal.hidden = false; clearInput();
   testHome.hidden = !state.world.prototype;
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P6.1 · BẢN CHƠI TÍCH HỢP');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P6.1 · BẢN CHƠI TÍCH HỢP');
   el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
@@ -90,7 +90,7 @@ function reset(): void {
   clearTimeout(cardTimer); discovery = null;
   state = newRun(); previous = state;
   if (state.world.prototype) {
-    document.title = 'P6.1 · ' + state.world.prototype.title;
+    document.title = (state.world.prototype.version.startsWith('p62-') ? 'P6.2 · ' : 'P6.1 · ') + state.world.prototype.title;
     show('start', state.world.prototype.title, state.world.prototype.description + ' W/S điều tốc, A/D lái, 1/2 dùng vật phẩm, Space nhảy khi nitro bật; Esc tạm dừng. Vật phẩm và xe dự phòng mẫu không dùng để đánh giá economy.');
     el('instructions').hidden = true;
     return;
@@ -111,6 +111,7 @@ function openHelp(): void {
   show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị của ${vehicle.name}. A/D lái; Q/E rẽ; F đón khách; G cho khách xuống. Tab đổi nhanh xe khi có xe dự phòng; khách và tài nguyên của từng xe được giữ nguyên. Xe hiện tại ${vehicle.name}: ${vehicle.capacity} chỗ tính cả tài xế, cruise ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h khi trống, bình ${formatter.format(vehicle.fuelCapacity)} L, hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Chở khách giảm cruise và quá tải tăng hao xăng. Nước hao xăng, ổ gà trừ HP theo thời gian, xe giao thông gây va/ngã; pha ngã/trôi/quay lại miễn tác động xấu. Hết xăng trôi ${balance.coastDistance} m; HP về 0 hoặc hết đà sẽ tự chuyển xe còn chạy được. R ghé cửa hàng đủ gần; Xăng/sửa chỉ tại chỗ. Phím 1/2 dùng nitro boost, star hoặc Grab (gọi khách phía trước rồi F đón); Space nhảy khi nitro đang bật; star không bỏ qua event, nitro không vượt xe cao.`);
 }
 const cardDescriptions: Record<EntityKind, string> = {
+  wind: 'Gió đẩy ngang trong vùng có màu. A/D lái ngược hướng để bù; star và lúc ngã miễn tác động. Rời vùng hoặc pause không tích lực.',
   police: 'Công an phạt 300 và tịch thu xe. Dùng chuối bằng phím ô 1/2 khi cảnh báo xuất hiện để tránh bị bắt. Thiếu tiền: lấy tới 0, xe dự phòng còn nửa xăng hiện có; không có xe hợp lệ thì kết ván. Star không tránh sự kiện.',
   militia: 'Dân phòng phạt 100, không tịch thu. Thiếu tiền chỉ lấy tới 0. Chuối trong cửa sổ cảnh báo tránh lần bắt này; dùng ngoài cửa sổ không mất vật phẩm.',
   jam: 'Hai làn bị kẹt: chuyển sang làn trống. Chạm vào gây ngã, không kết ván ngay. Star miễn ngã.',

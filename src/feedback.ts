@@ -1,5 +1,5 @@
 import type { EntityKind } from './world';
-export type FeedbackKind = EntityKind | 'coast' | 'drop';
+export type FeedbackKind = Exclude<EntityKind, 'wind'> | 'coast' | 'drop';
 /** Short editorial placeholder lines; numeric consequences are kept separately. */
 export const captions: Record<FeedbackKind, readonly string[]> = {
   water: ['Đường hơi ướt rồi!', 'Qua vùng nước nhé!', 'Bình xăng để ý nào!'],

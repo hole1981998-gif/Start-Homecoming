@@ -23,7 +23,7 @@ export function usePowerItem(run: Run, slot: number): Run {
   if (item === 'banana') {
     const target = bananaTarget(run);
     if (!target) return run;
-    return { ...run, eventSequence: run.eventSequence + 1, feedbackKind: target.kind, feedbackAt: run.activeSeconds,
+    return { ...run, eventSequence: run.eventSequence + 1, feedbackKind: target.kind === 'militia' ? 'militia' : 'police', feedbackAt: run.activeSeconds,
       feedback: 'Chuối · tránh bị bắt', feedbackFlavor: '',
       inventory: run.inventory.map((v, i) => i === slot ? null : v),
       world: { ...run.world, entities: run.world.entities.map(e => target.groupId ?

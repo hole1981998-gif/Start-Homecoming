@@ -1,3 +1,4 @@
+import { forceScenario } from './force-scenarios';
 import { movingScenario } from './moving-scenarios';
 import type { Run } from './survival';
 import { entity, fillWorld, initialWorld, trafficTypes } from './world';
@@ -6,6 +7,7 @@ import { newVehicle, vehicles, type VehicleKind } from './vehicles';
 import { balance, itemBalance, stressBalance } from './config';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
+  if (scenario?.startsWith('p62-')) return forceScenario(run,scenario);
   if (scenario === 'stress') {
     const start = Number.isFinite(checkpoint) ? Math.max(0,Math.min(10000,Math.floor(checkpoint/stressBalance.gap)*stressBalance.gap)) : 0;
     const vehicle = newVehicle('container','qa-stress-container');
