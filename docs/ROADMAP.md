@@ -172,3 +172,7 @@ Chủ dự án duyệt bộ thử và yêu cầu tích hợp ngày18/10/2026. Ve
 ## P6.1 — stress test và sửa kích hoạt tàu (18/10/2026)
 Theo yêu cầu chủ dự án: có chế độ DEV `?scenario=stress&seed=17` dùng simulation tích hợp, cố ý dày/không cân bằng; không dùng density này cho ván thường. Thêm tối thiểu2traffic/24m,patch mỗi48m,special mỗi72m,preload480m; đủ catalogtraffic và tuần tự officer/tàu/rào/hàng rong/cứu thương/accident/broken. Container+bus,10000tiền,chuối/nitro mẫu; giữ luật ngã/hỏng/tàu terminal. `start=288` hoặc576 là checkpointQA để dễ gặp phần sau.
 Sửa runtime thường thành `p61-integrated-2`: tàu chờ ngoài vùng vẽ, kích hoạt một lần theo khoảng tiếp cận thực max(60m,v×2,4s,v²/(2×braking)+chiều dài xe+15m), không lấy ETA trung vị cố định lúc spawn xa; giữ crossing4s và8,4m/s. Rẽ truyền activeSeconds/speed hiện tại khi fillWorld. Đây là sửa thời điểm event, không đổi giá/fuel/density normal. Báo cáo: [P61_STRESS_TRAIN_REVIEW.md](P61_STRESS_TRAIN_REVIEW.md).
+
+
+## P8 — câu hỏi bắt buộc trước cân bằng xăng traffic
+Theo yêu cầu chủ dự án18/10/2026, khi bắt đầu bước tuning/cân bằng phải hỏi: **“Có nên tắt tính năng xăng cho xe chướng ngại không?”** Chờ chủ dự án trả lời trước khi thay đổi luật fuel của traffic; hiện vẫn giữ bật. Không hiểu yêu cầu ghi chú này là đồng ý tắt. Lưu ý tác động tới xe hết xăng/coasting/dừng, mật độ ùn tắc/tai nạn phát sinh và khách từ xe hỏng; nếu cần so A/B phải giữ cùng seed/input/xe. Mốc stress và dữ liệu đã đóng băng: [BALANCE_REFERENCE_P61_STRESS.md](BALANCE_REFERENCE_P61_STRESS.md).
