@@ -21,7 +21,7 @@ export function advanceInteractingTraffic(entities: Entity[], previous: Entity[]
   let interacting = false;
   for (let i=0;i<cars.length && !interacting;i++) {
     const a=cars[i];
-    if(a.crossMotion) { interacting=true; break; }
+    if(a.crossMotion || Math.abs(a.x-(previous.find(e=>e.id===a.id)?.x??a.x))>1e-10) { interacting=true; break; }
     for(let j=i+1;j<cars.length;j++) if(near(a,cars[j])) { interacting=true; break; }
     if(interacting) break;
     for(const b of entities) if(!b.consumed && (b.kind==='pothole'||b.kind==='jam'||b.kind==='train'||b.kind==='accident'||b.kind==='broken') &&

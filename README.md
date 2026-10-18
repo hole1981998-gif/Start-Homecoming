@@ -68,5 +68,5 @@ QA shortcut DEV: ?scenario=integrated-checkpoint&seed=1 hoặc7, bắt đầu145
 http://127.0.0.1:5173/?scenario=stress&seed=17 . Hai traffic mỗi24m,patch dài và special xen kẽ; container+bus/10000tiền/chuối+nitro mẫu. Damage,ngã,hỏng,police và tàu terminal vẫn thật. Bắt đầu đoạn sau: thêm &start=288 hoặc &start=576; Chơi lại reset cùng seed/checkpoint. Không dùng kết quả để tuning economy. Hub /p61.html có link. Tàu trong bản thường cũng đã sửa kích hoạt theo tiếp cận thật; xem docs/P61_STRESS_TRAIN_REVIEW.md.
 
 
-### P6.2 — gió/nước đẩy ngang (fixture trước tích hợp)
-Mở http://127.0.0.1:5173/p61.html#forces để chọn8ca. Thử nhanh ?scenario=p62-wind-right&seed=17 hoặc p62-current-left. Vùng xanh lục=gió,xanh lam=nước;cue mũi tên chỉ hướng,hai mũi tên cho lực mạnh hơn. A/D bù,1star,2nitro rồi Space;Esc pause. Bản thường và stress chưa sinh các vùng này. Báo cáo: docs/PROTOTYPE_6_2_REVIEW.md.
+### P6.2 — gió đẩy ngang (fixture trước tích hợp)
+Mở http://127.0.0.1:5173/p61.html#forces để chọn 8 ca. Thử `?scenario=p62-crash&seed=17` để xem gió tiếp tục đẩy sau khi tài xế lên xe, hoặc `?scenario=p62-traffic&seed=17` để xem xe chướng ngại đang chạy bị gió đẩy. Ca `p62-water-baseline` giữ hao xăng/giảm tốc của nước nhưng không có lực ngang; các URL `p62-current-right/left` cũ cũng mở ca nước này. A/D bù lực gió, 1 dùng star, 2 dùng nitro rồi Space để nhảy, Esc tạm dừng. Ván thường và stress chưa sinh vùng gió. Báo cáo sửa: docs/P62_WIND_RECOVERY_REVIEW.md.

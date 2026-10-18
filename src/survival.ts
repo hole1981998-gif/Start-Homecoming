@@ -1,4 +1,4 @@
-import { environmentalPush } from './environment-forces';
+import { environmentalPush, pushTrafficWithWind } from './environment-forces';
 import { advanceCrossMotion, crossBoundaries, retireCrossers } from './cross-motion';
 import { advanceInteractingTraffic } from './traffic-interactions';
 import { eventBalance } from './config';
@@ -181,6 +181,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     const movedEntities = world.entities.map(e => ({ ...e, touching: false }));
     for (const e of movedEntities) if (e.kind === 'train') e.eventAt ??= before.activeSeconds;
     if (world.experimentalMotion) advanceCrossMotion(movedEntities, before.activeSeconds + dt);
+    pushTrafficWithWind(movedEntities, world.entities, dt);
     const npcCuts = world.experimentalTraffic ? advanceInteractingTraffic(movedEntities, world.entities, dt) : [];
     if (world.integrated && npcCuts.length) return splitSegment(before, input, dt, npcCuts[0]);
     if (!world.experimentalTraffic) advanceTraffic(movedEntities, dt);
@@ -255,6 +256,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   }
   const movedEntities = world.entities.map(e => ({ ...e }));
   if (world.experimentalMotion) advanceCrossMotion(movedEntities, before.activeSeconds + dt);
+  pushTrafficWithWind(movedEntities, world.entities, dt);
   const npcCuts = world.experimentalTraffic ? advanceInteractingTraffic(movedEntities, world.entities, dt) : [];
   if (!world.experimentalTraffic) advanceTraffic(movedEntities, dt);
   if (world.integrated) {
