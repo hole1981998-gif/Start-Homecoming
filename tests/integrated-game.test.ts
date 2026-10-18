@@ -88,9 +88,11 @@ it('normal integrated simulation is finite and reproducible across 30/60/144 FPS
 
 it('integrated seeded journeys use actual shops, passengers, junctions and moving events with finite resources',()=>{
   const observations=[];
+  let totalWind = 0, totalSources = 0, totalDrops = 0;
   for (const seed of [1,7,17,42,101,126]) {
     let run:Run={...initialRun(seed),phase:'running'}, violations=0, shops=0, purchases=0, moving=0;
     const seen=new Set<string>(), visitedShops=new Set<string>();
+    const windIds = new Set<string>(), sourceIds = new Set<string>(), dropIds = new Set<string>();
     for(let tick=0;tick<60*240 && run.phase==='running';tick++) {
       const shopRun=visitedShops.has(run.world.entities.find(e=>e.kind==='shop'&&Math.abs(e.distance-run.distance)<30)?.id ?? '')?run:enterShop(run);
       if(shopRun!==run) {
@@ -126,10 +128,19 @@ it('integrated seeded journeys use actual shops, passengers, junctions and movin
       const train=nearby.find(e=>e.kind==='train'&&e.distance-run.distance<70&&e.distance>run.distance);
       const before=run;
       run=stepRun(run,{accelerate:!train,brake:!!train,left:run.x-target>.18,right:target-run.x>.18});
+      for (const e of run.world.entities) {
+        if (e.kind === 'wind') windIds.add(e.id);
+        if (e.cargoReleaseAt !== undefined) sourceIds.add(e.id);
+        if (e.kind === 'cargo') dropIds.add(e.id);
+      }
       if(![run.distance,run.money,run.fuel,run.durability].every(Number.isFinite)||run.distance<before.distance||run.money<0||run.fuel<0||run.durability<0)violations++;
     }
     expect(violations).toBe(0);
-    observations.push({seed,distance:Math.round(run.distance),seconds:Math.round(run.activeSeconds),end:run.result?.reason??run.phase,shops,purchases,moving,turns:run.route.turns,riders:run.riderIds.length});
+    totalWind += windIds.size; totalSources += sourceIds.size; totalDrops += dropIds.size;
+    observations.push({seed,distance:Math.round(run.distance),seconds:Math.round(run.activeSeconds),end:run.result?.reason??run.phase,shops,purchases,moving,winds:windIds.size,cargoSources:sourceIds.size,drops:dropIds.size,turns:run.route.turns,riders:run.riderIds.length});
   }
+  expect(totalWind).toBeGreaterThan(0);
+  expect(totalSources).toBeGreaterThan(0);
+  expect(totalDrops).toBeGreaterThan(0);
   console.log(JSON.stringify({version:balance.version,mode:'integrated generated routes, scripted pilot, 240s cap, no resource grants',observations}));
 });

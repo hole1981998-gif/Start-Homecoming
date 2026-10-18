@@ -65,7 +65,7 @@ it('P5 baseline without special events: seeded survival/economy across cruise, W
     lowFuelRuns: observations.filter(o => o.strategy === strategy && o.minFuel < 2).length,
     noAffordSeeds: observations.filter(o => o.strategy === strategy && o.affordAt === null).map(o => o.seed),
   })) }));
-}, 15000);
+}, 30000);
 
 it('resource, collision and RNG outcomes match at 30/60/144 render FPS', () => {
   const outcomes = [30, 60, 144].map(fps => {

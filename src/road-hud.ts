@@ -47,7 +47,7 @@ export class RoadHud {
       const cue = this.cues.get(e.kind)!;
       cue.root.hidden = false; cue.root.style.left = `${x}%`; cue.root.style.top = `${y}%`;
       cue.root.querySelector<SVGElement>('.pointer')!.style.transform = p.x < 9 ? 'rotate(90deg)' : p.x > 91 ? 'rotate(-90deg)' : '';
-      const distance = Math.max(0, Math.ceil(e.distance - s.distance));
+      const distance = Math.max(0, Math.ceil(e.distance - s.distance - (e.kind === 'wind' ? e.length / 2 : 0)));
       cue.value.textContent = e.kind === 'shop' && reachableShop(s)?.id === e.id ? 'R · GHÉ' : e.kind === 'passenger' && Math.abs(e.distance - s.distance) <= balance.passengerReach &&
         Math.abs(e.x - s.x) <= balance.passengerLateralReach ? 'F · ĐÓN' : `${distance} m`;
       if (e.lateralPush) cue.value.textContent = (e.lateralPush>0? Math.abs(e.lateralPush)>=1.8?'→→':'→' : Math.abs(e.lateralPush)>=1.8?'←←':'←') + ' · ' + distance + ' m';

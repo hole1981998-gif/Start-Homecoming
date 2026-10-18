@@ -3,7 +3,7 @@ import { fillStressWorld } from './stress-world';
 import { movingEvent } from './moving-events';
 import { isSpecial, specialPlan } from './special-events';
 import { eventBalance } from './config';
-import { balance, hazardSizes, itemBalance, shopBalance, stressBalance } from './config';
+import { balance, cargoBalance, forceBalance, hazardSizes, itemBalance, shopBalance, stressBalance } from './config';
 import { trafficSpawnKinds, trafficTypes, vehicles, type VehicleDefinition, type VehicleKind } from './vehicles';
 export { trafficTypes } from './vehicles';
 import { nearJunction, type RouteState, type Turn } from './route';
@@ -34,7 +34,7 @@ export interface World { entities: Entity[]; retired: RetiredEntity[]; nextHazar
   stress?: boolean; nextStress?: number; integrated?: boolean; experimentalMotion?: boolean; experimentalTraffic?: boolean; experimentalCargo?: boolean; prototype?: { version: string; title: string; description: string };
   nextSpecial?: number; nextPassenger: number; nextShop: number; nextShopDistance: number; rng: number; seed: number; branchSeed: number; branchId: number; branchVariant: number }
 export const initialWorld = (seed: number, integrated = false): World => ({ entities: [], retired: [],
-  ...(integrated ? { integrated: true, experimentalMotion: true, experimentalTraffic: true } : {}), nextHazard: 0, nextFuel: 1,
+  ...(integrated ? { integrated: true, experimentalMotion: true, experimentalTraffic: true, experimentalCargo: true } : {}), nextHazard: 0, nextFuel: 1,
   nextRepair: 0, nextPassenger: 0, nextShop: 0, nextShopDistance: shopBalance.firstDistance,
   rng: seed >>> 0, seed, branchSeed: seed >>> 0, branchId: 0, branchVariant: 0 });
 export function nextShopDistance(distance: number, index: number, seed: number): number {
@@ -199,6 +199,7 @@ export function advancePassengers(entities: Entity[], now: number): void {
   }
 }
 export function warningDistance(playerSpeed: number, target: Entity, vehicleLength: number = balance.vehicleLength): number {
+  if (target.kind === 'wind') return target.length / 2 + Math.max(60, playerSpeed * balance.warningSeconds);
   if (isSpecial(target.kind)) return Math.max(60, Math.max(0, playerSpeed - target.speed) * balance.warningSeconds + (vehicleLength + target.length) / 2);
   if (target.kind === 'shop') return Math.max(60, playerSpeed * 4);
   return Math.max(60, Math.max(0, playerSpeed - target.speed) * balance.warningSeconds);
@@ -279,7 +280,10 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
   };
   const kinds: EntityKind[] = ['water', 'pothole', 'traffic'];
   while (hazardDistance(w.nextHazard) <= ahead) {
-    const index = w.nextHazard++, kind = kinds[(index + w.branchVariant) % kinds.length];
+    const index = w.nextHazard++;
+    const windSlot = w.integrated && !w.stress && index % forceBalance.integratedEveryHazards === forceBalance.integratedOffset;
+    const cargoSlot = w.integrated && !w.stress && index % cargoBalance.integratedEveryHazards === cargoBalance.integratedOffset;
+    const kind: EntityKind = windSlot ? 'wind' : cargoSlot ? 'traffic' : kinds[(index + w.branchVariant) % kinds.length];
     const spawnAt = hazardDistance(index);
     // A junction is a short decision corridor, not a surprise hazard stack.
     if (nearJunction(spawnAt)) continue;
@@ -289,15 +293,25 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
       w.entities.some(e => e.kind === 'shop' && Math.abs(e.distance - spawnAt) < shopBalance.clearance);
     const lane = random() % 3 - 1;
     const hazard = entity(kind, branchEntityId(w, 'hazard', index), spawnAt, lane * balance.laneWidth);
+    if (kind === 'wind') {
+      hazard.x = 0; hazard.width = forceBalance.windWidth; hazard.length = forceBalance.zoneLength;
+      hazard.lateralPush = random() % 2 ? forceBalance.windPush : -forceBalance.windPush;
+      hazard.displayName = 'Gió ngang';
+    }
     if (kind === 'traffic') {
-      const variant = trafficSpawnKinds[random() % trafficSpawnKinds.length];
+      const variant = cargoSlot ? (random() % 2 ? 'truck' : 'container') : trafficSpawnKinds[random() % trafficSpawnKinds.length];
       hazard.trafficKind = variant; hazard.hp = trafficTypes[variant].hp;
       hazard.fuel = vehicles[variant].fuelCapacity; hazard.trafficMotion = 'powered';
       hazard.width = trafficTypes[variant].width; hazard.length = trafficTypes[variant].length;
       // Lane directions are relative to the player's current route. The middle is seeded once.
-      hazard.speed = lane < 0 ? -trafficTypes[variant].speed : lane > 0 ? trafficTypes[variant].speed :
+      hazard.speed = cargoSlot ? trafficTypes[variant].speed : lane < 0 ? -trafficTypes[variant].speed : lane > 0 ? trafficTypes[variant].speed :
         random() % 2 ? trafficTypes[variant].speed : -trafficTypes[variant].speed;
       hazard.baseSpeed = hazard.speed;
+      if (cargoSlot) {
+        hazard.x = balance.laneWidth;
+        hazard.cargoReleaseAt = now + cargoBalance.integratedReleaseDelay;
+        hazard.cargoType = variant === 'container' ? 'barrel' : 'crate';
+      }
     } else if (kind === 'water' || kind === 'pothole') {
       const variants = hazardSizes[kind];
       const [width, length] = variants[random() % variants.length];
@@ -306,7 +320,7 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
       if (coversRoad(hazard)) hazard.x = 0;
       else if (width > balance.laneWidth) hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
     }
-    if (!forcedPatchIsAffordable(hazard, distance, fuel, durability, fuelFactor, vehicle)) {
+    if (kind !== 'wind' && !forcedPatchIsAffordable(hazard, distance, fuel, durability, fuelFactor, vehicle)) {
       hazard.width = 5.7; hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
     }
     // Consume the usual hazard draws before rejecting it, so shop stock/corridors cannot reroll later hazards.

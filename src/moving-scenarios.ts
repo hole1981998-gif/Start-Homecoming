@@ -103,6 +103,6 @@ export function movingScenario(run: Run, scenario: string): Run {
   return { ...run, x, vehicleInstances: [vehicle, newVehicle('car4', 'p61-spare')], activeVehicleId: vehicle.id,
     fuel: vehicle.fuel, durability: vehicle.durability, speed: vehicles[chosen].cruiseSpeed,
     inventory: scenario.startsWith('p61-train') ? ['nitro', 'star'] : ['banana', 'star'],
-    world: { ...run.world, entities, integrated: false, experimentalMotion: true, experimentalTraffic, prototype: { version: movingVersion, title: definition[1], description: definition[2] },
+    world: { ...run.world, entities, integrated: false, experimentalMotion: true, experimentalTraffic, experimentalCargo: false, prototype: { version: movingVersion, title: definition[1], description: definition[2] },
       nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9 } };
 }

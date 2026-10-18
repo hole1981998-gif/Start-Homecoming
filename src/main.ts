@@ -66,7 +66,7 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   screen = view; modal.hidden = false; clearInput();
   testHome.hidden = !state.world.prototype;
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('p63-') ? 'P6.3 · THỬ ĐỒ RƠI' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P6.1 · BẢN CHƠI TÍCH HỢP');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('p63-') ? 'P6.3 · THỬ ĐỒ RƠI' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P6.3 · BẢN CHƠI TÍCH HỢP');
   el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
@@ -95,7 +95,7 @@ function reset(): void {
     el('instructions').hidden = true;
     return;
   }
-  show('start', 'Đường về nhà', `R ghé cửa hàng ven đường để mua xe, tiếp tế, nâng cấp và vật phẩm. Phím 1/2 dùng món trong ô: nitro boost, star miễn damage/debuff, chuối tránh bị bắt khi cảnh báo hoặc Grab gọi khách đặc biệt rồi F đón. Space nhảy khi nitro đang bật. Tab đổi xe; F/G đón hoặc cho khách xuống. Giữ xe còn xăng và độ bền, W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
+  show('start', 'Đường về nhà', `Gió đẩy ngang cả xe chướng ngại: nhìn mũi tên và dùng A/D bù lực. Xe tải/container cùng chiều có thể thả đồ từ phía sau; né kiện hoặc thùng đang lăn. Nước vẫn hao xăng nhưng chưa đẩy ngang. R ghé cửa hàng ven đường để mua xe, tiếp tế, nâng cấp và vật phẩm. Phím 1/2 dùng nitro, star, chuối hoặc Grab; Space nhảy khi nitro đang bật. Tab đổi xe; F/G đón hoặc cho khách xuống. W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;

@@ -186,3 +186,7 @@ Bản `p62-forces-2` thay thế quy tắc lực của `p62-forces-1` ở trên. 
 
 ## P6.3 — thử đồ rơi trước tích hợp
 Sáu ca DEV tại `/p61.html#cargo` thử xe tải/container cùng chiều làm rơi vật ở cửa sau, vật trượt lùi và lăn lệch hướng theo seed, va chạm nhẹ/nặng, star, nitro + Space và xe nguồn hỏng. Bản này chỉ là prototype tình huống, chưa thay director ván thường/stress. Chờ chủ dự án chơi và nhận xét; khi được duyệt, tích hợp P6.2 gió và P6.3 đồ rơi vào game cùng một lượt, rồi đánh giá difficulty/economy. Tạm hoãn việc phối hợp gió với nước, ổ gà và vật cố định. Giá trị thử chưa cân bằng; xem [P63_TRAFFIC_CARGO_REVIEW.md](P63_TRAFFIC_CARGO_REVIEW.md).
+
+## P6.3 — cập nhật tích hợp sau duyệt
+
+Chủ dự án đã duyệt ca thử và yêu cầu tích hợp ngày 18/10/2026. Bản chơi thường nay có gió P6.2 và đồ rơi P6.3 bên cạnh toàn bộ P6.1; bản stress tham chiếu giữ nguyên lịch riêng. Duy trì nước không có lực ngang và chưa tạo trường hợp gió chồng nước/ổ gà/vật cố định. Bước kế tiếp vẫn là P7 rồi P8 tuning độ khó/economy trước UI/art P9 và âm/VFX cuối P10. Xem [P63_INTEGRATED_HAZARDS_REVIEW.md](P63_INTEGRATED_HAZARDS_REVIEW.md).

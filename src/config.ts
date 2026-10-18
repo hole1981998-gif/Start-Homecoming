@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p61-integrated-2', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p63-integrated-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -118,14 +118,20 @@ if (movingBalance.npcWidth + 2 * movingBalance.patrolBound > balance.laneWidth *
 export const stressBalance = Object.freeze({ first: 80, gap: 24, trafficPerStation: 2, specialEvery: 3, lookAhead: 480, money: 10000 });
 for (const value of Object.values(stressBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid stress config');
 
-/** P6.2 fixture-only push speeds m/s and zone geometry m; provisional. */
-export const forceBalance = Object.freeze({ windPush: 1.5, maxPush: 2.2, zoneStart: 45, zoneLength: 65, windWidth: 9.6 });
+/** P6.2 push speeds m/s and zone geometry m; provisional. */
+export const forceBalance = Object.freeze({ windPush: 1.5, maxPush: 2.2, zoneStart: 45, zoneLength: 65, windWidth: 9.6, integratedEveryHazards: 9, integratedOffset: 3 });
 for(const value of Object.values(forceBalance)) if(!Number.isFinite(value)||value<=0)throw new Error('Invalid force config');
 if(forceBalance.maxPush>=balance.lateralSpeed||forceBalance.windWidth>balance.laneWidth*balance.laneCount)throw new Error('Force must remain countersteerable');
+if (!Number.isInteger(forceBalance.integratedEveryHazards) || !Number.isInteger(forceBalance.integratedOffset) ||
+    forceBalance.integratedOffset >= forceBalance.integratedEveryHazards) throw new Error('Invalid wind schedule');
 
-/** P6.3 fixture-only cargo: m, m/s, s, HP. Provisional until playtest. */
+/** P6.3 cargo: m, m/s, s, HP. Provisional until playtest. */
 export const cargoBalance = Object.freeze({ lifetime: 12, rollSpeed: .9, backwardSpeed: 1.2, barrelBackwardSpeed: 2.6, roadHalfWidth: 4.45,
-  crateDamage: 8, barrelDamage: 14, maxActive: 4, releaseGap: 1.2 });
+  crateDamage: 8, barrelDamage: 14, maxActive: 4, releaseGap: 1.2, integratedEveryHazards: 9, integratedOffset: 5, integratedReleaseDelay: 2.3 });
 for (const value of Object.values(cargoBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid cargo config');
 if (!Number.isInteger(cargoBalance.maxActive) || cargoBalance.roadHalfWidth > balance.laneWidth * balance.laneCount / 2)
   throw new Error('Invalid cargo bounds');
+if (!Number.isInteger(cargoBalance.integratedEveryHazards) || !Number.isInteger(cargoBalance.integratedOffset) ||
+    cargoBalance.integratedOffset >= cargoBalance.integratedEveryHazards ||
+    Number(cargoBalance.integratedEveryHazards) === Number(forceBalance.integratedEveryHazards) &&
+    Number(cargoBalance.integratedOffset) === Number(forceBalance.integratedOffset)) throw new Error('Invalid cargo schedule');

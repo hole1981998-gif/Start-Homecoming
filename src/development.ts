@@ -27,8 +27,18 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
       inventory: ['banana','nitro'], route: { ...run.route, index: 1 },
       world: fillWorld(initialWorld(run.seed,true),1450,vehicle.fuel,vehicle.durability,1,vehicles.car4,0) };
   }
+  if (scenario === 'integrated-hazards') {
+    // QA shortcut into a generated route, just before a wind slot and a cargo-source slot.
+    const start = 1870, vehicle = newVehicle('car4', 'qa-all-hazards-car');
+    const filled = fillWorld(initialWorld(run.seed, true), start, vehicle.fuel, vehicle.durability, 1, vehicles.car4, 0);
+    return { ...run, distance: start, money: 1000, route: { ...run.route, index: 2 },
+      vehicleInstances: [vehicle, newVehicle('motorcycle', 'qa-all-hazards-spare')], activeVehicleId: vehicle.id,
+      fuel: vehicle.fuel, durability: vehicle.durability, speed: vehicles.car4.cruiseSpeed,
+      inventory: ['star', 'nitro'], world: { ...filled,
+        entities: filled.entities.filter(e => e.distance + e.length / 2 >= start - 12) } };
+  }
   if (scenario?.startsWith('p61-')) return movingScenario(run, scenario);
-  if (scenario) run = { ...run, world: { ...run.world, integrated: false, experimentalMotion: false, experimentalTraffic: false } };
+  if (scenario) run = { ...run, world: { ...run.world, integrated: false, experimentalMotion: false, experimentalTraffic: false, experimentalCargo: false } };
   if (scenario?.startsWith('events')) {
     const requested = scenario.slice('events-'.length);
     const kind = ['police', 'militia', 'jam', 'accident', 'train', 'broken'].includes(requested) ? requested as import('./special-events').SpecialKind : 'police';

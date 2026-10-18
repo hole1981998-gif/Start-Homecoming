@@ -20,6 +20,6 @@ export function forceScenario(run:Run,name:string):Run {
  if(name==='p62-crash') {const car=entity('traffic','p62-hit',58,1.2);car.speed=0;car.baseSpeed=0;entities.push(car);}
  if(name==='p62-traffic') {const car=entity('traffic','p62-wind-car',100,-2.8);car.speed=-4;car.baseSpeed=-4;entities.push(car);}
  return {...run,inventory:['star','nitro'],fuel:name==='p62-coast'?.23:run.fuel,
-  world:{...run.world,integrated:false,prototype:{version:'p62-forces-2',title:spec[1],description:zone.help},entities,
+  world:{...run.world,integrated:false,experimentalCargo:false,prototype:{version:'p62-forces-2',title:spec[1],description:zone.help},entities,
     nextHazard:1e9,nextSpecial:1e9,nextFuel:1e9,nextRepair:1e9,nextPassenger:1e9,nextShopDistance:1e9}};
 }
