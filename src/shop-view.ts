@@ -81,14 +81,15 @@ export class ShopView {
       return row(`${upgradeNames[kind]} · ${level}/3`, `${details[kind]}${price === undefined ? '' : ` · ${price} tiền`}`,
         button(price === undefined ? 'Tối đa' : 'Nâng cấp', `data-upgrade="${kind}" aria-label="Nâng cấp ${upgradeNames[kind]}"`, price === undefined || run.money < price));
     }).join('');
-    if (this.tab === 'power-item') content = (['nitro', 'star'] as const).map(item => {
-      const price = item === 'nitro' ? itemBalance.nitroPrice : itemBalance.starPrice;
+    if (this.tab === 'power-item') content = (['nitro', 'star', 'grab'] as const).map(item => {
+      const price = item === 'nitro' ? itemBalance.nitroPrice : item === 'star' ? itemBalance.starPrice : itemBalance.grabPrice;
       const effect = item === 'nitro' ? 'Boost ' + itemBalance.boostSeconds + ' s; Space nhảy ' + itemBalance.jumpSeconds + ' s khi đang boost; không vượt xe cao' :
-        'Miễn damage/debuff ' + itemBalance.starSeconds + ' s; không bỏ qua event';
+        item === 'star' ? 'Miễn damage/debuff ' + itemBalance.starSeconds + ' s; không bỏ qua event' :
+        itemBalance.grabUses + ' lượt gọi khách Grab; F đón; thưởng khách ×' + itemBalance.grabMoneyMultiplier + ', không nhân thu nhập nền; còn khách chờ/không có chỗ thì không trừ lượt';
       return row(itemNames[item], effect + ' · ' + price + ' tiền · còn ' + (stock.items?.[item] ?? 0),
         button('Mua', 'data-power="' + item + '" aria-label="Mua ' + itemNames[item] + '"',
           run.money < price || !run.inventory.includes(null) || !(stock.items?.[item]))) }).join('') +
-      '<p>Kho 1/2: ' + run.inventory.map((item, i) => (i + 1) + ': ' + (item ? itemNames[item] : 'Trống')).join(' · ') + '</p>';
+      '<p>Kho 1/2: ' + run.inventory.map((item, i) => (i + 1) + ': ' + (item ? itemNames[item] + (item === 'grab' ? ' ×' + run.grabUses[i] : '') : 'Trống')).join(' · ') + '</p>';
     this.host.innerHTML = `<p class="shop-wallet">${money} tiền · ${d.name}<br>${run.fuel.toFixed(1)}/${d.fuelCapacity.toFixed(1)} L · ${Math.ceil(run.durability)}/${Math.ceil(d.durabilityCapacity)} HP</p>
       <nav aria-label="Danh mục cửa hàng">${(['service', 'vehicle', 'upgrade', 'power-item'] as const).map((tab, i) =>
       button(['Tiếp tế', 'Mua xe', 'Nâng cấp', 'Vật phẩm'][i], `data-tab="${tab}" aria-pressed="${tab === this.tab}"`)).join('')}</nav><div class="shop-content">${content}</div>`;

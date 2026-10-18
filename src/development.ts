@@ -2,9 +2,26 @@ import type { Run } from './survival';
 import { entity, fillWorld, initialWorld, trafficTypes } from './world';
 import { junction } from './route';
 import { newVehicle, vehicles, type VehicleKind } from './vehicles';
-import { balance } from './config';
+import { balance, itemBalance } from './config';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null): Run {
+  if (scenario === 'grab-crash') {
+    const vehicle = newVehicle('car4', 'qa-grab-crash');
+    const car = entity('traffic', 'qa-grab-hit', 8, 0); car.speed = 0; car.baseSpeed = 0;
+    const riders = ['qa-grab-0', 'qa-grab-1', 'qa-grab-2'];
+    return { ...run, vehicleInstances: [vehicle], activeVehicleId: vehicle.id, speed: vehicles.car4.cruiseSpeed,
+      fuel: vehicle.fuel, durability: vehicle.durability, riderIds: riders, grabRiderIds: [...riders],
+      inventory: ['grab', null], grabUses: [itemBalance.grabUses, 0],
+      world: { ...run.world, entities: [car], nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9,
+        nextPassenger: 1e9, nextShopDistance: 1e9 } };
+  }
+  if (scenario === 'grab' || scenario === 'grab-blocked') {
+    const wall = entity('pothole', 'qa-grab-blocked', 100, 0); wall.width = 9.6; wall.length = 250;
+    return { ...run, inventory: ['grab', null], grabUses: [itemBalance.grabUses, 0],
+      vehicleInstances: [...run.vehicleInstances, newVehicle('car4', 'qa-grab-spare')],
+      world: { ...run.world, entities: scenario === 'grab-blocked' ? [wall] : [], nextHazard: 1e9,
+        nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9 } };
+  }
   if (scenario === 'items' || scenario === 'items-container') {
     const chosen = newVehicle(scenario === 'items-container' ? 'container' : 'motorcycle', 'qa-items');
     const hole = entity('pothole', 'qa-jump-hole', 24, 0); hole.width = 9.6; hole.length = 6;
@@ -17,7 +34,7 @@ export function developmentScenario(run: Run, scenario: string | null): Run {
   }
   if (scenario === 'shop' || scenario === 'shop-third' || scenario === 'shop-insufficient') {
     const shop = entity('shop', 'qa-shop', 12, 0);
-    shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[], items: { nitro: 1, star: 1 } };
+    shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[], items: { nitro: 1, star: 1, grab: itemBalance.grabShopStock } };
     return { ...run, money: scenario === 'shop-insufficient' ? 20 : 4000, fuel: 1, durability: 30,
       riderIds: ['qa-shop-rider'],
       vehicleInstances: scenario === 'shop-third' ? [...run.vehicleInstances, newVehicle('car7', 'qa-spare')] : run.vehicleInstances,

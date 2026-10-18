@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p5-1-space-jump-2', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p5-2-grab-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -83,7 +83,12 @@ for (const variants of Object.values(hazardSizes)) for (const [width, length] of
 
 /** P5.1 trial: seconds, metres, multiplier and in-run money. Not tuned. */
 export const itemBalance = Object.freeze({ boostSeconds: 4, starSeconds: 5, jumpSeconds: 1.6,
-  jumpHeight: 2.4, groundClearance: .15, pickupClearance: .8, lowTrafficClearance: 1.8, highTrafficClearance: 3.5, boostFactor: 1.3, nitroPrice: 120, starPrice: 180 });
+  jumpHeight: 2.4, groundClearance: .15, pickupClearance: .8, lowTrafficClearance: 1.8, highTrafficClearance: 3.5, boostFactor: 1.3, nitroPrice: 120, starPrice: 180,
+  grabPrice: 240, grabUses: 3, grabShopStock: 1, grabMoneyMultiplier: 10, grabMinAhead: 45, grabMaxAhead: 120,
+  grabSearchStep: 10, grabClearance: 1, grabCooldown: 2, grabSteeringMarginSeconds: .5 });
 for (const value of Object.values(itemBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid power item config');
 if (itemBalance.jumpSeconds > itemBalance.boostSeconds || itemBalance.jumpHeight <= itemBalance.lowTrafficClearance || itemBalance.boostFactor <= 1)
   throw new Error('Invalid power item bounds');
+
+if (!Number.isInteger(itemBalance.grabUses) || itemBalance.grabMinAhead > itemBalance.grabMaxAhead ||
+    itemBalance.grabMaxAhead > balance.worldLookAhead || itemBalance.grabMoneyMultiplier <= 1) throw new Error('Invalid Grab bounds');

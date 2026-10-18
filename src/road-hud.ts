@@ -54,7 +54,8 @@ export class RoadHud {
         e.trafficMotion === 'coasting' ? 'đang trôi do hết xăng' : e.speed < 0 ? 'ngược chiều' : 'cùng chiều';
       if (e.kind === 'traffic') cue.root.querySelector('.traffic-direction')!.textContent =
         e.trafficMotion === 'stopped' ? '⛽ · ■' : `${e.trafficMotion === 'coasting' ? '⛽ · ' : ''}${e.speed < 0 ? '↓' : '↑'}`;
-      const label = e.kind === 'traffic' ? trafficTypes[e.trafficKind ?? 'car4'].name : names[e.kind];
+      const label = e.kind === 'traffic' ? trafficTypes[e.trafficKind ?? 'car4'].name : e.kind === 'passenger' && e.passengerType === 'grab' ? 'Khách Grab' : names[e.kind];
+      if (e.kind === 'passenger' && e.passengerType === 'grab') cue.value.textContent = 'Grab · ' + cue.value.textContent;
       cue.root.setAttribute('aria-label', `${label} · ${lane}${e.kind === 'traffic' ? ` · ${trafficState}` : ''} · ${distance} m`);
     }
     const coast = document.getElementById('coast-cue')!;

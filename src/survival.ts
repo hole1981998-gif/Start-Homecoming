@@ -20,6 +20,7 @@ export interface Run extends State {
   protectedEntities: string[];
   route: RouteState;
   vehicleInstances: VehicleInstance[]; activeVehicleId: string; replacementProtectedUntil: number;
+  grabUses: number[]; grabSequence: number; nextGrabAt: number; grabRiderIds: string[];
   shopId: string | null; economySequence: number; inventory: Array<PowerItem | null>; powers: Powers;
 }
 export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initialState(),
@@ -32,6 +33,7 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   route: initialRoute(),
   vehicleInstances: [newVehicle('motorcycle', `${runId}-motorcycle`)],
   activeVehicleId: `${runId}-motorcycle`, replacementProtectedUntil: 0,
+  grabUses: [0, 0], grabSequence: 0, nextGrabAt: 0, grabRiderIds: [],
   shopId: null, economySequence: 0, inventory: [null, null], powers: newPowers(),
 });
 export const names: Record<EntityKind, string> = { water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường' };
@@ -85,7 +87,9 @@ export function pickUpPassenger(run: Run): Run {
   const riderId = candidate.riderId ?? candidate.id;
   if (run.riderIds.includes(riderId)) return run;
   const world = { ...run.world, entities: run.world.entities.map(e => e.id === candidate.id ? { ...e, consumed: true } : e) };
-  return passengerEvent({ ...run, world, riderIds: [...run.riderIds, riderId] }, 'passenger', 'Đón khách · +1 người');
+  return passengerEvent({ ...run, world, riderIds: [...run.riderIds, riderId],
+    grabRiderIds: candidate.passengerType === 'grab' ? [...run.grabRiderIds.filter(id => id !== riderId), riderId] : run.grabRiderIds },
+    'passenger', candidate.passengerType === 'grab' ? 'Đón khách Grab · +1 người' : 'Đón khách · +1 người');
 }
 
 export function dropPassenger(run: Run): Run {
@@ -97,11 +101,12 @@ export function dropPassenger(run: Run): Run {
     side * balance.laneWidth * 1.3);
   passenger.motionKey = `${run.seed}:dropped:${run.eventSequence}`;
   passenger.riderId = riderId;
+  if (run.grabRiderIds.includes(riderId)) passenger.passengerType = 'grab';
   passenger.lastHit = run.activeSeconds + balance.passengerReboardDelaySeconds;
   passenger.passengerMotion = { ...passengerMotion(passenger, run.activeSeconds + balance.passengerKickSeconds),
     ejectedAt: run.activeSeconds, fromX: run.x, fromDistance: run.distance };
   passenger.x = run.x; passenger.distance = run.distance;
-  return passengerEvent({ ...run, riderIds: run.riderIds.slice(0, -1),
+  return passengerEvent({ ...run, riderIds: run.riderIds.slice(0, -1), grabRiderIds: run.grabRiderIds.filter(id => id !== riderId),
     world: { ...run.world, entities: [...run.world.entities, passenger] } }, 'drop', 'Khách xuống xe · −1 người');
 }
 
@@ -216,8 +221,10 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
       distance: r.distance, score: r.score, money: r.money, seconds: r.activeSeconds };
   };
   const crashDriver = (impactSpeed: number) => {
+    const special = new Set(r.grabRiderIds);
     const { returning, stranded } = splitCrashRiders(r.riderIds, r.seed, r.crashNumber, balance.passengerReturnChance);
     const rng = (Math.imul(r.crashRng, 1664525) + 1013904223) >>> 0;
+    r.grabRiderIds = returning.filter(id => special.has(id));
     r.crashRng = rng; r.crashNumber++; r.riderIds = []; r.lostPassengers += stranded.length;
     const crashX = before.x + (driven.x - before.x) * fraction;
     const side = crashX > balance.laneWidth / 2 ? -1 : crashX < -balance.laneWidth / 2 ? 1 : (rng & 1) ? 1 : -1;
@@ -230,6 +237,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
         crashX + side * (1.3 + index * .45));
       passenger.pickupable = false;
       passenger.riderId = stranded[i];
+      if (special.has(stranded[i])) passenger.passengerType = 'grab';
       passenger.motionKey = `${r.seed}:fallen:${r.crashNumber}:${stranded[i]}`;
       passenger.passengerMotion = { ...passengerMotion(passenger,
         r.activeSeconds + balance.passengerKickSeconds + balance.passengerDownSeconds + balance.passengerStandSeconds),
@@ -283,7 +291,8 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
       if (damageRate > 0) segment = Math.min(segment, r.durability / damageRate);
       if (!powered && ds > 0) segment = Math.min(segment, r.coastRemaining / ds);
       r.distance += ds * segment; r.score += ds * segment * balance.scorePerMeter * (1 + r.riderIds.length * balance.riderScoreBonus);
-      r.money += ds * segment * (balance.moneyPerMeter + r.riderIds.length * balance.riderMoneyPerMeter); r.activeSeconds += dt * segment;
+      r.money += ds * segment * (balance.moneyPerMeter + r.riderIds.length * balance.riderMoneyPerMeter +
+        (r.grabRiderIds.length ? r.grabRiderIds.filter(id => r.riderIds.includes(id)).length : 0) * balance.riderMoneyPerMeter * (itemBalance.grabMoneyMultiplier - 1)); r.activeSeconds += dt * segment;
       if (powered) r.fuel = Math.max(0, r.fuel - fuelRate * segment);
       else r.coastRemaining = Math.max(0, r.coastRemaining - ds * segment);
       r.durability = Math.max(0, r.durability - damageRate * segment);

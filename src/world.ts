@@ -1,4 +1,4 @@
-import { balance, hazardSizes, shopBalance } from './config';
+import { balance, hazardSizes, itemBalance, shopBalance } from './config';
 import { trafficSpawnKinds, trafficTypes, vehicles, type VehicleDefinition, type VehicleKind } from './vehicles';
 export { trafficTypes } from './vehicles';
 import { nearJunction, type RouteState, type Turn } from './route';
@@ -6,14 +6,14 @@ import { moveTrafficWithFuel } from './traffic-fuel';
 const maxTrafficSpeed = Math.max(...Object.values(trafficTypes).map(type => type.speed));
 
 export type EntityKind = 'water' | 'pothole' | 'traffic' | 'fuel' | 'repair' | 'passenger' | 'shop';
-export interface ShopStock { vehicles: VehicleKind[]; items?: { nitro: number; star: number } }
+export interface ShopStock { vehicles: VehicleKind[]; items?: { nitro: number; star: number; grab?: number } }
 export type TrafficKind = VehicleKind;
 export interface PassengerMotion { homeX: number; homeDistance: number; startedAt: number; phase: number; idle: boolean;
   ejectedAt?: number; fromX?: number; fromDistance?: number; crashRecovery?: boolean }
 export interface Entity {
   id: string; kind: EntityKind; x: number; distance: number; width: number; length: number;
   speed: number; consumed: boolean; touching: boolean; lastHit: number;
-  passengerMotion?: PassengerMotion; motionKey?: string; pickupable?: boolean; riderId?: string;
+  passengerType?: 'grab'; passengerMotion?: PassengerMotion; motionKey?: string; pickupable?: boolean; riderId?: string;
   trafficKind?: TrafficKind; hp?: number; wrecked?: boolean; wreckAge?: number; trafficContacts?: string[]; baseSpeed?: number;
   wreckPassengersSpawned?: boolean; wreckedByPlayer?: boolean;
   fuel?: number; trafficMotion?: 'powered' | 'coasting' | 'stopped'; coastRemaining?: number;
@@ -243,7 +243,7 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
   while (w.nextShopDistance <= ahead) {
     const index = w.nextShop, at = w.nextShopDistance;
     const shop = entity('shop', branchEntityId(w, 'shop', index), at, index % 2 ? balance.laneWidth : -balance.laneWidth);
-    shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[], items: { nitro: 1, star: 1 } };
+    shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[], items: { nitro: 1, star: 1, grab: itemBalance.grabShopStock } };
     w.entities.push(shop);
     w.nextShopDistance = nextShopDistance(at, index, w.branchSeed); w.nextShop++;
   }
@@ -283,6 +283,17 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     }
     // Consume the usual hazard draws before rejecting it, so shop stock/corridors cannot reroll later hazards.
     if (shopCorridor) continue;
+    // A call reserves only its pickup pocket, never rerolls hazard RNG or clears whole road sections.
+    const grabPocket = w.entities.some(npc => npc.kind === 'passenger' && npc.passengerType === 'grab' &&
+      !npc.consumed && npc.pickupable !== false && (() => {
+        const t = Math.max(0, npc.distance - distance) / vehicle.minSpeed;
+        const from = Math.min(hazard.distance, hazard.distance + hazard.speed * t);
+        const to = Math.max(hazard.distance, hazard.distance + hazard.speed * t);
+        const clearance = (vehicle.length + hazard.length) / 2 + itemBalance.grabClearance;
+        return Math.abs(npc.x - hazard.x) <= (vehicle.width + hazard.width) / 2 + itemBalance.grabClearance &&
+          npc.distance >= from - clearance && npc.distance <= to + clearance;
+      })());
+    if (grabPocket) continue;
     const forced = coversRoad(hazard);
     if (forced && kind === 'pothole' && hasConcurrentCar(hazard, w.entities, distance, vehicle)) continue;
     if (forced || kind === 'water' || leavesOpenLane(hazard, w.entities, distance, vehicle)) w.entities.push(hazard);

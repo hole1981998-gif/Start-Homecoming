@@ -70,7 +70,7 @@ it('shop fills first empty slot, charges once, cannot reroll stock or overwrite 
   const both = transact(run, second).run;
   expect(both.inventory).toEqual(['nitro', 'star']);
   expect(transact(both, { ...second, sequence: both.economySequence }).run).toBe(both);
-  expect(both.world.entities[0].shopStock?.items).toEqual({ nitro: 0, star: 0 });
+  expect(both.world.entities[0].shopStock?.items).toEqual({ nitro: 0, star: 0, grab: 1 });
   const poor = { ...run, money: 0 };
   expect(transact(poor, second).run).toBe(poor);
   const used = usePowerItem({ ...both, phase: 'running', shopId: null }, 0);

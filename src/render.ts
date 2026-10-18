@@ -152,6 +152,8 @@ export class RoadRenderer {
     } else if (kind === 'passenger') {
       part(.38, .7, .28, '#e2c486', 0, .92, 0);
       part(.38, .38, .38, '#e6dbc4', 0, 1.47, 0);
+      const marker = new THREE.Mesh(new THREE.OctahedronGeometry(.22), new THREE.MeshBasicMaterial({ color: '#8fd3a5' }));
+      marker.position.y = 2; g.add(marker); g.userData.grabMarker = marker;
       for (const x of [-.12, .12]) part(.13, .55, .16, '#344d5a', x, .3, 0);
     } else {
       const color = kind === 'fuel' ? '#82c5a0' : '#e1ded0';
@@ -273,6 +275,7 @@ export class RoadRenderer {
         (body.material as THREE.MeshLambertMaterial).color.set(e.wrecked ? '#4e5558' :
           trafficTypes[e.trafficKind ?? 'car4'].color);
       }
+      if (e.kind === 'passenger') (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
       const baseWidth = e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
       entry.mesh.scale.set(e.kind === 'traffic' || e.kind === 'shop' ? 1 : e.width / baseWidth, 1,

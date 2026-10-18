@@ -1,9 +1,10 @@
 import { itemBalance } from './config';
 import type { Run } from './survival';
+import { callGrab } from './grab';
 
-export type PowerItem = 'nitro' | 'star';
+export type PowerItem = 'nitro' | 'star' | 'grab';
 export interface Powers { boostUntil: number; starUntil: number; jumpAt: number }
-export const itemNames: Record<PowerItem, string> = { nitro: 'Nitro boost', star: 'Invincible star' };
+export const itemNames: Record<PowerItem, string> = { nitro: 'Nitro boost', star: 'Invincible star', grab: 'Ứng dụng Grab' };
 export const newPowers = (): Powers => ({ boostUntil: 0, starUntil: 0, jumpAt: -100 });
 export const hasStar = (run: Run): boolean => run.activeSeconds < run.powers.starUntil - 1e-9;
 export const hasBoost = (run: Run): boolean => run.activeSeconds < run.powers.boostUntil - 1e-9;
@@ -17,6 +18,7 @@ export function clears(run: Run, height: number): boolean { return jumpHeight(ru
 export function usePowerItem(run: Run, slot: number): Run {
   if (run.phase !== 'running' || run.crash || run.result || !Number.isInteger(slot) || slot < 0 || slot > 1) return run;
   const item = run.inventory[slot];
+  if (item === 'grab') return callGrab(run, slot);
   if (!item || (item === 'nitro' && (hasBoost(run) || run.fuel <= 0 || run.motion !== 'powered')) ||
     (item === 'star' && hasStar(run))) return run;
   return { ...run, inventory: run.inventory.map((value, i) => i === slot ? null : value),
