@@ -285,7 +285,7 @@ export class RoadRenderer {
     const live = new Set<string>();
     const visibleEntities = [...s.world.entities.map(entity => ({ entity, route: s.route })), ...s.world.retired];
     for (const { entity: e, route } of visibleEntities) {
-      if (e.consumed) continue;
+      if (e.consumed || e.motionWaiting) continue;
       live.add(e.id);
       let entry = this.entityMeshes.get(e.id);
       if (!entry) { entry = { kind: e.kind, trafficKind: e.trafficKind,

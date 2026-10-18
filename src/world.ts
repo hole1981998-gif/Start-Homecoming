@@ -1,8 +1,9 @@
 import { crossX, type CrossMotion } from './cross-motion';
+import { fillStressWorld } from './stress-world';
 import { movingEvent } from './moving-events';
 import { isSpecial, specialPlan } from './special-events';
 import { eventBalance } from './config';
-import { balance, hazardSizes, itemBalance, shopBalance } from './config';
+import { balance, hazardSizes, itemBalance, shopBalance, stressBalance } from './config';
 import { trafficSpawnKinds, trafficTypes, vehicles, type VehicleDefinition, type VehicleKind } from './vehicles';
 export { trafficTypes } from './vehicles';
 import { nearJunction, type RouteState, type Turn } from './route';
@@ -22,14 +23,14 @@ export interface Entity {
   wreckPassengersSpawned?: boolean; wreckedByPlayer?: boolean;
   fuel?: number; trafficMotion?: 'powered' | 'coasting' | 'stopped'; coastRemaining?: number;
   shopStock?: ShopStock; eventAt?: number;
-  crossMotion?: CrossMotion; groupId?: string; stunned?: boolean;
+  motionWaiting?: boolean; crossMotion?: CrossMotion; groupId?: string; stunned?: boolean;
   trafficPairContacts?: string[]; trafficStoppedByCollision?: boolean; trafficPlayerSource?: boolean;
   serviceRole?: 'ambulance';
   displayName?: string; help?: string;
 }
 export interface RetiredEntity { entity: Entity; route: RouteState; expireDistance: number }
 export interface World { entities: Entity[]; retired: RetiredEntity[]; nextHazard: number; nextFuel: number; nextRepair: number;
-  integrated?: boolean; experimentalMotion?: boolean; experimentalTraffic?: boolean; prototype?: { version: string; title: string; description: string };
+  stress?: boolean; nextStress?: number; integrated?: boolean; experimentalMotion?: boolean; experimentalTraffic?: boolean; prototype?: { version: string; title: string; description: string };
   nextSpecial?: number; nextPassenger: number; nextShop: number; nextShopDistance: number; rng: number; seed: number; branchSeed: number; branchId: number; branchVariant: number }
 export const initialWorld = (seed: number, integrated = false): World => ({ entities: [], retired: [],
   ...(integrated ? { integrated: true, experimentalMotion: true, experimentalTraffic: true } : {}), nextHazard: 0, nextFuel: 1,
@@ -63,6 +64,7 @@ export function forkWorld(world: World, route: RouteState, turn: Turn, junctionD
     retired: [...world.retired, ...world.entities.filter(e => !e.consumed && e.distance >= split)
       .map(entity => ({ entity, route: oldRoute, expireDistance: junctionDistance + 64 }))],
     nextSpecial: world.nextSpecial === 1e9 ? 1e9 : Math.max(0, Math.ceil((split - eventBalance.firstDistance) / eventBalance.gap)),
+    nextStress: world.stress ? Math.max(0, Math.ceil((split - stressBalance.first) / stressBalance.gap)) : world.nextStress,
     nextHazard, nextFuel: Math.max(1, Math.ceil(split / balance.fuelInterval)),
     nextRepair: Math.max(0, Math.ceil((split - balance.firstRepair) / balance.repairInterval)),
     nextPassenger: Math.max(0, Math.ceil((split - balance.firstPassenger) / balance.passengerInterval)),
@@ -130,8 +132,8 @@ export function spawnWreckPassengers(world: World, now: number, vehicle: Vehicle
         !(world.experimentalMotion && ['jam', 'train', 'accident', 'broken'].includes(hazard.kind)))) return true;
       if (world.experimentalMotion) {
         const m = hazard.crossMotion, future = now + balance.warningSeconds;
-        const minX = m ? m.type === 'pingpong' ? m.min : Math.min(hazard.x, crossX(m, future)) : hazard.x;
-        const maxX = m ? m.type === 'pingpong' ? m.max : Math.max(hazard.x, crossX(m, future)) : hazard.x;
+        const minX = hazard.motionWaiting ? -balance.laneWidth * 1.5 : m ? m.type === 'pingpong' ? m.min : Math.min(hazard.x, crossX(m, future)) : hazard.x;
+        const maxX = hazard.motionWaiting ? balance.laneWidth * 1.5 : m ? m.type === 'pingpong' ? m.max : Math.max(hazard.x, crossX(m, future)) : hazard.x;
         const end = hazard.distance + hazard.speed * balance.warningSeconds;
         const halfW = (vehicle.width + hazard.width) / 2 + balance.trafficPassengerClearance;
         const halfL = (vehicle.length + hazard.length) / 2 + balance.trafficPassengerClearance;
@@ -258,7 +260,7 @@ function hasConcurrentCar(candidate: Entity, existing: Entity[], distance: numbe
 /** Forced three-lane costs require a resource budget until junction branches exist. */
 export function fillWorld(world: World, distance: number, fuel: number = balance.fuelCapacity,
   durability: number = balance.durabilityCapacity, fuelFactor = 1,
-  vehicle: VehicleDefinition = vehicles.motorcycle, now = 0): World {
+  vehicle: VehicleDefinition = vehicles.motorcycle, now = 0, speed = vehicle.cruiseSpeed): World {
   const w = { ...world, entities: world.entities.filter(e => e.kind === 'shop' ?
     e.distance + shopBalance.reach >= distance : e.distance + e.length / 2 > distance - 12),
     retired: world.retired.filter(e => e.expireDistance >= distance) };
@@ -354,6 +356,12 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     if (w.integrated) w.entities.push(...movingEvent(event, index, w.branchSeed, now, distance, vehicle));
     else w.entities.push(event);
   }
+  if (w.stress) fillStressWorld(w, Math.max(ahead, distance + stressBalance.lookAhead), now, distance, vehicle);
+  w.entities = w.entities.map(e => {
+    if (!e.motionWaiting || !e.crossMotion) return e;
+    const approach = Math.max(60, speed * 2.4, speed * speed / (2 * balance.braking) + vehicle.length + 15);
+    return e.distance - distance <= approach ? { ...e, motionWaiting: false, crossMotion: { ...e.crossMotion, startedAt: now } } : e;
+  });
   return w;
 }
 

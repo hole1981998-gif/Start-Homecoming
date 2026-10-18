@@ -17,7 +17,7 @@ export function crossBoundaries(entities: Entity[], now: number, dt: number): nu
   const result: number[] = [];
   for (const e of entities) {
     const m = e.crossMotion;
-    if (!m || e.stunned || e.consumed || e.wrecked || m.velocity === 0) continue;
+    if (!m || e.motionWaiting || e.stunned || e.consumed || e.wrecked || m.velocity === 0) continue;
     if (m.startedAt > now + 1e-9 && m.startedAt < now + dt - 1e-9) result.push(m.startedAt);
     if (m.type !== 'pingpong' || now + dt <= m.startedAt) continue;
     const span = m.max - m.min;
@@ -33,7 +33,7 @@ export function crossBoundaries(entities: Entity[], now: number, dt: number): nu
   return result;
 }
 export function advanceCrossMotion(entities: Entity[], seconds: number): void {
-  for (const e of entities) if (e.crossMotion && !e.stunned && !e.wrecked && !e.consumed) {
+  for (const e of entities) if (e.crossMotion && !e.motionWaiting && !e.stunned && !e.wrecked && !e.consumed) {
     e.x = crossX(e.crossMotion, seconds);
   }
 }

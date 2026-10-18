@@ -3,9 +3,18 @@ import type { Run } from './survival';
 import { entity, fillWorld, initialWorld, trafficTypes } from './world';
 import { junction } from './route';
 import { newVehicle, vehicles, type VehicleKind } from './vehicles';
-import { balance, itemBalance } from './config';
+import { balance, itemBalance, stressBalance } from './config';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
-export function developmentScenario(run: Run, scenario: string | null): Run {
+export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
+  if (scenario === 'stress') {
+    const start = Number.isFinite(checkpoint) ? Math.max(0,Math.min(10000,Math.floor(checkpoint/stressBalance.gap)*stressBalance.gap)) : 0;
+    const vehicle = newVehicle('container','qa-stress-container');
+    const world = { ...initialWorld(run.seed,true), stress: true, prototype: { version: 'p61-stress-1', title: 'Stress test tích hợp',
+      description: 'Chướng ngại dày, không cân bằng: hai traffic mỗi24m; nước/ổ gà dài, nhóm NPC, tàu, rào, hàng rong và cứu thương xen kẽ. Container + bus,10000tiền và chuối/nitro mẫu; luật ngã/hỏng/hết xăng và tàu kết ván vẫn giữ. R shop,Tab đổi xe; chơi lại cùng seed để tái hiện.' } };
+    return { ...run, distance: start, route: { ...run.route, index: Math.floor(start/balance.junctionInterval) }, vehicleInstances: [vehicle,newVehicle('bus','qa-stress-bus')],activeVehicleId:vehicle.id,
+      fuel:vehicle.fuel,durability:vehicle.durability,speed:vehicles.container.cruiseSpeed,money:stressBalance.money,
+      inventory:['banana','nitro'],world:fillWorld(world,start,vehicle.fuel,vehicle.durability,1,vehicles.container,0,vehicles.container.cruiseSpeed) };
+  }
   if (scenario === 'integrated-checkpoint') {
     // QA shortcut: generated normal world and director, with disclosed checkpoint resources.
     const vehicle = newVehicle('car4', 'qa-integrated-car');

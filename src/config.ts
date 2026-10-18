@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p61-integrated-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p61-integrated-2', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -113,3 +113,7 @@ for (const value of Object.values(movingBalance)) if (!Number.isFinite(value) ||
 if (movingBalance.npcWidth + 2 * movingBalance.patrolBound > balance.laneWidth * balance.laneCount ||
     movingBalance.trainOrigin - movingBalance.trainWidth / 2 < balance.laneWidth * 1.5 ||
     balance.laneWidth * balance.laneCount - movingBalance.barrierWidth < 2.88) throw new Error('Invalid prototype footprints');
+
+/** DEV stress values, deliberately unbalanced: metres, traffic per station, in-run money. */
+export const stressBalance = Object.freeze({ first: 80, gap: 24, trafficPerStation: 2, specialEvery: 3, lookAhead: 480, money: 10000 });
+for (const value of Object.values(stressBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid stress config');

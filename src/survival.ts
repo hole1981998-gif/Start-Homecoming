@@ -126,7 +126,7 @@ export function selectTurn(run: Run, turn: Turn): Run {
   const forked = forkWorld(run.world, run.route, turn, next.distance);
   return { ...run, route: { ...run.route, choice: turn },
     world: fillWorld(forked, run.distance, run.fuel, run.durability,
-      passengerDrive(run.riderIds.length, activeVehicle(run)).fuelFactor, activeVehicle(run)) };
+      passengerDrive(run.riderIds.length, activeVehicle(run)).fuelFactor, activeVehicle(run), run.activeSeconds, run.speed) };
 }
 
 export function stepRun(before: Run, input: Input): Run {
@@ -167,7 +167,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   const vehicle = activeVehicle(before);
   if (before.crash) {
     const world = fillWorld(before.world, before.distance, before.fuel, before.durability,
-      passengerDrive(before.riderIds.length, vehicle).fuelFactor, vehicle, before.activeSeconds);
+      passengerDrive(before.riderIds.length, vehicle).fuelFactor, vehicle, before.activeSeconds, before.speed);
     const elapsed = before.crash.elapsed + dt;
     const slideTime = Math.min(dt, before.speed / balance.crashSlideDeceleration);
     const speed = Math.max(0, before.speed - balance.crashSlideDeceleration * dt);
@@ -242,7 +242,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   }
   const ds = driven.distance - before.distance;
   const world = fillWorld(before.world, before.distance, before.fuel, before.durability, drive.fuelFactor,
-    boosted ? { ...vehicle, maxSpeed: drive.maxSpeed } : vehicle, before.activeSeconds);
+    boosted ? { ...vehicle, maxSpeed: drive.maxSpeed } : vehicle, before.activeSeconds, before.speed);
   if (world.integrated && dt > 1e-6 && !hasStar(before) && world.entities.some(e => e.kind === 'traffic' &&
       !e.consumed && !e.wrecked && e.lastHit < 0 && !before.protectedEntities.includes(e.id) &&
       Math.abs(before.x-e.x) <= (vehicle.width+e.width)/2 && Math.abs(before.distance-e.distance) <= (vehicle.length+e.length)/2 &&

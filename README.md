@@ -62,3 +62,7 @@ P6.1 cập nhật: hub hiện 19 ca; thêm công an/dân phòng chạy nhanh và
 ### P6.1 — bản chơi tích hợp
 Chơi từ đầu: http://127.0.0.1:5173/?seed=17 . Tàu chạy ngang4s, công an/dân phòng một/hai người với biến thể di chuyển, chuối vô hiệu nhóm, traffic va nhau/hazard, rào/hàng rong/cứu thương đã vào director. Event đầu1700m, có thể bỏ mẫu để giữ corridor an toàn. Bộ19fixture: /p61.html. Production: pnpm build rồi pnpm preview; bản thường có cơ chế mới, fixture vẫn DEV-only.
 QA shortcut DEV: ?scenario=integrated-checkpoint&seed=1 hoặc7, bắt đầu1450m với car4/xe máy dự phòng,1000tiền và chuối/nitro mẫu; đây không phải tài nguyên ván thường hay bằng chứng economy. Báo cáo: [P6.1 tích hợp](docs/PROTOTYPE_6_1_INTEGRATED_REVIEW.md).
+
+
+### Stress test tích hợp (DEV, không cân bằng)
+http://127.0.0.1:5173/?scenario=stress&seed=17 . Hai traffic mỗi24m,patch dài và special xen kẽ; container+bus/10000tiền/chuối+nitro mẫu. Damage,ngã,hỏng,police và tàu terminal vẫn thật. Bắt đầu đoạn sau: thêm &start=288 hoặc &start=576; Chơi lại reset cùng seed/checkpoint. Không dùng kết quả để tuning economy. Hub /p61.html có link. Tàu trong bản thường cũng đã sửa kích hoạt theo tiếp cận thật; xem docs/P61_STRESS_TRAIN_REVIEW.md.

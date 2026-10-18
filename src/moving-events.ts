@@ -12,8 +12,8 @@ export function movingEvent(event: Entity, index: number, seed: number, now: num
   if (event.kind === 'train') {
     event.x = -side * c.trainOrigin; event.width = c.trainWidth; event.length = c.trainDepth;
     event.crossMotion = motion(event.x, side * c.trainSpeed);
-    // Start near the expected arrival, but allow a driver who brakes to wait out the full crossing.
-    event.crossMotion.startedAt += Math.max(0, (event.distance - distance) / player.cruiseSpeed - 2.4);
+    // Activation follows the actual approach, rather than an ETA frozen when spawned far away.
+    event.motionWaiting = true;
     event.displayName = 'Tàu chạy ngang'; event.help = 'S phanh dừng chờ đuôi tàu; hoặc nitro rồi Space khi đủ khoảng vượt. Chạm thân tàu kết ván.';
   } else if (event.kind === 'police' || event.kind === 'militia') {
     const count = (hash >>> 2) % 3 === 0 ? 2 : 1;

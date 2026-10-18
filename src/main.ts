@@ -36,7 +36,7 @@ function newRun() {
   const seed = Number.isSafeInteger(requestedSeed) && requestedSeed >= 0 && requestedSeed <= 0xffffffff ?
     requestedSeed : scenario?.startsWith('passenger-crash') ? 17 : crypto.getRandomValues(new Uint32Array(1))[0];
   const run = initialRun(seed, crypto.randomUUID());
-  return import.meta.env.DEV ? developmentScenario(run, scenario) : run;
+  return import.meta.env.DEV ? developmentScenario(run, scenario, Number(params.get('start') ?? 0)) : run;
 }
 let state = newRun(), previous = state, input = noInput();
 type Screen = 'start' | 'pause' | 'help' | 'card' | 'result' | 'shop' | null;
@@ -66,7 +66,7 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   screen = view; modal.hidden = false; clearInput();
   testHome.hidden = !state.world.prototype;
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.prototype ? 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P6.1 · BẢN CHƠI TÍCH HỢP');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P6.1 · BẢN CHƠI TÍCH HỢP');
   el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
