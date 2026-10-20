@@ -5,6 +5,7 @@ import { jumpHeight, hasStar, hasBoost } from './items';
 import { activeVehicle, type Run } from './survival';
 import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from './world';
 import { junction, pathPose } from './route';
+import { tailSweepCenterX } from './tail-sweep';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh }
 
@@ -247,11 +248,14 @@ export class RoadRenderer {
     const playerPose = pathPose(distance, s.route, s.seed);
     const playerX = playerPose.x + Math.cos(playerPose.heading) * x;
     const playerZ = playerPose.z + Math.sin(playerPose.heading) * x;
-    this.bike.position.set(playerX, jumpHeight(s), playerZ);
+    const yaw = THREE.MathUtils.lerp(previous.forceYaw, s.forceYaw, alpha);
+    const bodyX = tailSweepCenterX(vehicle.kind, x, vehicle.length, yaw);
+    this.bike.position.set(playerPose.x + Math.cos(playerPose.heading) * bodyX,
+      jumpHeight(s), playerPose.z + Math.sin(playerPose.heading) * bodyX);
     const lateralAcceleration = (s.lateralVelocity - previous.lateralVelocity) / balance.fixedStep;
     const lean = THREE.MathUtils.clamp(-(s.lateralVelocity * .035 + lateralAcceleration * .012) * vehicle.leanFactor,
       -.34, .34);
-    this.bike.rotation.set(0, -playerPose.heading, lean, 'YXZ');
+    this.bike.rotation.set(0, -playerPose.heading - yaw, lean, 'YXZ');
     this.rider.visible = !s.crash && open; this.helmet.visible = !s.crash && open;
     this.windowPassengers.forEach((person, i) => {
       person.visible = !s.crash && !open && i < s.riderIds.length;

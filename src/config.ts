@@ -55,6 +55,21 @@ export function validateConfig(c: Balance): void {
 }
 validateConfig(balance);
 
+/** Force-only large-vehicle tail sweep trial. Angles rad, response rad/s, speeds m/s. */
+export const forceTailSweep = Object.freeze({
+  bus: { gain: .68, maxYaw: .22, response: 1.05, pivotFraction: .38 },
+  container: { gain: .82, maxYaw: .27, response: .78, pivotFraction: .40 },
+  steeringLateral: 5, lowSpeed: 5, fullSpeed: 15,
+});
+for (const value of Object.values(forceTailSweep).flatMap(entry =>
+  typeof entry === 'number' ? [entry] : Object.values(entry))) {
+  if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid force tail sweep');
+}
+if (forceTailSweep.lowSpeed >= forceTailSweep.fullSpeed ||
+    forceTailSweep.bus.maxYaw >= .5 || forceTailSweep.container.maxYaw >= .5 ||
+    forceTailSweep.bus.pivotFraction >= .5 || forceTailSweep.container.pivotFraction >= .5)
+  throw new Error('Invalid force tail sweep bounds');
+
 /** P5 trial prices/effects from BALANCE_CONFIG. Amounts L / HP, distances m. */
 export const shopBalance = Object.freeze({ firstDistance: 600, secondDistance: 1200,
   minGap: 600, maxGap: 900, reach: 30, lateralReach: 1.8, clearance: 45,

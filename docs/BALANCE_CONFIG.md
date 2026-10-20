@@ -4,6 +4,8 @@
 
 ## Quy ước
 
+**TẠM — `ver.force` quét đuôi:** buýt tối đa 0,22 rad (~12,6°), container 0,27 rad (~15,5°); tốc độ đáp ứng 1,05/0,78 rad/s; điểm xoay gần đầu xe ở 38%/40% chiều dài tính từ tâm. Dưới 5 m/s góc mục tiêu về 0, từ 15 m/s đạt đủ hệ số. Đây là số cho tình huống thử riêng, chưa cân bằng va chạm/damage.
+
 **TẤT CẢ con số dưới đây là TẠM, chưa được playtest**, trừ các ràng buộc đã chốt: 3 lane, khung 9:16, tối đa 2 xe, chiều rộng xe < 1,5 lane, xe secret 4 chỗ có 1 tài xế + 3 khách, chuỗi secret 4 bước. Không coi bảng này là code config đã chạy. Dùng một nguồn config TypeScript có schema/range validation khi triển khai; không rải magic number trong systems. Đơn vị: m, s, m/s, L (xăng quy ước), HP, đồng game. Đây không phải mô phỏng chi phí hay luật giao thông thực tế.
 
 ## Cơ bản và công thức

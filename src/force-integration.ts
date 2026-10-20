@@ -4,6 +4,7 @@ import { activeVehicle, stepRun, type Run } from './survival';
 import type { Input } from './simulation';
 import { vehicleRam, vehicles, type VehicleKind } from './vehicles';
 import { passengerMotion, sweptContact, type Entity } from './world';
+import { tailSweepCenterX, tailSweepYaw } from './tail-sweep';
 
 type Dynamic = Entity & { kind: 'traffic' | 'passenger' | 'cargo' };
 interface Actor { id: string; kind: Dynamic['kind'] | 'player'; body: CANNON.Body; entity?: Dynamic }
@@ -22,6 +23,7 @@ export class ForceIntegration {
   contactPairs = 0;
   npcImpacts = 0;
   private passedWrecks = new Set<string>();
+  private activePairs = new Set<string>();
   private trafficImpulse = new Map<string, { x: number; z: number }>();
   private trafficHitAt = new Map<string, number>();
   step(before: Run, input: Input): Run {
@@ -30,6 +32,11 @@ export class ForceIntegration {
     const previous = new Map(before.world.entities.filter(dynamic).map(entity => [entity.id, { ...entity }]));
     let next = stepRun(before, input);
     if (before.phase !== 'running' || next.activeSeconds <= before.activeSeconds) return next;
+    const vehicle = activeVehicle(before);
+    const yaw = next.activeVehicleId === before.activeVehicleId ?
+      tailSweepYaw(vehicle.kind, before.forceYaw, next.lateralVelocity, next.speed, dt,
+        Number(input.right) - Number(input.left)) : 0;
+    next = { ...next, forceYaw: yaw };
     const liveIds = new Set(next.world.entities.map(entity => entity.id));
     for (const id of this.passedWrecks) if (!liveIds.has(id)) this.passedWrecks.delete(id);
     for (const id of this.trafficImpulse.keys()) if (!liveIds.has(id)) this.trafficImpulse.delete(id);
@@ -70,9 +77,11 @@ export class ForceIntegration {
       if (kind === 'traffic' && entity?.wrecked && this.passedWrecks.has(id)) body.collisionFilterMask = ~1;
       world.addBody(body); actors.push({ id, kind, body, entity });
     };
-    const vehicle = activeVehicle(before);
-    add('player', 'player', before.x, before.distance, vehicle.width, vehicle.length,
-      mass[vehicle.kind], (next.x - before.x) / dt, (next.distance - before.distance) / dt);
+    const startCenter = tailSweepCenterX(vehicle.kind, before.x, vehicle.length, before.forceYaw);
+    const endCenter = tailSweepCenterX(vehicle.kind, next.x, vehicle.length, yaw);
+    add('player', 'player', startCenter, before.distance, vehicle.width, vehicle.length,
+      mass[vehicle.kind], (endCenter - startCenter) / dt, (next.distance - before.distance) / dt);
+    actors[0].body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), yaw);
     for (const entity of next.world.entities) {
       if (!dynamic(entity) || Math.abs(entity.distance - next.distance) > 65) continue;
       const old = previous.get(entity.id);
@@ -83,7 +92,7 @@ export class ForceIntegration {
         old ? (entity.x - old.x) / dt : entity.kind === 'cargo' ? entity.cargoVelocityX ?? 0 : 0,
         old ? (entity.distance - old.distance) / dt : entity.speed, entity);
     }
-    if (actors.length < 2) return next;
+    if (actors.length < 2) { this.activePairs.clear(); return next; }
     world.step(dt);
     const byBody = new Map(actors.map(actor => [actor.body.id, actor]));
     const involved = new Set<string>(), pairs = new Set<string>();
@@ -99,14 +108,21 @@ export class ForceIntegration {
         const maxPush = clamp(5.5 + .35 * mass[vehicle.kind] / mass[traffic.trafficKind ?? 'car4'], 5.8, 7.5);
         const closingSpeed = Math.max(0, before.speed - (previous.get(target.id)?.speed ?? traffic.speed));
         const longitudinalTransfer = closingSpeed * .6 * Math.abs(contact.ni.z);
-        const push = { x: clamp(target.body.velocity.x, -3, 3),
+        const yawRate = (yaw - before.forceYaw) / dt;
+        const tailFraction = clamp((before.distance - traffic.distance) / (vehicle.length / 2), 0, 1);
+        const tailSweepingTowardTraffic = tailFraction > 0 &&
+          (traffic.x - before.x) * yawRate < 0;
+        const tailPush = tailSweepingTowardTraffic ?
+          -yawRate * vehicle.length * tailFraction * .28 : 0;
+        const push = { x: clamp(target.body.velocity.x + tailPush, -3, 3),
           z: clamp(Math.max(target.body.velocity.z - traffic.speed, longitudinalTransfer), -maxPush, maxPush) };
         if (Math.hypot(push.x, push.z) > .5) this.trafficImpulse.set(target.id, push);
         this.trafficHitAt.set(target.id, next.activeSeconds);
       }
       if (target?.entity?.wrecked && vehicleRam[vehicle.kind].breaksThrough) this.passedWrecks.add(target.id);
     }
-    this.contactPairs += pairs.size;
+    this.contactPairs += [...pairs].filter(pair => !this.activePairs.has(pair)).length;
+    this.activePairs = pairs;
     const modified = new Map<string, Dynamic>();
     for (const actor of actors) {
       if (!involved.has(actor.id) || !actor.entity) continue;
@@ -166,7 +182,7 @@ export class ForceIntegration {
     if (!pairs.size && !modified.size) return next;
     const player = actors[0];
     const canPushPlayer = involved.has('player') && next.phase === 'running' && !next.crash && !before.crash;
-    const x = canPushPlayer ? clamp(player.body.position.x, -halfRoad + vehicle.width / 2,
+    const x = canPushPlayer ? clamp(player.body.position.x + next.x - endCenter, -halfRoad + vehicle.width / 2,
       halfRoad - vehicle.width / 2) : next.x;
     const lateralVelocity = canPushPlayer ? clamp(player.body.velocity.x, -balance.lateralSpeed * 1.5,
       balance.lateralSpeed * 1.5) : next.lateralVelocity;

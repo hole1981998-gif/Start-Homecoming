@@ -4,8 +4,71 @@ import { noInput } from '../src/simulation';
 import { initialRun, pickUpPassenger, stepRun, type Run } from '../src/survival';
 import { advancePassengers, entity, passengerPose } from '../src/world';
 import { developmentScenario } from '../src/development';
+import { newVehicle, vehicles } from '../src/vehicles';
+import { tailSweepCenterX, tailSweepYaw } from '../src/tail-sweep';
 
 describe('parallel force integration', () => {
+  it.each(['bus', 'container'] as const)('sweeps the %s tail toward a side car during a fast turn', kind => {
+    const vehicle = newVehicle(kind, `tail-${kind}`);
+    const car = entity('traffic', `outside-${kind}`, -3.5, -2.9);
+    car.speed = 0; car.baseSpeed = 0;
+    const base = initialRun(17, `tail-${kind}`);
+    const run: Run = { ...base, phase: 'running', vehicleInstances: [vehicle],
+      activeVehicleId: vehicle.id, speed: vehicles[kind].cruiseSpeed,
+      fuel: vehicle.fuel, durability: vehicle.durability, lateralVelocity: 5, forceYaw: .19,
+      world: { ...base.world, entities: [car], nextHazard: 1000, nextPassenger: 1000,
+        nextFuel: 1000, nextRepair: 1000, nextShop: 1000, nextSpecial: 1000 } };
+    const physics = new ForceIntegration();
+    const next = physics.step(run, { ...noInput(), right: true });
+    expect(next.forceYaw).toBeGreaterThan(.1);
+    expect(tailSweepCenterX(kind, next.x, vehicles[kind].length, next.forceYaw)).toBeLessThan(next.x - .5);
+    expect(physics.contactPairs).toBeGreaterThan(0);
+    expect(next.world.entities.find(e => e.id === car.id)).toBeDefined();
+  });
+
+  it('keeps ordinary cars straight and relaxes a bus sweep after steering is released', () => {
+    expect(tailSweepYaw('car4', .2, 5, 20, 1 / 60)).toBe(0);
+    let fast = 0, slow = 0;
+    for (let i = 0; i < 90; i++) {
+      fast = tailSweepYaw('bus', fast, 5, 19, 1 / 60, 1);
+      slow = tailSweepYaw('bus', slow, 5, 7, 1 / 60, 1);
+    }
+    expect(fast).toBeGreaterThan(slow * 1.8);
+    let yaw = .22;
+    for (let i = 0; i < 60; i++) yaw = tailSweepYaw('bus', yaw, 0, 12, 1 / 60);
+    expect(yaw).toBeCloseTo(0, 6);
+  });
+
+  it.each(['bus', 'container'] as const)('keeps the %s sweep finite in the playable fixture', kind => {
+    const sample = developmentScenario(initialRun(17, `tail-play-${kind}`), `force-tail-${kind}`);
+    let run: Run = { ...sample, phase: 'running' };
+    let arcade: Run = { ...sample, phase: 'running' };
+    const physics = new ForceIntegration();
+    let peakYaw = 0;
+    let moved = 0;
+    let arcadeMoved = 0;
+    for (let i = 0; i < 180 && run.phase === 'running'; i++) {
+      const input = { ...noInput(), right: true };
+      run = physics.step(run, input);
+      arcade = stepRun(arcade, input);
+      peakYaw = Math.max(peakYaw, Math.abs(run.forceYaw));
+      const car = run.world.entities.find(e => e.id === `qa-tail-target-${kind}`);
+      const targetX = kind === 'bus' ? .8 : 0;
+      if (car) moved = Math.max(moved, Math.hypot(car.x - targetX, car.distance - 32));
+      const arcadeCar = arcade.world.entities.find(e => e.id === `qa-tail-target-${kind}`);
+      if (arcadeCar) arcadeMoved = Math.max(arcadeMoved, Math.hypot(arcadeCar.x - targetX, arcadeCar.distance - 32));
+      expect([run.x, run.distance, run.forceYaw, run.speed].every(Number.isFinite)).toBe(true);
+    }
+    expect(peakYaw).toBeGreaterThan(.1);
+    expect(physics.contactPairs).toBeGreaterThan(0);
+    expect(moved).toBeGreaterThan(.1);
+    expect(arcade.forceYaw).toBe(0);
+    expect(arcadeMoved).toBe(0);
+    expect(arcade.durability).toBe(sample.durability);
+    expect(run.distance).toBeGreaterThan(25);
+    console.log(JSON.stringify({ scenario: `force-tail-${kind}`, seed: 17,
+      peakYaw, contacts: physics.contactPairs, moved, distance: run.distance }));
+  });
   it('flings a struck NPC through fall and stand phases without letting them board', () => {
     const npc = entity('passenger', 'walker', 1.35, 0);
     const base = initialRun(17, 'force-comparison');

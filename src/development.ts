@@ -9,6 +9,19 @@ import { balance, itemBalance, movingBalance, stressBalance } from './config';
 import { secretPickup, secretVehicle } from './secret';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
+  if (scenario === 'force-tail-bus' || scenario === 'force-tail-container') {
+    const kind = scenario === 'force-tail-bus' ? 'bus' : 'container';
+    const vehicle = newVehicle(kind, `qa-tail-${kind}`);
+    const car = entity('traffic', `qa-tail-target-${kind}`, 32, kind === 'bus' ? .8 : 0);
+    car.speed = 0; car.baseSpeed = 0;
+    return { ...run, vehicleInstances: [vehicle], activeVehicleId: vehicle.id,
+      fuel: vehicle.fuel, durability: vehicle.durability, speed: vehicles[kind].maxSpeed,
+      world: { ...initialWorld(run.seed), entities: [car], nextSpecial: 1e9,
+        nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9,
+        nextShopDistance: 1e9, prototype: { version: 'force-tail-qa-1',
+          title: `Thử quét đuôi · ${vehicles[kind].name}`,
+          description: 'Giữ D khi chạy tới ô tô đỗ giữa đường, rồi thử lại với S để so quét đuôi lúc cua chậm. Xe dài xoay và đuôi văng theo quán tính chỉ ở ver.force.' } } };
+  }
   if (scenario === 'force-npc-hit') {
     const npc = entity('passenger', 'qa-force-npc', 18, 0);
     npc.passengerMotion = { ...passengerMotion(npc, 0), idle: true };

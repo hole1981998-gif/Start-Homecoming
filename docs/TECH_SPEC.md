@@ -4,6 +4,8 @@
 
 ## Ràng buộc
 
+**Bản thử lực quét đuôi:** `ver.force` lưu góc xoay trên trạng thái Run theo fixed step, tính từ tốc độ, hướng A/D và quán tính ngang. Renderer và Cannon cùng dùng góc và tâm thân xe gần trục trước; `ver.noforce` giữ góc 0. Chỉ buýt/container được bật. Cannon xử lý dịch chuyển khi đuôi chạm traffic, còn quy tắc HP/ngã hiện vẫn từ collision arcade; riêng va quệt chỉ do đuôi chưa gây damage. Cần quyết định damage trước khi tích hợp vào build chính.
+
 Three.js + TypeScript (strict) + Vite; trình duyệt desktop, canvas dọc 9:16 căn giữa, letterbox khi cần. WASD lái liên tục; lane chỉ là đơn vị thiết kế. Tạo model low-poly bằng geometry/material trong code. Không mặc định thêm backend, tài khoản, vật lý nặng hay dịch vụ trả phí. Quy tắc thiết kế ở GAME_DESIGN.md; toàn bộ số cân bằng ở BALANCE_CONFIG.md là tạm.
 
 ## Kiến trúc đề xuất

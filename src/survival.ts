@@ -30,6 +30,7 @@ export interface Run extends State {
   grabUses: number[]; grabSequence: number; nextGrabAt: number; grabRiderIds: string[];
   shopId: string | null; economySequence: number; inventory: Array<PowerItem | null>; powers: Powers;
   secret: SecretState;
+  forceYaw: number;
 }
 export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initialState(),
   runId, seed, fuel: balance.fuelCapacity, durability: balance.durabilityCapacity, score: 0,
@@ -43,6 +44,7 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   activeVehicleId: `${runId}-motorcycle`, replacementProtectedUntil: 0,
   grabUses: [0, 0], grabSequence: 0, nextGrabAt: 0, grabRiderIds: [],
   shopId: null, economySequence: 0, inventory: [null, null], powers: newPowers(), secret: initialSecret(),
+  forceYaw: 0,
 });
 export const names: Record<EntityKind, string> = { wind: 'Gió ngang', water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', cargo: 'Đồ rơi đang lăn', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường', police: 'Công an', militia: 'Dân phòng', jam: 'Kẹt xe', accident: 'Tai nạn', train: 'Tàu hoả', broken: 'Xe chết máy' };
 
@@ -75,7 +77,7 @@ export function switchVehicle(run: Run, targetId?: string, automatic = false): R
     replacementProtectedUntil: automatic ? run.activeSeconds + 1.5 : run.replacementProtectedUntil,
     protectedEntities: [...new Set([...run.protectedEntities, ...protectedEntities])],
     x: Math.max(-(balance.laneWidth * 3 - definition.width) / 2,
-      Math.min((balance.laneWidth * 3 - definition.width) / 2, run.x)) };
+      Math.min((balance.laneWidth * 3 - definition.width) / 2, run.x)), forceYaw: 0 };
 }
 
 function passengerEvent(run: Run, kind: 'passenger' | 'drop', message: string): Run {

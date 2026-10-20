@@ -14,6 +14,8 @@ Tài liệu tổng hợp yêu cầu của chủ dự án trong hội thoại “
 
 ## Tầm nhìn và phạm vi
 
+**BẢN THỬ ver.force — quét đuôi xe lớn:** khi đánh lái nhanh, buýt và container xoay thân có độ trễ quanh vùng gần đầu xe; đuôi lệch ngược hướng lái và có thể quệt xe bên cạnh. Giữ A/D ở mép đường vẫn duy trì góc lái cho tới khi thả phím; ở tốc độ chậm góc nhỏ hơn. Bản noforce giữ cách lái cũ để đối chiếu. Số góc/quán tính hiện là TẠM, chưa duyệt cân bằng cho game chính.
+
 **ĐÃ CHỐT:** game web 3D low-poly tạo hình bằng code, Three.js / TypeScript / Vite, chơi trên trình duyệt desktop trong khung dọc 9:16. Người đi làm về giữa mưa bão, ngập lụt; chạy càng xa càng nhiều điểm. Camera phía sau xe. Ván là endless run; không có đường vòng hay tuyến sự kiện riêng, không có mở khóa nội dung theo tiến trình. Giao lộ vẫn tồn tại: rẽ xong, hướng mới trở thành đường thẳng đang chạy. Secret ending kết thúc ván và trao badge “đã về nhà”.
 
 **ĐỀ XUẤT:** toàn bộ tiền, xe, vật phẩm và nâng cấp thuộc ván hiện tại; chỉ lưu thiết lập, kỷ lục và badge giữa các ván. MVP dùng bảng điểm cục bộ, chưa có tài khoản/server. Vũ khí và chiến đấu từng được nhắc như ví dụ, chưa phải feature đã chốt; để ngoài MVP.
