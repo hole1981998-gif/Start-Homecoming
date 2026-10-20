@@ -4,9 +4,10 @@ import { advanceInteractingTraffic } from './traffic-interactions';
 import { advanceCargo, releaseCargo } from './traffic-cargo';
 import { eventBalance } from './config';
 import { isSpecial, trainClosed } from './special-events';
-import { balance, cargoBalance, itemBalance } from './config';
+import { balance, cargoBalance, forceTailSweep, itemBalance } from './config';
 import { initialState, step, type Input, type State } from './simulation';
-import { advancePassengers, advanceTraffic, entity, fillWorld, forkWorld, initialWorld, passengerMotion, spawnWreckPassengers, sweptContact, trafficTypes, type EntityKind, type World } from './world';
+import { advancePassengers, advanceTraffic, entity, fillWorld, forkWorld, initialWorld, passengerMotion, spawnWreckPassengers, sweptContact, trafficTypes, type Entity, type EntityKind, type World } from './world';
+import { containerParts, stepTrailerRearX, tailSweepYaw } from './tail-sweep';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
 import { effectiveVehicle, newVehicle, vehicleRam, vehicles, type VehicleDefinition, type VehicleInstance } from './vehicles';
@@ -141,7 +142,7 @@ export function selectTurn(run: Run, turn: Turn): Run {
       passengerDrive(run.riderIds.length, activeVehicle(run)).fuelFactor, activeVehicle(run), run.activeSeconds, run.speed) };
 }
 
-export function stepRun(before: Run, input: Input): Run {
+export function stepRun(before: Run, input: Input, forceMode = false): Run {
   if (before.phase !== 'running') return before;
   const trainCuts: number[] = [];
   for (const e of before.world.entities) if (e.kind === 'train' && !e.crossMotion && !e.consumed && e.eventAt !== undefined) {
@@ -154,28 +155,28 @@ export function stepRun(before: Run, input: Input): Run {
   }
   if (before.world.experimentalMotion) trainCuts.push(...crossBoundaries(before.world.entities, before.activeSeconds, balance.fixedStep));
   if (trainCuts.length === 0 && before.activeSeconds >= before.powers.boostUntil && before.activeSeconds >= before.powers.starUntil &&
-      before.activeSeconds >= before.powers.jumpAt + itemBalance.jumpSeconds) return stepRunSegment(before, input, balance.fixedStep);
+      before.activeSeconds >= before.powers.jumpAt + itemBalance.jumpSeconds) return stepRunSegment(before, input, balance.fixedStep, forceMode);
   const cuts = [...new Set([...trainCuts, ...powerBoundaries(before, balance.fixedStep)])].sort((a, b) => a - b);
-  if (cuts.length === 0) return stepRunSegment(before, input, balance.fixedStep);
+  if (cuts.length === 0) return stepRunSegment(before, input, balance.fixedStep, forceMode);
   const end = before.activeSeconds + balance.fixedStep;
   let run = before;
   for (const boundary of [...cuts, end]) {
     if (run.phase !== 'running') break;
     const dt = boundary - run.activeSeconds;
-    if (dt > 1e-10) run = stepRunSegment(run, input, dt);
+    if (dt > 1e-10) run = stepRunSegment(run, input, dt, forceMode);
   }
   return { ...run, ticks: before.ticks + 1 };
 }
-function splitSegment(before: Run, input: Input, dt: number, cut: number): Run {
-  const first = stepRunSegment(before, input, cut);
+function splitSegment(before: Run, input: Input, dt: number, cut: number, forceMode: boolean): Run {
+  const first = stepRunSegment(before, input, cut, forceMode);
   const elapsed = first.activeSeconds - before.activeSeconds;
   if (first.phase !== 'running') return first;
   const remaining = dt - elapsed;
   if (remaining <= 1e-10) return first;
-  const next = stepRunSegment(first, input, remaining);
+  const next = stepRunSegment(first, input, remaining, forceMode);
   return { ...next, ticks: before.ticks + 1 };
 }
-function stepRunSegment(before: Run, input: Input, dt: number): Run {
+function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolean): Run {
   const vehicle = activeVehicle(before);
   if (before.crash) {
     const world = fillWorld(before.world, before.distance, before.fuel, before.durability,
@@ -194,7 +195,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     if (world.experimentalMotion) advanceCrossMotion(movedEntities, before.activeSeconds + dt);
     pushTrafficWithWind(movedEntities, world.entities, dt);
     const npcCuts = world.experimentalTraffic ? advanceInteractingTraffic(movedEntities, world.entities, dt) : [];
-    if (world.integrated && npcCuts.length) return splitSegment(before, input, dt, npcCuts[0]);
+    if (world.integrated && npcCuts.length) return splitSegment(before, input, dt, npcCuts[0], forceMode);
     if (!world.experimentalTraffic) advanceTraffic(movedEntities, dt);
     if (world.experimentalCargo) advanceCargo(movedEntities, dt, before.activeSeconds + dt);
     const protectedEntities = new Set(before.protectedEntities);
@@ -257,15 +258,45 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   }
   const push = environmentalPush(before, driven, before.world.entities, dt, vehicle.width, vehicle.length);
   driven.x = push.x;
+  const articulated = forceMode && vehicle.kind === 'container';
+  const forceYaw = articulated ? tailSweepYaw('container', before.forceYaw, driven.lateralVelocity,
+    driven.speed, dt, Number(input.right) - Number(input.left)) : before.forceYaw;
+  const trailerRearX = articulated ? stepTrailerRearX(driven.x, driven.distance, forceYaw,
+    before.forceTrailerRearX, driven.speed, dt) : before.forceTrailerRearX;
+  const oldParts = articulated ? containerParts(before.x, before.distance, before.forceYaw, before.forceTrailerRearX) : null;
+  const newParts = articulated ? containerParts(driven.x, driven.distance, forceYaw, trailerRearX) : null;
+  const contactFor = (old: Entity, current: Entity, frontOnly = false): { enter: number; exit: number; part: 'head' | 'trailer' } | null => {
+    if (!oldParts || !newParts) {
+      const hit = sweptContact(before.x - old.x, before.distance - old.distance,
+        driven.x - current.x, driven.distance - current.distance,
+        (vehicle.width + current.width) / 2, (vehicle.length + current.length) / 2);
+      return hit ? { enter: hit[0], exit: hit[1], part: 'head' } : null;
+    }
+    const head = sweptContact(oldParts.tractorX - old.x, oldParts.tractorDistance - old.distance,
+      newParts.tractorX - current.x, newParts.tractorDistance - current.distance,
+      (vehicle.width + current.width) / 2, (forceTailSweep.tractorLength + current.length) / 2);
+    const trailer = frontOnly ? null : sweptContact(oldParts.trailerX - old.x, oldParts.trailerDistance - old.distance,
+      newParts.trailerX - current.x, newParts.trailerDistance - current.distance,
+      (vehicle.width + current.width) / 2, (forceTailSweep.trailerLength + current.length) / 2);
+    if (!head && !trailer) return null;
+    const useHead = !!head && (!trailer || head[0] <= trailer[0]);
+    const hit = useHead ? head! : trailer!;
+    return { enter: hit[0], exit: hit[1], part: useHead ? 'head' : 'trailer' };
+  };
   const ds = driven.distance - before.distance;
   const world = fillWorld(before.world, before.distance, before.fuel, before.durability, drive.fuelFactor,
     boosted ? { ...vehicle, maxSpeed: drive.maxSpeed } : vehicle, before.activeSeconds, before.speed);
   if (world.integrated && dt > 1e-6 && !hasStar(before) && world.entities.some(e => e.kind === 'traffic' &&
       !e.consumed && !e.wrecked && e.lastHit < 0 && !before.protectedEntities.includes(e.id) &&
-      Math.abs(before.x-e.x) <= (vehicle.width+e.width)/2 && Math.abs(before.distance-e.distance) <= (vehicle.length+e.length)/2 &&
+      (oldParts ? [
+        [oldParts.tractorX, oldParts.tractorDistance, forceTailSweep.tractorLength],
+        [oldParts.trailerX, oldParts.trailerDistance, forceTailSweep.trailerLength],
+      ].some(([px, pz, length]) => Math.abs(px - e.x) <= (vehicle.width + e.width) / 2 &&
+        Math.abs(pz - e.distance) <= (length + e.length) / 2) :
+        Math.abs(before.x-e.x) <= (vehicle.width+e.width)/2 && Math.abs(before.distance-e.distance) <= (vehicle.length+e.length)/2) &&
       jumpHeight({ ...before, activeSeconds: before.activeSeconds + 5e-8 }) <
         (['bus','truck','container'].includes(e.trafficKind ?? 'car4') ? itemBalance.highTrafficClearance : itemBalance.lowTrafficClearance) - 1e-9)) {
-    return splitSegment(before,input,dt,1e-7);
+    return splitSegment(before,input,dt,1e-7,forceMode);
   }
   const movedEntities = world.entities.map(e => ({ ...e }));
   if (world.experimentalMotion) advanceCrossMotion(movedEntities, before.activeSeconds + dt);
@@ -276,20 +307,20 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   if (world.integrated) {
     let cut = npcCuts[0] ?? dt;
     // Before the earliest NPC transition its trajectory is linear. Do not use its post-impact endpoint.
-    if (npcCuts.length) return splitSegment(before, input, dt, cut);
+    if (npcCuts.length) return splitSegment(before, input, dt, cut, forceMode);
     for (let i = 0; i < movedEntities.length; i++) {
       const e = movedEntities[i], old = world.entities[i];
       if (e.kind !== 'traffic' || old.wrecked || old.consumed || old.lastHit >= 0 || before.protectedEntities.includes(e.id) || hasStar(before)) continue;
-      const hit = sweptContact(before.x - old.x, before.distance - old.distance, driven.x - e.x, driven.distance - e.distance,
-        (vehicle.width + e.width) / 2, (vehicle.length + e.length) / 2);
-      if (hit && hit[0] * dt > 1e-8) cut = Math.min(cut, hit[0] * dt);
+      const hit = contactFor(old, e);
+      if (hit && hit.enter * dt > 1e-8) cut = Math.min(cut, hit.enter * dt);
     }
-    if (cut < dt - 1e-8) return splitSegment(before, input, dt, cut);
+    if (cut < dt - 1e-8) return splitSegment(before, input, dt, cut, forceMode);
   }
   const r: Run = { ...before, world: { ...world, entities: movedEntities,
     retired: world.retired.map(entry => ({ ...entry, entity: (() => { const copy = { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt }; advanceCrossMotion([copy], before.activeSeconds + dt); return copy; })() })) },
     ticks: before.ticks + 1,
     x: driven.x, lateralVelocity: driven.lateralVelocity, speed: driven.speed,
+    forceYaw, forceTrailerRearX: trailerRearX,
     recovering: (before.recovering || (waitingAtTrain && input.brake)) && driven.speed < drive.cruiseSpeed - 1e-8 };
   r.secret = secretVehicle(guardedSecret(r.secret, r.activeVehicleId, r.riderIds.length),
     vehicle.kind, r.activeVehicleId, r.riderIds.length);
@@ -340,14 +371,13 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     r.speed = impactSpeed; r.recovering = false;
     r.powers = { ...r.powers, boostUntil: r.activeSeconds, jumpAt: -100 };
   };
-  type Event = { t: number; index: number; type: 'enter-water' | 'exit-water' | 'enter-pothole' | 'exit-pothole' | 'hit' };
+  type Event = { t: number; index: number; part: 'head' | 'trailer'; type: 'enter-water' | 'exit-water' | 'enter-pothole' | 'exit-pothole' | 'hit' };
   const events: Event[] = [];
   const flightAge = before.activeSeconds - before.powers.jumpAt;
   const sampledHeight = flightAge >= 0 && flightAge < itemBalance.jumpSeconds ?
     jumpHeight({ ...before, activeSeconds: before.activeSeconds + dt / 2 }) : 0;
   for (let index = 0; index < r.world.entities.length; index++) {
     const e = r.world.entities[index];
-    const endDistance = e.distance;
     if (e.stunned || e.kind === 'wind') { e.touching = false; continue; }
     if (e.kind === 'train') {
       e.eventAt ??= before.activeSeconds;
@@ -358,25 +388,22 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
       harmful(e.kind) ? itemBalance.groundClearance : itemBalance.pickupClearance : Infinity;
     const airborne = sampledHeight >= height - 1e-9;
     if (e.kind === 'train' && airborne && hasBoost(before) && !e.consumed &&
-      sweptContact(before.x - world.entities[index].x, before.distance - world.entities[index].distance,
-        driven.x - e.x, driven.distance - e.distance, (vehicle.width + e.width) / 2,
-        (vehicle.length + e.length) / 2)) {
+      contactFor(world.entities[index], e)) {
       r.secret = secretTrainOverlap(r.secret, e.id, e.distance, (vehicle.length + e.length) / 2);
     }
     const contact = !airborne && !e.consumed && e.kind !== 'passenger' && e.kind !== 'shop' &&
       (e.kind !== 'traffic' || !e.wrecked) &&
       (!harmful(e.kind) || before.activeSeconds >= before.replacementProtectedUntil) &&
-      sweptContact(before.x - world.entities[index].x, before.distance - world.entities[index].distance,
-        driven.x - e.x, driven.distance - endDistance, (vehicle.width + e.width) / 2, (vehicle.length + e.length) / 2);
+      contactFor(world.entities[index], e, e.kind === 'water' || e.kind === 'pothole');
     if (!contact || before.protectedEntities.includes(e.id)) { e.touching = false; continue; }
     if (isSpecial(e.kind) && e.kind !== 'train' && before.activeSeconds < before.replacementProtectedUntil) { e.consumed = true; continue; }
-    const [enter, exit] = contact;
+    const { enter, exit, part } = contact;
     if (e.kind === 'water') {
-      events.push({ t: enter, index, type: 'enter-water' }, { t: exit, index, type: 'exit-water' });
+      events.push({ t: enter, index, part, type: 'enter-water' }, { t: exit, index, part, type: 'exit-water' });
     } else if (e.kind === 'pothole') {
-      events.push({ t: enter, index, type: 'enter-pothole' }, { t: exit, index, type: 'exit-pothole' });
+      events.push({ t: enter, index, part, type: 'enter-pothole' }, { t: exit, index, part, type: 'exit-pothole' });
     } else {
-      if (e.kind !== 'traffic' || e.lastHit < 0) events.push({ t: enter, index, type: 'hit' });
+      if (e.kind !== 'traffic' || e.lastHit < 0) events.push({ t: enter, index, part, type: 'hit' });
     }
   }
   // Damage precedes pickups on exact ties. No later event can rescue an earlier terminal collision.
@@ -468,7 +495,8 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     if (e.kind === 'cargo') {
       e.consumed = true;
       if (!hasStar(r)) {
-        const damage = e.cargoType === 'barrel' ? cargoBalance.barrelDamage : cargoBalance.crateDamage;
+        const damage = (e.cargoType === 'barrel' ? cargoBalance.barrelDamage : cargoBalance.crateDamage) *
+          (articulated && event.part === 'trailer' ? .5 : 1);
         r.durability = Math.max(0, r.durability - damage);
         feedback('cargo', `Đồ rơi · −${damage} HP`);
         if (r.durability === 0) finish('damage');
@@ -484,7 +512,8 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
       e.hp = Math.max(0, (e.hp ?? target.hp) - ram.damage);
       if (world.integrated) e.trafficPlayerSource = true;
       if (e.hp === 0) { e.wrecked = true; e.wreckedByPlayer = true; e.wreckAge = 0; e.speed = 0; }
-      const impactDamage = ram.breaksThrough && e.wrecked ? Math.ceil(target.damage * balance.trafficHeavySelfDamageFactor) : target.damage;
+      const fullDamage = ram.breaksThrough && e.wrecked ? Math.ceil(target.damage * balance.trafficHeavySelfDamageFactor) : target.damage;
+      const impactDamage = articulated && event.part === 'trailer' ? fullDamage / 2 : fullDamage;
       r.durability = Math.max(0, r.durability - impactDamage);
       e.lastHit = r.activeSeconds;
       feedback('traffic', `${names.traffic} · −${impactDamage} HP`);
@@ -518,7 +547,16 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   if (r.phase === 'ended' || r.crash) { r.x = before.x + (driven.x - before.x) * fraction; r.lateralVelocity = 0; }
   if (!r.crash) r.protectedEntities = r.protectedEntities.filter(id => {
     const e = r.world.entities.find(entity => entity.id === id);
-    return !!e && overlapsVehicle(r.x, r.distance, e, vehicle);
+    if (!e) return false;
+    if (!articulated) return overlapsVehicle(r.x, r.distance, e, vehicle);
+    const pose = containerParts(r.x, r.distance, r.forceYaw, r.forceTrailerRearX);
+    const bodies = e.kind === 'water' || e.kind === 'pothole' ?
+      [[pose.tractorX, pose.tractorDistance, forceTailSweep.tractorLength]] :
+      [[pose.tractorX, pose.tractorDistance, forceTailSweep.tractorLength],
+        [pose.trailerX, pose.trailerDistance, forceTailSweep.trailerLength]];
+    return bodies
+      .some(([px, pz, length]) => Math.abs(px - e.x) <= (vehicle.width + e.width) / 2 &&
+        Math.abs(pz - e.distance) <= (length + e.length) / 2);
   });
   if (world.experimentalMotion) retireCrossers(r.world.entities);
   spawnWreckPassengers(r.world, r.activeSeconds, vehicle);

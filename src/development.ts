@@ -9,10 +9,10 @@ import { balance, itemBalance, movingBalance, stressBalance } from './config';
 import { secretPickup, secretVehicle } from './secret';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
-  if (scenario === 'force-tail-bus' || scenario === 'force-tail-container') {
-    const kind = scenario === 'force-tail-bus' ? 'bus' : 'container';
+  if (scenario === 'force-tail-bus' || scenario === 'force-tail-truck' || scenario === 'force-tail-container') {
+    const kind = scenario === 'force-tail-bus' ? 'bus' : scenario === 'force-tail-truck' ? 'truck' : 'container';
     const vehicle = newVehicle(kind, `qa-tail-${kind}`);
-    const car = entity('traffic', `qa-tail-target-${kind}`, 32, kind === 'bus' ? 2.5 : 2.3);
+    const car = entity('traffic', `qa-tail-target-${kind}`, 32, kind === 'bus' ? 2.5 : kind === 'truck' ? 2.4 : 2.3);
     car.speed = 0; car.baseSpeed = 0;
     return { ...run, vehicleInstances: [vehicle], activeVehicleId: vehicle.id,
       fuel: vehicle.fuel, durability: vehicle.durability, speed: vehicles[kind].maxSpeed,
@@ -22,6 +22,7 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
           title: `Thử xe dài · ${vehicles[kind].name}`,
           description: kind === 'bus' ?
             'Giữ D để xem đầu xe buýt quét sang phải trong khi bánh sau bám hơn; nhả D và thử S để so cua chậm. Chỉ ver.force có mô phỏng này.' :
+            kind === 'truck' ? 'Giữ D để xem đầu xe tải quét ra ngoài, nhẹ hơn xe buýt; bánh sau bám đường. Nhả D rồi thử lại ở tốc độ chậm.' :
             'Giữ D để xem đầu kéo rẽ trước, rơ-moóc theo sau qua khớp nối. So với ver.noforce, container chướng ngại vẫn nguyên một khối.' } } };
   }
   if (scenario === 'force-npc-hit') {

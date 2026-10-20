@@ -2,10 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { ForceIntegration } from '../src/force-integration';
 import { noInput } from '../src/simulation';
 import { initialRun, pickUpPassenger, stepRun, type Run } from '../src/survival';
-import { advancePassengers, entity, passengerPose } from '../src/world';
+import { advancePassengers, entity, passengerPose, trafficTypes } from '../src/world';
 import { developmentScenario } from '../src/development';
-import { vehicles } from '../src/vehicles';
-import { busBodyCenterX, containerParts, stepTrailerRearX, tailSweepYaw } from '../src/tail-sweep';
+import { newVehicle, vehicles, vehicleRam } from '../src/vehicles';
+import { busBodyCenterX, containerParts, heavyFrontCenterX, stepTrailerRearX, tailSweepYaw } from '../src/tail-sweep';
+import { balance } from '../src/config';
+
+function containerHazard(kind: 'traffic' | 'cargo' | 'water' | 'pothole', distance: number): Run {
+  const base = initialRun(17, `force-${kind}-${distance}`);
+  const vehicle = newVehicle('container', 'qa-container');
+  const hazard = entity(kind, `qa-${kind}`, distance, 0);
+  if (kind === 'traffic') { hazard.speed = 0; hazard.baseSpeed = 0; }
+  return { ...base, phase: 'running', vehicleInstances: [vehicle], activeVehicleId: vehicle.id,
+    fuel: vehicle.fuel, durability: vehicle.durability, speed: vehicles.container.cruiseSpeed,
+    world: { ...base.world, entities: [hazard], nextHazard: 1e9, nextPassenger: 1e9,
+      nextFuel: 1e9, nextRepair: 1e9, nextShop: 1e9, nextSpecial: 1e9 } };
+}
 
 describe('parallel force integration', () => {
   it('plants the bus rear axle while its front swings into the turn', () => {
@@ -16,6 +28,58 @@ describe('parallel force integration', () => {
     const frontX = center + Math.sin(yaw) * length * .5;
     expect(rearX).toBeCloseTo(0, 8);
     expect(frontX).toBeGreaterThan(1);
+  });
+
+  it('gives the truck a smaller front sweep than the bus at the same speed and steering', () => {
+    let bus = 0, truck = 0;
+    for (let i = 0; i < 90; i++) {
+      bus = tailSweepYaw('bus', bus, 5, 18, 1 / 60, 1);
+      truck = tailSweepYaw('truck', truck, 5, 18, 1 / 60, 1);
+    }
+    expect(truck).toBeGreaterThan(0);
+    expect(truck).toBeLessThan(bus);
+    expect(heavyFrontCenterX('truck', 0, vehicles.truck.length, truck)).toBeLessThan(
+      heavyFrontCenterX('bus', 0, vehicles.bus.length, bus));
+  });
+
+  it('charges full damage for tractor-first traffic, half for trailer-first, and never a second hit', () => {
+    const force = new ForceIntegration();
+    const head = force.step(containerHazard('traffic', 7), noInput());
+    const tail = force.step(containerHazard('traffic', -6), noInput());
+    const fullDamage = Math.ceil(trafficTypes.car4.damage * balance.trafficHeavySelfDamageFactor);
+    expect(vehicles.container.durabilityCapacity - head.durability).toBe(fullDamage);
+    expect(vehicles.container.durabilityCapacity - tail.durability).toBe(fullDamage / 2);
+    expect(vehicles.container.durabilityCapacity - stepRun(containerHazard('traffic', -6), noInput()).durability)
+      .toBe(fullDamage);
+    const after = force.step(tail, noInput());
+    expect(after.durability).toBe(tail.durability);
+    expect(after.world.entities.find(e => e.id === 'qa-traffic')?.lastHit).toBeGreaterThanOrEqual(0);
+    expect(vehicleRam.container.breaksThrough).toBe(true);
+  });
+
+  it('chooses the tractor on a simultaneous seam hit and halves a trailer-only cargo hit', () => {
+    const seam = new ForceIntegration().step(containerHazard('traffic', 2), noInput());
+    const head = new ForceIntegration().step(containerHazard('traffic', 7), noInput());
+    expect(seam.durability).toBe(head.durability);
+    const headCargo = new ForceIntegration().step(containerHazard('cargo', 7), noInput());
+    const tailCargo = new ForceIntegration().step(containerHazard('cargo', -6), noInput());
+    const full = vehicles.container.durabilityCapacity - headCargo.durability;
+    expect(full).toBeGreaterThan(0);
+    expect(vehicles.container.durabilityCapacity - tailCargo.durability).toBe(full / 2);
+  });
+
+  it('ignores water and potholes under the trailer while the tractor still takes their effects', () => {
+    const clear = { ...containerHazard('water', -40), world: { ...containerHazard('water', -40).world, entities: [] } };
+    const baseline = new ForceIntegration().step(clear, noInput());
+    const tailWater = new ForceIntegration().step(containerHazard('water', -8), noInput());
+    const headWater = new ForceIntegration().step(containerHazard('water', 7), noInput());
+    expect(tailWater.fuel).toBeCloseTo(baseline.fuel, 7);
+    expect(headWater.fuel).toBeLessThan(baseline.fuel);
+    expect(stepRun(containerHazard('water', -8), noInput()).fuel).toBeLessThan(baseline.fuel);
+    const tailHole = new ForceIntegration().step(containerHazard('pothole', -7), noInput());
+    const headHole = new ForceIntegration().step(containerHazard('pothole', 7), noInput());
+    expect(tailHole.durability).toBe(vehicles.container.durabilityCapacity);
+    expect(headHole.durability).toBeLessThan(tailHole.durability);
   });
 
   it('keeps the container tractor and trailer joined while the rear axle lags', () => {
@@ -46,7 +110,7 @@ describe('parallel force integration', () => {
     expect(yaw).toBeCloseTo(0, 6);
   });
 
-  it.each(['bus', 'container'] as const)('keeps the %s sweep finite in the playable fixture', kind => {
+  it.each(['bus', 'truck', 'container'] as const)('keeps the %s sweep finite in the playable fixture', kind => {
     const sample = developmentScenario(initialRun(17, `tail-play-${kind}`), `force-tail-${kind}`);
     let run: Run = { ...sample, phase: 'running' };
     let arcade: Run = { ...sample, phase: 'running' };
@@ -60,7 +124,7 @@ describe('parallel force integration', () => {
       arcade = stepRun(arcade, input);
       peakYaw = Math.max(peakYaw, Math.abs(run.forceYaw));
       const car = run.world.entities.find(e => e.id === `qa-tail-target-${kind}`);
-      const targetX = kind === 'bus' ? 2.5 : 2.3;
+      const targetX = kind === 'bus' ? 2.5 : kind === 'truck' ? 2.4 : 2.3;
       if (car) moved = Math.max(moved, Math.hypot(car.x - targetX, car.distance - 32));
       const arcadeCar = arcade.world.entities.find(e => e.id === `qa-tail-target-${kind}`);
       if (arcadeCar) arcadeMoved = Math.max(arcadeMoved, Math.hypot(arcadeCar.x - targetX, arcadeCar.distance - 32));

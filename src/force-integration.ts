@@ -4,7 +4,7 @@ import { activeVehicle, stepRun, type Run } from './survival';
 import type { Input } from './simulation';
 import { vehicleRam, vehicles, type VehicleKind } from './vehicles';
 import { passengerMotion, sweptContact, type Entity } from './world';
-import { busBodyCenterX, containerParts, stepTrailerRearX, tailSweepYaw } from './tail-sweep';
+import { containerParts, heavyFrontCenterX, tailSweepYaw } from './tail-sweep';
 
 type Dynamic = Entity & { kind: 'traffic' | 'passenger' | 'cargo' };
 interface Actor { id: string; kind: Dynamic['kind'] | 'player'; body: CANNON.Body; entity?: Dynamic }
@@ -30,14 +30,14 @@ export class ForceIntegration {
     // The arcade step can update entity fields while resolving a collision.
     // Snapshot the old pose/flags first so a newly wrecked car still receives its first impulse.
     const previous = new Map(before.world.entities.filter(dynamic).map(entity => [entity.id, { ...entity }]));
-    let next = stepRun(before, input);
+    let next = stepRun(before, input, true);
     if (before.phase !== 'running' || next.activeSeconds <= before.activeSeconds) return next;
     const vehicle = activeVehicle(before);
-    const yaw = next.activeVehicleId === before.activeVehicleId ?
+    const yaw = vehicle.kind === 'container' ? next.forceYaw : next.activeVehicleId === before.activeVehicleId ?
       tailSweepYaw(vehicle.kind, before.forceYaw, next.lateralVelocity, next.speed, dt,
         Number(input.right) - Number(input.left)) : 0;
     const trailerRearX = vehicle.kind === 'container' ?
-      stepTrailerRearX(next.x, next.distance, yaw, before.forceTrailerRearX, next.speed, dt) : next.x;
+      next.forceTrailerRearX : next.x;
     next = { ...next, forceYaw: yaw, forceTrailerRearX: trailerRearX };
     const liveIds = new Set(next.world.entities.map(entity => entity.id));
     for (const id of this.passedWrecks) if (!liveIds.has(id)) this.passedWrecks.delete(id);
@@ -84,8 +84,9 @@ export class ForceIntegration {
       containerParts(before.x, before.distance, before.forceYaw, before.forceTrailerRearX) : null;
     const newParts = vehicle.kind === 'container' ?
       containerParts(next.x, next.distance, yaw, trailerRearX) : null;
-    const startCenter = vehicle.kind === 'bus' ? busBodyCenterX(before.x, vehicle.length, before.forceYaw) : before.x;
-    const endCenter = vehicle.kind === 'bus' ? busBodyCenterX(next.x, vehicle.length, yaw) : next.x;
+    const frontSweep = vehicle.kind === 'bus' || vehicle.kind === 'truck';
+    const startCenter = frontSweep ? heavyFrontCenterX(vehicle.kind as 'bus' | 'truck', before.x, vehicle.length, before.forceYaw) : before.x;
+    const endCenter = frontSweep ? heavyFrontCenterX(vehicle.kind as 'bus' | 'truck', next.x, vehicle.length, yaw) : next.x;
     if (oldParts && newParts) {
       add('player', 'player', oldParts.tractorX, oldParts.tractorDistance, vehicle.width,
         forceTailSweep.tractorLength, mass.container * .36,

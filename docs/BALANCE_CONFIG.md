@@ -4,7 +4,7 @@
 
 ## Quy ước
 
-**TẠM — `ver.force` xe lớn:** buýt tối đa 0,22 rad (~12,6°), tâm thân cách trục sau 35% chiều dài; container đầu kéo tối đa 0,27 rad (~15,5°), thân đầu kéo 5 m và rơ-moóc 10 m, khớp tối đa 0,38 rad, hệ số bánh sau bám theo 0,88. Tốc độ đáp ứng góc đầu xe buýt/container là 1,05/0,78 rad/s. Dưới 5 m/s góc mục tiêu về 0, từ 15 m/s đạt đủ hệ số. Đây là số cho tình huống thử riêng, chưa cân bằng va chạm/damage.
+**TẠM — `ver.force` xe lớn:** buýt gain 0,62, tối đa 0,21 rad (~12°), đáp ứng 0,9 rad/s, tâm thân cách trục sau 35% chiều dài. Xe tải gain 0,4, tối đa 0,13 rad (~7,4°), đáp ứng 0,72 rad/s, tâm thân cách trục sau 32% chiều dài. Container đầu kéo tối đa 0,27 rad (~15,5°), thân đầu kéo 5 m và rơ-moóc 10 m, khớp tối đa 0,38 rad, hệ số bánh sau bám theo 0,88. Dưới 5 m/s góc mục tiêu về 0, từ 15 m/s đạt đủ hệ số. Rơ-moóc trúng chướng ngại gây damage trước đầu kéo chỉ nhận 50%; con số này là yêu cầu thử của chủ dự án, chưa cân bằng qua playtest.
 
 **TẤT CẢ con số dưới đây là TẠM, chưa được playtest**, trừ các ràng buộc đã chốt: 3 lane, khung 9:16, tối đa 2 xe, chiều rộng xe < 1,5 lane, xe secret 4 chỗ có 1 tài xế + 3 khách, chuỗi secret 4 bước. Không coi bảng này là code config đã chạy. Dùng một nguồn config TypeScript có schema/range validation khi triển khai; không rải magic number trong systems. Đơn vị: m, s, m/s, L (xăng quy ước), HP, đồng game. Đây không phải mô phỏng chi phí hay luật giao thông thực tế.
 
