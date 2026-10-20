@@ -5,6 +5,7 @@ import { buyVehicle, effectiveVehicle, vehicles, type VehicleKind } from './vehi
 import type { Entity } from './world';
 
 import { itemNames, type PowerItem } from './items';
+import { secretVehicle } from './secret';
 
 export type ServiceKind = 'fuel' | 'repair';
 export type UpgradeKind = 'engine' | 'tank' | 'armour' | 'economy';
@@ -51,6 +52,7 @@ export function transact(run: Run, command: ShopCommand): { run: Run; message: s
     if (!bought) return fail('Không đủ tiền hoặc lựa chọn xe bỏ không hợp lệ.');
     const target = bought.inventory[bought.inventory.length - 1], d = effectiveVehicle(target);
     next = { ...run, vehicleInstances: bought.inventory, activeVehicleId: target.id, money: bought.money,
+      secret: secretVehicle(run.secret, command.vehicle, target.id, run.riderIds.length),
       fuel: target.fuel, durability: target.durability, motion: 'powered', coastRemaining: balance.coastDistance,
       speed: Math.min(run.speed, d.maxSpeed), recovering: run.speed < d.minSpeed,
       x: Math.max(-(balance.laneWidth * balance.laneCount - d.width) / 2,

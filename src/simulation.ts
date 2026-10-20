@@ -19,8 +19,11 @@ export function step(s: State, input: Input, dt = balance.fixedStep, c: Balance 
     s.speed < c.cruiseSpeed ? c.returnAcceleration : c.returnDeceleration;
   const speed = approach(s.speed, target, rate * dt);
   const direction = Number(input.right) - Number(input.left);
+  // Tyre grip limits how quickly lateral velocity can change. At speed, releasing
+  // or reversing A/D leaves a short, predictable slide instead of snapping to zero.
+  const grip = c.lateralGrip / (1 + (speed / c.lateralGripReferenceSpeed) ** 2);
   let lateralVelocity = approach(s.lateralVelocity, direction * c.lateralSpeed,
-    (direction ? c.lateralAcceleration : c.lateralBraking) * dt);
+    (direction ? c.lateralAcceleration : c.lateralBraking) * grip * dt);
   const bound = (c.laneWidth * c.laneCount - c.vehicleWidth) / 2;
   const x = Math.max(-bound, Math.min(bound, s.x + lateralVelocity * dt));
   if ((x === bound && lateralVelocity > 0) || (x === -bound && lateralVelocity < 0)) lateralVelocity = 0;

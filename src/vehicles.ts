@@ -5,6 +5,7 @@ export interface VehicleDefinition {
   kind: VehicleKind; name: string; capacity: number; minSpeed: number; cruiseSpeed: number; maxSpeed: number;
   cruiseLoss: number; cruiseFloor: number; fuelCapacity: number; durabilityCapacity: number; fuelPerMeter: number;
   fuelPickup: number; repairPickup: number; width: number; length: number; price: number;
+  lateralGrip: number; leanFactor: number;
 }
 export interface VehicleInstance {
   id: string; kind: VehicleKind; fuel: number; durability: number; upgrades: { engine: number; tank: number; armour: number; economy?: number };
@@ -17,28 +18,36 @@ export const vehicles: Record<VehicleKind, VehicleDefinition> = {
     cruiseFloor: balance.riderCruiseFloor, fuelCapacity: balance.fuelCapacity,
     durabilityCapacity: balance.durabilityCapacity, fuelPerMeter: balance.fuelPerMeter,
     fuelPickup: balance.fuelPickup, repairPickup: balance.repairPickup,
-    width: balance.vehicleWidth, length: balance.vehicleLength, price: 250 },
+    width: balance.vehicleWidth, length: balance.vehicleLength, price: 250,
+    lateralGrip: balance.lateralGrip, leanFactor: 1.25 },
   motorbike: { kind: 'motorbike', name: 'Mô tô', capacity: 2, minSpeed: 9, cruiseSpeed: 18.5,
     maxSpeed: 28, cruiseLoss: 2.4, cruiseFloor: 9, fuelCapacity: 10, durabilityCapacity: 85,
-    fuelPerMeter: .004, fuelPickup: 6, repairPickup: 40, width: .96, length: 2.2, price: 600 },
+    fuelPerMeter: .004, fuelPickup: 6, repairPickup: 40, width: .96, length: 2.2, price: 600,
+    lateralGrip: 1.1, leanFactor: 1.3 },
   car4: { kind: 'car4', name: 'Ô tô 4 chỗ', capacity: 4, minSpeed: 8, cruiseSpeed: 16,
     maxSpeed: 24, cruiseLoss: 1.6, cruiseFloor: 9, fuelCapacity: 16, durabilityCapacity: 120,
-    fuelPerMeter: .005, fuelPickup: 8, repairPickup: 45, width: 1.86, length: 4.2, price: 800 },
+    fuelPerMeter: .005, fuelPickup: 8, repairPickup: 45, width: 1.86, length: 4.2, price: 800,
+    lateralGrip: 1, leanFactor: .8 },
   car7: { kind: 'car7', name: 'Ô tô 7 chỗ', capacity: 7, minSpeed: 8, cruiseSpeed: 15,
     maxSpeed: 22, cruiseLoss: .9, cruiseFloor: 9, fuelCapacity: 20, durabilityCapacity: 145,
-    fuelPerMeter: .006, fuelPickup: 10, repairPickup: 50, width: 2.08, length: 4.8, price: 1200 },
+    fuelPerMeter: .006, fuelPickup: 10, repairPickup: 50, width: 2.08, length: 4.8, price: 1200,
+    lateralGrip: .9, leanFactor: .7 },
   tricycle: { kind: 'tricycle', name: 'Ba gác', capacity: 4, minSpeed: 6, cruiseSpeed: 11.5,
     maxSpeed: 17, cruiseLoss: 1, cruiseFloor: 6, fuelCapacity: 12, durabilityCapacity: 100,
-    fuelPerMeter: .0045, fuelPickup: 7, repairPickup: 40, width: 1.76, length: 3.2, price: 450 },
+    fuelPerMeter: .0045, fuelPickup: 7, repairPickup: 40, width: 1.76, length: 3.2, price: 450,
+    lateralGrip: .7, leanFactor: .9 },
   bus: { kind: 'bus', name: 'Xe buýt', capacity: 25, minSpeed: 6, cruiseSpeed: 12.5,
     maxSpeed: 19, cruiseLoss: .3, cruiseFloor: 7, fuelCapacity: 35, durabilityCapacity: 210,
-    fuelPerMeter: .01, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 10, price: 2400 },
+    fuelPerMeter: .01, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 10, price: 2400,
+    lateralGrip: .75, leanFactor: .5 },
   truck: { kind: 'truck', name: 'Xe tải', capacity: 3, minSpeed: 6, cruiseSpeed: 13,
     maxSpeed: 20, cruiseLoss: 1.3, cruiseFloor: 7, fuelCapacity: 30, durabilityCapacity: 230,
-    fuelPerMeter: .009, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 7, price: 1800 },
+    fuelPerMeter: .009, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 7, price: 1800,
+    lateralGrip: .78, leanFactor: .55 },
   container: { kind: 'container', name: 'Container', capacity: 2, minSpeed: 5, cruiseSpeed: 11.5,
     maxSpeed: 18, cruiseLoss: 1.8, cruiseFloor: 5, fuelCapacity: 45, durabilityCapacity: 300,
-    fuelPerMeter: .012, fuelPickup: 15, repairPickup: 70, width: 2.88, length: 15, price: 3000 },
+    fuelPerMeter: .012, fuelPickup: 15, repairPickup: 70, width: 2.88, length: 15, price: 3000,
+    lateralGrip: .65, leanFactor: .45 },
 };
 for (const d of Object.values(vehicles)) {
   if (Object.values(d).some(value => typeof value === 'number' && !Number.isFinite(value)) ||
@@ -46,7 +55,8 @@ for (const d of Object.values(vehicles)) {
     !(d.minSpeed <= d.cruiseFloor && d.cruiseFloor < d.cruiseSpeed && d.cruiseSpeed <= d.maxSpeed) ||
     d.cruiseLoss <= 0 || d.width >= balance.laneWidth * 1.5 || d.length <= 0 ||
     d.fuelCapacity <= 0 || d.durabilityCapacity <= 0 || d.fuelPerMeter <= 0 || d.price <= 0 ||
-    d.fuelPickup <= 0 || d.repairPickup <= 0) throw new Error(`Invalid vehicle: ${d.kind}`);
+    d.fuelPickup <= 0 || d.repairPickup <= 0 || d.lateralGrip <= 0 || d.lateralGrip > 1.5 ||
+    d.leanFactor <= 0 || d.leanFactor > 1.5) throw new Error(`Invalid vehicle: ${d.kind}`);
 }
 export interface TrafficDefinition {
   kind: VehicleKind; name: string; hp: number; damage: number; width: number; length: number;

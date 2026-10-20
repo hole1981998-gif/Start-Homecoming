@@ -2,12 +2,53 @@ import { forceScenario } from './force-scenarios';
 import { cargoScenario } from './cargo-scenarios';
 import { movingScenario } from './moving-scenarios';
 import type { Run } from './survival';
-import { entity, fillWorld, initialWorld, trafficTypes } from './world';
+import { entity, fillWorld, initialWorld, passengerMotion, trafficTypes } from './world';
 import { junction } from './route';
 import { newVehicle, vehicles, type VehicleKind } from './vehicles';
-import { balance, itemBalance, stressBalance } from './config';
+import { balance, itemBalance, movingBalance, stressBalance } from './config';
+import { secretPickup, secretVehicle } from './secret';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
+  if (scenario === 'force-npc-hit') {
+    const npc = entity('passenger', 'qa-force-npc', 18, 0);
+    npc.passengerMotion = { ...passengerMotion(npc, 0), idle: true };
+    return { ...run, world: { ...initialWorld(run.seed), entities: [npc], nextSpecial: 1e9,
+      nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9,
+      nextShopDistance: 1e9, prototype: { version: 'force-npc-qa-1', title: 'Thử xe tông NPC',
+        description: 'Lái thẳng để xem NPC bị hất văng, nằm xuống rồi đứng dậy. Ở ver.force, NPC bị bạn tông từ chối lên xe; ver.noforce giữ hành vi cũ để đối chiếu.' } } };
+  }
+  if (scenario?.startsWith('handling-')) {
+    const requested = scenario.slice('handling-'.length);
+    const kind: VehicleKind = requested in vehicles ? requested as VehicleKind : 'motorcycle';
+    const vehicle = newVehicle(kind, `qa-handling-${kind}`);
+    return { ...run, vehicleInstances: [vehicle], activeVehicleId: vehicle.id,
+      fuel: vehicle.fuel, durability: vehicle.durability, speed: vehicles[kind].cruiseSpeed,
+      world: { ...initialWorld(run.seed), nextSpecial: 1e9, nextHazard: 1e9,
+        nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9,
+        prototype: { version: 'handling-qa-1', title: `Thử độ bám · ${vehicles[kind].name}`,
+          description: 'Đường trống để thử quán tính ngang. Giữ W rồi đánh lái A/D, thả lái để thấy xe trượt tiếp; giữ S và lặp lại ở tốc độ thấp. Đây là fixture DEV, không dùng để cân bằng mật độ chướng ngại.' } } };
+  }
+  if (scenario === 'p7-secret' || scenario === 'p7-secret-traffic') {
+    // DEV checkpoint starts at step two; the normal game still requires a real purchase and three pickups.
+    const car = newVehicle('car4', 'qa-p7-car'), riders = ['qa-p7-1', 'qa-p7-2', 'qa-p7-3'];
+    const train = entity('train', 'qa-p7-train', 15, movingBalance.trainOrigin);
+    train.width = movingBalance.trainWidth; train.length = movingBalance.trainDepth;
+    train.crossMotion = { type: 'linear', origin: movingBalance.trainOrigin,
+      velocity: -movingBalance.trainSpeed, startedAt: 0, min: -movingBalance.trainOrigin, max: movingBalance.trainOrigin };
+    const target = entity(scenario === 'p7-secret-traffic' ? 'traffic' : 'accident',
+      'qa-p7-final-contact', 48, 0);
+    if (target.kind === 'traffic') { target.trafficKind = 'bus'; target.width = trafficTypes.bus.width; target.length = trafficTypes.bus.length; target.hp = trafficTypes.bus.hp; target.speed = 0; }
+    else { target.width = 6.2; target.length = 5; }
+    const secret = secretPickup(secretVehicle(run.secret, 'car4', car.id, 0), car.id, 3);
+    return { ...run, vehicleInstances: [car], activeVehicleId: car.id, fuel: car.fuel,
+      durability: car.durability, speed: vehicles.car4.cruiseSpeed, riderIds: riders,
+      secret, inventory: ['nitro', null],
+      world: { ...initialWorld(run.seed), experimentalMotion: true, entities: [train, target],
+        nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9,
+        nextPassenger: 1e9, nextShopDistance: 1e9,
+        prototype: { version: 'p7-secret-qa', title: 'Thử kết ván bí mật',
+          description: `Checkpoint sau khi xe ô tô 4 chỗ đón đủ 3 khách mới. Bấm 1 bật nitro, Space nhảy qua tàu đang chạy ngang rồi chạm ${target.kind === 'traffic' ? 'xe chướng ngại' : 'vụ tai nạn'}. Đây là tình huống DEV; ván thường phải tự hoàn tất đủ các bước.` } } };
+  }
   if (scenario?.startsWith('p63-')) return cargoScenario(run, scenario);
   if (scenario?.startsWith('p62-')) return forceScenario(run,scenario);
   if (scenario === 'stress') {
@@ -145,6 +186,17 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
       fuel: bus.fuel, durability: bus.durability,
       world: { ...run.world, entities: [car], nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9,
         nextRepair: 1e9, nextPassenger: 1e9 } };
+  }
+  if (scenario === 'force-car-ram') {
+    const player = newVehicle('car4', `${run.runId}-qa-player-car`);
+    const target = entity('traffic', 'qa-peer-car', 17, 0);
+    target.speed = 5; target.baseSpeed = 5;
+    return { ...run, activeVehicleId: player.id, vehicleInstances: [player],
+      speed: vehicles.car4.cruiseSpeed, fuel: player.fuel, durability: player.durability,
+      world: { ...initialWorld(run.seed), entities: [target], nextSpecial: 1e9, nextHazard: 1e9,
+        nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9,
+        prototype: { version: 'force-car-qa-1', title: 'Thử ô tô húc ô tô',
+          description: 'Ô tô phía trước đang chạy cùng chiều. Lái thẳng để xem xe bị đẩy trượt rồi tiếp tục chạy; so cùng seed trên ver.force và ver.noforce.' } } };
   }
   if (scenario === 'traffic-gallery') {
     const entities = (Object.keys(trafficTypes) as VehicleKind[]).map((kind, i) => {

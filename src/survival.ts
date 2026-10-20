@@ -11,10 +11,11 @@ import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
 import { effectiveVehicle, newVehicle, vehicleRam, vehicles, type VehicleDefinition, type VehicleInstance } from './vehicles';
 import { splitCrashRiders } from './passenger-outcomes';
+import { canSecretEnd, guardedSecret, initialSecret, secretLanding, secretPickup, secretTrainOverlap, secretVehicle, type SecretState } from './secret';
 
 import { jumpHeight, hasBoost, hasStar, newPowers, powerBoundaries, type PowerItem, type Powers } from './items';
 
-export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage' | 'train' | 'police'; distance: number; score: number; money: number; seconds: number }
+export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage' | 'train' | 'police' | 'secret'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
   returningRiderIds: string[]; strandedRiderIds: string[] }
 export interface Run extends State {
@@ -28,6 +29,7 @@ export interface Run extends State {
   vehicleInstances: VehicleInstance[]; activeVehicleId: string; replacementProtectedUntil: number;
   grabUses: number[]; grabSequence: number; nextGrabAt: number; grabRiderIds: string[];
   shopId: string | null; economySequence: number; inventory: Array<PowerItem | null>; powers: Powers;
+  secret: SecretState;
 }
 export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initialState(),
   runId, seed, fuel: balance.fuelCapacity, durability: balance.durabilityCapacity, score: 0,
@@ -40,7 +42,7 @@ export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initia
   vehicleInstances: [newVehicle('motorcycle', `${runId}-motorcycle`)],
   activeVehicleId: `${runId}-motorcycle`, replacementProtectedUntil: 0,
   grabUses: [0, 0], grabSequence: 0, nextGrabAt: 0, grabRiderIds: [],
-  shopId: null, economySequence: 0, inventory: [null, null], powers: newPowers(),
+  shopId: null, economySequence: 0, inventory: [null, null], powers: newPowers(), secret: initialSecret(),
 });
 export const names: Record<EntityKind, string> = { wind: 'Gió ngang', water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', cargo: 'Đồ rơi đang lăn', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường', police: 'Công an', militia: 'Dân phòng', jam: 'Kẹt xe', accident: 'Tai nạn', train: 'Tàu hoả', broken: 'Xe chết máy' };
 
@@ -67,6 +69,7 @@ export function switchVehicle(run: Run, targetId?: string, automatic = false): R
   const protectedEntities = run.world.entities.filter(e => harmful(e.kind) &&
     overlapsVehicle(run.x, run.distance, e, definition)).map(e => e.id);
   return { ...run, vehicleInstances: stored, activeVehicleId: target.id,
+    secret: secretVehicle(initialSecret(), target.kind, target.id, run.riderIds.length),
     fuel: target.fuel, durability: target.durability, motion: 'powered', coastRemaining: balance.coastDistance,
     speed: Math.min(run.speed, definition.maxSpeed), recovering: true,
     replacementProtectedUntil: automatic ? run.activeSeconds + 1.5 : run.replacementProtectedUntil,
@@ -93,7 +96,8 @@ export function pickUpPassenger(run: Run): Run {
   const riderId = candidate.riderId ?? candidate.id;
   if (run.riderIds.includes(riderId)) return run;
   const world = { ...run.world, entities: run.world.entities.map(e => e.id === candidate.id ? { ...e, consumed: true } : e) };
-  return passengerEvent({ ...run, world, riderIds: [...run.riderIds, riderId],
+  const riderIds = [...run.riderIds, riderId];
+  return passengerEvent({ ...run, world, riderIds, secret: secretPickup(run.secret, run.activeVehicleId, riderIds.length),
     grabRiderIds: candidate.passengerType === 'grab' ? [...run.grabRiderIds.filter(id => id !== riderId), riderId] : run.grabRiderIds },
     'passenger', candidate.passengerType === 'grab' ? 'Đón khách Grab · +1 người' : 'Đón khách · +1 người');
 }
@@ -112,7 +116,10 @@ export function dropPassenger(run: Run): Run {
   passenger.passengerMotion = { ...passengerMotion(passenger, run.activeSeconds + balance.passengerKickSeconds),
     ejectedAt: run.activeSeconds, fromX: run.x, fromDistance: run.distance };
   passenger.x = run.x; passenger.distance = run.distance;
-  return passengerEvent({ ...run, riderIds: run.riderIds.slice(0, -1), grabRiderIds: run.grabRiderIds.filter(id => id !== riderId),
+  const remaining = run.riderIds.slice(0, -1);
+  const activeKind = run.vehicleInstances.find(v => v.id === run.activeVehicleId)?.kind ?? 'motorcycle';
+  return passengerEvent({ ...run, riderIds: remaining,
+    secret: secretVehicle(initialSecret(), activeKind, run.activeVehicleId, remaining.length), grabRiderIds: run.grabRiderIds.filter(id => id !== riderId),
     world: { ...run.world, entities: [...run.world.entities, passenger] } }, 'drop', 'Khách xuống xe · −1 người');
 }
 
@@ -224,7 +231,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   const drive = boosted ? { ...baseDrive, maxSpeed: baseDrive.maxSpeed * (boosted ? itemBalance.boostFactor : 1),
     cruiseSpeed: baseDrive.cruiseSpeed * itemBalance.boostFactor } : baseDrive;
   const driveConfig = { ...balance, minSpeed: Math.min(vehicle.minSpeed, drive.maxSpeed), cruiseSpeed: drive.cruiseSpeed,
-    maxSpeed: drive.maxSpeed, vehicleWidth: vehicle.width };
+    maxSpeed: drive.maxSpeed, vehicleWidth: vehicle.width, lateralGrip: vehicle.lateralGrip };
   const driveInput = boosted ? { ...input, accelerate: !input.brake } : input;
   const driven = before.recovering ? (() => {
     const steering = step({ ...before, speed: driveConfig.minSpeed }, driveInput, dt, driveConfig);
@@ -281,6 +288,8 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     ticks: before.ticks + 1,
     x: driven.x, lateralVelocity: driven.lateralVelocity, speed: driven.speed,
     recovering: (before.recovering || (waitingAtTrain && input.brake)) && driven.speed < drive.cruiseSpeed - 1e-8 };
+  r.secret = secretVehicle(guardedSecret(r.secret, r.activeVehicleId, r.riderIds.length),
+    vehicle.kind, r.activeVehicleId, r.riderIds.length);
   // A depleted imported/test state starts coasting immediately, never receives cruise thrust.
   if (r.fuel <= 0 && r.motion === 'powered') { r.motion = 'coasting'; r.coastRemaining = balance.coastDistance; r.speed = Math.min(before.speed, driven.speed); }
   const feedback = (kind: FeedbackKind, text: string) => {
@@ -293,7 +302,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
   const finish = (reason: RunResult['reason']) => {
     if (r.result) return;
     r.phase = 'ended'; r.speed = 0;
-    if (reason !== 'train' && r.vehicleInstances.some(v => v.id !== r.activeVehicleId && !v.disabled && v.fuel > 0 && v.durability > 0)) {
+    if (reason !== 'train' && reason !== 'secret' && r.vehicleInstances.some(v => v.id !== r.activeVehicleId && !v.disabled && v.fuel > 0 && v.durability > 0)) {
       replacementPending = true; return;
     }
     r.result = { runId: r.runId, seed: r.seed, config: r.world.prototype?.version ?? balance.version, reason,
@@ -304,6 +313,7 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     const { returning, stranded } = splitCrashRiders(r.riderIds, r.seed, r.crashNumber, balance.passengerReturnChance);
     const rng = (Math.imul(r.crashRng, 1664525) + 1013904223) >>> 0;
     r.grabRiderIds = returning.filter(id => special.has(id));
+    r.secret = initialSecret();
     r.crashRng = rng; r.crashNumber++; r.riderIds = []; r.lostPassengers += stranded.length;
     const crashX = before.x + (driven.x - before.x) * fraction;
     const side = crashX > balance.laneWidth / 2 ? -1 : crashX < -balance.laneWidth / 2 ? 1 : (rng & 1) ? 1 : -1;
@@ -344,6 +354,12 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
       (e.trafficKind === 'bus' || e.trafficKind === 'truck' || e.trafficKind === 'container') ? itemBalance.highTrafficClearance : itemBalance.lowTrafficClearance :
       harmful(e.kind) ? itemBalance.groundClearance : itemBalance.pickupClearance : Infinity;
     const airborne = sampledHeight >= height - 1e-9;
+    if (e.kind === 'train' && airborne && hasBoost(before) && !e.consumed &&
+      sweptContact(before.x - world.entities[index].x, before.distance - world.entities[index].distance,
+        driven.x - e.x, driven.distance - e.distance, (vehicle.width + e.width) / 2,
+        (vehicle.length + e.length) / 2)) {
+      r.secret = secretTrainOverlap(r.secret, e.id, e.distance, (vehicle.length + e.length) / 2);
+    }
     const contact = !airborne && !e.consumed && e.kind !== 'passenger' && e.kind !== 'shop' &&
       (e.kind !== 'traffic' || !e.wrecked) &&
       (!harmful(e.kind) || before.activeSeconds >= before.replacementProtectedUntil) &&
@@ -427,7 +443,11 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
             short ? { ...v, fuel: v.fuel * eventBalance.reserveFuelFactor } : v);
           finish('police');
         }
-      } else if (e.kind === 'accident') { r.durability = 0; feedback('accident', 'Xe hỏng · 0 HP'); finish('damage'); }
+      } else if (e.kind === 'accident') {
+        if (canSecretEnd(r.secret, r.activeVehicleId, r.riderIds.length)) {
+          feedback('accident', 'Đã về nhà!'); finish('secret');
+        } else { r.durability = 0; feedback('accident', 'Xe hỏng · 0 HP'); finish('damage'); }
+      }
       else if (e.kind === 'jam') {
         feedback('jam', 'Kẹt xe · ngã xe');
         if (!hasStar(r)) crashDriver(before.speed + (driven.speed - before.speed) * fraction);
@@ -452,6 +472,9 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
         else if (e.cargoType === 'barrel') crashDriver(before.speed + (driven.speed - before.speed) * fraction);
       }
     } else if (e.kind === 'traffic') {
+      if (canSecretEnd(r.secret, r.activeVehicleId, r.riderIds.length)) {
+        feedback('traffic', 'Đã về nhà!'); finish('secret'); continue;
+      }
       if (hasStar(r)) continue;
       const target = trafficTypes[e.trafficKind ?? 'car4'];
       const ram = vehicleRam[vehicle.kind];
@@ -474,6 +497,8 @@ function stepRunSegment(before: Run, input: Input, dt: number): Run {
     }
   }
   advance(1);
+  if (r.phase === 'running' && !r.crash) r.secret = secretLanding(r.secret, r.activeSeconds,
+    r.distance, itemBalance.jumpSeconds);
   const crossing = junction(r.seed, r.route.index);
   // Barrier sits just beyond the branch point; resolve it at its visible position.
   if (r.phase === 'running' && !r.crash && before.distance < crossing.distance + 4 && r.distance >= crossing.distance + 4) {

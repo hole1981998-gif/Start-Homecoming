@@ -3,6 +3,7 @@ import { eventBalance } from './config';
 import { itemBalance } from './config';
 import type { Run } from './survival';
 import { callGrab } from './grab';
+import { secretJump } from './secret';
 
 export type PowerItem = 'nitro' | 'star' | 'grab' | 'banana';
 export interface Powers { boostUntil: number; starUntil: number; jumpAt: number }
@@ -41,7 +42,8 @@ export function usePowerItem(run: Run, slot: number): Run {
 export function requestJump(run: Run): Run {
   if (run.phase !== 'running' || run.crash || run.result || !hasBoost(run) || run.fuel <= 0 || run.motion !== 'powered' ||
     run.activeSeconds - run.powers.jumpAt < itemBalance.jumpSeconds - 1e-9) return run;
-  return { ...run, powers: { ...run.powers, jumpAt: run.activeSeconds } };
+  return { ...run, powers: { ...run.powers, jumpAt: run.activeSeconds },
+    secret: secretJump(run.secret, run.activeSeconds, run.distance) };
 }
 /** Split a fixed tick at effect/clearance boundaries so landing and expiration cannot grant a spare tick. */
 export function powerBoundaries(run: Run, dt: number): number[] {

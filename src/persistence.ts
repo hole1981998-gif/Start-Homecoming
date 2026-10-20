@@ -1,6 +1,6 @@
 import type { RunResult } from './survival';
 import type { EntityKind } from './world';
-const resultsKey = 'dvn.results.v1', seenKey = 'dvn.cards.v1';
+const resultsKey = 'dvn.results.v1', seenKey = 'dvn.cards.v1', badgesKey = 'dvn.badges.v1';
 const kinds: EntityKind[] = ['wind', 'water', 'pothole', 'traffic', 'cargo', 'fuel', 'repair', 'passenger', 'shop', 'police', 'militia', 'jam', 'accident', 'train', 'broken'];
 function read(key: string): unknown {
   try { return JSON.parse(localStorage.getItem(key) ?? 'null') as unknown; } catch { return null; }
@@ -12,7 +12,7 @@ function validResult(value: unknown): value is RunResult {
   if (!value || typeof value !== 'object') return false;
   const r = value as RunResult;
   return typeof r.runId === 'string' && typeof r.config === 'string' && Number.isFinite(r.seed) &&
-    ['fuel', 'damage', 'train', 'police'].includes(r.reason) && [r.distance, r.score, r.money, r.seconds].every(n => Number.isFinite(n) && n >= 0);
+    ['fuel', 'damage', 'train', 'police', 'secret'].includes(r.reason) && [r.distance, r.score, r.money, r.seconds].every(n => Number.isFinite(n) && n >= 0);
 }
 export function results(): RunResult[] {
   const data = read(resultsKey);
@@ -21,8 +21,16 @@ export function results(): RunResult[] {
 export function recordResult(result: RunResult): boolean {
   if (!validResult(result)) return false;
   const saved = results();
-  if (saved.some(r => r.runId === result.runId)) return true;
-  return write(resultsKey, [...saved, result].slice(-100));
+  if (!saved.some(r => r.runId === result.runId) && !write(resultsKey, [...saved, result].slice(-100))) return false;
+  return result.reason !== 'secret' || write(badgesKey, ['home']);
+}
+export function badges(): Set<'home'> {
+  const data = read(badgesKey);
+  return new Set(Array.isArray(data) && data.includes('home') ? ['home'] : []);
+}
+/** Local only; stable tie-breaks make repeated display deterministic. */
+export function leaderboard(): RunResult[] {
+  return results().sort((a, b) => b.score - a.score || b.distance - a.distance || a.seconds - b.seconds || a.runId.localeCompare(b.runId));
 }
 export function seenCards(): Set<EntityKind> {
   const data = read(seenKey);

@@ -10,6 +10,25 @@ function twoVehicles(): Run {
     world: { ...run.world, entities: [], nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
 }
 describe('P4B vehicle instances', () => {
+  it('uses each equipped vehicle grip for lateral slide without changing forward economy', () => {
+    const coast = (kind: 'car4' | 'container') => {
+      const vehicle = newVehicle(kind, `grip-${kind}`);
+      let run: Run = { ...initialRun(17, `grip-${kind}`), phase: 'running',
+        vehicleInstances: [vehicle], activeVehicleId: vehicle.id,
+        fuel: vehicle.fuel, durability: vehicle.durability, speed: 16,
+        x: -2, lateralVelocity: 4,
+        world: { ...initialRun(17, `empty-${kind}`).world, entities: [],
+          nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9,
+          nextPassenger: 1e9, nextShopDistance: 1e9 } };
+      for (let i = 0; i < 10; i++) run = stepRun(run, noInput());
+      return run;
+    };
+    const car = coast('car4'), container = coast('container');
+    expect(container.x).toBeGreaterThan(car.x);
+    expect(container.lateralVelocity).toBeGreaterThan(car.lateralVelocity);
+    expect(car.money - 200).toBeCloseTo(car.distance * .5);
+    expect(container.money - 200).toBeCloseTo(container.distance * .5);
+  });
   it('keeps each tank, HP and upgrades on its instance while Tab changes loaded cruise and capacity', () => {
     const base = twoVehicles();
     const upgraded = { ...base, riderIds: ['rider-0', 'rider-1', 'rider-2'], fuel: 2, durability: 42,

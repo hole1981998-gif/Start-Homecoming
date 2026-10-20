@@ -248,7 +248,10 @@ export class RoadRenderer {
     const playerX = playerPose.x + Math.cos(playerPose.heading) * x;
     const playerZ = playerPose.z + Math.sin(playerPose.heading) * x;
     this.bike.position.set(playerX, jumpHeight(s), playerZ);
-    this.bike.rotation.set(0, -playerPose.heading, -s.lateralVelocity * .035, 'YXZ');
+    const lateralAcceleration = (s.lateralVelocity - previous.lateralVelocity) / balance.fixedStep;
+    const lean = THREE.MathUtils.clamp(-(s.lateralVelocity * .035 + lateralAcceleration * .012) * vehicle.leanFactor,
+      -.34, .34);
+    this.bike.rotation.set(0, -playerPose.heading, lean, 'YXZ');
     this.rider.visible = !s.crash && open; this.helmet.visible = !s.crash && open;
     this.windowPassengers.forEach((person, i) => {
       person.visible = !s.crash && !open && i < s.riderIds.length;

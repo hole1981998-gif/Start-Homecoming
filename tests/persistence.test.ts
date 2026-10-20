@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { expect, it } from 'vitest';
-import { recordResult, results, saveSeen, seenCards, showFlavor, saveFlavor } from '../src/persistence';
+import { badges, leaderboard, recordResult, results, saveSeen, seenCards, showFlavor, saveFlavor } from '../src/persistence';
 import type { RunResult } from '../src/survival';
 it('validates corrupt saves and records a terminal run once by runId', () => {
   localStorage.clear(); localStorage.setItem('dvn.results.v1', '{broken');
@@ -11,4 +11,21 @@ it('validates corrupt saves and records a terminal run once by runId', () => {
   localStorage.setItem('dvn.cards.v1', '["water","unknown",null,123]'); expect([...seenCards()]).toEqual(['water']);
   saveSeen(new Set(['fuel', 'repair', 'wind'])); expect([...seenCards()]).toEqual(['fuel', 'repair', 'wind']);
   expect(showFlavor()).toBe(true); saveFlavor(false); expect(showFlavor()).toBe(false);
+});
+
+it('saves the home badge and one local leaderboard entry for a secret terminal result', () => {
+  localStorage.clear();
+  const base: RunResult = { runId: 'ordinary', seed: 17, config: 'p7-secret-1', reason: 'train',
+    distance: 200, score: 200, money: 0, seconds: 20 };
+  expect(recordResult(base)).toBe(true);
+  const secret: RunResult = { ...base, runId: 'home-run', reason: 'secret', distance: 300, score: 300 };
+  expect(recordResult(secret)).toBe(true);
+  expect(recordResult(secret)).toBe(true);
+  expect(results()).toHaveLength(2);
+  expect(leaderboard().map(result => result.runId)).toEqual(['home-run', 'ordinary']);
+  expect([...badges()]).toEqual(['home']);
+  localStorage.setItem('dvn.badges.v1', '{bad');
+  expect([...badges()]).toEqual([]);
+  expect(recordResult(secret)).toBe(true);
+  expect([...badges()]).toEqual(['home']);
 });

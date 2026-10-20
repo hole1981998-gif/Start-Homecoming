@@ -3,7 +3,7 @@ import { balance, shopBalance } from './config';
 import { FixedClock, noInput } from './simulation';
 import { activeVehicle, dropPassenger, initialRun, names, passengerDrive, pickUpPassenger, selectTurn, stepRun, switchVehicle } from './survival';
 import { canChoose, junction } from './route';
-import { recordResult, saveSeen, seenCards, showFlavor, saveFlavor } from './persistence';
+import { leaderboard, recordResult, saveSeen, seenCards, showFlavor, saveFlavor } from './persistence';
 import { RoadRenderer } from './render';
 import { warningDistance, type EntityKind } from './world';
 import { developmentScenario } from './development';
@@ -13,7 +13,12 @@ import { vehicles } from './vehicles';
 import { enterShop, leaveShop, transact } from './shop';
 import { hasBoost, hasStar, itemNames, requestJump, usePowerItem } from './items';
 import { ShopView } from './shop-view';
+import type { ForceIntegration } from './force-integration';
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } });
+
+const version = location.pathname.endsWith('/ver.force.html') ? 'force' : 'noforce';
+const ForceIntegrationCtor = version === 'force' ? (await import('./force-integration')).ForceIntegration : null;
+let force: ForceIntegration | null = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
 
 const el = <T extends Element = HTMLElement>(id: string): T => {
   const node = document.getElementById(id); if (!node) throw new Error(`Missing UI: ${id}`); return node as unknown as T;
@@ -21,6 +26,18 @@ const el = <T extends Element = HTMLElement>(id: string): T => {
 const text = (id: string, value: string) => { const node = el(id); if (node.textContent !== value) node.textContent = value; };
 const canvas = el<HTMLCanvasElement>('scene'), modal = el('modal');
 const play = el<HTMLButtonElement>('play'), pause = el<HTMLButtonElement>('pause'), restart = el<HTMLButtonElement>('restart');
+const versionLink = document.createElement('a');
+versionLink.className = 'version-link';
+versionLink.textContent = version === 'force' ? 'Chuyển sang ver.noforce' : 'Chuyển sang ver.force';
+versionLink.href = `${version === 'force' ? '/ver.noforce.html' : '/ver.force.html'}${location.search}`;
+el('game').append(versionLink);
+const modalVersionLink = versionLink.cloneNode(true) as HTMLAnchorElement;
+modalVersionLink.className = 'modal-version-link';
+el('modal-title').after(modalVersionLink);
+const versionBadge = document.createElement('span');
+versionBadge.className = 'version-badge';
+versionBadge.textContent = `ver.${version}`;
+el('game').append(versionBadge);
 const testHome = document.createElement('a'); testHome.href = '/p61.html';
 testHome.textContent = '← Bộ tình huống P6.1'; testHome.hidden = true; modal.append(testHome);
 const closeHelp = el<HTMLButtonElement>('close-help');
@@ -64,12 +81,16 @@ catch (error) { el('error').hidden = false; modal.hidden = true; throw error; }
 function clearInput(): void { input = noInput(); clock.reset(); previous = state; }
 function show(view: Exclude<Screen, null>, title: string, description: string): void {
   screen = view; modal.hidden = false; clearInput();
+  versionLink.hidden = true;
+  modalVersionLink.hidden = view === 'help' || view === 'card';
   testHome.hidden = !state.world.prototype;
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('p63-') ? 'P6.3 · THỬ ĐỒ RƠI' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P6.3 · BẢN CHƠI TÍCH HỢP');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('force-npc-') ? `ver.${version} · THỬ VA CHẠM NPC` : state.world.prototype.version.startsWith('force-car-') ? `ver.${version} · THỬ VA CHẠM XE` : state.world.prototype.version.startsWith('handling-') ? 'THỬ ĐỘ BÁM VÀ QUÁN TÍNH' : state.world.prototype.version.startsWith('p7-') ? 'P7 · THỬ KẾT VÁN' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · THỬ ĐỒ RƠI' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P7 · BẢN CHƠI TÍCH HỢP');
   el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
+  el('result-badge').hidden = view !== 'result' || state.result?.reason !== 'secret';
+  el('leaderboard').hidden = view !== 'result';
   play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
   el('panel-help').hidden = !['pause', 'result'].includes(view);
   el('panel-restart').hidden = view !== 'pause';
@@ -84,25 +105,36 @@ function pauseRun(): void {
 }
 function resume(): void {
   if (document.hidden || state.phase === 'ended') return;
-  state = { ...leaveShop(state), phase: 'running' }; screen = null; modal.hidden = true; clearInput(); canvas.focus({ preventScroll: true });
+  state = { ...leaveShop(state), phase: 'running' }; screen = null; modal.hidden = true;
+  versionLink.hidden = false; clearInput(); canvas.focus({ preventScroll: true });
 }
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
+  force = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
   state = newRun(); previous = state;
   if (state.world.prototype) {
-    document.title = (state.world.prototype.version.startsWith('p63-') ? 'P6.3 · ' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · ' : 'P6.1 · ') + state.world.prototype.title;
+    document.title = (state.world.prototype.version.startsWith('force-') ? `ver.${version} · ` : state.world.prototype.version.startsWith('handling-') ? '' : state.world.prototype.version.startsWith('p7-') ? 'P7 · ' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · ' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · ' : 'P6.1 · ') + state.world.prototype.title;
     show('start', state.world.prototype.title, state.world.prototype.description + ' W/S điều tốc, A/D lái, 1/2 dùng vật phẩm, Space nhảy khi nitro bật; Esc tạm dừng. Vật phẩm và xe dự phòng mẫu không dùng để đánh giá economy.');
     el('instructions').hidden = true;
     return;
   }
-  show('start', 'Đường về nhà', `Gió đẩy ngang cả xe chướng ngại: nhìn mũi tên và dùng A/D bù lực. Xe tải/container cùng chiều có thể thả đồ từ phía sau; né kiện hoặc thùng đang lăn. Nước vẫn hao xăng nhưng chưa đẩy ngang. R ghé cửa hàng ven đường để mua xe, tiếp tế, nâng cấp và vật phẩm. Phím 1/2 dùng nitro, star, chuối hoặc Grab; Space nhảy khi nitro đang bật. Tab đổi xe; F/G đón hoặc cho khách xuống. W/S điều tốc, A/D lái, Q/E rẽ.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
+  document.title = `ver.${version} · Đường Về Nhà`;
+  show('start', 'Đường về nhà', `ver.${version}: ${version === 'force' ? 'Cannon thêm phản lực cho xe, NPC và đồ rơi.' : 'Va chạm dùng luật arcade hiện tại.'} Hai bản dùng cùng gameplay; chọn cùng seed để so sánh. W/S điều tốc, A/D lái, Q/E rẽ, F/G tương tác khách.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
+  if (savedRunId !== state.runId && recordResult(result)) savedRunId = state.runId;
   text('result-distance', `${Math.floor(result.distance)} m`); text('result-score', `${Math.floor(result.score)}`);
   text('result-money', formatter.format(result.money)); text('result-time', `${Math.floor(result.seconds / 60)}:${String(Math.floor(result.seconds % 60)).padStart(2, '0')}`);
-  show('result', result.reason === 'train' ? 'Va chạm tàu hoả' : result.reason === 'police' ? 'Xe bị tịch thu' : result.reason === 'fuel' ? 'Hết xăng, hết đà' : 'Xe không chạy tiếp được',
-    result.reason === 'train' ? 'Tàu luôn kết thúc ván khi va chạm. Giữ S chờ mở đường hoặc nhảy bằng nitro + Space.' : result.reason === 'police' ? 'Không còn xe dự phòng hợp lệ. Dùng chuối trong cửa sổ cảnh báo ở lượt sau.' : result.reason === 'fuel' ? `Xe đã trôi thêm đủ ${balance.coastDistance} m sau khi hết xăng. Lượt sau hãy tìm bình xăng ven đường.` : 'Độ bền đã về 0 sau va chạm. Lượt sau hãy đọc cảnh báo và chừa thời gian đổi hướng.');
+  show('result', result.reason === 'secret' ? 'Đã về nhà!' : result.reason === 'train' ? 'Va chạm tàu hoả' : result.reason === 'police' ? 'Xe bị tịch thu' : result.reason === 'fuel' ? 'Hết xăng, hết đà' : 'Xe không chạy tiếp được',
+    result.reason === 'secret' ? 'Bạn đã hoàn tất chuỗi bí mật và nhận huy hiệu Đã về nhà.' :
+      result.reason === 'train' ? 'Tàu luôn kết thúc ván khi va chạm. Giữ S chờ mở đường hoặc nhảy bằng nitro + Space.' : result.reason === 'police' ? 'Không còn xe dự phòng hợp lệ. Dùng chuối trong cửa sổ cảnh báo ở lượt sau.' : result.reason === 'fuel' ? `Xe đã trôi thêm đủ ${balance.coastDistance} m sau khi hết xăng. Lượt sau hãy tìm bình xăng ven đường.` : 'Độ bền đã về 0 sau va chạm. Lượt sau hãy đọc cảnh báo và chừa thời gian đổi hướng.');
+  const list = el<HTMLOListElement>('leaderboard-list'); list.replaceChildren();
+  for (const [index, entry] of leaderboard().slice(0, 5).entries()) {
+    const row = document.createElement('li');
+    row.textContent = `${index + 1}. ${Math.floor(entry.score)} điểm · ${Math.floor(entry.distance)} m${entry.reason === 'secret' ? ' · ⌂' : ''}`;
+    list.append(row);
+  }
 }
 function openHelp(): void {
   if (state.shopId) state = leaveShop(state);
@@ -241,9 +273,8 @@ const diagnostics = new URLSearchParams(location.search).has('diagnostics');
 const frameTimes: number[] = [], renderTimes: number[] = []; let measuredFrames = 0;
 function frame(now: number): void {
   const elapsed = (now - last) / 1000; last = now; const start = performance.now();
-  const alpha = state.phase === 'running' ? clock.advance(elapsed, () => { previous = state; state = stepRun(state, input); }) : 1;
+  const alpha = state.phase === 'running' ? clock.advance(elapsed, () => { previous = state; state = force ? force.step(state, input) : stepRun(state, input); }) : 1;
   if (state.phase === 'ended' && screen !== 'result' && screen !== 'help') {
-    if (state.result && savedRunId !== state.runId) { recordResult(state.result); savedRunId = state.runId; }
     resultView();
   } else discover();
   graphics.draw(state, previous, state.phase === 'running' ? alpha : 1);
@@ -258,6 +289,7 @@ function frame(now: number): void {
     }
   }
   updateHud(); animation = requestAnimationFrame(frame);
+  canvas.dataset.forceContacts = `${force?.contactPairs ?? 0}`;
 }
 reset(); updateHud(); animation = requestAnimationFrame(frame);
 if (import.meta.hot) import.meta.hot.dispose(() => { cancelAnimationFrame(animation); listeners.abort(); clearTimeout(cardTimer); graphics.dispose(); });

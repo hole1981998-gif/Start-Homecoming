@@ -190,3 +190,21 @@ Sáu ca DEV tại `/p61.html#cargo` thử xe tải/container cùng chiều làm 
 ## P6.3 — cập nhật tích hợp sau duyệt
 
 Chủ dự án đã duyệt ca thử và yêu cầu tích hợp ngày 18/10/2026. Bản chơi thường nay có gió P6.2 và đồ rơi P6.3 bên cạnh toàn bộ P6.1; bản stress tham chiếu giữ nguyên lịch riêng. Duy trì nước không có lực ngang và chưa tạo trường hợp gió chồng nước/ổ gà/vật cố định. Bước kế tiếp vẫn là P7 rồi P8 tuning độ khó/economy trước UI/art P9 và âm/VFX cuối P10. Xem [P63_INTEGRATED_HAZARDS_REVIEW.md](P63_INTEGRATED_HAZARDS_REVIEW.md).
+
+**P7 bản thử ngày 19/10/2026:** đã nối chuỗi kết ván bí mật bốn bước với thực thể tàu/tai nạn thật, huy hiệu và bảng điểm lưu trên máy. Ca DEV `?scenario=p7-secret&seed=17` bắt đầu sau hai bước mua ô tô 4 chỗ rỗng và đón đủ ba khách, đặt tàu ngang và tai nạn sát nhau để thử ngay: bấm `1`, rồi `Space`. Trong ván thường người chơi vẫn phải tự thực hiện đủ bốn bước. Xem [PROTOTYPE_7_REVIEW.md](PROTOTYPE_7_REVIEW.md). Chưa khóa cân bằng mật độ chướng ngại; P8 xử lý sau feedback.
+
+**P7 sửa điều kiện secret theo chủ dự án:** trang bị ô tô 4 chỗ mua mới hoặc xe dự phòng, làm rỗng khách cũ rồi đón mới đủ ba khách; nhảy qua tàu, sau đó va xe chướng ngại **hoặc** tai nạn, không cần liên tục. `?scenario=p7-secret&seed=17` thử nhánh tai nạn; `?scenario=p7-secret-traffic&seed=17` thử nhánh xe chướng ngại. Quy tắc mới trong GAME_DESIGN.md thay phần mô tả P7 lịch sử ở trên.
+
+**Bổ sung thử vật lý lái sau P7:** quán tính ngang và nghiêng theo lái cho mọi xe người chơi, grip riêng từng loại, tốc độ cao trượt xa hơn; có fixture đường trống `?scenario=handling-<vehicleKind>&seed=17`. Các hệ số vẫn TẠM; P8 đo ảnh hưởng lên né hazard, mép đường, độ khó và economy trước art P9. Xem [HANDLING_PHYSICS_REVIEW.md](HANDLING_PHYSICS_REVIEW.md).
+
+**Sân thử va chạm arcade × engine, chưa tích hợp ván chính:** `physics.html?case=mixed&seed=17` và bốn ca xe–xe, xe–NPC, thùng rơi, chuỗi xe. Mục tiêu lấy feedback cảm giác phản lực/đọc hình trước khi quyết định scope tích hợp vào gameplay; không đổi kết ván, traffic damage, khách hoặc economy chính trong lượt thử này. Xem [PHYSICS_COLLISION_SANDBOX_REVIEW.md](PHYSICS_COLLISION_SANDBOX_REVIEW.md).
+
+## Bản đối chiếu lực va chạm (19/10/2026)
+
+Hai URL thử `ver.force.html` và `ver.noforce.html` chạy cùng gameplay P7 và seed; bản force thêm Cannon phản lực sau bước luật arcade, bản noforce giữ nguyên. Đây là nhánh thử A/B song song trước quyết định tích hợp vào build chính. Đánh giá cảm giác lái, phản ứng xe/NPC/thùng, nguy cơ kẹt hoặc va chạm lặp, FPS và các bất biến tàu/secret/crash trước khi chọn luật lực cuối. Xem `PHYSICS_FORCE_AB_REVIEW.md`.
+
+**Điều chỉnh NPC trong bản thử force:** xe húc NPC làm NPC bay/ngã/đứng dậy, không bị NPC chặn cứng; NPC do người chơi tông từ chối lên xe vĩnh viễn. So `?scenario=force-npc-hit&seed=17` trên hai bản, kiểm tra thêm nhiều xe/tốc độ và gameplay thường trước khi đưa vào bản mặc định. Các hệ số phản ứng vẫn TẠM.
+
+**Điều chỉnh sức nặng traffic trong `ver.force`:** thử tại `?scenario=traffic-ram&seed=17`; traffic nặng gấp đôi trong solver, một cú húc phá gây chậm xe lớn và chỉ đẩy xác một đoạn ngắn, sau đó xe lớn tiếp tục đi. Kiểm tra thêm xe máy/ô tô và xe đang chạy cùng/ngược chiều trước khi chốt hệ số ở P8. Không đưa thay đổi này vào `ver.noforce`.
+
+**Lượt chỉnh tiếp theo:** `ver.force` bổ sung động lượng trượt sau húc: xe hỏng trôi rồi dừng, xe còn HP trượt rồi tiếp tục chạy theo tốc độ nền. Ca mới `?scenario=force-car-ram&seed=17` cho ô tô 4 chỗ đuổi ô tô cùng chiều, cạnh ca buýt `traffic-ram`. Tại P8 vẫn cần thử nhiều loại xe/tốc độ và nguy cơ va chạm dây chuyền trước khi chốt lực; bản `ver.noforce` không đổi.
