@@ -1,5 +1,7 @@
 # Đường Về Nhà — Technical Specification
 
+> **Quyết định 20/10/2026:** `/` và `/index.html` chạy `ForceIntegration.step` như `ver.force.html`; chỉ `ver.noforce.html` giữ `stepRun` nguyên bản làm backup. Quy tắc event/HP/secret vẫn do simulation arcade xử lý một lần; Cannon bổ sung phản lực và vị trí. Đoạn mô tả “chưa thay index.html” bên dưới là lịch sử thử nghiệm.
+
 > **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.
 
 ## Ràng buộc

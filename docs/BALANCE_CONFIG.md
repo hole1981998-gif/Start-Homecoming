@@ -1,5 +1,7 @@
 # Đường Về Nhà — Balance Config
 
+> **Quyết định 20/10/2026:** các thông số lực thử ở `ver.force` nay cũng áp dụng cho bản chính `/`; `ver.noforce.html` giữ nguyên làm backup. Đây vẫn là số TẠM, chưa khóa cân bằng; không tự đổi fuel, HP, giá hay thu nhập trong lượt tích hợp.
+
 > **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.
 
 ## Quy ước

@@ -1,5 +1,7 @@
 # Đường Về Nhà — Game Design
 
+> **Quyết định 20/10/2026:** bản chơi chính tại `/` dùng luật lực của `ver.force`, bao gồm phản lực va chạm NPC/traffic/đồ rơi và điều khiển xe lớn. `ver.noforce.html` giữ nguyên làm backup. Các hệ số lực, sát thương và economy vẫn TẠM; các đoạn ghi “bản thử riêng” phía dưới là lịch sử trước quyết định này.
+
 > **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.
 
 ## Trạng thái và nguồn quyết định

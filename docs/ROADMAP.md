@@ -1,5 +1,7 @@
 # Đường Về Nhà — Roadmap
 
+> **Quyết định 20/10/2026:** đưa luật lực từ `ver.force` vào bản chính `/`; `ver.noforce.html` là backup, không chỉnh nếu chủ dự án không yêu cầu. Hệ số lực và sát thương vẫn TẠM. P8 cần kiểm tra thêm nhiều seed/tốc độ/xe, giao lộ, sát mép đường, camera, hiệu năng và economy trước khi khóa cân bằng.
+
 > **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.
 
 Roadmap là kế hoạch đề xuất, không phải báo cáo đã triển khai. Không có mốc thời gian cam kết. Mỗi feature dùng một branch và PR riêng theo AGENTS.md; milestone có thể gồm nhiều PR nhỏ. Tất cả số trong BALANCE_CONFIG.md cần playtest.

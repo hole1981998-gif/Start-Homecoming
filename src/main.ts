@@ -14,9 +14,11 @@ import { enterShop, leaveShop, transact } from './shop';
 import { hasBoost, hasStar, itemNames, requestJump, usePowerItem } from './items';
 import { ShopView } from './shop-view';
 import type { ForceIntegration } from './force-integration';
+import { runtimeMode } from './runtime-mode';
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } });
 
-const version = location.pathname.endsWith('/ver.force.html') ? 'force' : 'noforce';
+const version = runtimeMode(location.pathname);
+const isMainGame = version === 'force' && !location.pathname.endsWith('/ver.force.html');
 const ForceIntegrationCtor = version === 'force' ? (await import('./force-integration')).ForceIntegration : null;
 let force: ForceIntegration | null = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
 
@@ -28,7 +30,7 @@ const canvas = el<HTMLCanvasElement>('scene'), modal = el('modal');
 const play = el<HTMLButtonElement>('play'), pause = el<HTMLButtonElement>('pause'), restart = el<HTMLButtonElement>('restart');
 const versionLink = document.createElement('a');
 versionLink.className = 'version-link';
-versionLink.textContent = version === 'force' ? 'Chuyển sang ver.noforce' : 'Chuyển sang ver.force';
+versionLink.textContent = isMainGame ? 'Mở bản backup ver.noforce' : version === 'force' ? 'Chuyển sang ver.noforce' : 'Chuyển sang ver.force';
 versionLink.href = `${version === 'force' ? '/ver.noforce.html' : '/ver.force.html'}${location.search}`;
 el('game').append(versionLink);
 const modalVersionLink = versionLink.cloneNode(true) as HTMLAnchorElement;
@@ -36,7 +38,7 @@ modalVersionLink.className = 'modal-version-link';
 el('modal-title').after(modalVersionLink);
 const versionBadge = document.createElement('span');
 versionBadge.className = 'version-badge';
-versionBadge.textContent = `ver.${version}`;
+versionBadge.textContent = isMainGame ? 'BẢN CHÍNH' : `ver.${version}`;
 el('game').append(versionBadge);
 const testHome = document.createElement('a'); testHome.href = '/p61.html';
 testHome.textContent = '← Bộ tình huống P6.1'; testHome.hidden = true; modal.append(testHome);
@@ -121,8 +123,8 @@ function reset(): void {
     el('instructions').hidden = true;
     return;
   }
-  document.title = `ver.${version} · Đường Về Nhà`;
-  show('start', 'Đường về nhà', `ver.${version}: ${version === 'force' ? 'Cannon thêm phản lực cho xe, NPC và đồ rơi.' : 'Va chạm dùng luật arcade hiện tại.'} Hai bản dùng cùng gameplay; chọn cùng seed để so sánh. W/S điều tốc, A/D lái, Q/E rẽ, F/G tương tác khách.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
+  document.title = isMainGame ? 'Đường Về Nhà' : `ver.${version} · Đường Về Nhà`;
+  show('start', 'Đường về nhà', `${isMainGame ? 'Bản tích hợp dùng phản lực cho xe, NPC và đồ rơi.' : `ver.${version}: ${version === 'force' ? 'Cannon thêm phản lực cho xe, NPC và đồ rơi.' : 'Va chạm dùng luật arcade hiện tại.'} Hai bản dùng cùng gameplay; chọn cùng seed để so sánh.`} W/S điều tốc, A/D lái, Q/E rẽ, F/G tương tác khách.${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
