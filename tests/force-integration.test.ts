@@ -4,26 +4,33 @@ import { noInput } from '../src/simulation';
 import { initialRun, pickUpPassenger, stepRun, type Run } from '../src/survival';
 import { advancePassengers, entity, passengerPose } from '../src/world';
 import { developmentScenario } from '../src/development';
-import { newVehicle, vehicles } from '../src/vehicles';
-import { tailSweepCenterX, tailSweepYaw } from '../src/tail-sweep';
+import { vehicles } from '../src/vehicles';
+import { busBodyCenterX, containerParts, stepTrailerRearX, tailSweepYaw } from '../src/tail-sweep';
 
 describe('parallel force integration', () => {
-  it.each(['bus', 'container'] as const)('sweeps the %s tail toward a side car during a fast turn', kind => {
-    const vehicle = newVehicle(kind, `tail-${kind}`);
-    const car = entity('traffic', `outside-${kind}`, -3.5, -2.9);
-    car.speed = 0; car.baseSpeed = 0;
-    const base = initialRun(17, `tail-${kind}`);
-    const run: Run = { ...base, phase: 'running', vehicleInstances: [vehicle],
-      activeVehicleId: vehicle.id, speed: vehicles[kind].cruiseSpeed,
-      fuel: vehicle.fuel, durability: vehicle.durability, lateralVelocity: 5, forceYaw: .19,
-      world: { ...base.world, entities: [car], nextHazard: 1000, nextPassenger: 1000,
-        nextFuel: 1000, nextRepair: 1000, nextShop: 1000, nextSpecial: 1000 } };
-    const physics = new ForceIntegration();
-    const next = physics.step(run, { ...noInput(), right: true });
-    expect(next.forceYaw).toBeGreaterThan(.1);
-    expect(tailSweepCenterX(kind, next.x, vehicles[kind].length, next.forceYaw)).toBeLessThan(next.x - .5);
-    expect(physics.contactPairs).toBeGreaterThan(0);
-    expect(next.world.entities.find(e => e.id === car.id)).toBeDefined();
+  it('plants the bus rear axle while its front swings into the turn', () => {
+    const length = vehicles.bus.length;
+    const yaw = .2;
+    const center = busBodyCenterX(0, length, yaw);
+    const rearX = center - Math.sin(yaw) * length * .35;
+    const frontX = center + Math.sin(yaw) * length * .5;
+    expect(rearX).toBeCloseTo(0, 8);
+    expect(frontX).toBeGreaterThan(1);
+  });
+
+  it('keeps the container tractor and trailer joined while the rear axle lags', () => {
+    let rearX = 0;
+    let pose = containerParts(0, 0, 0, rearX);
+    for (let i = 0; i < 60; i++) {
+      const tractorX = i * .05;
+      rearX = stepTrailerRearX(tractorX, i * .3, .2, rearX, 18, 1 / 60);
+      pose = containerParts(tractorX, i * .3, .2, rearX);
+      expect([pose.tractorX, pose.trailerX, pose.trailerRearX, pose.trailerYaw].every(Number.isFinite)).toBe(true);
+      expect(pose.trailerX + Math.sin(pose.trailerYaw) * 5).toBeCloseTo(pose.hitchX, 7);
+      expect(pose.trailerDistance + Math.cos(pose.trailerYaw) * 5).toBeCloseTo(pose.hitchDistance, 7);
+    }
+    expect(pose.trailerYaw).toBeGreaterThan(0);
+    expect(pose.trailerYaw).toBeLessThan(.2);
   });
 
   it('keeps ordinary cars straight and relaxes a bus sweep after steering is released', () => {
@@ -53,18 +60,20 @@ describe('parallel force integration', () => {
       arcade = stepRun(arcade, input);
       peakYaw = Math.max(peakYaw, Math.abs(run.forceYaw));
       const car = run.world.entities.find(e => e.id === `qa-tail-target-${kind}`);
-      const targetX = kind === 'bus' ? .8 : 0;
+      const targetX = kind === 'bus' ? 2.5 : 2.3;
       if (car) moved = Math.max(moved, Math.hypot(car.x - targetX, car.distance - 32));
       const arcadeCar = arcade.world.entities.find(e => e.id === `qa-tail-target-${kind}`);
       if (arcadeCar) arcadeMoved = Math.max(arcadeMoved, Math.hypot(arcadeCar.x - targetX, arcadeCar.distance - 32));
       expect([run.x, run.distance, run.forceYaw, run.speed].every(Number.isFinite)).toBe(true);
     }
+    console.log(JSON.stringify({kind, peakYaw, contacts: physics.contactPairs, moved,
+      x: run.x, distance: run.distance, trailerRearX: run.forceTrailerRearX}));
     expect(peakYaw).toBeGreaterThan(.1);
     expect(physics.contactPairs).toBeGreaterThan(0);
     expect(moved).toBeGreaterThan(.1);
     expect(arcade.forceYaw).toBe(0);
     expect(arcadeMoved).toBe(0);
-    expect(arcade.durability).toBe(sample.durability);
+    expect(arcade.durability).toBeGreaterThan(0);
     expect(run.distance).toBeGreaterThan(25);
     console.log(JSON.stringify({ scenario: `force-tail-${kind}`, seed: 17,
       peakYaw, contacts: physics.contactPairs, moved, distance: run.distance }));

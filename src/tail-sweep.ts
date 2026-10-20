@@ -17,8 +17,37 @@ export function tailSweepYaw(kind: VehicleKind, previous: number, lateralVelocit
   return previous + delta;
 }
 
-/** The logical x is near the front axle; turning moves the long body's centre away from it. */
-export function tailSweepCenterX(kind: VehicleKind, frontX: number, length: number, yaw: number): number {
-  const tune = kind === 'bus' || kind === 'container' ? forceTailSweep[kind] : null;
-  return tune ? frontX - Math.sin(yaw) * length * tune.pivotFraction : frontX;
+/** The bus's logical x is near its powered rear axle, which stays comparatively planted. */
+export function busBodyCenterX(rearAxleX: number, length: number, yaw: number): number {
+  return rearAxleX + Math.sin(yaw) * length * forceTailSweep.bus.rearAxleToCenter;
+}
+
+export interface ContainerParts {
+  tractorX: number; tractorDistance: number; tractorYaw: number;
+  hitchX: number; hitchDistance: number;
+  trailerX: number; trailerDistance: number; trailerYaw: number; trailerRearX: number;
+}
+
+/** A front tractor and a separate trailer meet at one hitch; only player vehicles use this pose. */
+export function containerParts(tractorX: number, distance: number, tractorYaw: number,
+  trailerRearX: number): ContainerParts {
+  const tractorDistance = distance + forceTailSweep.trailerLength / 2;
+  const hitchX = tractorX - Math.sin(tractorYaw) * forceTailSweep.tractorLength / 2;
+  const hitchDistance = tractorDistance - Math.cos(tractorYaw) * forceTailSweep.tractorLength / 2;
+  const maxOffset = forceTailSweep.trailerLength * Math.sin(forceTailSweep.trailerMaxYaw);
+  const offset = Math.max(-maxOffset, Math.min(maxOffset, hitchX - trailerRearX));
+  const trailerYaw = Math.asin(offset / forceTailSweep.trailerLength);
+  return { tractorX, tractorDistance, tractorYaw, hitchX, hitchDistance,
+    trailerX: (hitchX + trailerRearX) / 2,
+    trailerDistance: hitchDistance - Math.cos(trailerYaw) * forceTailSweep.trailerLength / 2,
+    trailerYaw, trailerRearX };
+}
+
+/** Rear axle follows the hitch at a speed-limited rate, creating visible off-tracking. */
+export function stepTrailerRearX(tractorX: number, distance: number, tractorYaw: number,
+  previousRearX: number, speed: number, dt: number): number {
+  const pose = containerParts(tractorX, distance, tractorYaw, previousRearX);
+  const next = previousRearX + speed * Math.sin(pose.trailerYaw) * forceTailSweep.trailerFollow * dt;
+  const maxOffset = forceTailSweep.trailerLength * Math.sin(forceTailSweep.trailerMaxYaw);
+  return Math.max(pose.hitchX - maxOffset, Math.min(pose.hitchX + maxOffset, next));
 }

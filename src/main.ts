@@ -75,7 +75,7 @@ function openShop(): void {
   text('shop-status', 'Chọn danh mục. Esc hoặc Tiếp tục lái để rời cửa hàng.'); shopView.render();
 }
 let graphics: RoadRenderer;
-try { graphics = new RoadRenderer(canvas, el('game')); }
+try { graphics = new RoadRenderer(canvas, el('game'), version === 'force'); }
 catch (error) { el('error').hidden = false; modal.hidden = true; throw error; }
 
 function clearInput(): void { input = noInput(); clock.reset(); previous = state; }
@@ -85,7 +85,7 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   modalVersionLink.hidden = view === 'help' || view === 'card';
   testHome.hidden = !state.world.prototype || state.world.prototype.version.startsWith('force-');
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('force-tail-') ? `ver.${version} · THỬ QUÉT ĐUÔI XE LỚN` : state.world.prototype.version.startsWith('force-npc-') ? `ver.${version} · THỬ VA CHẠM NPC` : state.world.prototype.version.startsWith('force-car-') ? `ver.${version} · THỬ VA CHẠM XE` : state.world.prototype.version.startsWith('handling-') ? 'THỬ ĐỘ BÁM VÀ QUÁN TÍNH' : state.world.prototype.version.startsWith('p7-') ? 'P7 · THỬ KẾT VÁN' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · THỬ ĐỒ RƠI' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P7 · BẢN CHƠI TÍCH HỢP');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('force-tail-') ? `ver.${version} · THỬ ĐIỀU KHIỂN XE LỚN` : state.world.prototype.version.startsWith('force-npc-') ? `ver.${version} · THỬ VA CHẠM NPC` : state.world.prototype.version.startsWith('force-car-') ? `ver.${version} · THỬ VA CHẠM XE` : state.world.prototype.version.startsWith('handling-') ? 'THỬ ĐỘ BÁM VÀ QUÁN TÍNH' : state.world.prototype.version.startsWith('p7-') ? 'P7 · THỬ KẾT VÁN' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · THỬ ĐỒ RƠI' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P7 · BẢN CHƠI TÍCH HỢP');
   el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
@@ -114,7 +114,10 @@ function reset(): void {
   state = newRun(); previous = state;
   if (state.world.prototype) {
     document.title = (state.world.prototype.version.startsWith('force-') ? `ver.${version} · ` : state.world.prototype.version.startsWith('handling-') ? '' : state.world.prototype.version.startsWith('p7-') ? 'P7 · ' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · ' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · ' : 'P6.1 · ') + state.world.prototype.title;
-    show('start', state.world.prototype.title, state.world.prototype.description + ' W/S điều tốc, A/D lái, 1/2 dùng vật phẩm, Space nhảy khi nitro bật; Esc tạm dừng. Vật phẩm và xe dự phòng mẫu không dùng để đánh giá economy.');
+    const description = version === 'noforce' && state.world.prototype.version.startsWith('force-tail-') ?
+      'Bản đối chiếu: xe giữ thân một khối, không có trục sau/khớp nối riêng. Giữ D để so cùng tình huống với ver.force.' :
+      state.world.prototype.description;
+    show('start', state.world.prototype.title, description + ' W/S điều tốc, A/D lái, 1/2 dùng vật phẩm, Space nhảy khi nitro bật; Esc tạm dừng. Vật phẩm và xe dự phòng mẫu không dùng để đánh giá economy.');
     el('instructions').hidden = true;
     return;
   }

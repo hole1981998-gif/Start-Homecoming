@@ -57,8 +57,9 @@ validateConfig(balance);
 
 /** Force-only large-vehicle tail sweep trial. Angles rad, response rad/s, speeds m/s. */
 export const forceTailSweep = Object.freeze({
-  bus: { gain: .68, maxYaw: .22, response: 1.05, pivotFraction: .38 },
-  container: { gain: .82, maxYaw: .27, response: .78, pivotFraction: .40 },
+  bus: { gain: .68, maxYaw: .22, response: 1.05, rearAxleToCenter: .35 },
+  container: { gain: .82, maxYaw: .27, response: .78 },
+  tractorLength: 5, trailerLength: 10, trailerMaxYaw: .38, trailerFollow: .88,
   steeringLateral: 5, lowSpeed: 5, fullSpeed: 15,
 });
 for (const value of Object.values(forceTailSweep).flatMap(entry =>
@@ -67,7 +68,9 @@ for (const value of Object.values(forceTailSweep).flatMap(entry =>
 }
 if (forceTailSweep.lowSpeed >= forceTailSweep.fullSpeed ||
     forceTailSweep.bus.maxYaw >= .5 || forceTailSweep.container.maxYaw >= .5 ||
-    forceTailSweep.bus.pivotFraction >= .5 || forceTailSweep.container.pivotFraction >= .5)
+    forceTailSweep.bus.rearAxleToCenter >= .5 ||
+    forceTailSweep.tractorLength + forceTailSweep.trailerLength !== 15 ||
+    forceTailSweep.trailerMaxYaw >= .6 || forceTailSweep.trailerFollow > 1)
   throw new Error('Invalid force tail sweep bounds');
 
 /** P5 trial prices/effects from BALANCE_CONFIG. Amounts L / HP, distances m. */

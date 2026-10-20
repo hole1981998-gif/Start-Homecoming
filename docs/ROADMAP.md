@@ -4,7 +4,7 @@
 
 Roadmap là kế hoạch đề xuất, không phải báo cáo đã triển khai. Không có mốc thời gian cam kết. Mỗi feature dùng một branch và PR riêng theo AGENTS.md; milestone có thể gồm nhiều PR nhỏ. Tất cả số trong BALANCE_CONFIG.md cần playtest.
 
-**Thử nghiệm vật lý song song:** `ver.force` đã có tình huống buýt/container quét đuôi khi đánh lái nhanh; `ver.noforce` dùng đối chiếu cùng seed. Trước khi nhập vào build chính, cần chơi thử góc quét/độ rõ camera, quyết định HP cho cú quệt chỉ do đuôi, và kiểm tra giao lộ/xe sát mép đường ở nhiều seed.
+**Thử nghiệm vật lý song song:** `ver.force` có tình huống buýt bám trục sau và container người chơi gồm đầu kéo/rơ-moóc có khớp; `ver.noforce` dùng đối chiếu cùng seed. Container chướng ngại chưa tách. Trước khi nhập vào build chính, cần chơi thử camera, quyết định HP cho cú quệt chỉ do phần thân quét, và kiểm tra giao lộ/xe sát mép đường ở nhiều seed.
 
 | Mốc | Phạm vi | Điều kiện nghiệm thu |
 |---|---|---|

@@ -12,15 +12,17 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
   if (scenario === 'force-tail-bus' || scenario === 'force-tail-container') {
     const kind = scenario === 'force-tail-bus' ? 'bus' : 'container';
     const vehicle = newVehicle(kind, `qa-tail-${kind}`);
-    const car = entity('traffic', `qa-tail-target-${kind}`, 32, kind === 'bus' ? .8 : 0);
+    const car = entity('traffic', `qa-tail-target-${kind}`, 32, kind === 'bus' ? 2.5 : 2.3);
     car.speed = 0; car.baseSpeed = 0;
     return { ...run, vehicleInstances: [vehicle], activeVehicleId: vehicle.id,
       fuel: vehicle.fuel, durability: vehicle.durability, speed: vehicles[kind].maxSpeed,
       world: { ...initialWorld(run.seed), entities: [car], nextSpecial: 1e9,
         nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9,
-        nextShopDistance: 1e9, prototype: { version: 'force-tail-qa-1',
-          title: `Thử quét đuôi · ${vehicles[kind].name}`,
-          description: 'Giữ D khi chạy tới ô tô đỗ giữa đường, rồi thử lại với S để so quét đuôi lúc cua chậm. Xe dài xoay và đuôi văng theo quán tính chỉ ở ver.force.' } } };
+        nextShopDistance: 1e9, prototype: { version: 'force-tail-qa-2',
+          title: `Thử xe dài · ${vehicles[kind].name}`,
+          description: kind === 'bus' ?
+            'Giữ D để xem đầu xe buýt quét sang phải trong khi bánh sau bám hơn; nhả D và thử S để so cua chậm. Chỉ ver.force có mô phỏng này.' :
+            'Giữ D để xem đầu kéo rẽ trước, rơ-moóc theo sau qua khớp nối. So với ver.noforce, container chướng ngại vẫn nguyên một khối.' } } };
   }
   if (scenario === 'force-npc-hit') {
     const npc = entity('passenger', 'qa-force-npc', 18, 0);

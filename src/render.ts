@@ -5,7 +5,7 @@ import { jumpHeight, hasStar, hasBoost } from './items';
 import { activeVehicle, type Run } from './survival';
 import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from './world';
 import { junction, pathPose } from './route';
-import { tailSweepCenterX } from './tail-sweep';
+import { busBodyCenterX, containerParts } from './tail-sweep';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh }
 
@@ -18,7 +18,10 @@ export class RoadRenderer {
   private openFrame = new THREE.Group();
   private tricycleFrame = new THREE.Group();
   private closedFrame = new THREE.Group();
+  private tractorFrame = new THREE.Group();
+  private trailerFrame = new THREE.Group();
   private windowPassengers: THREE.Group[] = [];
+  private tractorPassengers: THREE.Group[] = [];
   private rider!: THREE.Mesh;
   private helmet!: THREE.Mesh;
   private fallenDriver = new THREE.Group();
@@ -36,7 +39,7 @@ export class RoadRenderer {
   private host: HTMLElement;
   private projected = new THREE.Vector3();
   private crossings: JunctionView[] = [];
-  constructor(canvas: HTMLCanvasElement, host: HTMLElement) {
+  constructor(canvas: HTMLCanvasElement, host: HTMLElement, private forceMode = false) {
     this.host = host;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -79,7 +82,8 @@ export class RoadRenderer {
       this.crossings.push({ group, straightStub, barrier });
     }
     this.scene.add(this.bike);
-    this.bike.add(this.openFrame, this.tricycleFrame, this.closedFrame);
+    this.bike.add(this.openFrame, this.tricycleFrame, this.closedFrame, this.tractorFrame);
+    this.scene.add(this.trailerFrame);
     this.powerRing = new THREE.Mesh(new THREE.TorusGeometry(1.5, .06, 4, 20), new THREE.MeshBasicMaterial({ color: '#f7df85' }));
     this.powerRing.rotation.x = Math.PI / 2; this.powerRing.position.y = .15; this.bike.add(this.powerRing);
     const body = box(0.65, 0.42, 1.5, '#dbb55c', this.openFrame); body.position.y = 0.65;
@@ -87,6 +91,18 @@ export class RoadRenderer {
     const shell = box(1, .8, 2, '#d0ad68', this.closedFrame); shell.position.y = .75;
     const cabin = box(.82, .48, 1.05, '#7a9a9e', this.closedFrame); cabin.position.set(0, 1.36, -.12);
     this.windowPassengers = this.addWindowPassengers(this.closedFrame, 1, 2, balance.riderLimit, 1.24);
+    const tractorBase = box(1.65, .8, 4.1, '#d0ad68', this.tractorFrame); tractorBase.position.y = .8;
+    const tractorCab = box(1.55, 1.15, 2.5, '#d0ad68', this.tractorFrame); tractorCab.position.set(0, 1.55, -.65);
+    const tractorGlass = box(1.4, .55, .08, '#7a9a9e', this.tractorFrame); tractorGlass.position.set(0, 1.75, -1.94);
+    this.tractorPassengers = this.addWindowPassengers(this.tractorFrame, 1.55, 2.5, 1, 1.85);
+    this.tractorPassengers[0].position.z = -.65;
+    for (const side of [-1, 1]) for (const z of [-1.55, 1.35]) {
+      const wheel = box(.35, .63, .7, '#172126', this.tractorFrame); wheel.position.set(side * .89, .32, z);
+    }
+    const trailerBox = box(1.8, 1.55, 9.4, '#a98d66', this.trailerFrame); trailerBox.position.y = 1.38;
+    for (const side of [-1, 1]) for (const z of [2.8, 3.7]) {
+      const wheel = box(.35, .64, .7, '#172126', this.trailerFrame); wheel.position.set(side * 1.02, .32, z);
+    }
     const fork = box(.48, .35, 1.25, '#dbb55c', this.tricycleFrame); fork.position.set(0, .66, -.68);
     const cargoBed = box(1.5, .17, 1.65, '#b38d59', this.tricycleFrame); cargoBed.position.set(0, .73, .62);
     for (const side of [-1, 1]) {
@@ -239,9 +255,12 @@ export class RoadRenderer {
     const tricycle = vehicle.kind === 'tricycle';
     const open = ['motorcycle', 'motorbike', 'tricycle'].includes(vehicle.kind);
     this.openFrame.visible = open && !tricycle; this.tricycleFrame.visible = tricycle;
-    this.closedFrame.visible = !open;
-    const scaleX = tricycle ? 1 : vehicle.width / (open ? balance.vehicleWidth : 1);
-    const scaleZ = tricycle ? 1 : vehicle.length / (open ? balance.vehicleLength : 2);
+    const articulated = this.forceMode && vehicle.kind === 'container';
+    this.closedFrame.visible = !open && !articulated;
+    this.tractorFrame.visible = articulated;
+    this.trailerFrame.visible = articulated;
+    const scaleX = articulated ? 1 : tricycle ? 1 : vehicle.width / (open ? balance.vehicleWidth : 1);
+    const scaleZ = articulated ? 1 : tricycle ? 1 : vehicle.length / (open ? balance.vehicleLength : 2);
     this.bike.scale.set(scaleX, 1, scaleZ);
     const x = THREE.MathUtils.lerp(previous.x, s.x, alpha);
     const distance = THREE.MathUtils.lerp(previous.distance, s.distance, alpha);
@@ -249,22 +268,32 @@ export class RoadRenderer {
     const playerX = playerPose.x + Math.cos(playerPose.heading) * x;
     const playerZ = playerPose.z + Math.sin(playerPose.heading) * x;
     const yaw = THREE.MathUtils.lerp(previous.forceYaw, s.forceYaw, alpha);
-    const bodyX = tailSweepCenterX(vehicle.kind, x, vehicle.length, yaw);
-    this.bike.position.set(playerPose.x + Math.cos(playerPose.heading) * bodyX,
-      jumpHeight(s), playerPose.z + Math.sin(playerPose.heading) * bodyX);
+    const bodyX = this.forceMode && vehicle.kind === 'bus' ? busBodyCenterX(x, vehicle.length, yaw) : x;
+    const parts = articulated ? containerParts(x, distance, yaw,
+      THREE.MathUtils.lerp(previous.forceTrailerRearX, s.forceTrailerRearX, alpha)) : null;
+    const bodyPose = parts ? pathPose(parts.tractorDistance, s.route, s.seed) : playerPose;
+    this.bike.position.set(bodyPose.x + Math.cos(bodyPose.heading) * bodyX,
+      jumpHeight(s), bodyPose.z + Math.sin(bodyPose.heading) * bodyX);
+    if (parts) {
+      const trailerPose = pathPose(parts.trailerDistance, s.route, s.seed);
+      this.trailerFrame.position.set(trailerPose.x + Math.cos(trailerPose.heading) * parts.trailerX,
+        jumpHeight(s), trailerPose.z + Math.sin(trailerPose.heading) * parts.trailerX);
+      this.trailerFrame.rotation.set(0, -trailerPose.heading - parts.trailerYaw, 0, 'YXZ');
+    }
     const lateralAcceleration = (s.lateralVelocity - previous.lateralVelocity) / balance.fixedStep;
     const lean = THREE.MathUtils.clamp(-(s.lateralVelocity * .035 + lateralAcceleration * .012) * vehicle.leanFactor,
       -.34, .34);
-    this.bike.rotation.set(0, -playerPose.heading - yaw, lean, 'YXZ');
+    this.bike.rotation.set(0, -bodyPose.heading - yaw, lean, 'YXZ');
     this.rider.visible = !s.crash && open; this.helmet.visible = !s.crash && open;
     this.windowPassengers.forEach((person, i) => {
-      person.visible = !s.crash && !open && i < s.riderIds.length;
+      person.visible = !s.crash && !open && !articulated && i < s.riderIds.length;
       // Vehicle footprint stretches for bus/container; people keep human-sized proportions.
       person.scale.set(1 / scaleX, 1, 1 / scaleZ);
       const rows = Math.ceil(s.riderIds.length / 2);
       person.position.z = vehicle.kind === 'truck' || vehicle.kind === 'container' ? -.36 + Math.floor(i / 2) * .18 :
         rows <= 1 ? 0 : -.58 + Math.floor(i / 2) * 1.16 / (rows - 1);
     });
+    this.tractorPassengers.forEach((person, i) => { person.visible = articulated && !s.crash && i < s.riderIds.length; });
     this.bikePassengers.forEach((person, i) => {
       person.visible = !s.crash && open && i < s.riderIds.length;
       person.position.set((i % 2 ? 1 : -1) * (.15 + Math.floor(i / 2) * .09),
