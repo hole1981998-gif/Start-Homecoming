@@ -6,8 +6,10 @@ import { activeVehicle, type Run } from './survival';
 import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from './world';
 import { junction, pathPose } from './route';
 import { containerParts, heavyFrontCenterX } from './tail-sweep';
+import { LANDSCAPE_REGION_METRES, landscapeColors, landscapeWindow, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
 
-interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh }
+interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
+  landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] }
 
 export class RoadRenderer {
   private renderer: THREE.WebGLRenderer;
@@ -30,6 +32,10 @@ export class RoadRenderer {
   private roadPieces: THREE.Group[] = [];
   private roadSurface!: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   private ground!: THREE.Mesh;
+  private landscapeTiles: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] = [];
+  private landscapeBands: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> | null = null;
+  private landscapeMaterials: Record<LandscapeKind, THREE.MeshBasicMaterial> | null = null;
+  private landscapeCell = { x: NaN, z: NaN, seed: NaN };
   private viewState!: Run;
   private entityMeshes = new Map<string, { kind: EntityKind; trafficKind?: TrafficKind; mesh: THREE.Group }>();
   private pools: Record<EntityKind, THREE.Group[]> = { wind: [], water: [], pothole: [], traffic: [], cargo: [], fuel: [], repair: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
@@ -53,6 +59,25 @@ export class RoadRenderer {
     };
     this.makeBox = box;
     this.ground = box(260, 0.1, 260, '#425951'); this.ground.position.y = -.15;
+    if (this.forceMode) {
+      const geometry = new THREE.PlaneGeometry(LANDSCAPE_REGION_METRES, LANDSCAPE_REGION_METRES);
+      this.landscapeMaterials = Object.fromEntries(Object.entries(landscapeColors).map(([kind, color]) =>
+        [kind, new THREE.MeshBasicMaterial({ color })])) as Record<keyof typeof landscapeColors, THREE.MeshBasicMaterial>;
+      for (let i = 0; i < 25; i++) {
+        const tile = new THREE.Mesh(geometry, this.landscapeMaterials.city);
+        tile.rotation.x = -Math.PI / 2;
+        tile.position.y = -.095;
+        this.scene.add(tile);
+        this.landscapeTiles.push(tile);
+      }
+      // Flat color shoulders follow the centerline; the road covers their shared seam.
+      const bandGeometry = new THREE.BufferGeometry();
+      const bandValues = 52 * 2 * 6 * 3;
+      bandGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(bandValues), 3));
+      bandGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(bandValues), 3));
+      this.landscapeBands = new THREE.Mesh(bandGeometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+      this.scene.add(this.landscapeBands);
+    }
     const roadGeometry = new THREE.BufferGeometry();
     roadGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(53 * 2 * 3), 3));
     const roadIndices: number[] = [];
@@ -78,8 +103,19 @@ export class RoadRenderer {
         const edge = box(.12, .025, 150, '#d3d4bc', straightStub); edge.position.set(side * 4.9, -.035, -95);
         const stripe = box(.09, .025, 150, '#9caeae', straightStub); stripe.position.set(side * balance.laneWidth / 2, -.035, -95);
       }
+      const landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] = [];
+      if (this.landscapeMaterials) {
+        const shoulderGeometry = new THREE.PlaneGeometry(30, 1);
+        for (let i = 0; i < 8; i++) {
+          const shoulder = new THREE.Mesh(shoulderGeometry, this.landscapeMaterials.city);
+          shoulder.rotation.x = -Math.PI / 2;
+          shoulder.position.y = -.09;
+          straightStub.add(shoulder);
+          landscapeStub.push(shoulder);
+        }
+      }
       const barrier = box(9.2, .7, .35, '#d39468', group); barrier.position.set(0, .36, -12);
-      this.crossings.push({ group, straightStub, barrier });
+      this.crossings.push({ group, straightStub, barrier, landscapeStub });
     }
     this.scene.add(this.bike);
     this.bike.add(this.openFrame, this.tricycleFrame, this.closedFrame, this.tractorFrame);
@@ -338,16 +374,52 @@ export class RoadRenderer {
     this.camera.lookAt(playerX + Math.sin(playerPose.heading) * 12, 0,
       playerZ - Math.cos(playerPose.heading) * 12);
     this.ground.position.set(playerPose.x, -.15, playerPose.z);
+    if (this.landscapeTiles.length) {
+      const cellX = Math.floor(playerPose.x / LANDSCAPE_REGION_METRES);
+      const cellZ = Math.floor(playerPose.z / LANDSCAPE_REGION_METRES);
+      if (cellX !== this.landscapeCell.x || cellZ !== this.landscapeCell.z || s.seed !== this.landscapeCell.seed) {
+        this.landscapeCell = { x: cellX, z: cellZ, seed: s.seed };
+        for (const [i, region] of landscapeWindow(s.seed, playerPose.x, playerPose.z).entries()) {
+          const tile = this.landscapeTiles[i];
+          tile.position.x = region.x;
+          tile.position.z = region.z;
+          tile.material = this.landscapeMaterials![region.kind];
+        }
+      }
+    }
     const firstRoad = Math.floor((distance - 32) / 4) * 4;
     const roadPositions = this.roadSurface.geometry.getAttribute('position') as THREE.BufferAttribute;
+    const roadSamples: ReturnType<typeof pathPose>[] = [];
     for (let i = 0; i <= this.roadPieces.length; i++) {
       const edgePose = pathPose(firstRoad - 2 + i * 4, s.route, s.seed);
+      roadSamples.push(edgePose);
       const sideX = Math.cos(edgePose.heading) * 4.8, sideZ = Math.sin(edgePose.heading) * 4.8;
       roadPositions.setXYZ(i * 2, edgePose.x - sideX, -.045, edgePose.z - sideZ);
       roadPositions.setXYZ(i * 2 + 1, edgePose.x + sideX, -.045, edgePose.z + sideZ);
     }
     roadPositions.needsUpdate = true;
     this.roadSurface.geometry.computeBoundingSphere();
+    if (this.landscapeBands) {
+      const positions = this.landscapeBands.geometry.getAttribute('position') as THREE.BufferAttribute;
+      const colors = this.landscapeBands.geometry.getAttribute('color') as THREE.BufferAttribute;
+      for (let i = 0; i < this.roadPieces.length; i++) {
+        const start = roadSamples[i], end = roadSamples[i + 1];
+        const regions = roadsideRegions(s.seed, firstRoad + i * 4);
+        for (const [sideIndex, side] of ([-1, 1] as const).entries()) {
+          const color = this.landscapeMaterials![side < 0 ? regions.left : regions.right].color;
+          const vertex = (i * 2 + sideIndex) * 6;
+          const a = roadsidePoint(start, side, 0), b = roadsidePoint(start, side, 30);
+          const c = roadsidePoint(end, side, 0), d = roadsidePoint(end, side, 30);
+          for (const [j, xy] of [a, b, c, b, d, c].entries()) {
+            positions.setXYZ(vertex + j, xy[0], -.08, xy[1]);
+            colors.setXYZ(vertex + j, color.r, color.g, color.b);
+          }
+        }
+      }
+      positions.needsUpdate = true;
+      colors.needsUpdate = true;
+      this.landscapeBands.geometry.computeBoundingSphere();
+    }
     for (let i = 0; i < this.roadPieces.length; i++) {
       const roadDistance = firstRoad + i * 4;
       const roadPose = pathPose(roadDistance, s.route, s.seed);
@@ -369,6 +441,24 @@ export class RoadRenderer {
       view.barrier.visible = cross.blockedStraight;
       view.straightStub.visible = index === s.route.index ? s.route.choice !== null :
         s.route.history.some(turn => turn.distance === cross.distance);
+      if (view.straightStub.visible && view.landscapeStub.length) {
+        const begin = cross.distance - 8, finish = begin + 190;
+        const firstSection = Math.floor(begin / LANDSCAPE_REGION_METRES);
+        for (let sectionOffset = 0; sectionOffset < 4; sectionOffset++) {
+          const section = firstSection + sectionOffset;
+          const from = Math.max(begin, section * LANDSCAPE_REGION_METRES);
+          const to = Math.min(finish, (section + 1) * LANDSCAPE_REGION_METRES);
+          const regions = roadsideRegions(s.seed, (from + to) / 2);
+          for (const [sideIndex, side] of ([-1, 1] as const).entries()) {
+            const shoulder = view.landscapeStub[sectionOffset * 2 + sideIndex];
+            shoulder.visible = to > from;
+            if (!shoulder.visible) continue;
+            shoulder.material = this.landscapeMaterials![side < 0 ? regions.left : regions.right];
+            shoulder.scale.y = to - from;
+            shoulder.position.set(side * 15, -.09, begin - (from + to) / 2);
+          }
+        }
+      }
     }
     const live = new Set<string>();
     const visibleEntities = [...s.world.entities.map(entity => ({ entity, route: s.route })), ...s.world.retired];
