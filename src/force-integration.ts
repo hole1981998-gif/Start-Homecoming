@@ -4,7 +4,7 @@ import { activeVehicle, stepRun, type Run } from './survival';
 import type { Input } from './simulation';
 import { vehicleRam, vehicles, type VehicleKind } from './vehicles';
 import { passengerMotion, sweptContact, type Entity } from './world';
-import { containerParts, heavyFrontCenterX, tailSweepYaw } from './tail-sweep';
+import { car7BodyCenterX, containerParts, heavyFrontCenterX, tailSweepYaw } from './tail-sweep';
 
 type Dynamic = Entity & { kind: 'traffic' | 'passenger' | 'cargo' };
 interface Actor { id: string; kind: Dynamic['kind'] | 'player'; body: CANNON.Body; entity?: Dynamic }
@@ -84,9 +84,11 @@ export class ForceIntegration {
       containerParts(before.x, before.distance, before.forceYaw, before.forceTrailerRearX) : null;
     const newParts = vehicle.kind === 'container' ?
       containerParts(next.x, next.distance, yaw, trailerRearX) : null;
-    const frontSweep = vehicle.kind === 'bus' || vehicle.kind === 'truck';
-    const startCenter = frontSweep ? heavyFrontCenterX(vehicle.kind as 'bus' | 'truck', before.x, vehicle.length, before.forceYaw) : before.x;
-    const endCenter = frontSweep ? heavyFrontCenterX(vehicle.kind as 'bus' | 'truck', next.x, vehicle.length, yaw) : next.x;
+    const bodyCenter = (x: number, angle: number) => vehicle.kind === 'car7' ?
+      car7BodyCenterX(x, vehicle.length, angle) : vehicle.kind === 'bus' || vehicle.kind === 'truck' ?
+        heavyFrontCenterX(vehicle.kind, x, vehicle.length, angle) : x;
+    const startCenter = bodyCenter(before.x, before.forceYaw);
+    const endCenter = bodyCenter(next.x, yaw);
     if (oldParts && newParts) {
       add('player', 'player', oldParts.tractorX, oldParts.tractorDistance, vehicle.width,
         forceTailSweep.tractorLength, mass.container * .36,

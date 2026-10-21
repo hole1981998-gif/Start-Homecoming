@@ -6,6 +6,8 @@
 
 Roadmap là kế hoạch đề xuất, không phải báo cáo đã triển khai. Không có mốc thời gian cam kết. Mỗi feature dùng một branch và PR riêng theo AGENTS.md; milestone có thể gồm nhiều PR nhỏ. Tất cả số trong BALANCE_CONFIG.md cần playtest.
 
+**Bổ sung ô tô 7 chỗ 21/10/2026:** bản chính/force có điểm điều hướng hơi trước tâm xe, tạo quét đuôi nhỏ hơn tải/buýt; chỉ áp dụng xe người chơi. Fixture `?scenario=handling-car7&seed=17` để thử A/D và thả lái trên đường trống. Hệ số TẠM; P8 đánh giá thêm né hazard, va chạm mép và cảm giác ở tốc độ cao. `ver.noforce` giữ nguyên backup.
+
 **Thử nghiệm vật lý song song:** `ver.force` có tình huống buýt và xe tải bám trục sau (xe tải quét nhẹ hơn) và container người chơi gồm đầu kéo/rơ-moóc có khớp; `ver.noforce` dùng đối chiếu cùng seed. Container chướng ngại chưa tách. Container người chơi đã có luật thử một HP event/entity, rơ-moóc chỉ chịu nửa damage và vũng nước/ổ gà chỉ xét đầu kéo. Trước khi nhập vào build chính, cần kiểm chứng collider khi cua/giao lộ, camera, mức sát thương và xe sát mép đường ở nhiều seed.
 
 | Mốc | Phạm vi | Điều kiện nghiệm thu |

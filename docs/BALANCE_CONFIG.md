@@ -6,6 +6,8 @@
 
 ## Quy ước
 
+**TẠM — ô tô 7 chỗ bản chính/force:** gain góc 0,22, tối đa 0,085 rad (~4,9°), đáp ứng 0,7 rad/s; điểm điều hướng lệch về trước tâm thân 12% chiều dài xe. Dùng ngưỡng tốc độ 5–15 m/s như xe lớn. Mục tiêu là đuôi quét nhẹ; không đổi grip, tốc độ, giá, xăng hay HP. Chỉ khóa số sau khi chủ dự án chơi thử.
+
 **TẠM — `ver.force` xe lớn:** buýt gain 0,62, tối đa 0,21 rad (~12°), đáp ứng 0,9 rad/s, tâm thân cách trục sau 35% chiều dài. Xe tải gain 0,4, tối đa 0,13 rad (~7,4°), đáp ứng 0,72 rad/s, tâm thân cách trục sau 32% chiều dài. Container đầu kéo tối đa 0,27 rad (~15,5°), thân đầu kéo 5 m và rơ-moóc 10 m, khớp tối đa 0,38 rad, hệ số bánh sau bám theo 0,88. Dưới 5 m/s góc mục tiêu về 0, từ 15 m/s đạt đủ hệ số. Rơ-moóc trúng chướng ngại gây damage trước đầu kéo chỉ nhận 50%; con số này là yêu cầu thử của chủ dự án, chưa cân bằng qua playtest.
 
 **TẤT CẢ con số dưới đây là TẠM, chưa được playtest**, trừ các ràng buộc đã chốt: 3 lane, khung 9:16, tối đa 2 xe, chiều rộng xe < 1,5 lane, xe secret 4 chỗ có 1 tài xế + 3 khách, chuỗi secret 4 bước. Không coi bảng này là code config đã chạy. Dùng một nguồn config TypeScript có schema/range validation khi triển khai; không rải magic number trong systems. Đơn vị: m, s, m/s, L (xăng quy ước), HP, đồng game. Đây không phải mô phỏng chi phí hay luật giao thông thực tế.

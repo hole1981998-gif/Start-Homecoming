@@ -55,8 +55,9 @@ export function validateConfig(c: Balance): void {
 }
 validateConfig(balance);
 
-/** Force-only large-vehicle tail sweep trial. Angles rad, response rad/s, speeds m/s. */
+/** Player vehicle body sweep. Angles rad, response rad/s, speeds m/s. */
 export const forceTailSweep = Object.freeze({
+  car7: { gain: .22, maxYaw: .085, response: .7, frontPivotToCenter: .12 },
   bus: { gain: .62, maxYaw: .21, response: .9, rearAxleToCenter: .35 },
   truck: { gain: .4, maxYaw: .13, response: .72, rearAxleToCenter: .32 },
   container: { gain: .82, maxYaw: .27, response: .78 },
@@ -68,6 +69,8 @@ for (const value of Object.values(forceTailSweep).flatMap(entry =>
   if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid force tail sweep');
 }
 if (forceTailSweep.lowSpeed >= forceTailSweep.fullSpeed ||
+    forceTailSweep.car7.maxYaw >= forceTailSweep.truck.maxYaw ||
+    forceTailSweep.car7.frontPivotToCenter >= .5 ||
     forceTailSweep.bus.maxYaw >= .5 || forceTailSweep.container.maxYaw >= .5 ||
     forceTailSweep.truck.maxYaw >= forceTailSweep.bus.maxYaw ||
     forceTailSweep.bus.rearAxleToCenter >= .5 || forceTailSweep.truck.rearAxleToCenter >= .5 ||

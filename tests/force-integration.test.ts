@@ -5,7 +5,7 @@ import { initialRun, pickUpPassenger, stepRun, type Run } from '../src/survival'
 import { advancePassengers, entity, passengerPose, trafficTypes } from '../src/world';
 import { developmentScenario } from '../src/development';
 import { newVehicle, vehicles, vehicleRam } from '../src/vehicles';
-import { busBodyCenterX, containerParts, heavyFrontCenterX, stepTrailerRearX, tailSweepYaw } from '../src/tail-sweep';
+import { busBodyCenterX, car7BodyCenterX, containerParts, heavyFrontCenterX, stepTrailerRearX, tailSweepYaw } from '../src/tail-sweep';
 import { balance } from '../src/config';
 
 function containerHazard(kind: 'traffic' | 'cargo' | 'water' | 'pothole', distance: number): Run {
@@ -40,6 +40,34 @@ describe('parallel force integration', () => {
     expect(truck).toBeLessThan(bus);
     expect(heavyFrontCenterX('truck', 0, vehicles.truck.length, truck)).toBeLessThan(
       heavyFrontCenterX('bus', 0, vehicles.bus.length, bus));
+  });
+
+  it('lets the seven-seat car sweep its tail gently around a forward control point', () => {
+    const sample = developmentScenario(initialRun(17, 'car7-pivot'), 'handling-car7');
+    const force = new ForceIntegration();
+    let run: Run = { ...sample, phase: 'running' };
+    let arcade: Run = run;
+    for (let i = 0; i < 80; i++) {
+      const input = { ...noInput(), right: true };
+      run = force.step(run, input);
+      arcade = stepRun(arcade, input);
+    }
+    const yaw = run.forceYaw;
+    const length = vehicles.car7.length;
+    const center = car7BodyCenterX(run.x, length, yaw);
+    const front = center + Math.sin(yaw) * length / 2;
+    const rear = center - Math.sin(yaw) * length / 2;
+    expect(yaw).toBeGreaterThan(.03);
+    expect(yaw).toBeLessThan(.1);
+    let truckYaw = 0;
+    for (let i = 0; i < 80; i++) truckYaw = tailSweepYaw('truck', truckYaw, 5, vehicles.car7.cruiseSpeed, balance.fixedStep, 1);
+    expect(yaw).toBeLessThan(truckYaw);
+    expect(rear).toBeLessThan(run.x);
+    expect(front).toBeGreaterThan(run.x);
+    expect(run.x - rear).toBeGreaterThan(front - run.x);
+    expect(arcade.forceYaw).toBe(0);
+    for (let i = 0; i < 90; i++) run = force.step(run, noInput());
+    expect(Math.abs(run.forceYaw)).toBeLessThan(.01);
   });
 
   it('charges full damage for tractor-first traffic, half for trailer-first, and never a second hit', () => {

@@ -16,6 +16,8 @@ Tài liệu tổng hợp yêu cầu của chủ dự án trong hội thoại “
 
 ## Tầm nhìn và phạm vi
 
+**ĐÃ CHỐT về cảm giác ô tô 7 chỗ:** khi đánh lái, điểm điều hướng lệch nhẹ về nửa trước thân xe để đuôi quét ra ngoài một chút. Độ quét nhỏ hơn rõ rệt so với xe tải/buýt; không đổi xe chướng ngại hoặc backup `ver.noforce`. Hệ số góc và vị trí điểm bám vẫn TẠM để chơi thử.
+
 **BẢN THỬ ver.force — điều khiển xe lớn:** xe buýt lấy trục sau làm điểm bám tương đối, để đầu xe quét ra ngoài khi đánh lái; cảm giác quét được làm nặng hơn nhẹ so với bản thử đầu. Xe tải dùng cùng kiểu bám trục sau nhưng quét đầu ít hơn buýt. Container của người chơi tách thành đầu kéo và rơ-moóc nối bằng khớp: đầu kéo đổi hướng trước, bánh sau rơ-moóc bám theo có độ trễ và có thể lệch khỏi vệt đầu kéo. Container có hai vùng va chạm; cùng một chướng ngại gây sát thương chỉ trừ HP một lần: đầu chạm trước nhận đủ, rơ-moóc chạm trước nhận nửa. Vũng nước và ổ gà chỉ tác động khi đầu kéo chạm. Container chướng ngại giữ model và vùng va chạm một khối. Giữ A/D ở mép đường vẫn duy trì góc lái cho tới khi thả phím; ở tốc độ chậm góc nhỏ hơn. Bản noforce giữ cách lái cũ để đối chiếu. Số góc/quán tính hiện là TẠM, chưa duyệt cân bằng cho game chính.
 
 **ĐÃ CHỐT:** game web 3D low-poly tạo hình bằng code, Three.js / TypeScript / Vite, chơi trên trình duyệt desktop trong khung dọc 9:16. Người đi làm về giữa mưa bão, ngập lụt; chạy càng xa càng nhiều điểm. Camera phía sau xe. Ván là endless run; không có đường vòng hay tuyến sự kiện riêng, không có mở khóa nội dung theo tiến trình. Giao lộ vẫn tồn tại: rẽ xong, hướng mới trở thành đường thẳng đang chạy. Secret ending kết thúc ván và trao badge “đã về nhà”.

@@ -6,6 +6,8 @@
 
 ## Ràng buộc
 
+**Ô tô 7 chỗ bản chính/force:** fixed step tính `forceYaw` nhỏ khi A/D; tâm thân xe dịch ngược góc xoay so với điểm điều hướng đặt hơi trước tâm xe. Renderer và collider Cannon dùng cùng tâm/góc, nên đuôi quét nhẹ ra ngoài; góc tự giảm khi thả lái. `ver.noforce` giữ góc 0. Sweep damage arcade vẫn là AABB theo tọa độ điều hướng, có thể lệch vài chục cm so với collider xoay; kiểm tra tại mép đường và va chạm trước khi khóa tuning.
+
 **Bản thử điều khiển xe lớn:** `ver.force` lưu góc thân và vị trí bánh sau rơ-moóc trên Run theo fixed step, tính từ tốc độ, A/D và quán tính ngang. Buýt/xe tải dùng tâm thân tính từ trục sau, với xe tải có góc nhỏ hơn; container người chơi có hai thân và hai collider Cannon, đặt theo đầu kéo/khớp nối/rơ-moóc. Renderer dùng cùng pose; `ver.noforce` giữ thân xe một khối và góc 0. Traffic container không dùng khớp nối. Arcade chọn thời điểm chạm sớm nhất giữa đầu kéo/rơ-moóc theo từng entity ID. Đầu thắng khi chạm đồng thời, rơ-moóc trúng trước nhận 50% HP damage, `lastHit`/consumed ngăn tính lần hai; water/pothole chỉ xét đầu kéo. Cannon vẫn xử lý phản lực riêng, còn terminal/secret giữ ưu tiên hiện hành. Collider arcade dùng swept AABB của từng phần, chưa khớp chính xác góc nghiêng Cannon; cần kiểm chứng trước khi tích hợp chính.
 
 Three.js + TypeScript (strict) + Vite; trình duyệt desktop, canvas dọc 9:16 căn giữa, letterbox khi cần. WASD lái liên tục; lane chỉ là đơn vị thiết kế. Tạo model low-poly bằng geometry/material trong code. Không mặc định thêm backend, tài khoản, vật lý nặng hay dịch vụ trả phí. Quy tắc thiết kế ở GAME_DESIGN.md; toàn bộ số cân bằng ở BALANCE_CONFIG.md là tạm.

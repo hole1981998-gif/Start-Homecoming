@@ -3,7 +3,7 @@ import type { VehicleKind } from './vehicles';
 
 export function tailSweepYaw(kind: VehicleKind, previous: number, lateralVelocity: number,
   forwardSpeed: number, dt: number, steering = 0): number {
-  const tune = kind === 'bus' || kind === 'truck' || kind === 'container' ? forceTailSweep[kind] : null;
+  const tune = kind === 'car7' || kind === 'bus' || kind === 'truck' || kind === 'container' ? forceTailSweep[kind] : null;
   if (!tune) return 0;
   // Keep the wheel angle while A/D is held at a road edge, where lateral velocity is clamped.
   const lateral = steering ? Math.sign(steering) *
@@ -20,6 +20,11 @@ export function tailSweepYaw(kind: VehicleKind, previous: number, lateralVelocit
 /** The bus's logical x is near its powered rear axle, which stays comparatively planted. */
 export function busBodyCenterX(rearAxleX: number, length: number, yaw: number): number {
   return rearAxleX + Math.sin(yaw) * length * forceTailSweep.bus.rearAxleToCenter;
+}
+
+/** The seven-seat car turns around a point slightly ahead of its center, giving its tail a small outward sweep. */
+export function car7BodyCenterX(frontPivotX: number, length: number, yaw: number): number {
+  return frontPivotX - Math.sin(yaw) * length * forceTailSweep.car7.frontPivotToCenter;
 }
 
 export function heavyFrontCenterX(kind: 'bus' | 'truck', rearAxleX: number, length: number, yaw: number): number {

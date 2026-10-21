@@ -5,7 +5,7 @@ import { jumpHeight, hasStar, hasBoost } from './items';
 import { activeVehicle, type Run } from './survival';
 import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from './world';
 import { junction, pathPose } from './route';
-import { containerParts, heavyFrontCenterX } from './tail-sweep';
+import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep';
 import { LANDSCAPE_REGION_METRES, landscapeColors, landscapeWindow, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
@@ -304,8 +304,9 @@ export class RoadRenderer {
     const playerX = playerPose.x + Math.cos(playerPose.heading) * x;
     const playerZ = playerPose.z + Math.sin(playerPose.heading) * x;
     const yaw = THREE.MathUtils.lerp(previous.forceYaw, s.forceYaw, alpha);
-    const bodyX = this.forceMode && (vehicle.kind === 'bus' || vehicle.kind === 'truck') ?
-      heavyFrontCenterX(vehicle.kind, x, vehicle.length, yaw) : x;
+    const bodyX = !this.forceMode ? x : vehicle.kind === 'car7' ?
+      car7BodyCenterX(x, vehicle.length, yaw) : vehicle.kind === 'bus' || vehicle.kind === 'truck' ?
+        heavyFrontCenterX(vehicle.kind, x, vehicle.length, yaw) : x;
     const parts = articulated ? containerParts(x, distance, yaw,
       THREE.MathUtils.lerp(previous.forceTrailerRearX, s.forceTrailerRearX, alpha)) : null;
     const bodyPose = parts ? pathPose(parts.tractorDistance, s.route, s.seed) : playerPose;
