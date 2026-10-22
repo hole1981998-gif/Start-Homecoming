@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { balance, movingBalance } from '../src/config';
+import { balance, movingBalance, shopBalance } from '../src/config';
 import { initialRun, stepRun, selectTurn } from '../src/survival';
 import { initialWorld, fillWorld, entity, forkWorld } from '../src/world';
 import { movingEvent } from '../src/moving-events';
@@ -70,7 +70,7 @@ it('branch retirement keeps motion/pose data, removes old colliders and produces
   expect(crossX(fork.retired[0].entity.crossMotion!,2)).toBe(crossX(e.crossMotion!,2));
 });
 it('integrated world pauses in shop and restart restores deterministic initial generation',()=>{
-  let run={...initialRun(17),phase:'running' as const}; run={...run,distance:600,x:-balance.laneWidth,world:fillWorld(run.world,600)};
+  let run={...initialRun(17),phase:'running' as const}; run={...run,distance:shopBalance.firstDistance,x:-balance.laneWidth,world:fillWorld(run.world,shopBalance.firstDistance)};
   const paused=enterShop(run);expect(paused.phase).toBe('paused');expect(paused.shopId).toBeTruthy();expect(stepRun(paused,noInput())).toBe(paused);
   expect(initialRun(17).world).toEqual(initialRun(17).world);
   expect(selectTurn({...initialRun(17),phase:'paused'},'left').route.choice).toBeNull();
@@ -93,11 +93,11 @@ it('integrated seeded journeys use actual shops, passengers, junctions and movin
     let run:Run={...initialRun(seed),phase:'running'}, violations=0, shops=0, purchases=0, moving=0;
     const seen=new Set<string>(), visitedShops=new Set<string>();
     const windIds = new Set<string>(), sourceIds = new Set<string>(), dropIds = new Set<string>();
-    for(let tick=0;tick<60*240 && run.phase==='running';tick++) {
+    for(let tick=0;tick<60*720 && run.phase==='running';tick++) {
       const shopRun=visitedShops.has(run.world.entities.find(e=>e.kind==='shop'&&Math.abs(e.distance-run.distance)<30)?.id ?? '')?run:enterShop(run);
       if(shopRun!==run) {
         run=shopRun;shops++;visitedShops.add(run.shopId!);
-        if(run.vehicleInstances.length===1 && run.money>=800) {const v=transact(run,{sequence:run.economySequence,kind:'vehicle',vehicle:'car4'});if(v.run!==run)purchases++;run=v.run;}
+        if(run.vehicleInstances.length===1 && run.money>=vehicles.car4.price) {const v=transact(run,{sequence:run.economySequence,kind:'vehicle',vehicle:'car4'});if(v.run!==run)purchases++;run=v.run;}
         const vehicle=effectiveVehicle(run.vehicleInstances.find(v=>v.id===run.activeVehicleId)!);
         if(run.fuel<vehicle.fuelCapacity*.7)run=transact(run,{sequence:run.economySequence,kind:'service',item:'fuel'}).run;
         if(run.durability<vehicle.durabilityCapacity*.7)run=transact(run,{sequence:run.economySequence,kind:'service',item:'repair'}).run;
@@ -107,12 +107,14 @@ it('integrated seeded journeys use actual shops, passengers, junctions and movin
       run=pickUpPassenger(run);
       const crossing=junction(run.seed,run.route.index);
       if(crossing.blockedStraight)run=selectTurn(run,'left');
+      const targetPassenger=run.riderIds.length===0?run.world.entities.find(e=>e.kind==='passenger'&&!e.consumed&&e.pickupable!==false&&e.distance>run.distance&&e.distance-run.distance<85):undefined;
       const targetShop=run.world.entities.find(e=>e.kind==='shop'&&!e.consumed&&e.distance>run.distance&&e.distance-run.distance<100);
       const nearby=run.world.entities.filter(e=>!e.consumed&&!e.stunned&&e.distance>run.distance-10&&e.distance<run.distance+100);
       for(const e of nearby)if(e.crossMotion&&!seen.has(e.id)){seen.add(e.id);moving++;}
       const target=[-3.2,0,3.2].map(x=>{
         let cost=Math.abs(x-run.x)*.05;
-        if(targetShop)cost+=Math.abs(x-targetShop.x)*20;
+        if(targetPassenger)cost+=Math.abs(x-targetPassenger.x)*20;
+        else if(targetShop)cost+=Math.abs(x-targetShop.x)*20;
         for(const e of nearby){
           const t=Math.max(0,(e.distance-run.distance)/Math.max(4,run.speed-e.speed));
           const ex=e.crossMotion?crossX(e.crossMotion,run.activeSeconds+t):e.x;
@@ -142,5 +144,5 @@ it('integrated seeded journeys use actual shops, passengers, junctions and movin
   expect(totalWind).toBeGreaterThan(0);
   expect(totalSources).toBeGreaterThan(0);
   expect(totalDrops).toBeGreaterThan(0);
-  console.log(JSON.stringify({version:balance.version,mode:'integrated generated routes, scripted pilot, 240s cap, no resource grants',observations}));
-});
+  console.log(JSON.stringify({version:balance.version,mode:'integrated generated routes, scripted pilot, 720s cap, no resource grants',observations}));
+}, 20000);

@@ -9,7 +9,7 @@ import { initialState, step, type Input, type State } from './simulation';
 import { advancePassengers, advanceTraffic, entity, fillWorld, forkWorld, initialWorld, passengerMotion, spawnWreckPassengers, sweptContact, trafficTypes, type Entity, type EntityKind, type World } from './world';
 import { containerParts, stepTrailerRearX, tailSweepYaw } from './tail-sweep';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
-import { canChoose, compactRoute, initialRoute, junction, type RouteState, type Turn } from './route';
+import { canChoose, compactRoute, initialRoute, junction, updateJunctionWindow, type RouteState, type Turn } from './route';
 import { effectiveVehicle, newVehicle, vehicleRam, vehicles, type VehicleDefinition, type VehicleInstance } from './vehicles';
 import { splitCrashRiders } from './passenger-outcomes';
 import { canSecretEnd, guardedSecret, initialSecret, secretLanding, secretPickup, secretTrainOverlap, secretVehicle, type SecretState } from './secret';
@@ -135,7 +135,8 @@ function overlapsVehicle(x: number, distance: number, e: World['entities'][numbe
 
 export function selectTurn(run: Run, turn: Turn): Run {
   const next = junction(run.seed, run.route.index);
-  if (run.phase !== 'running' || run.crash || run.route.choice || !canChoose(run.distance, run.speed, next)) return run;
+  if (run.phase !== 'running' || run.crash || run.route.choice ||
+      !canChoose(run.distance, run.speed, next, activeVehicle(run).kind, run.route.window)) return run;
   const forked = forkWorld(run.world, run.route, turn, next.distance);
   return { ...run, route: { ...run.route, choice: turn },
     world: fillWorld(forked, run.distance, run.fuel, run.durability,
@@ -167,16 +168,18 @@ export function stepRun(before: Run, input: Input, forceMode = false): Run {
   }
   return { ...run, ticks: before.ticks + 1 };
 }
-function splitSegment(before: Run, input: Input, dt: number, cut: number, forceMode: boolean): Run {
-  const first = stepRunSegment(before, input, cut, forceMode);
+function splitSegment(before: Run, input: Input, dt: number, cut: number, forceMode: boolean,
+  allowInitialSplit = true): Run {
+  const first = stepRunSegment(before, input, cut, forceMode, allowInitialSplit);
   const elapsed = first.activeSeconds - before.activeSeconds;
   if (first.phase !== 'running') return first;
   const remaining = dt - elapsed;
   if (remaining <= 1e-10) return first;
-  const next = stepRunSegment(first, input, remaining, forceMode);
+  const next = stepRunSegment(first, input, remaining, forceMode, allowInitialSplit);
   return { ...next, ticks: before.ticks + 1 };
 }
-function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolean): Run {
+function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolean,
+  allowInitialSplit = true): Run {
   const vehicle = activeVehicle(before);
   if (before.crash) {
     const world = fillWorld(before.world, before.distance, before.fuel, before.durability,
@@ -286,7 +289,9 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
   const ds = driven.distance - before.distance;
   const world = fillWorld(before.world, before.distance, before.fuel, before.durability, drive.fuelFactor,
     boosted ? { ...vehicle, maxSpeed: drive.maxSpeed } : vehicle, before.activeSeconds, before.speed);
-  if (world.integrated && dt > 1e-6 && !hasStar(before) && world.entities.some(e => e.kind === 'traffic' &&
+  // Resolve an initial overlap before the traffic environment tick so player provenance wins.
+  // Only split a full tick: recursive near-zero splits can loop forever when bodies stay overlapped.
+  if (allowInitialSplit && world.integrated && dt > 1e-4 && !hasStar(before) && world.entities.some(e => e.kind === 'traffic' &&
       !e.consumed && !e.wrecked && e.lastHit < 0 && !before.protectedEntities.includes(e.id) &&
       (oldParts ? [
         [oldParts.tractorX, oldParts.tractorDistance, forceTailSweep.tractorLength],
@@ -296,7 +301,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
         Math.abs(before.x-e.x) <= (vehicle.width+e.width)/2 && Math.abs(before.distance-e.distance) <= (vehicle.length+e.length)/2) &&
       jumpHeight({ ...before, activeSeconds: before.activeSeconds + 5e-8 }) <
         (['bus','truck','container'].includes(e.trafficKind ?? 'car4') ? itemBalance.highTrafficClearance : itemBalance.lowTrafficClearance) - 1e-9)) {
-    return splitSegment(before,input,dt,1e-7,forceMode);
+    return splitSegment(before,input,dt,1e-7,forceMode,false);
   }
   const movedEntities = world.entities.map(e => ({ ...e }));
   if (world.experimentalMotion) advanceCrossMotion(movedEntities, before.activeSeconds + dt);
@@ -305,16 +310,16 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
   if (!world.experimentalTraffic) advanceTraffic(movedEntities, dt);
   if (world.experimentalCargo) advanceCargo(movedEntities, dt, before.activeSeconds + dt);
   if (world.integrated) {
-    let cut = npcCuts[0] ?? dt;
+    let cut = npcCuts[0] !== undefined && npcCuts[0] > 1e-6 ? npcCuts[0] : dt;
     // Before the earliest NPC transition its trajectory is linear. Do not use its post-impact endpoint.
-    if (npcCuts.length) return splitSegment(before, input, dt, cut, forceMode);
+    if (npcCuts.length && cut > 1e-6 && cut < dt - 1e-6) return splitSegment(before, input, dt, cut, forceMode);
     for (let i = 0; i < movedEntities.length; i++) {
       const e = movedEntities[i], old = world.entities[i];
       if (e.kind !== 'traffic' || old.wrecked || old.consumed || old.lastHit >= 0 || before.protectedEntities.includes(e.id) || hasStar(before)) continue;
       const hit = contactFor(old, e);
-      if (hit && hit.enter * dt > 1e-8) cut = Math.min(cut, hit.enter * dt);
+      if (hit && hit.enter * dt > 1e-6) cut = Math.min(cut, hit.enter * dt);
     }
-    if (cut < dt - 1e-8) return splitSegment(before, input, dt, cut, forceMode);
+    if (cut > 1e-6 && cut < dt - 1e-6) return splitSegment(before, input, dt, cut, forceMode);
   }
   const r: Run = { ...before, world: { ...world, entities: movedEntities,
     retired: world.retired.map(entry => ({ ...entry, entity: (() => { const copy = { ...entry.entity, distance: entry.entity.distance + entry.entity.speed * dt }; advanceCrossMotion([copy], before.activeSeconds + dt); return copy; })() })) },
@@ -532,10 +537,11 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
   if (r.phase === 'running' && !r.crash) r.secret = secretLanding(r.secret, r.activeSeconds,
     r.distance, itemBalance.jumpSeconds);
   const crossing = junction(r.seed, r.route.index);
+  r.route = updateJunctionWindow(r.route, r.distance, r.speed, crossing, vehicle.kind);
   // Barrier sits just beyond the branch point; resolve it at its visible position.
   if (r.phase === 'running' && !r.crash && before.distance < crossing.distance + 4 && r.distance >= crossing.distance + 4) {
     const choice = r.route.choice ?? 'straight';
-    r.route = { ...r.route, index: r.route.index + 1, choice: null, turns: r.route.turns + Number(choice !== 'straight'),
+    r.route = { ...r.route, index: r.route.index + 1, choice: null, window: undefined, turns: r.route.turns + Number(choice !== 'straight'),
       lastTurn: choice, turnAt: r.activeSeconds, misses: r.route.misses + Number(choice === 'straight' && crossing.blockedStraight),
       history: choice === 'straight' ? r.route.history : [...r.route.history, { distance: crossing.distance, turn: choice }] };
     if (choice === 'straight' && crossing.blockedStraight && !hasStar(r)) {

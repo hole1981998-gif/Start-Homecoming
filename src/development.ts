@@ -79,20 +79,52 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
   if (scenario === 'integrated-checkpoint') {
     // QA shortcut: generated normal world and director, with disclosed checkpoint resources.
     const vehicle = newVehicle('car4', 'qa-integrated-car');
-    return { ...run, distance: 1450, money: 1000, vehicleInstances: [vehicle, newVehicle('motorcycle','qa-integrated-spare')],
+    return { ...run, distance: 1050, money: 1000, vehicleInstances: [vehicle, newVehicle('motorcycle','qa-integrated-spare')],
       activeVehicleId: vehicle.id, fuel: vehicle.fuel, durability: vehicle.durability, speed: vehicles.car4.cruiseSpeed,
       inventory: ['banana','nitro'], route: { ...run.route, index: 1 },
-      world: fillWorld(initialWorld(run.seed,true),1450,vehicle.fuel,vehicle.durability,1,vehicles.car4,0) };
+      world: fillWorld(initialWorld(run.seed,true),1050,vehicle.fuel,vehicle.durability,1,vehicles.car4,0) };
   }
   if (scenario === 'integrated-hazards') {
-    // QA shortcut into a generated route, just before a wind slot and a cargo-source slot.
-    const start = 1870, vehicle = newVehicle('car4', 'qa-all-hazards-car');
+    // Find a reproducible nearby wind/cargo pair after the seeded P8 director has made its choices.
+    let preview = initialWorld(run.seed, true);
+    const winds: number[] = [], sources: number[] = [];
+    const inspected = new Set<string>();
+    for (let at = 0; at <= 5000; at += 40) {
+      preview = fillWorld(preview, at);
+      for (const e of preview.entities) if (!inspected.has(e.id)) {
+        inspected.add(e.id);
+        if (e.kind === 'wind') winds.push(e.distance);
+        if (e.cargoReleaseAt !== undefined) sources.push(e.distance);
+      }
+    }
+    const paired = winds.find(wind => sources.some(source => source > wind && source < wind + 450));
+    const start = Math.max(0, (paired ?? winds[0] ?? 1690) - 80);
+    const vehicle = newVehicle('car4', 'qa-all-hazards-car');
     const filled = fillWorld(initialWorld(run.seed, true), start, vehicle.fuel, vehicle.durability, 1, vehicles.car4, 0);
-    return { ...run, distance: start, money: 1000, route: { ...run.route, index: 2 },
+    return { ...run, distance: start, money: 1000, route: { ...run.route, index: Math.floor(start / balance.junctionInterval) },
       vehicleInstances: [vehicle, newVehicle('motorcycle', 'qa-all-hazards-spare')], activeVehicleId: vehicle.id,
       fuel: vehicle.fuel, durability: vehicle.durability, speed: vehicles.car4.cruiseSpeed,
       inventory: ['star', 'nitro'], world: { ...filled,
         entities: filled.entities.filter(e => e.distance + e.length / 2 >= start - 12) } };
+  }
+  if (scenario === 'p8-water') {
+    let preview = initialWorld(run.seed, true);
+    let longWater: number | undefined;
+    for (let at = 0; at <= 3000 && longWater === undefined; at += 40) {
+      preview = fillWorld(preview, at);
+      longWater = preview.entities.find(e => e.kind === 'water' && e.width >= 5.7 &&
+        e.length >= 20 && e.distance >= 850)?.distance;
+    }
+    const start = Math.max(0, (longWater ?? 1100) - 100);
+    const vehicle = newVehicle('car4', 'qa-p8-water-car');
+    const world = fillWorld(initialWorld(run.seed, true), start, vehicle.fuel, vehicle.durability, 1, vehicles.car4);
+    return { ...run, distance: start, route: { ...run.route, index: Math.floor(start / balance.junctionInterval) },
+      vehicleInstances: [vehicle, newVehicle('motorcycle', 'qa-p8-water-spare')],
+      activeVehicleId: vehicle.id, fuel: vehicle.fuel, durability: vehicle.durability,
+      speed: vehicles.car4.cruiseSpeed, money: 1000,
+      world: { ...world, entities: world.entities.filter(e => e.distance + e.length / 2 >= start - 12),
+        prototype: { version: 'p8-density-patterns-2', title: 'Thử vùng nước dày',
+          description: 'Xe 4 chỗ bắt đầu trước một vùng nước dài hai làn. Đường và các pattern sau đó vẫn do seed bản chính sinh; A/D, W/S, Q/E, F, R hoạt động bình thường. Đây là checkpoint DEV, tài nguyên được cấp để thử.' } } };
   }
   if (scenario?.startsWith('p61-')) return movingScenario(run, scenario);
   if (scenario) run = { ...run, world: { ...run.world, integrated: false, experimentalMotion: false, experimentalTraffic: false, experimentalCargo: false } };

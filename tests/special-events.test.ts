@@ -35,7 +35,7 @@ it('fixed fines do not grow with wealth; sufficient police money leaves reserve 
     const before = ready('police'); before.money = money;
     const after = seconds(before, .5);
     expect(after.money).toBeCloseTo(money - eventBalance.policeFine + after.distance * balance.moneyPerMeter);
-    expect(after.activeVehicleId).toBe('spare'); expect(after.fuel).toBeGreaterThan(15.9);
+    expect(after.activeVehicleId).toBe('spare'); expect(after.fuel).toBeGreaterThan(vehicles.car4.fuelCapacity - .1);
   }
   for (const fuel of [0, 1]) {
     const run = ready('police'); run.vehicleInstances[1].fuel = fuel; run.vehicleInstances[1].disabled = true;
@@ -67,7 +67,7 @@ it('banana consumes only its slot for one nearest officer in the reaction window
 it('star blocks jam crash, but police/militia/accident/train still trigger; train bypasses reserve', () => {
   const jam = seconds(usePowerItem(ready('jam'), 1), 1); expect(jam.crash).toBeNull(); expect(jam.durability).toBe(70);
   const police = seconds(usePowerItem(ready('police'), 1), 1); expect(police.activeVehicleId).toBe('spare');
-  const militia = seconds(usePowerItem(ready('militia'), 1), 1); expect(militia.money).toBeLessThan(120);
+  const militia = seconds(usePowerItem(ready('militia'), 1), 1); expect(militia.money).toBeLessThan(balance.initialMoney);
   const accident = seconds(usePowerItem(ready('accident'), 1), 1); expect(accident.activeVehicleId).toBe('spare');
   const train = seconds(usePowerItem(ready('train'), 1), 1); expect(train.result?.reason).toBe('train');
   expect(train.activeVehicleId).toBe('active'); expect(train.vehicleInstances[1].disabled).toBe(false);
@@ -153,13 +153,20 @@ it('shop sells a banana into one empty slot and rejects duplicate/stale purchase
   expect(transact(bought, command).run).toBe(bought);
 });
 it('event stream is reproducible, covers all types, respects cooldown and leaves a lane wide enough for container', () => {
-  const kinds = new Set<SpecialKind>();
+  const kinds = new Set<SpecialKind>(), variants = new Set<string>();
   for (let seed = 1; seed <= 30; seed++) {
     const a = fillWorld(initialWorld(seed), 950), b = fillWorld(initialWorld(seed), 950);
     expect(a).toEqual(b);
+    const previous = new Map<SpecialKind, number>();
     for (let i = 0; i < 30; i++) {
       const plan = specialPlan(i, seed); kinds.add(plan.kind);
-      if (i) expect(plan.distance - specialPlan(i - 1, seed).distance).toBeGreaterThanOrEqual(1200);
+      if (plan.variant) variants.add(plan.variant);
+      if (i) expect(plan.distance - specialPlan(i - 1, seed).distance).toBeGreaterThanOrEqual(eventBalance.gap);
+      const cooldown = plan.kind === 'police' ? eventBalance.policeCooldown :
+        plan.kind === 'train' ? eventBalance.trainCooldown :
+          plan.kind === 'accident' ? eventBalance.accidentCooldown : 0;
+      if (previous.has(plan.kind)) expect(plan.distance - previous.get(plan.kind)!).toBeGreaterThanOrEqual(cooldown);
+      previous.set(plan.kind, plan.distance);
       if (plan.kind === 'jam' || plan.kind === 'accident') {
         const e = entity(plan.kind, 'test', plan.distance, plan.x);
         const freeWidth = 4.8 + Math.abs(e.x) - e.width / 2;
@@ -168,6 +175,7 @@ it('event stream is reproducible, covers all types, respects cooldown and leaves
     }
   }
   expect([...kinds].sort()).toEqual([...specialKinds].sort());
+  expect([...variants].sort()).toEqual(['ambulance', 'barrier', 'vendor']);
 });
 
 it('P6 simulation: 30 seeds × eight vehicles × six event types, with and without the appropriate response', () => {

@@ -1,5 +1,9 @@
 # Đường Về Nhà — Game Design
 
+> **Bản thử độ phủ P8 ngày 22/10/2026 — TẠM:** tăng cơ hội gặp vũng nước, đặc biệt vũng rộng hai làn dài 24 m và vũng toàn đường dài 30 m nếu có đường sống được; thử 12 pattern từ cơ chế đã có, vẫn phải đọc cảnh báo và có lựa chọn hợp lệ. Giữ xe chướng ngại có xăng, force/damage/grip hiện hành; bản `ver.noforce` là backup. Mục tiêu thời lượng 4 phút và độ thú vị/công bằng chưa nghiệm thu; xem `P8_BALANCE_TRIAL_REVIEW.md`.
+
+> **Thử cân bằng P8 ngày 21/10/2026:** chủ dự án đã cho áp dụng báo cáo cân bằng mới. Mục tiêu hiện hành thay mốc mua xe 1–1,5 phút bên dưới: giao dịch ô tô 4 chỗ khoảng 20–24 giây với người chơi chủ động đón khách; thời lượng ván trung vị thử khoảng 4 phút. Đây là mục tiêu thử, chưa phải kết quả đã đạt. Xe nặng cần chốt Q/E sớm hơn xe nhỏ; số cửa sổ còn TẠM. Xem `P8_BALANCE_TRIAL_REVIEW.md`.
+
 > **Quyết định 20/10/2026:** bản chơi chính tại `/` dùng luật lực của `ver.force`, bao gồm phản lực va chạm NPC/traffic/đồ rơi và điều khiển xe lớn. `ver.noforce.html` giữ nguyên làm backup. Các hệ số lực, sát thương và economy vẫn TẠM; các đoạn ghi “bản thử riêng” phía dưới là lịch sử trước quyết định này.
 
 > **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.

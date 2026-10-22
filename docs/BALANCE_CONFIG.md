@@ -1,5 +1,7 @@
 # Đường Về Nhà — Balance Config
 
+> **P8 trial 21/10/2026 (TẠM):** runtime thử tiền đầu 280; base 0,02/m; khách thường 0,20/khách/m; ô tô 4 chỗ giá 300; khách đầu 60 m, gap 360 m; shop 280/1050 m, sau đó gap 720–1080 m; hazard 80→70 m trong 3 km; special đầu 650 m, gap nhóm 360 m, tối thiểu 220 m sau dời hợp lệ. Tám kết quả cuối được phân bổ trong chu kỳ 12 slot theo seed, với police/train/accident giữ cooldown theo loại. QTE mở chung 2,4 s theo tốc độ tham chiếu lúc tiếp cận; ngưỡng đóng từ 0,6 đến 1,3 s theo xe, sàn 9 m trước tâm cua. Không cộng penalty QTE cũ. Vòng tài nguyên sau đo baseline: pickup xe máy 3 L/16 HP, fuel gap 480 m, repair gap 1000 m; car4 10 L/105 HP/0,0055 L/m/pickup 3,6 L/24 HP; car7 13 L/125 HP/0,0065 L/m/pickup 4,2 L/28 HP; mô tô 7,5 L/80 HP/0,0048 L/m/pickup 3,4 L/18 HP; tiếp tế shop 4 L/20 HP, giá 120/140. Damage, force và fuel traffic chưa đổi. Xem `P8_BALANCE_TRIAL_REVIEW.md`; các số lịch sử phía dưới không phải config hiện tại.
+
 > **Quyết định 20/10/2026:** các thông số lực thử ở `ver.force` nay cũng áp dụng cho bản chính `/`; `ver.noforce.html` giữ nguyên làm backup. Đây vẫn là số TẠM, chưa khóa cân bằng; không tự đổi fuel, HP, giá hay thu nhập trong lượt tích hợp.
 
 > **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.
@@ -277,6 +279,8 @@ Sửa runtime thường thành `p61-integrated-2`: tàu chờ ngoài vùng vẽ,
 
 ## P8 — câu hỏi bắt buộc trước cân bằng xăng traffic
 Theo yêu cầu chủ dự án18/10/2026, khi bắt đầu bước tuning/cân bằng phải hỏi: **“Có nên tắt tính năng xăng cho xe chướng ngại không?”** Chờ chủ dự án trả lời trước khi thay đổi luật fuel của traffic; hiện vẫn giữ bật. Không hiểu yêu cầu ghi chú này là đồng ý tắt. Lưu ý tác động tới xe hết xăng/coasting/dừng, mật độ ùn tắc/tai nạn phát sinh và khách từ xe hỏng; nếu cần so A/B phải giữ cùng seed/input/xe. Mốc stress và dữ liệu đã đóng băng: [BALANCE_REFERENCE_P61_STRESS.md](BALANCE_REFERENCE_P61_STRESS.md).
+
+**Vòng P8 mật độ 22/10/2026 — TẠM:** bản chính dùng trọng số normal nước:ổ gà:traffic = 2:1:1; sáu size nước có trọng số 6/8/12/14/45/15, gồm nước hai làn 5,7×24 m và toàn đường 9,6×30 m khi ngân sách nhiên liệu đủ. Special clearance thử 48 m cộng nửa chiều dài patch; shop/giao lộ/Grab vẫn có clearance riêng. Gió và cargo mỗi loại có cơ hội 10%/slot, cooldown 260 m, giữ cơ hội pending qua slot bị chặn. Bắt đầu cặp từ 350 m, ba lớp từ 850 m; trọng số yêu cầu cặp30%/ba45% vì nhiều candidate không hợp lệ, phải nghiệm thu bằng tỷ lệ *spawn thực*. Hai nhóm nặng cần 45 m hoặc 3 s nhịp thở. Thay đổi generator này chỉ cho main force; `ver.noforce` dùng lịch backup. Đây là số để thử độ phủ/độ khó, không là quyết định tăng damage hoặc tắt fuel traffic. Báo cáo: [P8_BALANCE_TRIAL_REVIEW.md](P8_BALANCE_TRIAL_REVIEW.md).
 
 
 ## P6.2 — bản thử lực ngang, chờ duyệt tích hợp

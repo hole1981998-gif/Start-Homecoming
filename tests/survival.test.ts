@@ -16,7 +16,7 @@ describe('survival, continuous hazards and crash recovery', () => {
   it('money/score/fuel follow actual travel; pause/ready/end have no side effects', () => {
     const r = advance(empty(), 10);
     expect(r.distance).toBeCloseTo(140); expect(r.score).toBeCloseTo(140);
-    expect(r.money).toBeCloseTo(270); expect(r.fuel).toBeCloseTo(balance.fuelCapacity - 140 * balance.fuelPerMeter);
+    expect(r.money).toBeCloseTo(balance.initialMoney + 140 * balance.moneyPerMeter); expect(r.fuel).toBeCloseTo(balance.fuelCapacity - 140 * balance.fuelPerMeter);
     for (const phase of ['ready', 'paused', 'ended'] as const) {
       const stopped = { ...r, phase }; expect(advance(stopped, 10)).toBe(stopped);
     }
@@ -24,7 +24,7 @@ describe('survival, continuous hazards and crash recovery', () => {
   it('water burns by exact contact duration, separate from HP and distance fuel', () => {
     const r = advance(empty([entity('water', 'water', 7, 0)]), 1);
     expect(r.fuel).toBeCloseTo(balance.fuelCapacity - 14 * balance.fuelPerMeter - .8 * 9 / 14, 8);
-    expect(r.durability).toBe(70); expect(r.money).toBeCloseTo(207);
+    expect(r.durability).toBe(70); expect(r.money).toBeCloseTo(balance.initialMoney + 14 * balance.moneyPerMeter);
   });
   it('pothole charges money once and hurts while touching; each traffic car hits once', () => {
     const r = advance({ ...empty([entity('pothole', 'hole', 0, 0)]), money: 2 }, .1);
@@ -56,7 +56,7 @@ describe('survival, continuous hazards and crash recovery', () => {
   });
   it('a reachable fuel pickup restarts a coasting vehicle without exceeding tank', () => {
     const r = advance({ ...empty([entity('fuel', 'gas', 4, 0)]), fuel: 0, motion: 'coasting' }, .5);
-    expect(r.motion).toBe('powered'); expect(r.fuel).toBeGreaterThan(balance.fuelCapacity - .1);
+    expect(r.motion).toBe('powered'); expect(r.fuel).toBeGreaterThan(balance.fuelPickup - .1);
     expect(r.fuel).toBeLessThanOrEqual(balance.fuelCapacity);
     expect(r.world.entities[0].consumed).toBe(true);
   });
@@ -70,7 +70,7 @@ describe('survival, continuous hazards and crash recovery', () => {
     const r = advance({ ...empty([entity('repair', 'fix', 0, 0), entity('fuel', 'gas', 0, 0)]), durability: 60, fuel: 4 }, .1);
     expect(r.durability).toBe(70); expect(r.fuel).toBeLessThanOrEqual(balance.fuelCapacity); expect(r.eventSequence).toBe(2);
     const restarted = initialRun(); expect(restarted.durability).toBe(70); expect(restarted.fuel).toBe(balance.fuelCapacity);
-    expect(restarted.score).toBe(0); expect(restarted.money).toBe(200); expect(restarted.result).toBeNull();
+    expect(restarted.score).toBe(0); expect(restarted.money).toBe(balance.initialMoney); expect(restarted.result).toBeNull();
   });
   it('seeded lane directions, wide and forced hazards, and accessible supplies', () => {
     expect(fillWorld(initialWorld(42), 1000)).toEqual(fillWorld(initialWorld(42), 1000));
@@ -84,7 +84,13 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(hazards.some(e => e.width >= balance.laneWidth * balance.laneCount - 1e-8)).toBe(true);
     for (const e of hazards.filter(e => e.width < balance.laneWidth * balance.laneCount - 1e-8)) expect([-balance.laneWidth, 0, balance.laneWidth].some(x =>
       Math.abs(x - e.x) > (e.width + balance.vehicleWidth) / 2)).toBe(true);
-    const traffic = world.entities.filter(e => e.kind === 'traffic');
+    let sampled = initialWorld(42);
+    const trafficById = new Map<string, ReturnType<typeof entity>>();
+    for (let distance = 0; distance <= 5000; distance += 80) {
+      sampled = fillWorld(sampled, distance);
+      for (const e of sampled.entities) if (e.kind === 'traffic') trafficById.set(e.id, e);
+    }
+    const traffic = [...trafficById.values()];
     expect(traffic.some(e => e.x < 0)).toBe(true);
     expect(traffic.some(e => e.x > 0)).toBe(true);
     expect(traffic.every(e => Math.abs(e.speed) === trafficTypes[e.trafficKind!].speed &&

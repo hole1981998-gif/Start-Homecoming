@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p7-handling-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p8-density-patterns-2', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -8,11 +8,11 @@ export const balance = Object.freeze({
   lateralGrip: 0.85, lateralGripReferenceSpeed: 20,
   fixedStep: 1 / 60, maxFrameSeconds: 0.1, maxSubsteps: 6,
   fuelCapacity: 5.5, durabilityCapacity: 70, fuelPerMeter: 0.0045,
-  initialMoney: 200, scorePerMeter: 1, moneyPerMeter: 0.5,
-  riderScoreBonus: 0.04, riderMoneyPerMeter: 0.01, motorcycleCapacity: 2, riderLimit: 24,
+  initialMoney: 280, scorePerMeter: 1, moneyPerMeter: 0.02,
+  riderScoreBonus: 0.04, riderMoneyPerMeter: 0.20, motorcycleCapacity: 2, riderLimit: 24,
   riderCruiseLoss: 2, riderCruiseFloor: 8, overloadSpeedPenalty: 0.08, overloadFuelPenalty: 0.15,
   minSpeedFactor: 0.4, maxFuelLoadFactor: 3,
-  firstPassenger: 260, passengerInterval: 400, passengerReach: 12, passengerLateralReach: 1.8,
+  firstPassenger: 60, passengerInterval: 360, passengerReach: 12, passengerLateralReach: 1.8,
   passengerReboardDelaySeconds: 2,
   passengerWanderRadius: 1.5, passengerWanderSpeed: 0.45, passengerKickSeconds: 0.65,
   passengerReturnChance: 0.5, passengerDownSeconds: 0.4, passengerStandSeconds: 0.55,
@@ -24,10 +24,10 @@ export const balance = Object.freeze({
   trafficPassengerLimit: 3, trafficPassengerClearance: 0.5,
   crashSlideDeceleration: 8, crashSkidLateralMetres: 1.8,
   driverEjectionSpeedFactor: 1.5, driverEjectionLateralMetres: 2.5,
-  fuelPickup: 5.5, repairPickup: 40,
-  firstHazard: 130, hazardGap: 90, worldLookAhead: 140,
-  hazardGapMin: 75, firstJunction: 800, junctionInterval: 800, junctionClearance: 60,
-  fuelInterval: 450, firstRepair: 650, repairInterval: 900,
+  fuelPickup: 3, repairPickup: 16,
+  firstHazard: 130, hazardGap: 80, worldLookAhead: 140,
+  hazardGapMin: 70, firstJunction: 800, junctionInterval: 800, junctionClearance: 60,
+  fuelInterval: 480, firstRepair: 650, repairInterval: 1000,
   warningSeconds: 3.5, discoverySeconds: 8,
 });
 export type Balance = { [K in keyof typeof balance]: typeof balance[K] extends number ? number : string };
@@ -79,10 +79,10 @@ if (forceTailSweep.lowSpeed >= forceTailSweep.fullSpeed ||
   throw new Error('Invalid force tail sweep bounds');
 
 /** P5 trial prices/effects from BALANCE_CONFIG. Amounts L / HP, distances m. */
-export const shopBalance = Object.freeze({ firstDistance: 600, secondDistance: 1200,
-  minGap: 600, maxGap: 900, reach: 30, lateralReach: 1.8, clearance: 45,
-  fuelPrice: 60, repairPrice: 70,
-  fuelAmount: 8, repairAmount: 40,
+export const shopBalance = Object.freeze({ firstDistance: 280, secondDistance: 1050,
+  minGap: 720, maxGap: 1080, reach: 30, lateralReach: 1.8, clearance: 45,
+  fuelPrice: 120, repairPrice: 140,
+  fuelAmount: 4, repairAmount: 20,
   enginePrices: [200, 400, 700] as const, tankPrices: [180, 350, 600] as const,
   armourPrices: [180, 350, 600] as const, economyPrices: [220, 420, 750] as const,
   enginePerLevel: .08, tankPerLevel: .15, armourPerLevel: .15, economyPerLevel: .08 });
@@ -100,6 +100,25 @@ export const hazardSizes = Object.freeze({
   water: [[2.4, 4], [3.2, 7], [3.2, 14], [5.7, 9], [5.7, 24], [9.6, 30]] as const,
   pothole: [[1.1, 1.2], [1.5, 1.8], [2.3, 4], [5.7, 5], [5.7, 24], [9.6, 18]] as const,
 });
+/** P8 director trial. Weights are relative; distances are metres. */
+export const densityBalance = Object.freeze({
+  waterWeight: 2, potholeWeight: 1, trafficWeight: 1,
+  waterSizeWeights: [6, 8, 12, 14, 45, 15] as const,
+  specialClearance: 48, windChancePercent: 10, cargoChancePercent: 10,
+  windCooldown: 260, cargoCooldown: 260,
+  pairStart: 350, fullPatternsStart: 850,
+  // Requests compensate for patterns rejected by footprint/corridor checks; measure final 25/55/20 mix.
+  pairPercent: 30, triplePercent: 45,
+  heavyBreatherMetres: 45,
+});
+if (densityBalance.waterSizeWeights.length !== hazardSizes.water.length ||
+    densityBalance.waterSizeWeights.some(weight => weight <= 0) ||
+    densityBalance.waterWeight <= 0 || densityBalance.potholeWeight <= 0 || densityBalance.trafficWeight <= 0 ||
+    densityBalance.specialClearance < balance.warningSeconds * balance.minSpeed ||
+    densityBalance.windChancePercent + densityBalance.cargoChancePercent >= 100 ||
+    densityBalance.pairPercent + densityBalance.triplePercent >= 100 ||
+    densityBalance.windCooldown <= 0 || densityBalance.cargoCooldown <= 0)
+  throw new Error('Invalid P8 director config');
 for (const variants of Object.values(hazardSizes)) for (const [width, length] of variants) {
   if (width <= 0 || length <= 0 || width > balance.laneWidth * balance.laneCount) {
     throw new Error('Invalid P3A hazard geometry');
@@ -120,13 +139,17 @@ if (!Number.isInteger(itemBalance.grabUses) || itemBalance.grabMinAhead > itemBa
 
 /** P6 trial values: money, metres, seconds, probability. */
 export const eventBalance = Object.freeze({ policeFine: 300, militiaFine: 100, reserveFuelFactor: .5,
-  firstDistance: 1700, gap: 1250, reactionSeconds: 3.5, bananaReach: 45, bananaPrice: 80,
+  firstDistance: 650, gap: 360, minimumGap: 220, policeCooldown: 1200, trainCooldown: 800, accidentCooldown: 600,
+  reactionSeconds: 3.5, bananaReach: 45, bananaPrice: 80,
   trainPeriod: 16, trainClosedSeconds: 8, trainClearance: 1.8, brokenItemChance: .25,
   corridor: 110 });
 for (const value of Object.values(eventBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid event config');
 if (eventBalance.trainClosedSeconds >= eventBalance.trainPeriod || eventBalance.reserveFuelFactor > 1 ||
     eventBalance.brokenItemChance > 1 || eventBalance.trainClearance >= itemBalance.jumpHeight ||
-    eventBalance.gap < 1200) throw new Error('Invalid event bounds');
+    eventBalance.gap < eventBalance.minimumGap || eventBalance.minimumGap < balance.warningSeconds * balance.maxSpeed ||
+    eventBalance.policeCooldown < eventBalance.gap || eventBalance.trainCooldown < eventBalance.gap ||
+    eventBalance.accidentCooldown < eventBalance.gap) throw new Error('Invalid event bounds');
+if (densityBalance.specialClearance >= eventBalance.corridor) throw new Error('Special clearance erases normal hazards');
 
 export const movingVersion = 'p61-scenarios-3';
 

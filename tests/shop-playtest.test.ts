@@ -1,9 +1,10 @@
 import { expect, it } from 'vitest';
 import { balance, shopBalance } from '../src/config';
 import { noInput } from '../src/simulation';
-import { activeVehicle, initialRun, stepRun, type Run } from '../src/survival';
+import { activeVehicle, initialRun, pickUpPassenger, stepRun, type Run } from '../src/survival';
 import { enterShop, reachableShop, transact } from '../src/shop';
 import { warningDistance } from '../src/world';
+import { vehicles } from '../src/vehicles';
 
 it('samples actual first-car purchases on seeded hazardous routes, separately from merely affording a car', () => {
   const observations = [];
@@ -25,11 +26,14 @@ it('samples actual first-car purchases on seeded hazardous routes, separately fr
         }
         return { x, cost };
       }).sort((a, b) => a.cost - b.cost)[0].x;
-      const shop = nearby.find(e => e.kind === 'shop' && e.distance > 1000);
-      if (shop && shop.distance - run.distance < 70) target = shop.x;
+      const passenger = nearby.find(e => e.kind === 'passenger' && e.pickupable !== false && run.riderIds.length === 0);
+      if (passenger && passenger.distance - run.distance < 85) target = passenger.x;
+      const shop = nearby.find(e => e.kind === 'shop' && e.distance >= shopBalance.firstDistance);
+      if (!passenger && shop && shop.distance - run.distance < 100) target = shop.x;
       run = stepRun(run, { ...noInput(), accelerate: fast, left: run.x - target > .18, right: target - run.x > .18 });
+      run = pickUpPassenger(run);
       const reachable = reachableShop(run);
-      if (reachable && run.money >= 800 && reachable.shopStock?.vehicles.includes('car4')) {
+      if (reachable && run.money >= vehicles.car4.price && reachable.shopStock?.vehicles.includes('car4')) {
         run = transact(enterShop(run), { kind: 'vehicle', vehicle: 'car4', sequence: run.economySequence }).run;
         purchased = activeVehicle(run).kind === 'car4'; if (purchased) break;
       }

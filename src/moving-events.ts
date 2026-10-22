@@ -2,9 +2,11 @@ import { balance, movingBalance as c } from './config';
 import { type Entity } from './world';
 import { vehicles, trafficTypes, type VehicleDefinition } from './vehicles';
 import type { CrossMotion } from './cross-motion';
+import type { JamVariant } from './special-events';
 
 /** Separate seeded event stream: never consumes hazard/shop RNG. */
-export function movingEvent(event: Entity, index: number, seed: number, now: number, distance: number, player: VehicleDefinition): Entity[] {
+export function movingEvent(event: Entity, index: number, seed: number, now: number, distance: number, player: VehicleDefinition,
+  jamVariant?: JamVariant): Entity[] {
   const hash = (Math.imul(seed ^ Math.imul(index + 1, 0x9e3779b1), 1664525) + 1013904223) >>> 0;
   const side = hash & 1 ? 1 : -1;
   const motion = (origin: number, velocity: number, type: CrossMotion['type'] = 'linear'): CrossMotion =>
@@ -33,11 +35,11 @@ export function movingEvent(event: Entity, index: number, seed: number, now: num
       return npc;
     });
   } else if (event.kind === 'jam') {
-    const variant = (hash >>> 8) % 3;
-    if (variant === 0) {
+    const variant = jamVariant ?? (['barrier', 'vendor', 'ambulance'] as const)[(hash >>> 8) % 3];
+    if (variant === 'barrier') {
       event.width = c.barrierWidth; event.length = c.barrierDepth;
       event.displayName = 'Rào sửa đường'; event.help = 'Né lane còn trống. Chạm rào gây ngã xe.';
-    } else if (variant === 1) {
+    } else if (variant === 'vendor') {
       event.x = -side * 6; event.width = c.vendorWidth; event.length = c.vendorLength;
       event.crossMotion = motion(event.x, side * c.vendorSpeed);
       event.crossMotion.startedAt += Math.max(0, (event.distance - distance) / player.cruiseSpeed - 2);

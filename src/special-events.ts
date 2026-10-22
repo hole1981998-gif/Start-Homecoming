@@ -5,6 +5,13 @@ import type { Run } from './survival';
 
 export const specialKinds = ['police', 'militia', 'jam', 'accident', 'train', 'broken'] as const;
 export type SpecialKind = typeof specialKinds[number];
+export type JamVariant = 'barrier' | 'vendor' | 'ambulance';
+const outcomes: readonly { kind: SpecialKind; variant?: JamVariant }[] = [
+  { kind: 'police' }, { kind: 'jam', variant: 'barrier' }, { kind: 'train' },
+  { kind: 'militia' }, { kind: 'accident' }, { kind: 'jam', variant: 'vendor' },
+  { kind: 'broken' }, { kind: 'police' }, { kind: 'train' },
+  { kind: 'militia' }, { kind: 'accident' }, { kind: 'jam', variant: 'ambulance' },
+];
 export const isSpecial = (kind: EntityKind): kind is SpecialKind => (specialKinds as readonly string[]).includes(kind);
 /** Clock is gameplay time: pause/help/shop never advance the crossing. */
 export function trainClosed(e: Entity, seconds: number): boolean {
@@ -18,9 +25,12 @@ export function bananaTarget(run: Run): Entity | undefined {
     .sort((a, b) => a.distance - b.distance)[0];
 }
 /** Deterministic, separate event stream. Two-lane patterns always leave one whole lane. */
-export function specialPlan(index: number, seed: number): { kind: SpecialKind; distance: number; x: number } {
+export function specialPlan(index: number, seed: number): { kind: SpecialKind; variant?: JamVariant; distance: number; x: number } {
   const hash = (Math.imul(seed ^ Math.imul(index + 1, 0x9e3779b1), 1664525) + 1013904223) >>> 0;
-  return { kind: specialKinds[(index + (hash >>> 16)) % specialKinds.length],
+  // Every twelve slots include all outcomes; repeated threats retain type-specific cooldowns.
+  const offset = (seed >>> 0) % outcomes.length;
+  const position = (seed & 8) ? outcomes.length - 1 - index % outcomes.length : index % outcomes.length;
+  return { ...outcomes[(position + offset) % outcomes.length],
     distance: eventBalance.firstDistance + index * eventBalance.gap,
     x: ((hash & 1) ? 1 : -1) * balance.laneWidth / 2 };
 }

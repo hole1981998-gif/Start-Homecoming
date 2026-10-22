@@ -106,7 +106,7 @@ describe('P4A passenger loop', () => {
     });
     expect(samples.every(s => s.phase === 'running')).toBe(true);
     expect(samples[1].earned / samples[1].distance).toBeGreaterThan(samples[0].earned / samples[0].distance);
-    expect(samples[1].earned).toBeLessThan(samples[0].earned);
+    expect(samples[1].earned).toBeGreaterThan(samples[0].earned);
     expect((balance.fuelCapacity - samples[2].fuelLeft) / samples[2].distance)
       .toBeGreaterThan((balance.fuelCapacity - samples[1].fuelLeft) / samples[1].distance);
     console.log(JSON.stringify({ config: balance.version, seconds: 60, samples }));

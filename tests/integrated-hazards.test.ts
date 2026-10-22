@@ -29,8 +29,12 @@ it('normal generated routes contain countersteerable wind and live same-directio
       Math.abs(e.lateralPush ?? 0) === forceBalance.windPush)).toBe(true);
     expect(sources.every(e => e.kind === 'traffic' && e.x === balance.laneWidth && e.speed > 0 &&
       (e.trafficKind === 'truck' || e.trafficKind === 'container'))).toBe(true);
-    expect(winds.every(wind => entities.every(e => !['water', 'pothole', 'jam', 'train', 'accident', 'broken'].includes(e.kind) ||
-      Math.abs(e.distance - wind.distance) > (e.length + wind.length) / 2))).toBe(true);
+    expect(winds.some(wind => entities.some(e => e.kind === 'water' && e.patternId === 6 &&
+      Math.abs(e.distance - wind.distance) < (e.length + wind.length) / 2))).toBe(true);
+    const blockedWinds = winds.flatMap(wind => entities.filter(e => ['jam', 'train', 'accident', 'broken'].includes(e.kind) &&
+      Math.abs(e.distance - wind.distance) <= (e.length + wind.length) / 2)
+      .map(e => ({ seed, branchVariant, wind: wind.distance, blocker: e.kind, blockerAt: e.distance })));
+    expect(blockedWinds).toEqual([]);
   }
   expect(generated(17).map(e => [e.id, e.kind, e.cargoReleaseAt, e.lateralPush])).toEqual(
     generated(17).map(e => [e.id, e.kind, e.cargoReleaseAt, e.lateralPush]));

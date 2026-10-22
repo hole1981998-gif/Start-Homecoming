@@ -5,7 +5,7 @@ import { activeVehicle, dropPassenger, initialRun, names, passengerDrive, pickUp
 import { canChoose, junction } from './route';
 import { leaderboard, recordResult, saveSeen, seenCards, showFlavor, saveFlavor } from './persistence';
 import { RoadRenderer } from './render';
-import { warningDistance, type EntityKind } from './world';
+import { fillWorld, initialWorld, warningDistance, type EntityKind } from './world';
 import { developmentScenario } from './development';
 import { createIcons, Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } from 'lucide';
 import { RoadHud } from './road-hud';
@@ -54,7 +54,8 @@ function newRun() {
   const requestedSeed = import.meta.env.DEV && params.has('seed') ? Number(params.get('seed')) : NaN;
   const seed = Number.isSafeInteger(requestedSeed) && requestedSeed >= 0 && requestedSeed <= 0xffffffff ?
     requestedSeed : scenario?.startsWith('passenger-crash') ? 17 : crypto.getRandomValues(new Uint32Array(1))[0];
-  const run = initialRun(seed, crypto.randomUUID());
+  const fresh = initialRun(seed, crypto.randomUUID());
+  const run = version === 'noforce' ? { ...fresh, world: fillWorld(initialWorld(seed, true, 'backup'), 0) } : fresh;
   return import.meta.env.DEV ? developmentScenario(run, scenario, Number(params.get('start') ?? 0)) : run;
 }
 let state = newRun(), previous = state, input = noInput();
@@ -233,12 +234,13 @@ function updateHud(): void {
   const junctionCue = el('junction-cue');
   junctionCue.hidden = state.phase !== 'running' || !!state.crash || approach < 0 || approach > Math.max(70, state.speed * 4);
   if (!junctionCue.hidden) {
-    const activeChoice = canChoose(state.distance, state.speed, nextJunction);
+    const activeChoice = canChoose(state.distance, state.speed, nextJunction, vehicle.kind, state.route.window);
     junctionCue.classList.toggle('active', activeChoice);
     junctionCue.classList.toggle('forced', nextJunction.blockedStraight);
     text('junction-distance', activeChoice ? `${(approach / Math.max(state.speed, 1)).toFixed(1)} s` : `${Math.ceil(approach)} m`);
     text('junction-message', state.route.choice ? state.route.choice === 'left' ? 'ĐÃ CHỌN TRÁI' : 'ĐÃ CHỌN PHẢI' :
-      !activeChoice ? 'SẮP TỚI GIAO LỘ' : nextJunction.blockedStraight ? 'RẼ NGAY · ĐƯỜNG THẲNG CHẶN' : 'CHỌN LỐI');
+      !activeChoice ? state.route.window?.closed ? 'ĐÃ HẾT CỬA RẼ' : 'SẮP TỚI GIAO LỘ' :
+        nextJunction.blockedStraight ? 'RẼ NGAY · ĐƯỜNG THẲNG CHẶN' : 'CHỌN LỐI');
     el('junction-left').classList.toggle('selected', state.route.choice === 'left');
     el('junction-right').classList.toggle('selected', state.route.choice === 'right');
   }

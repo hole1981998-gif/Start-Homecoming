@@ -1,5 +1,7 @@
 # Đường Về Nhà — Roadmap
 
+> **P8 đang thử ngày 22/10/2026:** economy mua xe đầu, gap 80→70 m, tám special và Q/E theo xe đã có ở vòng đầu. Vòng mật độ mới ưu tiên vũng nước dài/rộng, tổ hợp 1–3 lớp, gió/cargo theo cơ hội seed có defer, và giữ outcome special khi hành lang bận; có fixture `?scenario=p8-water&seed=17`. Đối chiếu từng mục và giới hạn trong `P8_BALANCE_TRIAL_REVIEW.md`. Mốc 4 phút trung vị **chưa nghiệm thu**; chưa đổi fuel traffic, damage hay art. `ver.noforce` giữ lịch backup. Các đoạn P2/P5 bên dưới là lịch sử của baseline cũ.
+
 > **Quyết định 20/10/2026:** đưa luật lực từ `ver.force` vào bản chính `/`; `ver.noforce.html` là backup, không chỉnh nếu chủ dự án không yêu cầu. Hệ số lực và sát thương vẫn TẠM. P8 cần kiểm tra thêm nhiều seed/tốc độ/xe, giao lộ, sát mép đường, camera, hiệu năng và economy trước khi khóa cân bằng.
 
 > **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { noInput } from '../src/simulation';
+import { balance } from '../src/config';
 import { activeVehicle, initialRun, passengerDrive, stepRun, switchVehicle, type Run } from '../src/survival';
 import { buyVehicle, newVehicle, vehicles } from '../src/vehicles';
 import { entity } from '../src/world';
@@ -26,8 +27,8 @@ describe('P4B vehicle instances', () => {
     const car = coast('car4'), container = coast('container');
     expect(container.x).toBeGreaterThan(car.x);
     expect(container.lateralVelocity).toBeGreaterThan(car.lateralVelocity);
-    expect(car.money - 200).toBeCloseTo(car.distance * .5);
-    expect(container.money - 200).toBeCloseTo(container.distance * .5);
+    expect(car.money - balance.initialMoney).toBeCloseTo(car.distance * balance.moneyPerMeter);
+    expect(container.money - balance.initialMoney).toBeCloseTo(container.distance * balance.moneyPerMeter);
   });
   it('keeps each tank, HP and upgrades on its instance while Tab changes loaded cruise and capacity', () => {
     const base = twoVehicles();
@@ -124,7 +125,7 @@ describe('P4B vehicle instances', () => {
         vehicleInstances: [newVehicle(definition.kind, initial.activeVehicleId)],
         fuel: definition.fuelCapacity, durability: definition.durabilityCapacity,
         speed: definition.cruiseSpeed,
-        world: { ...initial.world, entities: [], nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } };
+        world: { ...initial.world, entities: [], nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextSpecial: 1e9 } };
       for (let i = 0; i < 3600; i++) run = stepRun(run, noInput());
       expect(run.phase).toBe('running');
       expect(run.speed).toBeCloseTo(passengerDrive(passengers, definition).cruiseSpeed, 5);

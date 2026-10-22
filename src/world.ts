@@ -1,9 +1,10 @@
 import { crossX, type CrossMotion } from './cross-motion';
+import { directorRoll, layerCount, roadHazard, waterSizeIndex } from './balance-director';
 import { fillStressWorld } from './stress-world';
 import { movingEvent } from './moving-events';
 import { isSpecial, specialPlan } from './special-events';
 import { eventBalance } from './config';
-import { balance, cargoBalance, forceBalance, hazardSizes, itemBalance, shopBalance, stressBalance } from './config';
+import { balance, cargoBalance, densityBalance, forceBalance, hazardSizes, itemBalance, shopBalance, stressBalance } from './config';
 import { trafficSpawnKinds, trafficTypes, vehicles, type VehicleDefinition, type VehicleKind } from './vehicles';
 export { trafficTypes } from './vehicles';
 import { nearJunction, type RouteState, type Turn } from './route';
@@ -28,15 +29,21 @@ export interface Entity {
   serviceRole?: 'ambulance';
   cargoReleaseAt?: number; cargoDropped?: boolean; cargoType?: 'crate' | 'barrel'; cargoVelocityX?: number; cargoExpiresAt?: number; cargoSourceId?: string;
   displayName?: string; help?: string;
+  patternId?: number;
 }
 export interface RetiredEntity { entity: Entity; route: RouteState; expireDistance: number }
 export interface World { entities: Entity[]; retired: RetiredEntity[]; nextHazard: number; nextFuel: number; nextRepair: number;
   stress?: boolean; nextStress?: number; integrated?: boolean; experimentalMotion?: boolean; experimentalTraffic?: boolean; experimentalCargo?: boolean; prototype?: { version: string; title: string; description: string };
-  nextSpecial?: number; nextPassenger: number; nextShop: number; nextShopDistance: number; rng: number; seed: number; branchSeed: number; branchId: number; branchVariant: number }
-export const initialWorld = (seed: number, integrated = false): World => ({ entities: [], retired: [],
+  nextSpecial?: number; lastSpecialDistance?: number; nextPassenger: number; nextShop: number; nextShopDistance: number; rng: number; seed: number; branchSeed: number; branchId: number; branchVariant: number;
+  pendingWind?: boolean; pendingCargo?: boolean; lastWindDistance?: number; lastCargoDistance?: number;
+  heavyPatternStreak?: number; lastPatternEnd?: number; recentPatternIds?: number[];
+  branchAvoidKinds?: Record<number, EntityKind>; directorVersion?: 'p8' | 'backup' }
+export const initialWorld = (seed: number, integrated = false, directorVersion: 'p8' | 'backup' = 'p8'): World => ({ entities: [], retired: [], directorVersion,
   ...(integrated ? { integrated: true, experimentalMotion: true, experimentalTraffic: true, experimentalCargo: true } : {}), nextHazard: 0, nextFuel: 1,
   nextRepair: 0, nextPassenger: 0, nextShop: 0, nextShopDistance: shopBalance.firstDistance,
-  rng: seed >>> 0, seed, branchSeed: seed >>> 0, branchId: 0, branchVariant: 0 });
+  rng: seed >>> 0, seed, branchSeed: seed >>> 0, branchId: 0, branchVariant: 0,
+  pendingWind: false, pendingCargo: false, lastWindDistance: -1e9, lastCargoDistance: -1e9,
+  heavyPatternStreak: 0, lastPatternEnd: -1e9, recentPatternIds: [], branchAvoidKinds: {} });
 export function nextShopDistance(distance: number, index: number, seed: number): number {
   if (index === 0) return shopBalance.secondDistance;
   const span = shopBalance.maxGap - shopBalance.minGap + 1;
@@ -59,17 +66,25 @@ export function forkWorld(world: World, route: RouteState, turn: Turn, junctionD
   let nextHazard = 0;
   while (hazardDistance(nextHazard) < split) nextHazard++;
   const oldRoute = { ...route, choice: null };
+  const branchAvoidKinds = Object.fromEntries(world.entities.filter(e =>
+    e.distance >= split && e.distance < split + 240 && e.id.startsWith('hazard-') &&
+    !e.id.startsWith('hazard-pair-') && !e.id.startsWith('hazard-third-'))
+    .map(e => [Math.round(e.distance), e.kind]));
   let shopIndex = 0, shopDistance: number = shopBalance.firstDistance;
   while (shopDistance < split) { shopDistance = nextShopDistance(shopDistance, shopIndex, branchSeed); shopIndex++; }
   return { ...world, entities: world.entities.filter(e => e.distance < split),
     retired: [...world.retired, ...world.entities.filter(e => !e.consumed && e.distance >= split)
       .map(entity => ({ entity, route: oldRoute, expireDistance: junctionDistance + 64 }))],
     nextSpecial: world.nextSpecial === 1e9 ? 1e9 : Math.max(0, Math.ceil((split - eventBalance.firstDistance) / eventBalance.gap)),
+    lastSpecialDistance: undefined,
     nextStress: world.stress ? Math.max(0, Math.ceil((split - stressBalance.first) / stressBalance.gap)) : world.nextStress,
     nextHazard, nextFuel: Math.max(1, Math.ceil(split / balance.fuelInterval)),
     nextRepair: Math.max(0, Math.ceil((split - balance.firstRepair) / balance.repairInterval)),
     nextPassenger: Math.max(0, Math.ceil((split - balance.firstPassenger) / balance.passengerInterval)),
-    nextShop: shopIndex, nextShopDistance: shopDistance, rng: branchSeed, branchSeed, branchId, branchVariant };
+    nextShop: shopIndex, nextShopDistance: shopDistance, rng: branchSeed, branchSeed, branchId, branchVariant,
+    pendingWind: false, pendingCargo: false, lastWindDistance: split - densityBalance.windCooldown,
+    lastCargoDistance: split - densityBalance.cargoCooldown, heavyPatternStreak: 0,
+    lastPatternEnd: split - 100, recentPatternIds: [], branchAvoidKinds };
 }
 export function entity(kind: EntityKind, id: string, distance: number, x: number): Entity {
   const sizes: Record<EntityKind, [number, number]> = { wind: [9.6, 65], water: [3.2, 7], pothole: [1.5, 1.8], traffic: [trafficTypes.car4.width, trafficTypes.car4.length], cargo: [.8, .8], fuel: [.8, .8], repair: [.8, .8], passenger: [.7, .7], shop: [1, 3], police: [9.6, .8], militia: [9.6, .8], jam: [6.2, 6], accident: [6.2, 5], train: [9.6, 2], broken: [1.9, 4.2] };
@@ -212,9 +227,9 @@ export function warningDistance(playerSpeed: number, target: Entity, vehicleLeng
 
 const laneCentres = [-balance.laneWidth, 0, balance.laneWidth];
 export function passengerDistance(index: number): number { return balance.firstPassenger + index * balance.passengerInterval; }
-/** Gap eases from 90 m to 75 m over roughly the first 10 km. */
+/** Gap eases from 80 m to 70 m over roughly the first 3 km. */
 export function hazardDistance(index: number): number {
-  const rampSteps = Math.ceil(10000 / balance.hazardGap);
+  const rampSteps = Math.ceil(3000 / balance.hazardGap);
   const ramped = Math.min(index, rampSteps);
   const range = balance.hazardGap - balance.hazardGapMin;
   const reduction = range / rampSteps * ramped * (ramped - 1) / 2 + range * Math.max(0, index - rampSteps);
@@ -271,6 +286,7 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
   const w = { ...world, entities: world.entities.filter(e => e.kind === 'cargo' && (e.consumed || now >= (e.cargoExpiresAt ?? Infinity)) ? false : e.kind === 'shop' ?
     e.distance + shopBalance.reach >= distance : e.distance + e.length / 2 > distance - 12),
     retired: world.retired.filter(e => e.expireDistance >= distance) };
+  const backupDirector = world.directorVersion === 'backup' || !!world.stress;
   const ahead = distance + Math.max(balance.worldLookAhead, (vehicle.maxSpeed + maxTrafficSpeed) * balance.warningSeconds);
   while (w.nextShopDistance <= ahead) {
     const index = w.nextShop, at = w.nextShopDistance;
@@ -283,20 +299,51 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     w.rng = (Math.imul(w.rng, 1664525) + 1013904223) >>> 0;
     return w.rng >>> 16;
   };
-  const kinds: EntityKind[] = ['water', 'pothole', 'traffic'];
+  // Existing supplies and passengers are known before arranging nearby trade-offs.
+  while (w.nextFuel * balance.fuelInterval <= ahead) {
+    const index = w.nextFuel++;
+    w.entities.push(entity('fuel', branchEntityId(w, 'fuel', index), index * balance.fuelInterval,
+      (index + w.branchId) % 2 ? -balance.laneWidth : balance.laneWidth));
+  }
+  while (balance.firstRepair + w.nextRepair * balance.repairInterval <= ahead) {
+    const index = w.nextRepair++;
+    w.entities.push(entity('repair', branchEntityId(w, 'repair', index), balance.firstRepair + index * balance.repairInterval,
+      (index + w.branchId) % 2 ? -balance.laneWidth : balance.laneWidth));
+  }
+  while (passengerDistance(w.nextPassenger) <= ahead) {
+    const index = w.nextPassenger++;
+    const x = ((Math.imul(w.branchSeed ^ (index + 1), 1103515245) >>> 0) & 1) ? balance.laneWidth : -balance.laneWidth;
+    const passenger = entity('passenger', branchEntityId(w, 'passenger', index), passengerDistance(index), x);
+    passenger.motionKey = `${w.branchSeed}:waiting:${index}`;
+    w.entities.push(passenger);
+  }
   while (hazardDistance(w.nextHazard) <= ahead) {
     const index = w.nextHazard++;
-    const windSlot = w.integrated && !w.stress && index % forceBalance.integratedEveryHazards === forceBalance.integratedOffset;
-    const cargoSlot = w.integrated && !w.stress && index % cargoBalance.integratedEveryHazards === cargoBalance.integratedOffset;
-    const kind: EntityKind = windSlot ? 'wind' : cargoSlot ? 'traffic' : kinds[(index + w.branchVariant) % kinds.length];
     const spawnAt = hazardDistance(index);
+    if (w.integrated && !backupDirector) {
+      const offer = directorRoll(w.branchSeed, index, 0x674e8a19) % 100;
+      if (offer < densityBalance.windChancePercent) w.pendingWind = true;
+      else if (offer < densityBalance.windChancePercent + densityBalance.cargoChancePercent) w.pendingCargo = true;
+    }
+    const windReady = w.pendingWind && spawnAt - (w.lastWindDistance ?? -1e9) >= densityBalance.windCooldown;
+    const cargoReady = w.pendingCargo && spawnAt - (w.lastCargoDistance ?? -1e9) >= densityBalance.cargoCooldown;
+    const windSlot = backupDirector ? !!w.integrated && !w.stress &&
+      index % forceBalance.integratedEveryHazards === forceBalance.integratedOffset :
+      !!windReady && (!cargoReady || index % 2 === 0);
+    const cargoSlot = backupDirector ? !!w.integrated && !w.stress &&
+      index % cargoBalance.integratedEveryHazards === cargoBalance.integratedOffset :
+      !!cargoReady && !windSlot;
+    const backupKinds: EntityKind[] = ['water', 'pothole', 'traffic'];
+    let kind: EntityKind = windSlot ? 'wind' : cargoSlot ? 'traffic' : backupDirector ?
+      backupKinds[(index + w.branchVariant) % backupKinds.length] : roadHazard(w.branchSeed, index);
+    if (!backupDirector && !windSlot && !cargoSlot && w.branchAvoidKinds?.[Math.round(spawnAt)] === kind)
+      kind = kind === 'water' ? 'pothole' : kind === 'pothole' ? 'traffic' : 'water';
     // A junction is a short decision corridor, not a surprise hazard stack.
     if (nearJunction(spawnAt)) continue;
     const specialIndex = Math.max(0, Math.round((spawnAt - eventBalance.firstDistance) / eventBalance.gap));
-    const eventCorridor = w.nextSpecial !== 1e9 && Math.abs(specialPlan(specialIndex, w.branchSeed).distance - spawnAt) < eventBalance.corridor;
-    const shopCorridor = Math.abs(w.nextShopDistance - spawnAt) < shopBalance.clearance ||
-      w.entities.some(e => e.kind === 'shop' && Math.abs(e.distance - spawnAt) < shopBalance.clearance);
-    const lane = random() % 3 - 1;
+    random(); // Preserve the hazard stream's draw count across lane-selection changes.
+    const laneHash = (Math.imul(w.branchSeed ^ Math.imul(index + 1, 0x9e3779b1), 1664525) + 1013904223) >>> 0;
+    const lane = (laneHash >>> 16) % 3 - 1;
     const hazard = entity(kind, branchEntityId(w, 'hazard', index), spawnAt, lane * balance.laneWidth);
     if (kind === 'wind') {
       hazard.x = 0; hazard.width = forceBalance.windWidth; hazard.length = forceBalance.zoneLength;
@@ -319,7 +366,7 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
       }
     } else if (kind === 'water' || kind === 'pothole') {
       const variants = hazardSizes[kind];
-      const [width, length] = variants[random() % variants.length];
+      const [width, length] = variants[kind === 'water' && !backupDirector ? waterSizeIndex(w.branchSeed, index) : random() % variants.length];
       hazard.width = width; hazard.length = length;
       // Two-lane patches leave an outside lane; three-lane patches cover the full road.
       if (coversRoad(hazard)) hazard.x = 0;
@@ -329,7 +376,18 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
       hazard.width = 5.7; hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
     }
     // Consume the usual hazard draws before rejecting it, so shop stock/corridors cannot reroll later hazards.
-    if (shopCorridor || eventCorridor) continue;
+    const eventCorridor = w.nextSpecial !== 1e9 &&
+      Math.abs(specialPlan(specialIndex, w.branchSeed).distance - spawnAt) <
+        (backupDirector ? eventBalance.corridor : densityBalance.specialClearance + hazard.length / 2);
+    const shopCorridor = Math.abs(w.nextShopDistance - spawnAt) < shopBalance.clearance + (backupDirector ? 0 : hazard.length / 2) ||
+      w.entities.some(e => e.kind === 'shop' && Math.abs(e.distance - spawnAt) <
+        shopBalance.clearance + (backupDirector ? 0 : hazard.length / 2));
+    if (shopCorridor || eventCorridor && !(backupDirector && (windSlot || cargoSlot))) continue;
+    if (!backupDirector && (w.heavyPatternStreak ?? 0) >= 2 &&
+        spawnAt - (w.lastPatternEnd ?? -1e9) < Math.max(densityBalance.heavyBreatherMetres, vehicle.maxSpeed * 3)) {
+      w.heavyPatternStreak = 0;
+      continue;
+    }
     // A call reserves only its pickup pocket, never rerolls hazard RNG or clears whole road sections.
     const grabPocket = w.entities.some(npc => npc.kind === 'passenger' && npc.passengerType === 'grab' &&
       !npc.consumed && npc.pickupable !== false && (() => {
@@ -345,36 +403,186 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     if (grabPocket) continue;
     const forced = coversRoad(hazard);
     if (forced && kind === 'pothole' && hasConcurrentCar(hazard, w.entities, distance, vehicle)) continue;
-    if (forced || kind === 'water' || leavesOpenLane(hazard, w.entities, distance, vehicle)) w.entities.push(hazard);
+    if (forced || kind === 'water' || leavesOpenLane(hazard, w.entities, distance, vehicle)) {
+      w.entities.push(hazard);
+      if (backupDirector) {
+        const pairEvery = spawnAt >= 2400 ? 3 : spawnAt >= 1200 ? 5 : Infinity;
+        if ((kind === 'water' || kind === 'pothole' || kind === 'traffic') &&
+            hazard.width <= balance.laneWidth && index % pairEvery === 0) {
+          const secondKind: EntityKind = kind === 'water' ? 'pothole' : 'water';
+          const available = laneCentres.filter(x => !blocksLane(hazard, x, vehicle));
+          if (available.length >= 2) {
+            const secondLane = available[(laneHash >>> 22) % available.length];
+            const second = entity(secondKind, branchEntityId(w, 'hazard-pair', index), spawnAt + 4, secondLane);
+            second.width = secondKind === 'water' ? 3.2 : 1.5;
+            second.length = secondKind === 'water' ? 7 : 4;
+            if (laneCentres.some(x => !blocksLane(hazard, x, vehicle) && !blocksLane(second, x, vehicle)) &&
+                (secondKind === 'water' || leavesOpenLane(second, w.entities, distance, vehicle))) w.entities.push(second);
+          }
+        }
+        continue;
+      }
+      if (windSlot) { w.pendingWind = false; w.lastWindDistance = spawnAt; }
+      if (cargoSlot) { w.pendingCargo = false; w.lastCargoDistance = spawnAt; }
+      const pickup = w.entities.find(e => (e.kind === 'fuel' || e.kind === 'repair') &&
+        Math.abs(e.distance - spawnAt) <= 32);
+      const requestedLayers = layerCount(w.branchSeed, index, spawnAt);
+      let patternChoice = directorRoll(w.branchSeed, index, 0x71a4cd9f) % 4;
+      if (kind === 'water') {
+        const choices = [1, 3, 2, 4];
+        for (let attempt = 0; attempt < choices.length && (w.recentPatternIds ?? []).includes(choices[patternChoice]); attempt++)
+          patternChoice = (patternChoice + 1) % choices.length;
+      }
+      const edgeTriple = requestedLayers === 3 && kind === 'water' &&
+        hazard.width <= balance.laneWidth && patternChoice === 2;
+      if (edgeTriple) hazard.x = laneHash & 1 ? -balance.laneWidth : balance.laneWidth;
+      const openLanes = laneCentres.filter(x => !blocksLane(hazard, x, vehicle));
+      const extraKind: EntityKind = windSlot || cargoSlot || kind !== 'water' ? 'water' :
+        patternChoice === 0 || patternChoice === 3 ? 'traffic' : patternChoice === 1 ? 'pothole' : 'water';
+      const wantsExtra = spawnAt >= densityBalance.fullPatternsStart && (windSlot || cargoSlot) ||
+        requestedLayers > 1;
+      const canForceWater = kind === 'water' && hazard.width > balance.laneWidth &&
+        forcedPatchIsAffordable({ ...hazard, width: balance.laneWidth * balance.laneCount },
+          distance, fuel, durability, fuelFactor, vehicle);
+      const secondLane = windSlot ? Math.sign(hazard.lateralPush ?? 1) * balance.laneWidth : edgeTriple ? -hazard.x :
+        kind === 'water' && patternChoice === 0 && openLanes.includes(balance.laneWidth) ? balance.laneWidth :
+        openLanes.length ? openLanes[(laneHash >>> 22) % openLanes.length] : 0;
+      const second = entity(extraKind, branchEntityId(w, 'hazard-pair', index),
+        spawnAt + (windSlot ? 12 : edgeTriple ? 18 : patternChoice === 3 ? 14 :
+          hazard.width > balance.laneWidth ? 0 : 6), secondLane);
+      if (extraKind === 'water') { second.width = 3.2; second.length = 14; }
+      if (extraKind === 'pothole') { second.width = 1.5; second.length = 4; }
+      if (extraKind === 'traffic') {
+        const variant = trafficSpawnKinds[directorRoll(w.branchSeed, index, 0x449729c1) % trafficSpawnKinds.length];
+        second.trafficKind = variant; second.hp = trafficTypes[variant].hp;
+        second.fuel = vehicles[variant].fuelCapacity; second.trafficMotion = 'powered';
+        second.width = trafficTypes[variant].width; second.length = trafficTypes[variant].length;
+        second.speed = secondLane < 0 ? -trafficTypes[variant].speed : trafficTypes[variant].speed;
+        second.baseSpeed = second.speed;
+      }
+      const extraClear = (candidate: Entity) => {
+        const nearest = Math.max(0, Math.round((candidate.distance - eventBalance.firstDistance) / eventBalance.gap));
+        return !nearJunction(candidate.distance) &&
+          Math.abs(candidate.distance - specialPlan(nearest, w.branchSeed).distance) >=
+            densityBalance.specialClearance + candidate.length / 2 &&
+          !w.entities.some(e => e.kind === 'shop' &&
+            Math.abs(e.distance - candidate.distance) < shopBalance.clearance + candidate.length / 2);
+      };
+      const freeLane = windSlot || laneCentres.some(x => !blocksLane(hazard, x, vehicle) && !blocksLane(second, x, vehicle));
+      const safePair = extraKind === 'water' || leavesOpenLane(second, w.entities, distance, vehicle);
+      const addSecond = wantsExtra && (windSlot || openLanes.length > 0) && extraClear(second) && safePair &&
+        (freeLane || kind === 'water' && canForceWater);
+      let thirdEnd = -Infinity;
+      if (addSecond) {
+        w.entities.push(second);
+        const patternId = windSlot ? 6 : cargoSlot ? 10 : pickup ? 5 :
+          kind === 'water' && extraKind === 'traffic' && secondLane > 0 && patternChoice === 0 ? 1 :
+            kind === 'water' && extraKind === 'pothole' || kind === 'pothole' ? 3 :
+              extraKind === 'water' && kind === 'water' ? 2 : 4;
+        hazard.patternId = patternId; second.patternId = patternId;
+        w.recentPatternIds = [...(w.recentPatternIds ?? []).slice(-2), patternId];
+        if (requestedLayers === 3 && !coversRoad(hazard) && !windSlot && !cargoSlot) {
+          const third = entity(edgeTriple ? 'traffic' : 'water', branchEntityId(w, 'hazard-third', index),
+            spawnAt, edgeTriple ? 0 : hazard.x);
+          third.patternId = patternId;
+          if (edgeTriple) {
+            const variant = trafficSpawnKinds[directorRoll(w.branchSeed, index, 0x8c25f431) % trafficSpawnKinds.length];
+            third.trafficKind = variant; third.hp = trafficTypes[variant].hp;
+            third.fuel = vehicles[variant].fuelCapacity; third.trafficMotion = 'powered';
+            third.width = trafficTypes[variant].width; third.length = trafficTypes[variant].length;
+            third.speed = trafficTypes[variant].speed; third.baseSpeed = third.speed;
+          } else { third.width = 3.2; third.length = 7; }
+          const offsets = edgeTriple ? [9, -9, 6, -6] : [18, -14, 12, -8];
+          const thirdAt = offsets.find(offset => {
+            third.distance = spawnAt + offset;
+            return extraClear(third) && (third.kind === 'water' || leavesOpenLane(third, w.entities, distance, vehicle));
+          });
+          if (thirdAt !== undefined) {
+            third.distance = spawnAt + thirdAt;
+            w.entities.push(third); thirdEnd = third.distance + third.length / 2;
+          }
+        }
+      } else if (pickup && hazard.width <= balance.laneWidth) hazard.patternId = 5;
+      const groupEnd = Math.max(hazard.distance + hazard.length / 2,
+        addSecond ? second.distance + second.length / 2 : -Infinity, thirdEnd);
+      w.lastPatternEnd = groupEnd;
+      w.heavyPatternStreak = addSecond ? (w.heavyPatternStreak ?? 0) + 1 : 0;
+    }
   }
-  while (w.nextFuel * balance.fuelInterval <= ahead) {
-    const index = w.nextFuel++;
-    w.entities.push(entity('fuel', branchEntityId(w, 'fuel', index), index * balance.fuelInterval,
-      (index + w.branchId) % 2 ? -balance.laneWidth : balance.laneWidth));
-  }
-  while (balance.firstRepair + w.nextRepair * balance.repairInterval <= ahead) {
-    const index = w.nextRepair++;
-    w.entities.push(entity('repair', branchEntityId(w, 'repair', index), balance.firstRepair + index * balance.repairInterval,
-      (index + w.branchId) % 2 ? -balance.laneWidth : balance.laneWidth));
-  }
-  while (passengerDistance(w.nextPassenger) <= ahead) {
-    const index = w.nextPassenger++;
-    const x = ((Math.imul(w.branchSeed ^ (index + 1), 1103515245) >>> 0) & 1) ? balance.laneWidth : -balance.laneWidth;
-    const passenger = entity('passenger', branchEntityId(w, 'passenger', index), passengerDistance(index), x);
-    passenger.motionKey = `${w.branchSeed}:waiting:${index}`;
-    w.entities.push(passenger);
-  }
-  // Separate deterministic stream; skip shop/junction/Grab corridors rather than force an impossible stack.
+  // Separate deterministic stream; defer a blocked event to a safe nearby corridor.
   if (w.nextSpecial === undefined) w.nextSpecial = 0;
   while (specialPlan(w.nextSpecial, w.branchSeed).distance <= ahead) {
-    const index = w.nextSpecial++, plan = specialPlan(index, w.branchSeed);
-    if (plan.distance < distance + vehicle.maxSpeed * eventBalance.reactionSeconds || nearJunction(plan.distance) ||
-      w.entities.some(e => (e.kind === 'shop' || (e.kind === 'passenger' && e.passengerType === 'grab' && !e.consumed)) &&
-        Math.abs(e.distance - plan.distance) < eventBalance.corridor)) continue;
-    const event = entity(plan.kind, branchEntityId(w, 'event', index), plan.distance,
+    const index = w.nextSpecial, plan = specialPlan(index, w.branchSeed);
+    const nearReservedHazard = (at: number) => backupDirector && Array.from({ length: 6 }, (_, n) =>
+      Math.max(0, w.nextHazard - 3) + n).some(hazardIndex => {
+        const wind = !!w.integrated && hazardIndex % forceBalance.integratedEveryHazards === forceBalance.integratedOffset;
+        const cargo = !!w.integrated && hazardIndex % cargoBalance.integratedEveryHazards === cargoBalance.integratedOffset;
+        return (wind || cargo) && Math.abs(hazardDistance(hazardIndex) - at) <=
+          ((wind ? forceBalance.zoneLength : vehicles.truck.length) + (plan.kind === 'train' ? 3 : 7)) / 2 + 8;
+      });
+    const earliest = Math.max(plan.distance, distance + vehicle.maxSpeed * eventBalance.reactionSeconds,
+      (w.lastSpecialDistance ?? -1e9) + eventBalance.minimumGap);
+    const firstOffset = Math.max(0, Math.ceil((earliest - plan.distance) / 40) * 40);
+    const candidates = backupDirector ? [0, 40, 80, 120, 160].map(offset => plan.distance + offset) :
+      Array.from({ length: 9 }, (_, n) => plan.distance + firstOffset + n * 40);
+    const shifted = candidates.find(at =>
+      at <= ahead && at >= distance + vehicle.maxSpeed * eventBalance.reactionSeconds &&
+      at - (w.lastSpecialDistance ?? -Infinity) >= eventBalance.minimumGap && !nearJunction(at) &&
+      !nearReservedHazard(at) &&
+      !w.entities.some(e => (e.kind === 'water' || e.kind === 'pothole' || e.kind === 'traffic') &&
+        !e.consumed && Math.abs(e.distance - at) <= (e.length + (plan.kind === 'train' ? 3 : 7)) / 2 + 8) &&
+      !w.entities.some(e => (e.kind === 'wind' || e.cargoReleaseAt !== undefined) &&
+        Math.abs(e.distance - at) <= (e.length + (plan.kind === 'train' ? 3 : 7)) / 2 + 8) &&
+      !w.entities.some(e => (e.kind === 'shop' || (e.kind === 'passenger' && e.passengerType === 'grab' && !e.consumed)) &&
+        Math.abs(e.distance - at) < eventBalance.corridor) &&
+      (backupDirector || plan.kind !== 'train' || !w.entities.some(e =>
+        ['water', 'pothole', 'traffic', 'wind'].includes(e.kind) && !e.consumed &&
+        e.distance + e.length / 2 >= at - 62 && e.distance - e.length / 2 <= at + 12)));
+    if (shifted === undefined) {
+      if (backupDirector && plan.distance + 160 <= ahead) { w.nextSpecial++; continue; }
+      // Keep this outcome pending. On the next chunk the search moves forward, not onto the player.
+      break;
+    }
+    w.nextSpecial++;
+    const event = entity(plan.kind, branchEntityId(w, 'event', index), shifted,
       plan.kind === 'police' || plan.kind === 'militia' || plan.kind === 'train' ? 0 : plan.x);
-    if (w.integrated) w.entities.push(...movingEvent(event, index, w.branchSeed, now, distance, vehicle));
-    else w.entities.push(event);
+    const patternId = backupDirector ? undefined : plan.kind === 'jam' ? plan.variant === 'barrier' ? 7 : plan.variant === 'vendor' ? 8 : 9 :
+      plan.kind === 'police' || plan.kind === 'militia' ? 11 : plan.kind === 'train' ? 12 : undefined;
+    event.patternId = patternId;
+    const actors = w.integrated ? movingEvent(event, index, w.branchSeed, now, distance, vehicle, plan.variant) : [event];
+    w.entities.push(...actors);
+    if (w.integrated && patternId === 7) {
+      const water = entity('water', branchEntityId(w, 'event-pattern', index), shifted + 2,
+        event.x < 0 ? balance.laneWidth : -balance.laneWidth);
+      water.width = 3.2; water.length = 14; water.patternId = patternId;
+      if (forcedPatchIsAffordable({ ...water, width: balance.laneWidth * balance.laneCount },
+        distance, fuel, durability, fuelFactor, vehicle)) w.entities.push(water);
+    } else if (w.integrated && patternId === 8) {
+      const water = entity('water', branchEntityId(w, 'event-pattern', index), shifted + 9,
+        directorRoll(w.branchSeed, index, 0x1f682aa9) % 2 ? balance.laneWidth : -balance.laneWidth);
+      water.width = 3.2; water.length = 14; water.patternId = patternId;
+      w.entities.push(water);
+    } else if (w.integrated && patternId === 9) {
+      const traffic = entity('traffic', branchEntityId(w, 'event-pattern', index), shifted + 18,
+        event.x < 0 ? balance.laneWidth : -balance.laneWidth);
+      traffic.trafficKind = 'motorbike'; traffic.hp = trafficTypes.motorbike.hp;
+      traffic.fuel = vehicles.motorbike.fuelCapacity; traffic.trafficMotion = 'powered';
+      traffic.width = trafficTypes.motorbike.width; traffic.length = trafficTypes.motorbike.length;
+      traffic.speed = trafficTypes.motorbike.speed; traffic.baseSpeed = traffic.speed; traffic.patternId = patternId;
+      if (leavesOpenLane(traffic, w.entities, distance, vehicle)) w.entities.push(traffic);
+    } else if (w.integrated && patternId === 11) {
+      const supply = w.entities.find(e => (e.kind === 'passenger' || e.kind === 'fuel' || e.kind === 'repair') &&
+        Math.abs(e.distance - shifted) < 45);
+      if (supply) supply.patternId = patternId;
+      else {
+        const passenger = entity('passenger', branchEntityId(w, 'event-pattern', index), shifted + 24,
+          directorRoll(w.branchSeed, index, 0x7197c42d) % 2 ? balance.laneWidth : -balance.laneWidth);
+        passenger.motionKey = `${w.branchSeed}:event:${index}`;
+        passenger.patternId = patternId;
+        w.entities.push(passenger);
+      }
+    }
+    w.lastSpecialDistance = shifted;
   }
   if (w.stress) fillStressWorld(w, Math.max(ahead, distance + stressBalance.lookAhead), now, distance, vehicle);
   w.entities = w.entities.map(e => {

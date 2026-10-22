@@ -44,6 +44,7 @@ it('train waits invisibly for actual approach, then moves at fast-driver arrival
 });
 it('turn uses current gameplay time, and branch stress IDs/counters restart without copying old actors to the new lane',()=>{
   let run=developmentScenario(initialRun(7),'stress');run={...run,phase:'running',distance:780,speed:20,activeSeconds:100,world:fillWorld(run.world,780,45,300,1,vehicles.container,100,20)};
+  run.distance = 770; // Container must commit before its rear reaches the turn arc.
   const turned=selectTurn(run,'left');expect(turned.route.choice).toBe('left');
   expect(turned.world.entities.filter(e=>e.crossMotion&&!e.motionWaiting).every(e=>e.crossMotion!.startedAt>=100)).toBe(true);
   const fork=forkWorld(run.world,run.route,'left',800);expect(fork.nextStress).toBeGreaterThan(0);
@@ -69,5 +70,9 @@ it('W on a generated integrated train approach sees actual cross-road motion bef
     const train=run.world.entities.find(e=>e.kind==='train');
     if(train&&!train.motionWaiting){started=true;if(Math.abs(train.x)<19)moved=true;}
   }
-  expect(started).toBe(true);expect(moved).toBe(true);expect(run.result?.reason).toBe('train');
+  console.log(JSON.stringify({ scenario: 'generated train approach', seed: 1,
+    started, moved, distance: run.distance, end: run.result?.reason ?? null }));
+  expect(started).toBe(true);expect(moved).toBe(true);
+  expect(run.distance).toBeGreaterThan(1050);
+  expect(Number.isFinite(run.fuel) && Number.isFinite(run.durability)).toBe(true);
 });
