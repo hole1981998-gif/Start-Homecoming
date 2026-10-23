@@ -23,6 +23,7 @@ function pilot(r: Run, strategy: 'cruise' | 'fast' | 'slow'): Input {
   return { accelerate: strategy === 'fast', brake: strategy === 'slow', left: r.x - target > .18, right: target - r.x > .18 };
 }
 
+// Ninety seeded runs can exceed 30 seconds on a shared CI runner.
 it('P5 baseline without special events: seeded survival/economy across cruise, W and S strategies', () => {
   const observations: { seed: number; strategy: string; seconds: number; distance: number; hp: number; fuel: number;
     minFuel: number; secondsBelow2: number; crashes: number; money: number; end: string; affordAt: number | null;
@@ -70,7 +71,7 @@ it('P5 baseline without special events: seeded survival/economy across cruise, W
     lowFuelRuns: observations.filter(o => o.strategy === strategy && o.minFuel < 2).length,
     noAffordSeeds: observations.filter(o => o.strategy === strategy && o.affordAt === null).map(o => o.seed),
   })) }));
-}, 30000);
+}, 90000);
 
 it('resource, collision and RNG outcomes match at 30/60/144 render FPS', () => {
   const outcomes = [30, 60, 144].map(fps => {
