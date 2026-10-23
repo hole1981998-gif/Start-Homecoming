@@ -1,0 +1,64 @@
+import { describe, expect, it } from 'vitest';
+import * as THREE from 'three';
+import { createPersonArt, mountPersonOnSeat, type PersonArchetype } from '../src/art/people';
+import { createTwoWheelerArt } from '../src/art/two-wheelers';
+import { createCar4Art } from '../src/art/car4';
+
+const cast: PersonArchetype[] = ['driver', 'commuter', 'student', 'child', 'senior', 'worker'];
+
+describe('essential people art', () => {
+  it('provides ground roots, distinct named silhouettes and attachment sockets', () => {
+    for (const archetype of cast) {
+      const person = createPersonArt(archetype);
+      const bounds = new THREE.Box3().setFromObject(person.root);
+      expect(person.root.name).toBe(`chr_${archetype}_root`);
+      expect(person.sockets.hip.parent?.name).toBe('hip_pivot');
+      expect(person.sockets.ground_contact.getWorldPosition(new THREE.Vector3()).y).toBe(0);
+      expect(bounds.min.y).toBeGreaterThan(-.06);
+      expect(bounds.max.y).toBeGreaterThan(.9);
+      person.dispose();
+    }
+  });
+
+  it('switches core poses without cumulative drift', () => {
+    const person = createPersonArt('worker');
+    const hip = person.sockets.hip;
+    const standY = hip.getWorldPosition(new THREE.Vector3()).y;
+    person.setPose('grounded');
+    expect(hip.getWorldPosition(new THREE.Vector3()).y).toBeLessThan(standY);
+    person.setPose('hail', .25);
+    expect(hip.getWorldPosition(new THREE.Vector3()).y).toBe(standY);
+    expect(person.root.getObjectByName('shoulder_1')?.rotation.z).toBeGreaterThan(2);
+    person.setPose('refuse');
+    person.setPose('ejected', .2);
+    const startTilt = person.root.getObjectByName('torso_pivot')!.rotation.x;
+    person.setPose('ejected', .8);
+    expect(person.root.getObjectByName('torso_pivot')!.rotation.x).toBeLessThan(startTilt);
+    person.setPose('recover', .5);
+    expect(hip.getWorldPosition(new THREE.Vector3()).y).toBeGreaterThan(.33);
+    person.setPose('stand');
+    expect(person.root.getObjectByName('shoulder_1')?.rotation.z).toBe(0);
+    expect(hip.getWorldPosition(new THREE.Vector3()).y).toBe(standY);
+    person.dispose();
+  });
+
+  it('mounts a rider at the vehicle hip socket while preserving the vehicle root', () => {
+    const bike = createTwoWheelerArt('motorcycle');
+    const rider = createPersonArt('driver');
+    mountPersonOnSeat(rider, bike.seats.driver, 'riding');
+    expect(rider.root.parent).toBe(bike.seats.driver);
+    expect(rider.sockets.hip.getWorldPosition(new THREE.Vector3()).distanceTo(
+      bike.seats.driver.getWorldPosition(new THREE.Vector3()))).toBeLessThan(1e-6);
+    expect(bike.root.position.toArray()).toEqual([0, 0, 0]);
+    rider.dispose(); bike.dispose();
+  });
+  it('keeps a seated driver under the car4 roof without scaling the whole person', () => {
+    const car = createCar4Art();
+    const driver = createPersonArt('driver');
+    mountPersonOnSeat(driver, car.seats.driver);
+    const bounds = new THREE.Box3().setFromObject(driver.root);
+    expect(bounds.max.y).toBeLessThan(1.59);
+    expect(driver.root.scale.toArray()).toEqual([1, 1, 1]);
+    driver.dispose(); car.dispose();
+  });
+});

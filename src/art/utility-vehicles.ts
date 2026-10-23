@@ -1,0 +1,235 @@
+import * as THREE from 'three';
+
+export type UtilityVehicleKind = 'tricycle' | 'bus' | 'truck' | 'container';
+export type VehicleRole = 'player' | 'traffic';
+export interface UtilityVehicleArt {
+  root: THREE.Group;
+  body: THREE.Group;
+  tractor?: THREE.Group;
+  trailer?: THREE.Group;
+  wheels: THREE.Group[];
+  seats: THREE.Object3D[];
+  sockets: Record<string, THREE.Object3D>;
+  setPaint: (color: string) => void;
+  dispose: () => void;
+}
+const specs = {
+  tricycle: { width: 1.76, length: 3.2, color: '#c99455' },
+  bus: { width: 2.72, length: 10, color: '#6b9ca9' },
+  truck: { width: 2.72, length: 7, color: '#a18978' },
+  container: { width: 2.88, length: 15, color: '#b67a5c' },
+} as const;
+function material(color: string, roughness = .62, metalness = .08) {
+  return new THREE.MeshStandardMaterial({ color, roughness, metalness, flatShading: true, side: THREE.DoubleSide });
+}
+function block(parent: THREE.Object3D, name: string, size: [number, number, number],
+  pos: [number, number, number], mat: THREE.Material) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), mat);
+  mesh.name = name; mesh.position.set(...pos); parent.add(mesh); return mesh;
+}
+function face(parent: THREE.Object3D, name: string, pts: [number, number, number][], mat: THREE.Material) {
+  const values: number[] = [];
+  for (let i = 1; i < pts.length - 1; i++) values.push(...pts[0], ...pts[i], ...pts[i + 1]);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(values, 3)); g.computeVertexNormals();
+  const mesh = new THREE.Mesh(g, mat); mesh.name = name; parent.add(mesh); return mesh;
+}
+function socket(parent: THREE.Object3D, name: string, pos: [number, number, number]) {
+  const p = new THREE.Object3D(); p.name = name; p.position.set(...pos); parent.add(p); return p;
+}
+
+export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleRole = 'player',
+  lod: 'near' | 'far' = 'near'): UtilityVehicleArt {
+  const spec = specs[kind];
+  const root = new THREE.Group(); root.name = `veh_${kind}_${role}_root`;
+  const body = new THREE.Group(); body.name = 'suspensionVisual'; root.add(body);
+  const paint = material(spec.color, .46, .16), light = material('#ddd2af', .55, .08);
+  const dark = material('#4e5a5b', .69, .08), rubber = material('#202b30', .9);
+  const glass = material('#4b6d74', .24, .08), steel = material('#b8c4c1', .43, .4);
+  const red = material('#b74548', .37), amber = material('#e9b96f', .41);
+  const wood = material('#876f54', .83), mud = material('#625c54', 1);
+  const wheels: THREE.Group[] = [], seats: THREE.Object3D[] = [], sockets: Record<string, THREE.Object3D> = {};
+  const radius = kind === 'tricycle' ? .30 : kind === 'bus' ? .49 : kind === 'truck' ? .52 : .52;
+  function wheel(parent: THREE.Object3D, name: string, x: number, z: number, r = radius) {
+    const pivot = new THREE.Group(); pivot.name = `${name}_spin`; pivot.position.set(x, r, z); parent.add(pivot);
+    const tyre = new THREE.Mesh(new THREE.CylinderGeometry(r, r, kind === 'tricycle' ? .18 : .28, lod === 'near' ? 12 : 8), rubber);
+    tyre.rotation.z = Math.PI / 2; tyre.name = `${name}_tyre`; pivot.add(tyre);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * .48, r * .48, .015, lod === 'near' ? 10 : 6), steel);
+    hub.rotation.z = Math.PI / 2; hub.position.x = x > 0 ? .15 : -.15; pivot.add(hub);
+    wheels.push(pivot); return pivot;
+  }
+  function lampPair(parent: THREE.Object3D, frontZ: number, rearZ: number, x: number, y: number) {
+    for (const side of [-1, 1]) {
+      block(parent, `headlamp_${side}`, [.27, .15, .04], [side * x, y, frontZ], light);
+      block(parent, `tail_${side}`, [.22, .17, .04], [side * x, y, rearZ], red);
+      block(parent, `front_indicator_${side}`, [.08, .09, .045], [side * (x + .19), y, frontZ], amber);
+      block(parent, `rear_indicator_${side}`, [.08, .08, .045], [side * (x + .16), y, rearZ], amber);
+      sockets[`headlamp_${side}`] = socket(root, `headlamp_socket_${side}`, [side * x, y, frontZ + .03]);
+      sockets[`tail_${side}`] = socket(root, `tail_socket_${side}`, [side * x, y, rearZ - .03]);
+    }
+  }
+
+  let tractor: THREE.Group | undefined, trailer: THREE.Group | undefined;
+  if (kind === 'tricycle') {
+    const front = new THREE.Group(); front.name = 'front_steer'; body.add(front);
+    wheel(front, 'front', 0, 1.18, .29);
+    for (const side of [-1, 1]) {
+      block(front, `fork_${side}`, [.055, .62, .055], [side * .11, .72, 1.17], steel);
+      block(body, `step_${side}`, [.14, .05, .47], [side * .35, .48, .43], dark);
+    }
+    block(body, 'front_bike_nose', [.52, .48, .73], [0, .80, .93], paint);
+    block(front, 'handlebar', [.83, .055, .065], [0, 1.34, .91], steel);
+    block(front, 'front_lamp', [.29, .20, .08], [0, 1.08, 1.53], light);
+    block(body, 'engine', [.46, .30, .37], [0, .52, .51], dark);
+    block(body, 'driver_saddle', [.43, .11, .49], [0, 1.06, .28], dark);
+    // Open tray and thick end boards keep rear cargo/person space legible.
+    block(body, 'cargo_floor', [1.52, .14, 1.81], [0, .74, -.63], wood);
+    for (const side of [-1, 1]) {
+      block(body, `tray_side_${side}`, [.11, .44, 1.80], [side * .70, 1.02, -.63], paint);
+      block(body, `tray_upper_rail_${side}`, [.07, .05, 1.79], [side * .70, 1.25, -.63], steel);
+      wheel(root, `rear_${side}`, side * .65, -1.08, .31);
+    }
+    block(body, 'tail_board', [1.50, .44, .10], [0, 1.02, -1.51], paint);
+    block(body, 'rear_wood_inset', [1.24, .25, .025], [0, 1.02, -1.57], wood);
+    block(body, 'rear_lamp', [.24, .11, .05], [0, .82, -1.59], red);
+    if (lod === 'near') {
+      for (const z of [-1.28, -.52, .21]) block(body, `tray_slat_${z}`, [1.37, .03, .06], [0, .83, z], light);
+      block(body, 'number_plate', [.27, .13, .03], [0, .65, -1.59], light);
+    }
+    seats.push(socket(root, 'seat_driver', [0, 1.09, .25]));
+    for (const x of [-.44, .44]) for (const z of [-.98, -.32]) seats.push(socket(root, `tray_seat_${x}_${z}`, [x, .82, z]));
+    sockets.cargo_drop = socket(root, 'cargo_drop', [0, .77, -1.59]);
+    sockets.engine_smoke_fire = socket(root, 'engine_smoke_fire', [0, .68, .57]);
+    sockets.wheel_spray_front = socket(root, 'wheel_spray_front', [0, .25, 1.18]);
+    sockets.wheel_spray_rear = socket(root, 'wheel_spray_rear', [0, .25, -1.08]);
+  } else if (kind === 'bus') {
+    block(body, 'chassis', [2.46, .48, 9.45], [0, .75, 0], dark);
+    block(body, 'passenger_body', [2.52, 1.75, 9.44], [0, 1.77, 0], paint);
+    block(body, 'roof_crown', [2.37, .16, 9.25], [0, 2.75, 0], light);
+    // Front and rear are inset; the bus reads as a cabin, not a stretched rectangle.
+    face(body, 'sloped_windscreen', [[-1.12, 2.62, 4.76], [1.12, 2.62, 4.76],
+      [1.16, 1.81, 4.85], [-1.16, 1.81, 4.85]], glass);
+    face(body, 'sloped_rear_window', [[1.12, 2.62, -4.76], [-1.12, 2.62, -4.76],
+      [-1.15, 2.02, -4.84], [1.15, 2.02, -4.84]], glass);
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 8; i++) {
+        const z = -3.79 + i * 1.05;
+        block(body, `window_${side}_${i}`, [.027, .67, .86], [side * 1.274, 2.22, z], glass);
+        block(body, `pillar_${side}_${i}`, [.06, .74, .07], [side * 1.29, 2.23, z + .48], dark);
+      }
+      block(body, `belt_${side}`, [.06, .09, 9.18], [side * 1.29, 1.77, 0], light);
+      block(body, `side_skirt_${side}`, [.08, .20, 8.72], [side * 1.25, .79, 0], dark);
+      wheel(root, `front_${side}`, side * 1.18, 3.51);
+      wheel(root, `rear_${side}`, side * 1.18, -3.49);
+    }
+    block(body, 'service_door', [.06, 1.81, 1.20], [1.30, 1.45, 2.80], glass);
+    block(body, 'door_split', [.07, 1.83, .05], [1.34, 1.45, 2.80], steel);
+    block(body, 'front_destination_frame', [1.42, .21, .065], [0, 2.73, 4.83], dark);
+    lampPair(body, 4.86, -4.86, .97, 1.21);
+    block(body, 'front_bumper', [2.43, .17, .14], [0, .77, 4.89], dark);
+    block(body, 'rear_bumper', [2.43, .17, .14], [0, .77, -4.89], dark);
+    if (lod === 'near') {
+      for (const z of [-3.1, 0, 3.1]) block(body, `roof_vent_${z}`, [.82, .06, .45], [0, 2.87, z], dark);
+      block(body, 'rear_plate', [.45, .13, .025], [0, 1.0, -4.95], light);
+    }
+    // 25 seats including driver; visible roster stays under runtime control.
+    seats.push(socket(root, 'seat_driver', [-.68, 1.15, 4.12]));
+    for (let row = 0; row < 12; row++) for (const side of [-1, 1])
+      seats.push(socket(root, `seat_${row}_${side}`, [side * .73, 1.15, 3.25 - row * .62]));
+    sockets.engine_smoke_fire = socket(root, 'engine_smoke_fire', [0, 1.05, -4.15]);
+    sockets.cargo_drop = socket(root, 'cargo_drop', [0, 1.05, -4.94]);
+  } else if (kind === 'truck') {
+    block(body, 'ladder_chassis', [2.28, .38, 6.55], [0, .83, 0], dark);
+    block(body, 'cab_lower', [2.35, 1.30, 2.42], [0, 1.36, 2.12], paint);
+    block(body, 'cab_roof', [2.17, .15, 2.15], [0, 2.47, 2.09], light);
+    face(body, 'angled_truck_windscreen', [[-1.02, 2.39, 3.06], [1.02, 2.39, 3.06],
+      [1.08, 1.63, 3.36], [-1.08, 1.63, 3.36]], glass);
+    for (const side of [-1, 1]) {
+      block(body, `cab_side_window_${side}`, [.035, .52, .78], [side * 1.19, 2.12, 2.10], glass);
+      block(body, `mirror_${side}`, [.16, .27, .22], [side * 1.27, 2.02, 3.00], dark);
+      block(body, `cargo_side_${side}`, [.10, 1.40, 4.24], [side * 1.23, 1.57, -1.17], wood);
+      for (const z of [-2.85, -1.70, -.55, .60]) block(body, `cargo_rib_${side}_${z}`,
+        [.035, 1.43, .08], [side * 1.29, 1.57, z], steel);
+      wheel(root, `front_${side}`, side * 1.15, 2.48);
+      wheel(root, `rear_${side}`, side * 1.15, -2.47);
+    }
+    block(body, 'cargo_floor', [2.36, .16, 4.34], [0, .94, -1.17], wood);
+    block(body, 'cargo_roof', [2.38, .13, 4.27], [0, 2.35, -1.17], light);
+    block(body, 'rear_gate', [2.30, 1.40, .10], [0, 1.59, -3.37], wood);
+    for (const side of [-1, 1]) block(body, `rear_latch_${side}`, [.07, .87, .04], [side * .65, 1.59, -3.44], steel);
+    block(body, 'front_grille', [.90, .28, .04], [0, 1.12, 3.37], dark);
+    lampPair(body, 3.40, -3.44, 1.0, 1.15);
+    block(body, 'front_bumper', [2.38, .18, .14], [0, .69, 3.40], dark);
+    block(body, 'rear_bumper', [2.40, .15, .13], [0, .71, -3.45], dark);
+    if (lod === 'near') for (const z of [-2.76, -1.08, .61])
+      block(body, `cargo_rope_${z}`, [2.39, .035, .045], [0, 2.44, z], dark);
+    seats.push(socket(root, 'seat_driver', [-.57, 1.40, 2.16]));
+    seats.push(socket(root, 'seat_passenger_left', [.32, 1.40, 2.16]));
+    seats.push(socket(root, 'seat_passenger_right', [.70, 1.40, 2.16]));
+    sockets.cargo_drop = socket(root, 'cargo_drop', [0, 1.04, -3.50]);
+    sockets.engine_smoke_fire = socket(root, 'engine_smoke_fire', [0, 1.92, 2.91]);
+  } else {
+    tractor = new THREE.Group(); tractor.name = 'tractor'; body.add(tractor);
+    trailer = new THREE.Group(); trailer.name = 'trailer'; root.add(trailer);
+    block(tractor, 'tractor_chassis', [2.38, .42, 4.38], [0, .88, 5.17], dark);
+    block(tractor, 'tractor_cab', [2.38, 1.72, 2.50], [0, 1.73, 5.98], paint);
+    block(tractor, 'cab_roof', [2.20, .15, 2.28], [0, 2.66, 5.93], light);
+    face(tractor, 'windscreen', [[-1.06, 2.58, 7.04], [1.06, 2.58, 7.04],
+      [1.14, 1.82, 7.30], [-1.14, 1.82, 7.30]], glass);
+    for (const side of [-1, 1]) {
+      block(tractor, `side_window_${side}`, [.035, .56, .78], [side * 1.21, 2.19, 5.96], glass);
+      block(tractor, `mirror_${side}`, [.14, .27, .20], [side * 1.31, 2.07, 6.83], dark);
+      wheel(tractor, `tractor_front_${side}`, side * 1.18, 6.50);
+      wheel(tractor, `tractor_rear_${side}`, side * 1.18, 3.65);
+    }
+    block(tractor, 'front_grille', [1.11, .37, .04], [0, 1.13, 7.34], dark);
+    block(tractor, 'front_bumper', [2.51, .18, .12], [0, .67, 7.35], steel);
+    for (const side of [-1, 1]) {
+      block(tractor, `headlamp_${side}`, [.31, .16, .04], [side * 1.00, 1.26, 7.36], light);
+      sockets[`headlamp_${side}`] = socket(root, `headlamp_socket_${side}`, [side * 1.00, 1.26, 7.39]);
+    }
+    const hitch = socket(root, 'hitch', [0, 1.10, 3.13]); sockets.hitch = hitch;
+    block(tractor, 'fifth_wheel', [1.15, .09, .91], [0, 1.14, 3.23], dark);
+    block(trailer, 'trailer_floor', [2.61, .30, 10.29], [0, 1.31, -2.10], dark);
+    block(trailer, 'container_shell', [2.61, 2.42, 10.19], [0, 2.61, -2.15], wood);
+    block(trailer, 'container_roof', [2.55, .09, 10.17], [0, 3.85, -2.15], light);
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < (lod === 'near' ? 12 : 7); i++) {
+        const z = -6.91 + i * (lod === 'near' ? .86 : 1.43);
+        block(trailer, `cargo_rib_${side}_${i}`, [.04, 2.29, .055], [side * 1.328, 2.63, z], dark);
+      }
+      wheel(trailer, `trailer_rear_${side}_a`, side * 1.18, -5.85);
+      wheel(trailer, `trailer_rear_${side}_b`, side * 1.18, -6.67);
+      block(trailer, `rear_latch_${side}`, [.08, 1.45, .04], [side * .69, 2.54, -7.30], steel);
+      block(trailer, `tail_${side}`, [.22, .14, .04], [side * 1.04, 1.31, -7.32], red);
+      sockets[`tail_${side}`] = socket(root, `tail_socket_${side}`, [side * 1.04, 1.31, -7.35]);
+    }
+    block(trailer, 'rear_doors', [2.51, 2.33, .075], [0, 2.58, -7.28], wood);
+    block(trailer, 'rear_center_seam', [.05, 2.30, .04], [0, 2.58, -7.34], dark);
+    seats.push(socket(root, 'seat_driver', [-.58, 1.55, 5.98]));
+    seats.push(socket(root, 'seat_passenger', [.58, 1.55, 5.98]));
+    sockets.cargo_drop = socket(root, 'cargo_drop', [0, 1.65, -7.38]);
+    sockets.engine_smoke_fire = socket(root, 'engine_smoke_fire', [0, 1.80, 6.88]);
+    root.userData.articulated = role === 'player';
+  }
+  if (kind !== 'tricycle') {
+    sockets.exhaust = socket(root, 'exhaust', [-.80, .64, kind === 'bus' ? -4.77 : kind === 'truck' ? 2.45 : 4.37]);
+    sockets.contact_spark_front = socket(root, 'contact_spark_front', [0, .43, spec.length / 2]);
+    sockets.contact_spark_rear = socket(root, 'contact_spark_rear', [0, .43, -spec.length / 2]);
+  }
+  const used = new THREE.Group(); used.name = 'used_surface'; body.add(used);
+  block(used, 'road_mud_band', [Math.min(spec.width - .20, 2.5), .065, Math.min(spec.length * .48, 3)],
+    [0, .56, -spec.length * .19], mud);
+  used.visible = false;
+  root.userData = { ...root.userData, id: `veh_${kind}_${role}_A`, axes: '+Y up, +Z forward',
+    widthM: spec.width, lengthM: spec.length, lod, role, logicCollisionRole: 'reference-only' };
+  const setPaint = (color: string) => paint.color.set(color);
+  const dispose = () => {
+    const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
+    root.traverse(node => { if (node instanceof THREE.Mesh) {
+      geometries.add(node.geometry);
+      (Array.isArray(node.material) ? node.material : [node.material]).forEach(m => materials.add(m));
+    } });
+    geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
+  };
+  return { root, body, tractor, trailer, wheels, seats, sockets, setPaint, dispose };
+}
