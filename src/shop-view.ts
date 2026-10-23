@@ -60,7 +60,7 @@ export class ShopView {
     if (this.tab === 'vehicle') {
       content = (Object.keys(vehicles) as VehicleKind[]).map(kind => {
         const owned = run.vehicleInstances.some(v => v.kind === kind), sold = !stock.vehicles.includes(kind);
-        return row(vehicles[kind].name, `${vehicleSummary(kind)} · ${vehicles[kind].price} tiền`,
+        return row(vehicles[kind].name, `${vehicleSummary(kind, run.world.directorVersion === 'backup' ? 'backup' : undefined)} · ${vehicles[kind].price} tiền`,
           button(owned ? 'Đã sở hữu' : sold ? 'Hết hàng' : 'Chọn mua',
             `data-vehicle="${kind}" aria-label="${owned ? 'Đã sở hữu' : 'Chọn mua'} ${vehicles[kind].name}"`,
             owned || sold || run.money < vehicles[kind].price));

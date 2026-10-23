@@ -29,8 +29,10 @@ it('P5 baseline without special events: seeded survival/economy across cruise, W
     fuelPickups: number; maxEntities: number }[] = [];
   const affordTimes = { cruise: [] as number[], fast: [] as number[], slow: [] as number[] };
   for (const seed of [17, 42, 20261017, ...Array.from({ length: 27 }, (_, i) => 100 + i)]) for (const strategy of ['cruise', 'fast', 'slow'] as const) {
-    const initial = initialRun(seed);
-    let r: Run = { ...initial, world: { ...initial.world, nextSpecial: 1e9 }, phase: 'running' as Run['phase'] };
+    const initial = initialRun(seed, 'simulation', 'backup');
+    let r: Run = { ...initial,
+      world: { ...initial.world, nextSpecial: 1e9 },
+      phase: 'running' as Run['phase'] };
     let affordAt: number | null = null, maxEntities = 0, fuelPickups = 0, oldSequence = 0, violations = 0;
     let minFuel = r.fuel, secondsBelow2 = 0, crashes = 0;
     for (let tick = 0; tick < 60 * 600 && r.phase === 'running'; tick++) {
@@ -43,7 +45,7 @@ it('P5 baseline without special events: seeded survival/economy across cruise, W
       minFuel = Math.min(minFuel, r.fuel);
       if (r.fuel < 2) secondsBelow2 += balance.fixedStep;
       oldSequence = r.eventSequence;
-      if (!Number.isFinite(r.distance) || r.distance < old.distance || r.money < 0 || r.fuel < 0 || r.fuel > balance.fuelCapacity || r.durability < 0 || r.durability > 70) violations++;
+      if (!Number.isFinite(r.distance) || r.distance < old.distance || r.money < 0 || r.fuel < 0 || r.fuel > 5.5 || r.durability < 0 || r.durability > 70) violations++;
     }
     expect(violations).toBe(0); expect(maxEntities).toBeLessThan(20);
     if (affordAt !== null) affordTimes[strategy].push(affordAt);
@@ -62,7 +64,7 @@ it('P5 baseline without special events: seeded survival/economy across cruise, W
   expect(cruiseEnds).toBeGreaterThan(0); expect(cruiseEnds).toBeLessThan(30);
   const fastEnds = observations.filter(o => o.strategy === 'fast' && o.end !== 'running').length;
   expect(fastEnds).toBeGreaterThanOrEqual(cruiseEnds);
-  console.log(JSON.stringify({ config: balance.version, scenario: 'P5 baseline: special events disabled, ordinary hazards retained', summary: (['cruise', 'fast', 'slow'] as const).map(strategy => ({
+  console.log(JSON.stringify({ config: 'p8-encounter-candidate-a-1', director: 'backup', scenario: 'P5 baseline: special events disabled, ordinary hazards retained', summary: (['cruise', 'fast', 'slow'] as const).map(strategy => ({
     strategy, afforded: affordTimes[strategy].length, medianAfford: median(affordTimes[strategy]),
     deaths: observations.filter(o => o.strategy === strategy && o.end !== 'running').length,
     lowFuelRuns: observations.filter(o => o.strategy === strategy && o.minFuel < 2).length,

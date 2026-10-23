@@ -10,7 +10,7 @@ import { advancePassengers, advanceTraffic, entity, fillWorld, forkWorld, initia
 import { containerParts, stepTrailerRearX, tailSweepYaw } from './tail-sweep';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, updateJunctionWindow, type RouteState, type Turn } from './route';
-import { effectiveVehicle, newVehicle, vehicleRam, vehicles, type VehicleDefinition, type VehicleInstance } from './vehicles';
+import { effectiveVehicle, newVehicle, vehicleDefinition, vehicleRam, vehicles, waterFuelPerSecond, type VehicleDefinition, type VehicleInstance } from './vehicles';
 import { splitCrashRiders } from './passenger-outcomes';
 import { canSecretEnd, guardedSecret, initialSecret, secretLanding, secretPickup, secretTrainOverlap, secretVehicle, type SecretState } from './secret';
 
@@ -33,21 +33,27 @@ export interface Run extends State {
   secret: SecretState;
   forceYaw: number; forceTrailerRearX: number;
 }
-export const initialRun = (seed = 17, runId = 'simulation'): Run => ({ ...initialState(),
-  runId, seed, fuel: balance.fuelCapacity, durability: balance.durabilityCapacity, score: 0,
+export const initialRun = (seed = 17, runId = 'simulation', balanceProfile?: 'backup'): Run => ({ ...initialState(),
+  runId, seed, fuel: newVehicle('motorcycle', `${runId}-motorcycle`, balanceProfile).fuel,
+  durability: newVehicle('motorcycle', `${runId}-motorcycle`, balanceProfile).durability, score: 0,
   money: balance.initialMoney, activeSeconds: 0, motion: 'powered', coastRemaining: balance.coastDistance,
-  world: fillWorld(initialWorld(seed, true), 0), result: null, eventSequence: 0, feedback: '', feedbackAt: -100,
+  world: fillWorld(initialWorld(seed, true, balanceProfile === 'backup' ? 'backup' : 'p8'), 0,
+    vehicleDefinition('motorcycle', balanceProfile).fuelCapacity,
+    vehicleDefinition('motorcycle', balanceProfile).durabilityCapacity, 1,
+    vehicleDefinition('motorcycle', balanceProfile)), result: null, eventSequence: 0, feedback: '', feedbackAt: -100,
   feedbackKind: null, feedbackFlavor: '', feedbackCounts: initialFeedbackCounts(),
   crash: null, recovering: false, riderIds: [], lostPassengers: 0, crashRng: (seed ^ 0x9e3779b9) >>> 0, crashNumber: 0,
   protectedEntities: [],
   route: initialRoute(),
-  vehicleInstances: [newVehicle('motorcycle', `${runId}-motorcycle`)],
+  vehicleInstances: [newVehicle('motorcycle', `${runId}-motorcycle`, balanceProfile)],
   activeVehicleId: `${runId}-motorcycle`, replacementProtectedUntil: 0,
   grabUses: [0, 0], grabSequence: 0, nextGrabAt: 0, grabRiderIds: [],
   shopId: null, economySequence: 0, inventory: [null, null], powers: newPowers(), secret: initialSecret(),
   forceYaw: 0, forceTrailerRearX: 0,
 });
 export const names: Record<EntityKind, string> = { wind: 'Gió ngang', water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', cargo: 'Đồ rơi đang lăn', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường', police: 'Công an', militia: 'Dân phòng', jam: 'Kẹt xe', accident: 'Tai nạn', train: 'Tàu hoả', broken: 'Xe chết máy' };
+const runConfigVersion = (run: Run) => run.world.prototype?.version ??
+  (run.world.directorVersion === 'backup' ? 'p8-encounter-candidate-a-1' : balance.version);
 
 export const activeVehicle = (run: Run): VehicleDefinition =>
   effectiveVehicle(run.vehicleInstances.find(v => v.id === run.activeVehicleId)!);
@@ -220,7 +226,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
         (vehicle.width + trainHit.width) / 2, (vehicle.length + trainHit.length) / 2)![0];
       const at = before.activeSeconds + hit * dt, stop = before.distance + (distance - before.distance) * hit;
       return { ...before, phase: 'ended', speed: 0, distance: stop, activeSeconds: at,
-        result: { runId: before.runId, seed: before.seed, config: before.world.prototype?.version ?? balance.version, reason: 'train', distance: stop,
+        result: { runId: before.runId, seed: before.seed, config: runConfigVersion(before), reason: 'train', distance: stop,
           score: before.score, money: before.money, seconds: at } };
     }
     if (world.experimentalMotion) retireCrossers(movedEntities);
@@ -344,7 +350,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
     if (reason !== 'train' && reason !== 'secret' && r.vehicleInstances.some(v => v.id !== r.activeVehicleId && !v.disabled && v.fuel > 0 && v.durability > 0)) {
       replacementPending = true; return;
     }
-    r.result = { runId: r.runId, seed: r.seed, config: r.world.prototype?.version ?? balance.version, reason,
+    r.result = { runId: r.runId, seed: r.seed, config: runConfigVersion(r), reason,
       distance: r.distance, score: r.score, money: r.money, seconds: r.activeSeconds };
   };
   const crashDriver = (impactSpeed: number) => {
@@ -420,7 +426,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
   const advance = (target: number) => {
     while (target - fraction > 1e-12 && r.phase !== 'ended' && !r.crash) {
       const powered = r.motion === 'powered';
-      const fuelRate = powered ? ds * vehicle.fuelPerMeter * drive.fuelFactor + dt * waterCount * (hasStar(r) ? 0 : balance.waterFuelPerSecond) : 0;
+      const fuelRate = powered ? ds * vehicle.fuelPerMeter * drive.fuelFactor + dt * waterCount * (hasStar(r) ? 0 : waterFuelPerSecond(before.world.directorVersion === 'backup' ? 'backup' : undefined)) : 0;
       const damageRate = dt * potholeCount * (hasStar(r) ? 0 : balance.potholeDamagePerSecond);
       let segment = target - fraction;
       if (fuelRate > 0) segment = Math.min(segment, r.fuel / fuelRate);
@@ -574,7 +580,8 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
   if (replacementPending) {
     r.phase = 'running';
     const replaced = switchVehicle(r, undefined, true);
-    return confiscatedId ? { ...replaced, vehicleInstances: replaced.vehicleInstances.filter(v => v.id !== confiscatedId) } : replaced;
+    return { ...replaced, vehicleInstances: replaced.vehicleInstances.filter(v =>
+      v.id !== confiscatedId && (!forceMode || v.durability > 0)) };
   }
   return r;
 }

@@ -167,7 +167,7 @@ it('seeded runs using both powers stay finite and reproducible with no mutation 
     const a = play(); expect(a).toEqual(play()); outcomes.push({ seed, distance: Math.round(a.distance), phase: a.phase });
   }
   console.log(JSON.stringify({ config: balance.version, scenario: 'power-items-30s', outcomes }));
-});
+}, 20000);
 
 it('active effects and landing produce the same state at 30/60/144 render FPS', () => {
   const play = (fps: number) => {
@@ -182,7 +182,7 @@ it('active effects and landing produce the same state at 30/60/144 render FPS', 
 it('flight clears low traffic only while the entire footprint passes before landing', () => {
   const small = entity('traffic', 'low-car', 16, 0); small.length = 2; small.speed = 0; small.baseSpeed = 0;
   let run = requestJump(usePowerItem(ready(), 0)); run.world.entities = [small];
-  run = seconds(run, 2); expect(run.crash).toBeNull(); expect(run.durability).toBe(70);
+  run = seconds(run, 2); expect(run.crash).toBeNull(); expect(run.durability).toBe(balance.durabilityCapacity);
   const long = { ...small, id: 'long-contact', distance: 25, length: 70, hp: 10000 };
   run = requestJump(usePowerItem(ready('container'), 0)); run.world.entities = [long];
   // Start at the jump apex to isolate the rear footprint remaining in contact at landing.

@@ -1,6 +1,7 @@
 import { forceScenario } from './force-scenarios';
 import { cargoScenario } from './cargo-scenarios';
 import { movingScenario } from './moving-scenarios';
+import { movingEvent } from './moving-events';
 import type { Run } from './survival';
 import { entity, fillWorld, initialWorld, passengerMotion, trafficTypes } from './world';
 import { junction } from './route';
@@ -108,16 +109,19 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
         entities: filled.entities.filter(e => e.distance + e.length / 2 >= start - 12) } };
   }
   if (scenario === 'p8-water') {
+    const vehicle = newVehicle('car4', 'qa-p8-water-car');
     let preview = initialWorld(run.seed, true);
     let longWater: number | undefined;
     for (let at = 0; at <= 3000 && longWater === undefined; at += 40) {
-      preview = fillWorld(preview, at);
+      preview = fillWorld(preview, at, vehicle.fuel, vehicle.durability, 1, vehicles.car4);
       longWater = preview.entities.find(e => e.kind === 'water' && e.width >= 5.7 &&
         e.length >= 20 && e.distance >= 850)?.distance;
     }
     const start = Math.max(0, (longWater ?? 1100) - 100);
-    const vehicle = newVehicle('car4', 'qa-p8-water-car');
-    const world = fillWorld(initialWorld(run.seed, true), start, vehicle.fuel, vehicle.durability, 1, vehicles.car4);
+    let world = initialWorld(run.seed, true);
+    for (let at = 0; at < start; at += 40)
+      world = fillWorld(world, at, vehicle.fuel, vehicle.durability, 1, vehicles.car4);
+    world = fillWorld(world, start, vehicle.fuel, vehicle.durability, 1, vehicles.car4);
     return { ...run, distance: start, route: { ...run.route, index: Math.floor(start / balance.junctionInterval) },
       vehicleInstances: [vehicle, newVehicle('motorcycle', 'qa-p8-water-spare')],
       activeVehicleId: vehicle.id, fuel: vehicle.fuel, durability: vehicle.durability,
@@ -125,6 +129,25 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
       world: { ...world, entities: world.entities.filter(e => e.distance + e.length / 2 >= start - 12),
         prototype: { version: 'p8-density-patterns-2', title: 'Thử vùng nước dày',
           description: 'Xe 4 chỗ bắt đầu trước một vùng nước dài hai làn. Đường và các pattern sau đó vẫn do seed bản chính sinh; A/D, W/S, Q/E, F, R hoạt động bình thường. Đây là checkpoint DEV, tài nguyên được cấp để thử.' } } };
+  }
+  if (scenario === 'p8-vendor') {
+    const vendor = movingEvent(entity('jam', 'qa-p8-vendor', 75, 0), 5, run.seed, 0, 'vendor')[0];
+    return { ...run, world: { ...initialWorld(run.seed, true), entities: [vendor],
+      nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9,
+      nextPassenger: 1e9, nextShopDistance: 1e9,
+      prototype: { version: 'p8-vendor-qa-1', title: 'Thử hàng rong băng đường',
+        description: 'Hàng rong xuất hiện gần 75 m và bắt đầu chạy ngang khi xe thật sự đến gần. Thử cruise, W hoặc S; có thể Chơi lại để so cùng seed.' } } };
+  }
+  if (scenario === 'vehicle-repurchase') {
+    const car = entity('traffic', 'qa-repurchase-hit', 8, 0); car.speed = 0;
+    const shop = entity('shop', 'qa-repurchase-shop', 65, 0);
+    shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[], items: { nitro: 1, star: 1 } };
+    return { ...run, durability: 20, money: 600,
+      vehicleInstances: [...run.vehicleInstances, newVehicle('car4', `${run.runId}-car4`)],
+      world: { ...initialWorld(run.seed, true), entities: [car, shop], nextSpecial: 1e9,
+        nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9,
+        nextShopDistance: 1e9, prototype: { version: 'p8-vehicle-repurchase-qa-1', title: 'Thử mua lại xe hỏng',
+          description: 'Xe máy 20 HP chạm xe trước mặt, tự chuyển sang ô tô dự phòng. Tới cửa hàng ở 65 m, nhấn R rồi mua lại xe máy.' } } };
   }
   if (scenario?.startsWith('p61-')) return movingScenario(run, scenario);
   if (scenario) run = { ...run, world: { ...run.world, integrated: false, experimentalMotion: false, experimentalTraffic: false, experimentalCargo: false } };

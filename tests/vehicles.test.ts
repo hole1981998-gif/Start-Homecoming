@@ -66,10 +66,10 @@ describe('P4B vehicle instances', () => {
   it('automatically changes to a viable backup after lethal damage and protects the new car briefly', () => {
     const traffic = entity('traffic', 'lethal', 0, 0); traffic.speed = 14;
     const base = twoVehicles();
-    const hit = stepRun({ ...base, durability: 20, world: { ...base.world, entities: [traffic] } }, noInput());
+    const hit = stepRun({ ...base, durability: 20, world: { ...base.world, entities: [traffic] } }, noInput(), true);
     expect(hit.phase).toBe('running'); expect(hit.result).toBeNull();
     expect(activeVehicle(hit).kind).toBe('car4');
-    expect(hit.vehicleInstances[0].disabled).toBe(true);
+    expect(hit.vehicleInstances.map(v => v.kind)).toEqual(['car4']);
     expect(hit.durability).toBe(vehicles.car4.durabilityCapacity);
     const next = stepRun(hit, noInput());
     expect(next.durability).toBe(vehicles.car4.durabilityCapacity);

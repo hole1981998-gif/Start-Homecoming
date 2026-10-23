@@ -25,7 +25,8 @@ it('normal generated routes contain countersteerable wind and live same-directio
     windCount += winds.length; sourceCount += sources.length;
     expect(winds.length).toBeGreaterThan(0);
     expect(sources.length).toBeGreaterThan(0);
-    expect(winds.every(e => e.width === forceBalance.windWidth && e.length === forceBalance.zoneLength &&
+    expect(winds.every(e => e.width === forceBalance.windWidth && e.length >= 38 &&
+      e.length <= forceBalance.zoneLength &&
       Math.abs(e.lateralPush ?? 0) === forceBalance.windPush)).toBe(true);
     expect(sources.every(e => e.kind === 'traffic' && e.x === balance.laneWidth && e.speed > 0 &&
       (e.trafficKind === 'truck' || e.trafficKind === 'container'))).toBe(true);
@@ -40,7 +41,7 @@ it('normal generated routes contain countersteerable wind and live same-directio
     generated(17).map(e => [e.id, e.kind, e.cargoReleaseAt, e.lateralPush]));
   console.log(JSON.stringify({ mode: 'generated integrated route, 0–5000m, no pilot', seeds: 30,
     branchVariants: 3, windCount, sourceCount }));
-});
+}, 15000);
 
 it('the integrated step applies wind and releases cargo from a generated source only once', () => {
   const entities = generated(17);

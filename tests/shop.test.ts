@@ -73,8 +73,8 @@ it('upgrades belong to one instance and affect real driving without free tank/HP
   for (const upgrade of ['engine', 'tank', 'armour', 'economy'] as const) run = apply(run, { kind: 'upgrade', upgrade });
   expect(run.fuel).toBe(1); expect(run.durability).toBe(30);
   expect(activeVehicle(run).maxSpeed).toBeCloseTo(20 * 1.08);
-  expect(activeVehicle(run).fuelCapacity).toBeCloseTo(5.5 * 1.15);
-  expect(activeVehicle(run).durabilityCapacity).toBeCloseTo(70 * 1.15);
+  expect(activeVehicle(run).fuelCapacity).toBeCloseTo(vehicles.motorcycle.fuelCapacity * 1.15);
+  expect(activeVehicle(run).durabilityCapacity).toBeCloseTo(vehicles.motorcycle.durabilityCapacity * 1.15);
   const driven = stepRun({ ...leaveShop(run), phase: 'running' }, noInput());
   expect(run.fuel - driven.fuel).toBeCloseTo((driven.distance - run.distance) * .0045 * .92);
   const switched = switchVehicle({ ...leaveShop(run), phase: 'running' });
@@ -90,6 +90,25 @@ it('shops expose every catalog type, including tricycle/container; owned kinds c
   const run = atShop('shop-third');
   expect(apply(run, { kind: 'vehicle', vehicle: 'motorcycle', discardId: run.activeVehicleId })).toBe(run);
   expect(apply(run, { kind: 'vehicle', vehicle: 'car7', discardId: 'qa-spare' })).toBe(run);
+});
+
+it('a vehicle destroyed at 0 HP leaves the garage and its type can be bought again at the next shop', () => {
+  const base = atShop('shop-third');
+  const traffic = entity('traffic', 'fatal-hit', base.distance, base.x);
+  traffic.speed = base.speed;
+  const running = { ...leaveShop(base), phase: 'running' as const, durability: 1,
+    world: { ...base.world, entities: [traffic] } };
+  const replaced = stepRun(running, noInput(), true);
+  expect(replaced.result).toBeNull();
+  expect(replaced.vehicleInstances.map(v => v.kind)).toEqual(['car7']);
+  const nextShop = entity('shop', 'next-shop', replaced.distance, replaced.x);
+  nextShop.shopStock = { vehicles: Object.keys(vehicles) as (keyof typeof vehicles)[], items: { nitro: 1, star: 1 } };
+  const shopping = enterShop({ ...replaced, money: 4000,
+    world: { ...replaced.world, entities: [nextShop] } });
+  const bought = apply(shopping, { kind: 'vehicle', vehicle: 'motorcycle' });
+  expect(bought.vehicleInstances.map(v => v.kind)).toEqual(['car7', 'motorcycle']);
+  expect(bought.money).toBe(4000 - vehicles.motorcycle.price);
+  expect(bought.activeVehicleId).toBe(bought.vehicleInstances[1].id);
 });
 
 it('upgrading a reserve vehicle changes only that instance without equipping, refilling or healing it', () => {

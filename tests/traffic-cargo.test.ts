@@ -143,7 +143,7 @@ it('samples 30 seeded tail drops without duplicate cargo, invalid state or unavo
     expect(maxCargo).toBe(1);
     expect(run.crash).toBeNull();
     expect(maxCargo).toBeLessThanOrEqual(cargoBalance.maxActive);
-    if (run.durability < 70) hits++; else misses++;
+    if (run.durability < initialRun(seed).durability) hits++; else misses++;
   }
   expect(hits).toBeGreaterThan(0);
   expect(misses).toBeGreaterThan(0);

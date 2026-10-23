@@ -9,7 +9,7 @@ export interface VehicleDefinition {
 }
 export interface VehicleInstance {
   id: string; kind: VehicleKind; fuel: number; durability: number; upgrades: { engine: number; tank: number; armour: number; economy?: number };
-  disabled: boolean;
+  disabled: boolean; balanceProfile?: 'backup';
 }
 /** Temporary P4B trial numbers; the motorcycle keeps its proven P4A baseline. */
 export const vehicles: Record<VehicleKind, VehicleDefinition> = {
@@ -21,16 +21,16 @@ export const vehicles: Record<VehicleKind, VehicleDefinition> = {
     width: balance.vehicleWidth, length: balance.vehicleLength, price: 250,
     lateralGrip: balance.lateralGrip, leanFactor: 1.25 },
   motorbike: { kind: 'motorbike', name: 'Mô tô', capacity: 2, minSpeed: 9, cruiseSpeed: 18.5,
-    maxSpeed: 28, cruiseLoss: 2.4, cruiseFloor: 9, fuelCapacity: 7.5, durabilityCapacity: 80,
-    fuelPerMeter: .0048, fuelPickup: 3.4, repairPickup: 18, width: .96, length: 2.2, price: 600,
+    maxSpeed: 28, cruiseLoss: 2.4, cruiseFloor: 9, fuelCapacity: 9.75, durabilityCapacity: 140,
+    fuelPerMeter: .00384, fuelPickup: 4.93, repairPickup: 28.8, width: .96, length: 2.2, price: 600,
     lateralGrip: 1.1, leanFactor: 1.3 },
   car4: { kind: 'car4', name: 'Ô tô 4 chỗ', capacity: 4, minSpeed: 8, cruiseSpeed: 16,
-    maxSpeed: 24, cruiseLoss: 1.6, cruiseFloor: 9, fuelCapacity: 10, durabilityCapacity: 105,
-    fuelPerMeter: .0055, fuelPickup: 3.6, repairPickup: 24, width: 1.86, length: 4.2, price: 300,
+    maxSpeed: 24, cruiseLoss: 1.6, cruiseFloor: 9, fuelCapacity: 13, durabilityCapacity: 183.75,
+    fuelPerMeter: .0044, fuelPickup: 5.22, repairPickup: 38.4, width: 1.86, length: 4.2, price: 300,
     lateralGrip: 1, leanFactor: .8 },
   car7: { kind: 'car7', name: 'Ô tô 7 chỗ', capacity: 7, minSpeed: 8, cruiseSpeed: 15,
-    maxSpeed: 22, cruiseLoss: .9, cruiseFloor: 9, fuelCapacity: 13, durabilityCapacity: 125,
-    fuelPerMeter: .0065, fuelPickup: 4.2, repairPickup: 28, width: 2.08, length: 4.8, price: 1200,
+    maxSpeed: 22, cruiseLoss: .9, cruiseFloor: 9, fuelCapacity: 16.9, durabilityCapacity: 218.75,
+    fuelPerMeter: .0052, fuelPickup: 6.09, repairPickup: 44.8, width: 2.08, length: 4.8, price: 1200,
     lateralGrip: .9, leanFactor: .7 },
   tricycle: { kind: 'tricycle', name: 'Ba gác', capacity: 4, minSpeed: 6, cruiseSpeed: 11.5,
     maxSpeed: 17, cruiseLoss: 1, cruiseFloor: 6, fuelCapacity: 12, durabilityCapacity: 100,
@@ -49,6 +49,18 @@ export const vehicles: Record<VehicleKind, VehicleDefinition> = {
     fuelPerMeter: .012, fuelPickup: 15, repairPickup: 70, width: 2.88, length: 15, price: 3000,
     lateralGrip: .65, leanFactor: .45 },
 };
+/** Preserve Candidate A resources in the noforce backup. All other vehicle fields share the catalog. */
+const backupResources: Partial<Record<VehicleKind, Pick<VehicleDefinition,
+  'fuelCapacity' | 'durabilityCapacity' | 'fuelPerMeter' | 'fuelPickup' | 'repairPickup'>>> = {
+  motorcycle: { fuelCapacity: 5.5, durabilityCapacity: 70, fuelPerMeter: .0045, fuelPickup: 3, repairPickup: 16 },
+  motorbike: { fuelCapacity: 7.5, durabilityCapacity: 80, fuelPerMeter: .0048, fuelPickup: 3.4, repairPickup: 18 },
+  car4: { fuelCapacity: 10, durabilityCapacity: 105, fuelPerMeter: .0055, fuelPickup: 3.6, repairPickup: 24 },
+  car7: { fuelCapacity: 13, durabilityCapacity: 125, fuelPerMeter: .0065, fuelPickup: 4.2, repairPickup: 28 },
+};
+export const waterFuelPerSecond = (profile?: 'backup') => profile === 'backup' ? .8 : balance.waterFuelPerSecond;
+export function vehicleDefinition(kind: VehicleKind, profile?: 'backup'): VehicleDefinition {
+  return profile === 'backup' ? { ...vehicles[kind], ...backupResources[kind] } : vehicles[kind];
+}
 for (const d of Object.values(vehicles)) {
   if (Object.values(d).some(value => typeof value === 'number' && !Number.isFinite(value)) ||
     !Number.isInteger(d.capacity) || d.capacity < 1 || d.minSpeed <= 0 ||
@@ -100,25 +112,25 @@ if (Object.keys(vehicleRam).length !== Object.keys(vehicles).length ||
   Object.values(vehicleRam).some(value => !Number.isFinite(value.damage) || value.damage <= 0)) {
   throw new Error('Invalid ram catalog');
 }
-export function newVehicle(kind: VehicleKind, id: string): VehicleInstance {
-  const d = vehicles[kind];
+export function newVehicle(kind: VehicleKind, id: string, balanceProfile?: 'backup'): VehicleInstance {
+  const d = vehicleDefinition(kind, balanceProfile);
   return { id, kind, fuel: d.fuelCapacity, durability: d.durabilityCapacity,
-    upgrades: { engine: 0, tank: 0, armour: 0 }, disabled: false };
+    upgrades: { engine: 0, tank: 0, armour: 0 }, disabled: false, ...(balanceProfile ? { balanceProfile } : {}) };
 }
 export function effectiveVehicle(instance: VehicleInstance): VehicleDefinition {
-  const d = vehicles[instance.kind], u = instance.upgrades;
+  const d = vehicleDefinition(instance.kind, instance.balanceProfile), u = instance.upgrades;
   return { ...d, maxSpeed: d.maxSpeed * (1 + u.engine * shopBalance.enginePerLevel),
     fuelCapacity: d.fuelCapacity * (1 + u.tank * shopBalance.tankPerLevel),
     durabilityCapacity: d.durabilityCapacity * (1 + u.armour * shopBalance.armourPerLevel),
     fuelPerMeter: d.fuelPerMeter * (1 - (u.economy ?? 0) * shopBalance.economyPerLevel) };
 }
 export function buyVehicle(inventory: VehicleInstance[], money: number, kind: VehicleKind,
-  newId: string, discardId?: string): { inventory: VehicleInstance[]; money: number } | null {
+  newId: string, discardId?: string, balanceProfile?: 'backup'): { inventory: VehicleInstance[]; money: number } | null {
   const price = vehicles[kind].price;
   if (inventory.some(v => v.kind === kind)) return null;
   if (!Number.isFinite(money) || money < price || inventory.some(v => v.id === newId)) return null;
   if (inventory.length === 2 && (!discardId || !inventory.some(v => v.id === discardId))) return null;
   if (inventory.length > 2 || (inventory.length < 2 && discardId)) return null;
   const kept = discardId ? inventory.filter(v => v.id !== discardId) : inventory;
-  return { inventory: [...kept, newVehicle(kind, newId)], money: money - price };
+  return { inventory: [...kept, newVehicle(kind, newId, balanceProfile)], money: money - price };
 }

@@ -1,11 +1,11 @@
 import { balance } from './config';
-import { vehicles } from './vehicles';
+import { vehicleDefinition, waterFuelPerSecond } from './vehicles';
 import { sweptContact, type Entity } from './world';
 
 /** Fuel belongs to each instance. Use absolute travel for both traffic directions. */
 export function moveTrafficWithFuel(car: Entity, entities: Entity[], dt: number, endX = car.x): void {
   if (car.trafficStoppedByCollision) { car.speed = 0; car.trafficMotion = 'stopped'; return; }
-  const definition = vehicles[car.trafficKind ?? 'car4'];
+  const definition = vehicleDefinition(car.trafficKind ?? 'car4', car.balanceProfile);
   car.fuel ??= definition.fuelCapacity;
   car.trafficMotion ??= 'powered';
   if (car.trafficMotion === 'powered' && (car.baseSpeed === undefined || Math.sign(car.speed) !== Math.sign(car.baseSpeed))) {
@@ -24,7 +24,7 @@ export function moveTrafficWithFuel(car: Entity, entities: Entity[], dt: number,
     for (let i = 1; i < edges.length; i++) {
       const a = edges[i - 1], b = edges[i], midpoint = (a + b) / 2;
       const wetCount = water.filter(([enter, exit]) => enter <= midpoint && exit >= midpoint).length;
-      const cost = Math.abs(car.speed) * dt * definition.fuelPerMeter + wetCount * dt * balance.waterFuelPerSecond;
+      const cost = Math.abs(car.speed) * dt * definition.fuelPerMeter + wetCount * dt * waterFuelPerSecond(car.balanceProfile);
       const fraction = cost > 0 ? Math.min(b - a, car.fuel / cost) : b - a;
       car.fuel = Math.max(0, car.fuel - cost * fraction);
       poweredFraction = a + fraction;

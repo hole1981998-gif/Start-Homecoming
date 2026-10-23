@@ -23,17 +23,17 @@ describe('survival, continuous hazards and crash recovery', () => {
   });
   it('water burns by exact contact duration, separate from HP and distance fuel', () => {
     const r = advance(empty([entity('water', 'water', 7, 0)]), 1);
-    expect(r.fuel).toBeCloseTo(balance.fuelCapacity - 14 * balance.fuelPerMeter - .8 * 9 / 14, 8);
-    expect(r.durability).toBe(70); expect(r.money).toBeCloseTo(balance.initialMoney + 14 * balance.moneyPerMeter);
+    expect(r.fuel).toBeCloseTo(balance.fuelCapacity - 14 * balance.fuelPerMeter - balance.waterFuelPerSecond * 9 / 14, 8);
+    expect(r.durability).toBe(balance.durabilityCapacity); expect(r.money).toBeCloseTo(balance.initialMoney + 14 * balance.moneyPerMeter);
   });
   it('pothole charges money once and hurts while touching; each traffic car hits once', () => {
     const r = advance({ ...empty([entity('pothole', 'hole', 0, 0)]), money: 2 }, .1);
-    expect(r.durability).toBeCloseTo(70 - balance.potholeImpactDamage - .1 * balance.potholeDamagePerSecond);
+    expect(r.durability).toBeCloseTo(balance.durabilityCapacity - balance.potholeImpactDamage - .1 * balance.potholeDamagePerSecond);
     expect(r.money).toBeLessThan(1);
     expect(r.eventSequence).toBe(1); expect(r.money).toBeGreaterThanOrEqual(0);
     const car = { ...entity('traffic', 'car', 0, 0), speed: 14 };
-    const once = advance(empty([car]), .5); expect(once.durability).toBe(50); expect(once.crash).not.toBeNull();
-    const twice = advance(once, 4); expect(twice.durability).toBe(50); expect(twice.world.entities[0].lastHit).toBeGreaterThanOrEqual(0);
+    const once = advance(empty([car]), .5); expect(once.durability).toBe(balance.durabilityCapacity - balance.trafficDamage); expect(once.crash).not.toBeNull();
+    const twice = advance(once, 4); expect(twice.durability).toBe(once.durability); expect(twice.world.entities[0].lastHit).toBeGreaterThanOrEqual(0);
   });
   it('swept contacts catch thin obstacles crossed between endpoints, including sideways', () => {
     expect(sweptContact(0, -10, 0, 10, .5, .01)).toEqual([.4995, .5005]);
@@ -41,7 +41,7 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(sweptContact(2, -10, 2, 10, .5, 1)).toBeNull();
     const thin = { ...entity('pothole', 'thin', 1.11, 0), length: .001 };
     const r = stepRun({ ...empty([thin]), speed: 20 }, { ...noInput(), accelerate: true });
-    expect(r.durability).toBeLessThan(70 - balance.potholeImpactDamage);
+    expect(r.durability).toBeLessThan(balance.durabilityCapacity - balance.potholeImpactDamage);
   });
   it('fuel exhausts at the correct distance, coasts exactly 25m, W cannot power an empty tank', () => {
     let r = { ...empty(), fuel: .003 };
@@ -68,8 +68,8 @@ describe('survival, continuous hazards and crash recovery', () => {
   });
   it('pickups apply once and clamp HP/fuel; restart discards all old entities/results', () => {
     const r = advance({ ...empty([entity('repair', 'fix', 0, 0), entity('fuel', 'gas', 0, 0)]), durability: 60, fuel: 4 }, .1);
-    expect(r.durability).toBe(70); expect(r.fuel).toBeLessThanOrEqual(balance.fuelCapacity); expect(r.eventSequence).toBe(2);
-    const restarted = initialRun(); expect(restarted.durability).toBe(70); expect(restarted.fuel).toBe(balance.fuelCapacity);
+    expect(r.durability).toBeCloseTo(60 + balance.repairPickup); expect(r.fuel).toBeLessThanOrEqual(balance.fuelCapacity); expect(r.eventSequence).toBe(2);
+    const restarted = initialRun(); expect(restarted.durability).toBe(balance.durabilityCapacity); expect(restarted.fuel).toBe(balance.fuelCapacity);
     expect(restarted.score).toBe(0); expect(restarted.money).toBe(balance.initialMoney); expect(restarted.result).toBeNull();
   });
   it('seeded lane directions, wide and forced hazards, and accessible supplies', () => {
@@ -105,7 +105,7 @@ describe('survival, continuous hazards and crash recovery', () => {
     expect(hitToward.durability).toBeLessThan(hitAway.durability);
     const long = entity('pothole', 'long', 7, 0); long.length = 12;
     const r = advance(empty([long]), 2);
-    expect(r.durability).toBeLessThan(70 - balance.potholeImpactDamage - balance.potholeDamagePerSecond);
+    expect(r.durability).toBeLessThan(balance.durabilityCapacity - balance.potholeImpactDamage - balance.potholeDamagePerSecond);
     expect(r.eventSequence).toBe(1);
   });
   it('director rejects a hard two-lane patch when a car closes the remaining lane', () => {
@@ -132,7 +132,7 @@ describe('survival, continuous hazards and crash recovery', () => {
     const riderIds = ['rider-0', 'rider-1', 'rider-2'];
     const first = stepRun({ ...empty([car, hole]), riderIds }, noInput());
     expect(first.crash).not.toBeNull(); expect(first.speed).toBeCloseTo(first.crash!.impactSpeed - balance.crashSlideDeceleration * first.crash!.elapsed);
-    expect(first.durability).toBe(70 - balance.trafficDamage);
+    expect(first.durability).toBe(balance.durabilityCapacity - balance.trafficDamage);
     expect([...first.crash!.returningRiderIds, ...first.crash!.strandedRiderIds].sort()).toEqual(riderIds);
     expect(first.riderIds).toEqual([]);
     expect(first.lostPassengers).toBe(first.crash!.strandedRiderIds.length);
@@ -250,6 +250,6 @@ describe('survival, continuous hazards and crash recovery', () => {
       r = stepRun({ ...r, world: { ...r.world, entities: [entity('pothole', `hole-${i}`, r.distance, 0)] } }, noInput());
       flavors.push(r.feedbackFlavor); expect(r.feedback).toContain('−6 HP'); expect(r.world.rng).toBe(rng);
     }
-    expect(new Set(flavors).size).toBe(3); expect(r.durability).toBeLessThan(70 - 3 * balance.potholeImpactDamage);
+    expect(new Set(flavors).size).toBe(3); expect(r.durability).toBeLessThan(balance.durabilityCapacity - 3 * balance.potholeImpactDamage);
   });
 });

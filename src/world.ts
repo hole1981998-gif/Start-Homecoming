@@ -1,11 +1,13 @@
 import { crossX, type CrossMotion } from './cross-motion';
 import { directorRoll, layerCount, roadHazard, waterSizeIndex } from './balance-director';
+import { hasTimedEscape, makeP8Encounter, p8Affordable, p8EncounterDistance,
+  p8ProtectedCorridor } from './p8-encounters';
 import { fillStressWorld } from './stress-world';
 import { movingEvent } from './moving-events';
 import { isSpecial, specialPlan } from './special-events';
 import { eventBalance } from './config';
 import { balance, cargoBalance, densityBalance, forceBalance, hazardSizes, itemBalance, shopBalance, stressBalance } from './config';
-import { trafficSpawnKinds, trafficTypes, vehicles, type VehicleDefinition, type VehicleKind } from './vehicles';
+import { trafficSpawnKinds, trafficTypes, vehicles, vehicleDefinition, waterFuelPerSecond, type VehicleDefinition, type VehicleKind } from './vehicles';
 export { trafficTypes } from './vehicles';
 import { nearJunction, type RouteState, type Turn } from './route';
 import { moveTrafficWithFuel } from './traffic-fuel';
@@ -22,9 +24,9 @@ export interface Entity {
   passengerType?: 'grab'; passengerMotion?: PassengerMotion; motionKey?: string; pickupable?: boolean; riderId?: string;
   trafficKind?: TrafficKind; hp?: number; wrecked?: boolean; wreckAge?: number; trafficContacts?: string[]; baseSpeed?: number;
   wreckPassengersSpawned?: boolean; wreckedByPlayer?: boolean;
-  fuel?: number; trafficMotion?: 'powered' | 'coasting' | 'stopped'; coastRemaining?: number;
+  fuel?: number; trafficMotion?: 'powered' | 'coasting' | 'stopped'; coastRemaining?: number; balanceProfile?: 'backup';
   shopStock?: ShopStock; eventAt?: number;
-  lateralPush?: number; motionWaiting?: boolean; crossMotion?: CrossMotion; groupId?: string; stunned?: boolean;
+  lateralPush?: number; motionWaiting?: boolean; crossMotion?: CrossMotion; crossingRole?: 'vendor'; groupId?: string; stunned?: boolean;
   trafficPairContacts?: string[]; trafficStoppedByCollision?: boolean; trafficPlayerSource?: boolean;
   serviceRole?: 'ambulance';
   cargoReleaseAt?: number; cargoDropped?: boolean; cargoType?: 'crate' | 'barrel'; cargoVelocityX?: number; cargoExpiresAt?: number; cargoSourceId?: string;
@@ -54,6 +56,30 @@ export function nextShopDistance(distance: number, index: number, seed: number):
   }
   throw new Error('No safe shop interval');
 }
+/** Reserve the actual shifted special location before packing dense P8 groups around it. */
+function p8SpecialTarget(index: number, seed: number): number {
+  let previous = -1e9;
+  for (let event = 0; event <= index; event++) {
+    const planned = specialPlan(event, seed).distance;
+    let target = planned + Math.ceil(Math.max(0, previous + eventBalance.minimumGap - planned) / 40) * 40;
+    let shop: number = shopBalance.firstDistance, shopIndex = 0;
+    for (let attempt = 0; attempt < 16; attempt++) {
+      while (shop < target - eventBalance.corridor) {
+        shop = nextShopDistance(shop, shopIndex, seed); shopIndex++;
+      }
+      const beforeShop = shopIndex > 0 ? (() => {
+        let old: number = shopBalance.firstDistance;
+        for (let i = 0; i < shopIndex - 1; i++) old = nextShopDistance(old, i, seed);
+        return old;
+      })() : -1e9;
+      if (!nearJunction(target) && Math.abs(target - shop) >= eventBalance.corridor &&
+          Math.abs(target - beforeShop) >= eventBalance.corridor) break;
+      target += 40;
+    }
+    previous = target;
+  }
+  return previous;
+}
 const branchEntityId = (world: World, prefix: string, index: number) =>
   world.branchId === 0 ? `${prefix}-${index}` : `${prefix}-${world.branchId}-${index}`;
 /** Keep the old straight branch until its junction leaves the rear view. */
@@ -64,7 +90,9 @@ export function forkWorld(world: World, route: RouteState, turn: Turn, junctionD
   const branchSeed = (Math.imul(world.branchSeed ^ Math.imul(route.index + 1, 0x9e3779b1) ^
     (turn === 'left' ? 0x51633e2d : 0x2734a901), 1664525) + 1013904223) >>> 0;
   let nextHazard = 0;
-  while (hazardDistance(nextHazard) < split) nextHazard++;
+  const encounterAt = world.integrated && world.directorVersion !== 'backup' && !world.stress ?
+    p8EncounterDistance : hazardDistance;
+  while (encounterAt(nextHazard) < split) nextHazard++;
   const oldRoute = { ...route, choice: null };
   const branchAvoidKinds = Object.fromEntries(world.entities.filter(e =>
     e.distance >= split && e.distance < split + 240 && e.id.startsWith('hazard-') &&
@@ -254,12 +282,12 @@ export function leavesOpenLane(candidate: Entity, existing: Entity[], distance: 
 
 const coversRoad = (e: Entity) => e.width >= balance.laneWidth * balance.laneCount - 1e-8;
 function forcedPatchIsAffordable(e: Entity, distance: number, fuel: number, durability: number,
-  fuelFactor: number, vehicle: VehicleDefinition): boolean {
+  fuelFactor: number, vehicle: VehicleDefinition, profile?: 'backup'): boolean {
   if (!coversRoad(e)) return true;
   if (e.kind === 'water') {
     // Evaluate the current load; boarding later is a player choice that changes the remaining budget.
     const cost = (e.distance - distance) * vehicle.fuelPerMeter * fuelFactor +
-      (e.length + vehicle.length) / vehicle.minSpeed * balance.waterFuelPerSecond;
+      (e.length + vehicle.length) / vehicle.minSpeed * waterFuelPerSecond(profile);
     return fuel >= cost + .5;
   }
   if (e.kind === 'pothole') {
@@ -287,7 +315,8 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     e.distance + shopBalance.reach >= distance : e.distance + e.length / 2 > distance - 12),
     retired: world.retired.filter(e => e.expireDistance >= distance) };
   const backupDirector = world.directorVersion === 'backup' || !!world.stress;
-  const ahead = distance + Math.max(balance.worldLookAhead, (vehicle.maxSpeed + maxTrafficSpeed) * balance.warningSeconds);
+  const ahead = distance + Math.max(balance.worldLookAhead,
+    (vehicle.maxSpeed * itemBalance.boostFactor + maxTrafficSpeed) * balance.warningSeconds + vehicle.length / 2);
   while (w.nextShopDistance <= ahead) {
     const index = w.nextShop, at = w.nextShopDistance;
     const shop = entity('shop', branchEntityId(w, 'shop', index), at, index % 2 ? balance.laneWidth : -balance.laneWidth);
@@ -317,9 +346,55 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     passenger.motionKey = `${w.branchSeed}:waiting:${index}`;
     w.entities.push(passenger);
   }
-  while (hazardDistance(w.nextHazard) <= ahead) {
+  if (!backupDirector) spawnSpecials();
+  const encounterAt = w.integrated && !backupDirector ? p8EncounterDistance : hazardDistance;
+  while (encounterAt(w.nextHazard) <= ahead) {
     const index = w.nextHazard++;
-    const spawnAt = hazardDistance(index);
+    const spawnAt = encounterAt(index);
+    if (w.integrated && !backupDirector && index >= 2) {
+      // Keep the request seeded. A gentler two-layer template replaces an unsafe one.
+      const nearestSpecial = Math.max(0,
+        Math.round((spawnAt - eventBalance.firstDistance) / eventBalance.gap));
+      const reservedSpecials = [...new Set([Math.max(0, nearestSpecial - 1), nearestSpecial,
+        nearestSpecial + 1])].map(i => ({ at: p8SpecialTarget(i, w.branchSeed),
+        kind: specialPlan(i, w.branchSeed).kind }));
+      const make = (kind: EntityKind, id: string, at: number, x: number) =>
+        entity(kind, w.branchId ? id.replace(/^hazard-(pair-|third-)?/,
+          prefix => `${prefix}${w.branchId}-`) : id, at, x);
+      const choices = [undefined, 15, 16, 10] as const;
+      let chosen: ReturnType<typeof makeP8Encounter> | undefined;
+      for (const requestedId of choices) {
+        const plan = makeP8Encounter(w.branchSeed, index, spawnAt, distance, now,
+          w.recentPatternIds ?? [], make, requestedId);
+        if (plan.actors.some(e => nearJunction(e.distance) &&
+          Math.abs(e.distance - (balance.firstJunction + Math.round((e.distance - balance.firstJunction) /
+            balance.junctionInterval) * balance.junctionInterval)) < 14)) continue;
+        if (reservedSpecials.some(special => p8ProtectedCorridor(plan.actors,
+          w.nextShopDistance, special.at, special.kind))) continue;
+        if (w.entities.some(e => e.kind === 'shop' && plan.actors.some(actor =>
+          Math.abs(actor.distance - e.distance) < shopBalance.clearance + actor.length / 2))) continue;
+        if (!p8Affordable(plan.actors, distance, fuel, fuelFactor, vehicle)) continue;
+        if (w.entities.some(npc => npc.kind === 'passenger' && npc.passengerType === 'grab' &&
+          !npc.consumed && plan.actors.some(e => Math.abs(npc.distance - e.distance) <
+            (e.length + vehicle.length) / 2 + itemBalance.grabClearance &&
+            Math.abs(npc.x - e.x) < (e.width + vehicle.width) / 2 + itemBalance.grabClearance))) continue;
+        if (plan.actors.some(actor => w.entities.some(existing => !existing.consumed &&
+          (actor.kind === 'wind' && ['jam', 'train', 'accident', 'broken'].includes(existing.kind) ||
+            existing.kind === 'wind' && ['jam', 'train', 'accident', 'broken'].includes(actor.kind)) &&
+          Math.abs(actor.distance - existing.distance) <= (actor.length + existing.length) / 2))) continue;
+        if (!hasTimedEscape(plan.actors, w.entities, distance, vehicle, now)) continue;
+        if (fuel < vehicle.fuelCapacity * .6 &&
+            !hasTimedEscape(plan.actors, w.entities, distance, vehicle, now, true)) continue;
+        chosen = plan; break;
+      }
+      if (chosen) {
+        w.entities.push(...chosen.actors);
+        w.recentPatternIds = [...(w.recentPatternIds ?? []).slice(-2), chosen.id];
+        w.lastPatternEnd = Math.max(...chosen.actors.map(e => e.distance + e.length / 2));
+        w.heavyPatternStreak = chosen.heavy ? (w.heavyPatternStreak ?? 0) + 1 : 0;
+      }
+      continue;
+    }
     if (w.integrated && !backupDirector) {
       const offer = directorRoll(w.branchSeed, index, 0x674e8a19) % 100;
       if (offer < densityBalance.windChancePercent) w.pendingWind = true;
@@ -372,7 +447,8 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
       if (coversRoad(hazard)) hazard.x = 0;
       else if (width > balance.laneWidth) hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
     }
-    if (kind !== 'wind' && !forcedPatchIsAffordable(hazard, distance, fuel, durability, fuelFactor, vehicle)) {
+    if (kind !== 'wind' && !forcedPatchIsAffordable(hazard, distance, fuel, durability, fuelFactor, vehicle,
+      backupDirector ? 'backup' : undefined)) {
       hazard.width = 5.7; hazard.x = (lane < 0 ? -1 : 1) * balance.laneWidth / 2;
     }
     // Consume the usual hazard draws before rejecting it, so shop stock/corridors cannot reroll later hazards.
@@ -443,7 +519,7 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
         requestedLayers > 1;
       const canForceWater = kind === 'water' && hazard.width > balance.laneWidth &&
         forcedPatchIsAffordable({ ...hazard, width: balance.laneWidth * balance.laneCount },
-          distance, fuel, durability, fuelFactor, vehicle);
+          distance, fuel, durability, fuelFactor, vehicle, backupDirector ? 'backup' : undefined);
       const secondLane = windSlot ? Math.sign(hazard.lateralPush ?? 1) * balance.laneWidth : edgeTriple ? -hazard.x :
         kind === 'water' && patternChoice === 0 && openLanes.includes(balance.laneWidth) ? balance.laneWidth :
         openLanes.length ? openLanes[(laneHash >>> 22) % openLanes.length] : 0;
@@ -509,6 +585,8 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
       w.heavyPatternStreak = addSecond ? (w.heavyPatternStreak ?? 0) + 1 : 0;
     }
   }
+  if (backupDirector) spawnSpecials();
+  function spawnSpecials(): void {
   // Separate deterministic stream; defer a blocked event to a safe nearby corridor.
   if (w.nextSpecial === undefined) w.nextSpecial = 0;
   while (specialPlan(w.nextSpecial, w.branchSeed).distance <= ahead) {
@@ -520,13 +598,15 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
         return (wind || cargo) && Math.abs(hazardDistance(hazardIndex) - at) <=
           ((wind ? forceBalance.zoneLength : vehicles.truck.length) + (plan.kind === 'train' ? 3 : 7)) / 2 + 8;
       });
-    const earliest = Math.max(plan.distance, distance + vehicle.maxSpeed * eventBalance.reactionSeconds,
+    const earliest = Math.max(plan.distance,
+      distance + vehicle.maxSpeed * (backupDirector ? 1 : itemBalance.boostFactor) * eventBalance.reactionSeconds,
       (w.lastSpecialDistance ?? -1e9) + eventBalance.minimumGap);
     const firstOffset = Math.max(0, Math.ceil((earliest - plan.distance) / 40) * 40);
     const candidates = backupDirector ? [0, 40, 80, 120, 160].map(offset => plan.distance + offset) :
       Array.from({ length: 9 }, (_, n) => plan.distance + firstOffset + n * 40);
     const shifted = candidates.find(at =>
-      at <= ahead && at >= distance + vehicle.maxSpeed * eventBalance.reactionSeconds &&
+      at <= ahead && at >= distance + vehicle.maxSpeed *
+        (backupDirector ? 1 : itemBalance.boostFactor) * eventBalance.reactionSeconds &&
       at - (w.lastSpecialDistance ?? -Infinity) >= eventBalance.minimumGap && !nearJunction(at) &&
       !nearReservedHazard(at) &&
       !w.entities.some(e => (e.kind === 'water' || e.kind === 'pothole' || e.kind === 'traffic') &&
@@ -535,6 +615,7 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
         Math.abs(e.distance - at) <= (e.length + (plan.kind === 'train' ? 3 : 7)) / 2 + 8) &&
       !w.entities.some(e => (e.kind === 'shop' || (e.kind === 'passenger' && e.passengerType === 'grab' && !e.consumed)) &&
         Math.abs(e.distance - at) < eventBalance.corridor) &&
+      (backupDirector || Math.abs(w.nextShopDistance - at) >= eventBalance.corridor) &&
       (backupDirector || plan.kind !== 'train' || !w.entities.some(e =>
         ['water', 'pothole', 'traffic', 'wind'].includes(e.kind) && !e.consumed &&
         e.distance + e.length / 2 >= at - 62 && e.distance - e.length / 2 <= at + 12)));
@@ -547,16 +628,29 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     const event = entity(plan.kind, branchEntityId(w, 'event', index), shifted,
       plan.kind === 'police' || plan.kind === 'militia' || plan.kind === 'train' ? 0 : plan.x);
     const patternId = backupDirector ? undefined : plan.kind === 'jam' ? plan.variant === 'barrier' ? 7 : plan.variant === 'vendor' ? 8 : 9 :
-      plan.kind === 'police' || plan.kind === 'militia' ? 11 : plan.kind === 'train' ? 12 : undefined;
+      plan.kind === 'police' || plan.kind === 'militia' ? 11 : plan.kind === 'train' ? 14 : undefined;
     event.patternId = patternId;
-    const actors = w.integrated ? movingEvent(event, index, w.branchSeed, now, distance, vehicle, plan.variant) : [event];
+    const actors = w.integrated ? movingEvent(event, index, w.branchSeed, now, plan.variant) : [event];
+    if (backupDirector) for (const actor of actors) if (actor.crossingRole === 'vendor' && actor.crossMotion) {
+      actor.motionWaiting = false; actor.crossingRole = undefined;
+      actor.crossMotion.startedAt += Math.max(0, (actor.distance - distance) / vehicle.cruiseSpeed - 2);
+    }
     w.entities.push(...actors);
+    if (w.integrated && !backupDirector && plan.kind === 'train') {
+      const side = directorRoll(w.branchSeed, index, 0x1fb318a5) & 1 ? 1 : -1;
+      for (const [tag, offset, x] of [['before', -29, -side], ['after', 29, side]] as const) {
+        const water = entity('water', branchEntityId(w, `event-pattern-${tag}`, index),
+          shifted + offset, x * balance.laneWidth);
+        water.width = 3.2; water.length = 24; water.patternId = 14;
+        w.entities.push(water);
+      }
+    }
     if (w.integrated && patternId === 7) {
       const water = entity('water', branchEntityId(w, 'event-pattern', index), shifted + 2,
         event.x < 0 ? balance.laneWidth : -balance.laneWidth);
       water.width = 3.2; water.length = 14; water.patternId = patternId;
       if (forcedPatchIsAffordable({ ...water, width: balance.laneWidth * balance.laneCount },
-        distance, fuel, durability, fuelFactor, vehicle)) w.entities.push(water);
+        distance, fuel, durability, fuelFactor, vehicle, backupDirector ? 'backup' : undefined)) w.entities.push(water);
     } else if (w.integrated && patternId === 8) {
       const water = entity('water', branchEntityId(w, 'event-pattern', index), shifted + 9,
         directorRoll(w.branchSeed, index, 0x1f682aa9) % 2 ? balance.laneWidth : -balance.laneWidth);
@@ -584,12 +678,20 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     }
     w.lastSpecialDistance = shifted;
   }
-  if (w.stress) fillStressWorld(w, Math.max(ahead, distance + stressBalance.lookAhead), now, distance, vehicle);
+  }
+  if (w.stress) fillStressWorld(w, Math.max(ahead, distance + stressBalance.lookAhead), now, distance);
   w.entities = w.entities.map(e => {
     if (!e.motionWaiting || !e.crossMotion) return e;
-    const approach = Math.max(60, speed * 2.4, speed * speed / (2 * balance.braking) + vehicle.length + 15);
+    const approach = e.crossingRole === 'vendor'
+      ? Math.max(24, speed * 2 + vehicle.length / 2)
+      : Math.max(60, speed * 2.4, speed * speed / (2 * balance.braking) + vehicle.length + 15);
     return e.distance - distance <= approach ? { ...e, motionWaiting: false, crossMotion: { ...e.crossMotion, startedAt: now } } : e;
   });
+  if (w.directorVersion === 'backup') for (const car of w.entities) {
+    if (car.kind !== 'traffic' || car.balanceProfile === 'backup') continue;
+    car.balanceProfile = 'backup';
+    car.fuel = vehicleDefinition(car.trafficKind ?? 'car4', 'backup').fuelCapacity;
+  }
   return w;
 }
 

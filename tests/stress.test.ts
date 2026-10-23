@@ -29,7 +29,7 @@ it('stress is opt-in, dense, seeded, uses full traffic roster and every current 
 });
 it('train waits invisibly for actual approach, then moves at fast-driver arrival rather than staying parked until a cruise ETA',()=>{
   for(const speed of [8,14,20,31]) {
-    const train=movingEvent(entity('train','train',1700,0),0,1,90,1380,vehicles.motorcycle)[0];
+    const train=movingEvent(entity('train','train',1700,0),0,1,90)[0];
     expect(train.motionWaiting).toBe(true);
     const initialX=train.x;advanceCrossMotion([train],110);expect(train.x).toBe(initialX);
     let world:World={...initialWorld(1,true),entities:[train],nextHazard:1e9,nextSpecial:1e9,nextFuel:1e9,nextRepair:1e9,nextPassenger:1e9,nextShopDistance:1e9};
@@ -41,6 +41,34 @@ it('train waits invisibly for actual approach, then moves at fast-driver arrival
     advanceCrossMotion(world.entities,Math.min(halfway,113));
     expect(active.x).not.toBe(initialX);
   }
+});
+it('vendor begins crossing when the player actually approaches at either speed',()=>{
+  for(const speed of [8,24]) {
+    const vendor=movingEvent(entity('jam','vendor',1700,0),5,17,10,'vendor')[0];
+    expect(vendor.motionWaiting).toBe(true);
+    const origin=vendor.x, approach=Math.max(24,speed*2+vehicles.motorcycle.length/2);
+    let world:World={...initialWorld(17,true),entities:[vendor],nextHazard:1e9,nextSpecial:1e9,nextFuel:1e9,nextRepair:1e9,nextPassenger:1e9,nextShopDistance:1e9};
+    world=fillWorld(world,1700-approach-.1,5,70,1,vehicles.motorcycle,30,speed);
+    expect(world.entities[0].motionWaiting).toBe(true);
+    advanceCrossMotion(world.entities,31); expect(world.entities[0].x).toBe(origin);
+    world=fillWorld(world,1700-approach+.1,5,70,1,vehicles.motorcycle,31,speed);
+    expect(world.entities[0].motionWaiting).toBe(false);
+    expect(world.entities[0].crossMotion?.startedAt).toBe(31);
+    advanceCrossMotion(world.entities,31.5);
+    expect(Math.abs(world.entities[0].x-origin)).toBeCloseTo(movingBalance.vendorSpeed*.5);
+  }
+});
+it('the no-force backup keeps its prior vendor timer',()=>{
+  let world=initialWorld(17,true,'backup');
+  let vendor:ReturnType<typeof entity>|undefined;
+  for(let distance=0;distance<=4000&&!vendor;distance+=80) {
+    world=fillWorld(world,distance,5,70,1,vehicles.motorcycle,0,vehicles.motorcycle.cruiseSpeed);
+    vendor=world.entities.find(e=>e.crossMotion&&e.displayName==='Hàng rong băng đường');
+  }
+  expect(vendor).toBeDefined();
+  expect(vendor?.motionWaiting).toBe(false);
+  expect(vendor?.crossingRole).toBeUndefined();
+  expect(vendor?.crossMotion?.startedAt).toBeGreaterThan(0);
 });
 it('turn uses current gameplay time, and branch stress IDs/counters restart without copying old actors to the new lane',()=>{
   let run=developmentScenario(initialRun(7),'stress');run={...run,phase:'running',distance:780,speed:20,activeSeconds:100,world:fillWorld(run.world,780,45,300,1,vehicles.container,100,20)};
@@ -60,18 +88,32 @@ it.each([1,7,17,42,101,126])('dense integrated seed %i stays finite through genu
     }
     expect(violations).toBe(0);expect(source).toEqual(snapshot);
     console.log(JSON.stringify({mode:'stress integrated, unbalanced, W only, 30s cap',seed,distance:Math.round(run.distance),phase:run.phase,end:run.result?.reason??null,maxEntities,seconds:run.activeSeconds}));
-});
+}, 15000);
 
-it('W on a generated integrated train approach sees actual cross-road motion before reaching the rails',()=>{
-  let run={...developmentScenario(initialRun(1),'integrated-checkpoint'),phase:'running' as const};
+it('W sees a generated integrated train move across the road in the game loop',()=>{
+  let generated=initialWorld(1,true);
+  let crossing:ReturnType<typeof entity>|undefined;
+  for(let distance=0;distance<=3000&&!crossing;distance+=30) {
+    generated=fillWorld(generated,distance,vehicles.car4.fuelCapacity,
+      vehicles.car4.durabilityCapacity,1,vehicles.car4);
+    crossing=generated.entities.find(e=>e.kind==='train');
+  }
+  expect(crossing).toBeDefined();
+  let run={...developmentScenario(initialRun(1),'integrated-checkpoint'),phase:'running' as const,
+    distance:crossing!.distance-75, fuel:vehicles.car4.fuelCapacity,
+    durability:vehicles.car4.durabilityCapacity,
+    world:{...generated,entities:[crossing!],nextHazard:1e9,nextSpecial:1e9,
+      nextFuel:1e9,nextRepair:1e9,nextPassenger:1e9,nextShopDistance:1e9}};
   let started=false,moved=false;
-  for(let tick=0;tick<60*25&&run.phase==='running';tick++) {
+  for(let tick=0;tick<60*15&&run.phase==='running';tick++) {
     run=stepRun(run,{...noInput(),accelerate:true}) as typeof run;
     const train=run.world.entities.find(e=>e.kind==='train');
     if(train&&!train.motionWaiting){started=true;if(Math.abs(train.x)<19)moved=true;}
   }
   console.log(JSON.stringify({ scenario: 'generated train approach', seed: 1,
-    started, moved, distance: run.distance, end: run.result?.reason ?? null }));
+    started, moved, distance: run.distance, fuel: run.fuel, speed: run.speed,
+    train: run.world.entities.find(e=>e.kind==='train')?.distance,
+    end: run.result?.reason ?? null }));
   expect(started).toBe(true);expect(moved).toBe(true);
   expect(run.distance).toBeGreaterThan(1050);
   expect(Number.isFinite(run.fuel) && Number.isFinite(run.durability)).toBe(true);

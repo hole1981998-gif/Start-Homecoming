@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { balance, movingBalance, movingVersion } from '../src/config';
+import { balance, eventBalance, movingBalance, movingVersion } from '../src/config';
 import { advanceCrossMotion, crossX } from '../src/cross-motion';
 import { developmentScenario } from '../src/development';
 import { usePowerItem, requestJump } from '../src/items';
@@ -99,7 +99,8 @@ it('crossing an officer event distance without NPC contact does not fine; two co
   for (const e of run.world.entities) { e.x = 0; e.crossMotion = undefined; }
   const after = stepRun(run, noInput());
   expect(after.feedbackCounts.militia).toBe(1);
-  expect(after.money).toBeCloseTo(run.money - 100 + (after.distance - run.distance) * balance.moneyPerMeter);
+  expect(after.money).toBeCloseTo(Math.max(0, run.money - eventBalance.militiaFine) +
+    (after.distance - run.distance) * balance.moneyPerMeter);
 });
 it('relative sweep catches a fast crossing officer and reflection cuts catch an out-and-back path with clear endpoints', () => {
   for (const bounce of [false, true]) {

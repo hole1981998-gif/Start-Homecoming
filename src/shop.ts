@@ -1,7 +1,7 @@
 import { eventBalance } from './config';
 import { balance, itemBalance, shopBalance } from './config';
 import type { Run } from './survival';
-import { buyVehicle, effectiveVehicle, vehicles, type VehicleKind } from './vehicles';
+import { buyVehicle, effectiveVehicle, vehicleDefinition, vehicles, type VehicleKind } from './vehicles';
 import type { Entity } from './world';
 
 import { itemNames, type PowerItem } from './items';
@@ -48,7 +48,8 @@ export function transact(run: Run, command: ShopCommand): { run: Run; message: s
     if (instances.some(v => v.kind === command.vehicle)) return fail('Bạn đã sở hữu loại xe này; không thể mua thêm.');
     if (!stock.vehicles.includes(command.vehicle)) return fail('Xe không còn tại cửa hàng này.');
     if (instances.length >= 2 && !command.discardId) return fail('Chọn chiếc xe sẽ bỏ trước khi xác nhận mua.');
-    const bought = buyVehicle(instances, run.money, command.vehicle, `${run.runId}-purchase-${run.economySequence}`, command.discardId);
+    const bought = buyVehicle(instances, run.money, command.vehicle, `${run.runId}-purchase-${run.economySequence}`, command.discardId,
+      run.world.directorVersion === 'backup' ? 'backup' : undefined);
     if (!bought) return fail('Không đủ tiền hoặc lựa chọn xe bỏ không hợp lệ.');
     const target = bought.inventory[bought.inventory.length - 1], d = effectiveVehicle(target);
     next = { ...run, vehicleInstances: bought.inventory, activeVehicleId: target.id, money: bought.money,
@@ -103,7 +104,7 @@ export function transact(run: Run, command: ShopCommand): { run: Run; message: s
   return { run: next, message };
 }
 
-export function vehicleSummary(kind: VehicleKind): string {
-  const d = vehicles[kind];
+export function vehicleSummary(kind: VehicleKind, profile?: 'backup'): string {
+  const d = vehicleDefinition(kind, profile);
   return `${d.capacity} chỗ · trung vị ${(d.cruiseSpeed * 3.6).toFixed(0)} km/h · ${d.fuelCapacity} L · ${d.durabilityCapacity} HP`;
 }

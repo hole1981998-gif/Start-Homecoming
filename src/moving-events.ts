@@ -1,11 +1,11 @@
 import { balance, movingBalance as c } from './config';
 import { type Entity } from './world';
-import { vehicles, trafficTypes, type VehicleDefinition } from './vehicles';
+import { vehicles, trafficTypes } from './vehicles';
 import type { CrossMotion } from './cross-motion';
 import type { JamVariant } from './special-events';
 
 /** Separate seeded event stream: never consumes hazard/shop RNG. */
-export function movingEvent(event: Entity, index: number, seed: number, now: number, distance: number, player: VehicleDefinition,
+export function movingEvent(event: Entity, index: number, seed: number, now: number,
   jamVariant?: JamVariant): Entity[] {
   const hash = (Math.imul(seed ^ Math.imul(index + 1, 0x9e3779b1), 1664525) + 1013904223) >>> 0;
   const side = hash & 1 ? 1 : -1;
@@ -42,7 +42,8 @@ export function movingEvent(event: Entity, index: number, seed: number, now: num
     } else if (variant === 'vendor') {
       event.x = -side * 6; event.width = c.vendorWidth; event.length = c.vendorLength;
       event.crossMotion = motion(event.x, side * c.vendorSpeed);
-      event.crossMotion.startedAt += Math.max(0, (event.distance - distance) / player.cruiseSpeed - 2);
+      // Start from the actual approach, not a cruise-speed ETA fixed at spawn time.
+      event.motionWaiting = true; event.crossingRole = 'vendor';
       event.displayName = 'Hàng rong băng đường'; event.help = 'Vật cản chạy ngang; A/D né hoặc S chọn lúc đi qua. Chạm gây ngã.';
     } else {
       event.kind = 'traffic'; event.trafficKind = 'car7'; event.serviceRole = 'ambulance';

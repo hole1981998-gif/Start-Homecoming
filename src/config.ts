@@ -1,13 +1,13 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p8-density-patterns-2', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p8-encounter-candidate-c3-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
   lateralSpeed: 5, lateralAcceleration: 22, lateralBraking: 30,
   lateralGrip: 0.85, lateralGripReferenceSpeed: 20,
   fixedStep: 1 / 60, maxFrameSeconds: 0.1, maxSubsteps: 6,
-  fuelCapacity: 5.5, durabilityCapacity: 70, fuelPerMeter: 0.0045,
+  fuelCapacity: 7.15, durabilityCapacity: 122.5, fuelPerMeter: 0.0036,
   initialMoney: 280, scorePerMeter: 1, moneyPerMeter: 0.02,
   riderScoreBonus: 0.04, riderMoneyPerMeter: 0.20, motorcycleCapacity: 2, riderLimit: 24,
   riderCruiseLoss: 2, riderCruiseFloor: 8, overloadSpeedPenalty: 0.08, overloadFuelPenalty: 0.15,
@@ -17,14 +17,14 @@ export const balance = Object.freeze({
   passengerWanderRadius: 1.5, passengerWanderSpeed: 0.45, passengerKickSeconds: 0.65,
   passengerReturnChance: 0.5, passengerDownSeconds: 0.4, passengerStandSeconds: 0.55,
   coastDistance: 25, coastDrag: 3, coastCrawlSpeed: 2,
-  waterFuelPerSecond: 0.8, potholeImpactDamage: 6, potholeDamagePerSecond: 12, potholeMoneyLoss: 10,
+  waterFuelPerSecond: 0.55, potholeImpactDamage: 6, potholeDamagePerSecond: 12, potholeMoneyLoss: 10,
   trafficDamage: 20, trafficSpeed: 6, driverFallSeconds: 0.8, driverPauseSeconds: 0.5, driverReturnSeconds: 1.8,
   trafficWaterSpeedFactor: 0.6, trafficWreckSeconds: 2.5,
   trafficHeavySelfDamageFactor: 0.4,
   trafficPassengerLimit: 3, trafficPassengerClearance: 0.5,
   crashSlideDeceleration: 8, crashSkidLateralMetres: 1.8,
   driverEjectionSpeedFactor: 1.5, driverEjectionLateralMetres: 2.5,
-  fuelPickup: 3, repairPickup: 16,
+  fuelPickup: 4.35, repairPickup: 25.6,
   firstHazard: 130, hazardGap: 80, worldLookAhead: 140,
   hazardGapMin: 70, firstJunction: 800, junctionInterval: 800, junctionClearance: 60,
   fuelInterval: 480, firstRepair: 650, repairInterval: 1000,
@@ -138,7 +138,7 @@ if (!Number.isInteger(itemBalance.grabUses) || itemBalance.grabMinAhead > itemBa
     itemBalance.grabMaxAhead > balance.worldLookAhead || itemBalance.grabMoneyMultiplier <= 1) throw new Error('Invalid Grab bounds');
 
 /** P6 trial values: money, metres, seconds, probability. */
-export const eventBalance = Object.freeze({ policeFine: 300, militiaFine: 100, reserveFuelFactor: .5,
+export const eventBalance = Object.freeze({ policeFine: 300, militiaFine: 500, reserveFuelFactor: .5,
   firstDistance: 650, gap: 360, minimumGap: 220, policeCooldown: 1200, trainCooldown: 800, accidentCooldown: 600,
   reactionSeconds: 3.5, bananaReach: 45, bananaPrice: 80,
   trainPeriod: 16, trainClosedSeconds: 8, trainClearance: 1.8, brokenItemChance: .25,

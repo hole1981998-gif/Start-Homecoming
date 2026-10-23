@@ -1,10 +1,10 @@
 import { balance, stressBalance as c } from './config';
 import { entity, type World, type Entity } from './world';
-import { vehicles, trafficTypes, type VehicleDefinition, type VehicleKind } from './vehicles';
+import { vehicles, trafficTypes, type VehicleKind } from './vehicles';
 import { movingEvent } from './moving-events';
 
 /** Additive DEV stress stream: no fairness/corridor/balance claims. Never enabled by a normal run. */
-export function fillStressWorld(w: World, ahead: number, now: number, distance: number, player: VehicleDefinition): void {
+export function fillStressWorld(w: World, ahead: number, now: number, distance: number): void {
   w.nextStress ??= 0;
   const roster = Object.keys(vehicles) as VehicleKind[];
   while(c.first+w.nextStress*c.gap<=ahead) {
@@ -31,12 +31,14 @@ export function fillStressWorld(w: World, ahead: number, now: number, distance: 
     const kind:Entity['kind']=['police','militia','train','jam','jam','jam','accident','broken'][stage] as Entity['kind'];
     let actors:Entity[]=[];
     for(let attempt=0;attempt<100;attempt++) {
-      actors=movingEvent(entity(kind,id+'-event',at+14,hash&1?-1.6:1.6),index,w.branchSeed+attempt,now,distance,player);
+      actors=movingEvent(entity(kind,id+'-event',at+14,hash&1?-1.6:1.6),index,w.branchSeed+attempt,now);
       if(stage<3||stage>5) break;
       const name=actors[0].displayName;
       if(stage===3&&name==='Rào sửa đường'||stage===4&&name==='Hàng rong băng đường'||stage===5&&name==='Cứu thương đổi lane')break;
     }
-    if(stage===4) for(const e of actors) if(e.crossMotion) e.crossMotion.startedAt=now;
+    if(stage===4) for(const e of actors) if(e.crossMotion) {
+      e.motionWaiting=false;e.crossingRole=undefined;e.crossMotion.startedAt=now;
+    }
     w.entities.push(...actors);
   }
 }

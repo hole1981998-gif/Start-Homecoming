@@ -56,7 +56,7 @@ it('stopped traffic still damages the player once and remains vulnerable to poth
   const base = initialRun();
   const run = stepRun({ ...base, phase: 'running', world: { ...base.world, entities: [car],
     nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9 } }, noInput());
-  expect(run.durability).toBe(50); expect(run.crash).not.toBeNull();
+  expect(run.durability).toBe(vehicles.motorcycle.durabilityCapacity - 20); expect(run.crash).not.toBeNull();
   const hole = entity('pothole', 'hole', 0, 0); hole.length = 30;
   for (let i = 0; i < 180; i++) advanceTraffic([car, hole], balance.fixedStep);
   expect(car.hp).toBe(0); expect(car.wrecked).toBe(true);

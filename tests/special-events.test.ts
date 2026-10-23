@@ -43,13 +43,14 @@ it('fixed fines do not grow with wealth; sufficient police money leaves reserve 
   }
   expect(seconds(ready('police', 8, false), 1).result?.reason).toBe('police');
 });
-it('militia take up to 100, never confiscate and never create negative money', () => {
+it('militia take up to the fixed fine, never confiscate and never create negative money', () => {
   for (const money of [0, 20, 500]) {
     const before = ready('militia'); before.money = money;
     const after = seconds(before, 1);
     expect(after.activeVehicleId).toBe('active'); expect(after.phase).toBe('running');
     expect(after.money).toBeGreaterThanOrEqual(0); expect(after.feedbackCounts.militia).toBe(1);
-    if (money === 500) expect(after.money).toBeCloseTo(money - 100 + after.distance * balance.moneyPerMeter);
+    if (money === 500) expect(after.money).toBeCloseTo(money - eventBalance.militiaFine +
+      after.distance * balance.moneyPerMeter);
   }
 });
 it('banana consumes only its slot for one nearest officer in the reaction window, never outside/paused or for train', () => {
@@ -65,7 +66,7 @@ it('banana consumes only its slot for one nearest officer in the reaction window
   const train = ready('train'); expect(usePowerItem(train, 0)).toBe(train);
 });
 it('star blocks jam crash, but police/militia/accident/train still trigger; train bypasses reserve', () => {
-  const jam = seconds(usePowerItem(ready('jam'), 1), 1); expect(jam.crash).toBeNull(); expect(jam.durability).toBe(70);
+  const jam = seconds(usePowerItem(ready('jam'), 1), 1); expect(jam.crash).toBeNull(); expect(jam.durability).toBe(balance.durabilityCapacity);
   const police = seconds(usePowerItem(ready('police'), 1), 1); expect(police.activeVehicleId).toBe('spare');
   const militia = seconds(usePowerItem(ready('militia'), 1), 1); expect(militia.money).toBeLessThan(balance.initialMoney);
   const accident = seconds(usePowerItem(ready('accident'), 1), 1); expect(accident.activeVehicleId).toBe('spare');

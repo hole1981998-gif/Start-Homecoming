@@ -5,7 +5,7 @@ import { activeVehicle, dropPassenger, initialRun, names, passengerDrive, pickUp
 import { canChoose, junction } from './route';
 import { leaderboard, recordResult, saveSeen, seenCards, showFlavor, saveFlavor } from './persistence';
 import { RoadRenderer } from './render';
-import { fillWorld, initialWorld, warningDistance, type EntityKind } from './world';
+import { warningDistance, type EntityKind } from './world';
 import { developmentScenario } from './development';
 import { createIcons, Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } from 'lucide';
 import { RoadHud } from './road-hud';
@@ -54,8 +54,7 @@ function newRun() {
   const requestedSeed = import.meta.env.DEV && params.has('seed') ? Number(params.get('seed')) : NaN;
   const seed = Number.isSafeInteger(requestedSeed) && requestedSeed >= 0 && requestedSeed <= 0xffffffff ?
     requestedSeed : scenario?.startsWith('passenger-crash') ? 17 : crypto.getRandomValues(new Uint32Array(1))[0];
-  const fresh = initialRun(seed, crypto.randomUUID());
-  const run = version === 'noforce' ? { ...fresh, world: fillWorld(initialWorld(seed, true, 'backup'), 0) } : fresh;
+  const run = initialRun(seed, crypto.randomUUID(), version === 'noforce' ? 'backup' : undefined);
   return import.meta.env.DEV ? developmentScenario(run, scenario, Number(params.get('start') ?? 0)) : run;
 }
 let state = newRun(), previous = state, input = noInput();
@@ -88,7 +87,7 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   modalVersionLink.hidden = view === 'help' || view === 'card';
   testHome.hidden = !state.world.prototype || state.world.prototype.version.startsWith('force-');
   text('modal-title', title); text('modal-description', description);
-  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('force-tail-') ? `ver.${version} · THỬ ĐIỀU KHIỂN XE LỚN` : state.world.prototype.version.startsWith('force-npc-') ? `ver.${version} · THỬ VA CHẠM NPC` : state.world.prototype.version.startsWith('force-car-') ? `ver.${version} · THỬ VA CHẠM XE` : state.world.prototype.version.startsWith('handling-') ? 'THỬ ĐỘ BÁM VÀ QUÁN TÍNH' : state.world.prototype.version.startsWith('p7-') ? 'P7 · THỬ KẾT VÁN' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · THỬ ĐỒ RƠI' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P7 · BẢN CHƠI TÍCH HỢP');
+  text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('force-tail-') ? `ver.${version} · THỬ ĐIỀU KHIỂN XE LỚN` : state.world.prototype.version.startsWith('force-npc-') ? `ver.${version} · THỬ VA CHẠM NPC` : state.world.prototype.version.startsWith('force-car-') ? `ver.${version} · THỬ VA CHẠM XE` : state.world.prototype.version.startsWith('handling-') ? 'THỬ ĐỘ BÁM VÀ QUÁN TÍNH' : state.world.prototype.version.startsWith('p8-') ? 'P8 · THỬ CÂN BẰNG' : state.world.prototype.version.startsWith('p7-') ? 'P7 · THỬ KẾT VÁN' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · THỬ ĐỒ RƠI' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'P7 · BẢN CHƠI TÍCH HỢP');
   el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = !['start', 'help'].includes(view);
   el('result-summary').hidden = view !== 'result'; el('discovery-hint').hidden = view !== 'card';
@@ -116,7 +115,9 @@ function reset(): void {
   force = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
   state = newRun(); previous = state;
   if (state.world.prototype) {
-    document.title = (state.world.prototype.version.startsWith('force-') ? `ver.${version} · ` : state.world.prototype.version.startsWith('handling-') ? '' : state.world.prototype.version.startsWith('p7-') ? 'P7 · ' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · ' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · ' : 'P6.1 · ') + state.world.prototype.title;
+    testHome.href = state.world.prototype.version.startsWith('p8-') ? '/' : '/p61.html';
+    testHome.textContent = state.world.prototype.version.startsWith('p8-') ? '← Bản chính' : '← Bộ tình huống P6.1';
+    document.title = (state.world.prototype.version.startsWith('force-') ? `ver.${version} · ` : state.world.prototype.version.startsWith('handling-') ? '' : state.world.prototype.version.startsWith('p8-') ? 'P8 · ' : state.world.prototype.version.startsWith('p7-') ? 'P7 · ' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · ' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · ' : 'P6.1 · ') + state.world.prototype.title;
     const description = version === 'noforce' && state.world.prototype.version.startsWith('force-tail-') ?
       'Bản đối chiếu: xe giữ thân một khối, không có trục sau/khớp nối riêng. Giữ D để so cùng tình huống với ver.force.' :
       state.world.prototype.description;
@@ -157,7 +158,7 @@ const cardDescriptions: Record<EntityKind, string> = {
   train: 'Tàu chắn ngang: giữ S để phanh tới dừng và đợi tín hiệu mở. Hoặc bật nitro rồi Space đúng lúc để nhảy qua. Chạm tàu luôn kết ván, kể cả có star hay xe dự phòng.',
   broken: 'Xe chết máy: chạm một lần sẽ xuất hiện khách bên cạnh để F đón, đôi khi có một chuối nếu kho còn chỗ.',
   shop: `Nhà ven đường có biểu tượng cửa hàng. Lái tới cùng phía, nhấn R trong khoảng ${shopBalance.reach} m để ghé; game tạm dừng khi mua. Có xăng, sửa, xe và nâng cấp. Kho tối đa hai xe; mua xe thứ ba phải chọn xe bỏ. Bán nitro/star/Grab cho hai ô 1/2; xăng/sửa chỉ tại chỗ. Tab vẫn đổi xe. Hàng của cùng cửa hàng không đổi khi mở lại.`,
-  water: `Mảng nước làm hao thêm ${formatter.format(balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Có đoạn dài tới 30 m và phủ ba làn: lúc đó phải chấp nhận hao xăng cho đến khi có nhánh rẽ ở prototype sau.`,
+  water: `Mảng nước làm hao thêm ${fuelRateFormatter.format(version === 'noforce' ? 0.8 : balance.waterFuelPerSecond)} L xăng mỗi giây tiếp xúc. Có đoạn dài tới 30 m và phủ ba làn: lúc đó phải chấp nhận hao xăng cho đến khi có nhánh rẽ ở prototype sau.`,
   pothole: `Ổ gà viền vàng lấy ${balance.potholeImpactDamage} HP và tối đa ${balance.potholeMoneyLoss} tiền ở lần chạm đầu; tiếp tục lấy ${balance.potholeDamagePerSecond} HP mỗi giây xe còn chạm. Có đoạn dài tới 24 m hoặc phủ cả ba làn; chạy nhanh qua sẽ giảm thời gian chịu hại.`,
   traffic: `Xe giao thông có đủ loại từ xe máy, ô tô, ba gác tới buýt, tải và container; mỗi loại có HP, kích cỡ và sát thương riêng. Làn trái ngược chiều, phải cùng chiều, giữa chọn hướng theo seed. Va xe thường làm tài xế ngã; buýt, tải và container có thể húc hỏng xe yếu nhưng vẫn mất HP. Xe giao thông chịu ổ gà, chậm và hao thêm xăng trong nước. Mỗi loại có bình và mức hao riêng; hết xăng trôi thêm rồi dừng nhưng vẫn còn HP và gây va chạm. Khi xe hỏng, khách xuất hiện bên cạnh nếu có chỗ an toàn; nhấn F khi đủ gần để đón nếu xe tự hỏng vì ổ gà. Khách từ xe bị bạn húc hỏng từ chối lên xe; không tự nhận khách hay thưởng.`,
   cargo: 'Kiện hàng hoặc thùng tuột từ đuôi xe tải/container cùng chiều, trượt về sau rồi lăn lệch theo hướng ngẫu nhiên. Có cảnh báo trên xe trước khi rơi. Kiện hàng trừ ít HP; thùng nặng gây ngã. Né bằng A/D, hoặc nhảy qua khi nitro bật và nhấn Space; star miễn sát thương/ngã.',

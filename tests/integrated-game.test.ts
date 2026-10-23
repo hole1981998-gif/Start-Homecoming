@@ -18,8 +18,8 @@ it('normal seeded director includes moving train, officer variants, vendor/barri
   const seen = new Set<string>(), profiles = new Set<string>();
   for (let seed=1; seed<=30; seed++) for(let index=0;index<20;index++) {
     const p = specialPlan(index, seed), base = entity(p.kind, 'e-'+index, p.distance,p.x);
-    const actors = movingEvent(base,index,seed,10,p.distance-250,vehicles.motorcycle);
-    expect(actors).toEqual(movingEvent(entity(p.kind,'e-'+index,p.distance,p.x),index,seed,10,p.distance-250,vehicles.motorcycle));
+    const actors = movingEvent(base,index,seed,10);
+    expect(actors).toEqual(movingEvent(entity(p.kind,'e-'+index,p.distance,p.x),index,seed,10));
     for (const e of actors) {
       seen.add(e.displayName ?? e.kind);
       if(e.kind==='police'||e.kind==='militia') {
@@ -62,7 +62,7 @@ it('collision stops fuel billing at actual NPC contact; waiting wreck/stopped tr
   const fuel=car.fuel;advanceInteractingTraffic([car,barrier],[{...car},{...barrier}],1);expect(car.fuel).toBe(fuel);
 });
 it('branch retirement keeps motion/pose data, removes old colliders and produces independent seeded new branch',()=>{
-  const run=initialRun(17);const e=movingEvent(entity('train','old',810,0),2,17,0,600,vehicles.motorcycle)[0];
+  const run=initialRun(17);const e=movingEvent(entity('train','old',810,0),2,17,0)[0];
   const world={...run.world,entities:[e]};const fork=forkWorld(world,run.route,'left',800);
   expect(fork.entities.some(v=>v.id==='old')).toBe(false);
   expect(fork.retired[0].entity.crossMotion).toEqual(e.crossMotion);
