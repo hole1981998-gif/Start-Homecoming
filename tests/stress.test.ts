@@ -3,7 +3,7 @@ import { developmentScenario } from '../src/development';
 import { initialRun, stepRun, selectTurn } from '../src/survival';
 import { fillWorld, entity, initialWorld, forkWorld, type World } from '../src/world';
 import { movingEvent } from '../src/moving-events';
-import { advanceCrossMotion } from '../src/cross-motion';
+import { advanceCrossMotion, crossX } from '../src/cross-motion';
 import { vehicles } from '../src/vehicles';
 import { noInput } from '../src/simulation';
 import { balance, movingBalance } from '../src/config';
@@ -55,7 +55,8 @@ it('vendor begins crossing when the player actually approaches at either speed',
     expect(world.entities[0].motionWaiting).toBe(false);
     expect(world.entities[0].crossMotion?.startedAt).toBe(31);
     advanceCrossMotion(world.entities,31.5);
-    expect(Math.abs(world.entities[0].x-origin)).toBeCloseTo(movingBalance.vendorSpeed*.5);
+    expect(Math.abs(world.entities[0].x-origin)).toBeCloseTo(Math.abs(crossX(world.entities[0].crossMotion!, 31.5) - origin), 6);
+    expect(Math.abs(world.entities[0].x-origin)).toBeGreaterThan(movingBalance.vendorSpeed*.5);
   }
 });
 it('the no-force backup keeps its prior vendor timer',()=>{
@@ -72,7 +73,7 @@ it('the no-force backup keeps its prior vendor timer',()=>{
 });
 it('turn uses current gameplay time, and branch stress IDs/counters restart without copying old actors to the new lane',()=>{
   let run=developmentScenario(initialRun(7),'stress');run={...run,phase:'running',distance:780,speed:20,activeSeconds:100,world:fillWorld(run.world,780,45,300,1,vehicles.container,100,20)};
-  run.distance = 770; // Container must commit before its rear reaches the turn arc.
+  run.distance = 770; // Choose inside the shifted window, before the turn arc.
   const turned=selectTurn(run,'left');expect(turned.route.choice).toBe('left');
   expect(turned.world.entities.filter(e=>e.crossMotion&&!e.motionWaiting).every(e=>e.crossMotion!.startedAt>=100)).toBe(true);
   const fork=forkWorld(run.world,run.route,'left',800);expect(fork.nextStress).toBeGreaterThan(0);

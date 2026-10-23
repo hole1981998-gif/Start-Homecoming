@@ -26,7 +26,8 @@ it(`samples planned and spawned special coverage on ${roadCount} deterministic 3
     const waterWindows: {start:number;end:number}[] = [];
     const groupLayers = new Map<string, { distance: number; layers: number; actors: {kind: string; start: number; end: number}[] }>();
     for (let distance = 0; distance <= 3000; distance += 30) {
-      world = fillWorld(world, distance, balance.fuelCapacity, balance.durabilityCapacity);
+      world = fillWorld(world, distance, balance.fuelCapacity, balance.durabilityCapacity,
+        1, undefined, distance / 14, 14);
       for (const e of world.entities) if (e.id.startsWith('event-') && !e.id.startsWith('event-pattern-')) {
         if (!seen.has(e.groupId ?? e.id)) eventWindows.push({start:e.distance-e.length/2,end:e.distance+e.length/2});
         seen.add(e.groupId ?? e.id);

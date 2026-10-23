@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p8-encounter-candidate-c3-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'p8-encounter-c3-refinement-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -127,8 +127,8 @@ for (const variants of Object.values(hazardSizes)) for (const [width, length] of
 
 /** P5.1 trial: seconds, metres, multiplier and in-run money. Not tuned. */
 export const itemBalance = Object.freeze({ boostSeconds: 4, starSeconds: 5, jumpSeconds: 1.6,
-  jumpHeight: 2.4, groundClearance: .15, pickupClearance: .8, lowTrafficClearance: 1.8, highTrafficClearance: 3.5, boostFactor: 1.3, nitroPrice: 120, starPrice: 180,
-  grabPrice: 240, grabUses: 3, grabShopStock: 1, grabMoneyMultiplier: 10, grabMinAhead: 45, grabMaxAhead: 120,
+  jumpHeight: 2.4, groundClearance: .15, pickupClearance: .8, lowTrafficClearance: 1.8, highTrafficClearance: 3.5, boostFactor: 1.3, nitroPrice: 50, starPrice: 80,
+  grabPrice: 120, grabUses: 3, grabShopStock: 1, grabMoneyMultiplier: 10, grabMinAhead: 45, grabMaxAhead: 120,
   grabSearchStep: 10, grabClearance: 1, grabCooldown: 2, grabSteeringMarginSeconds: .5 });
 for (const value of Object.values(itemBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid power item config');
 if (itemBalance.jumpSeconds > itemBalance.boostSeconds || itemBalance.jumpHeight <= itemBalance.lowTrafficClearance || itemBalance.boostFactor <= 1)
@@ -140,7 +140,7 @@ if (!Number.isInteger(itemBalance.grabUses) || itemBalance.grabMinAhead > itemBa
 /** P6 trial values: money, metres, seconds, probability. */
 export const eventBalance = Object.freeze({ policeFine: 300, militiaFine: 500, reserveFuelFactor: .5,
   firstDistance: 650, gap: 360, minimumGap: 220, policeCooldown: 1200, trainCooldown: 800, accidentCooldown: 600,
-  reactionSeconds: 3.5, bananaReach: 45, bananaPrice: 80,
+  reactionSeconds: 3.5, bananaReach: 45, bananaPrice: 25,
   trainPeriod: 16, trainClosedSeconds: 8, trainClearance: 1.8, brokenItemChance: .25,
   corridor: 110 });
 for (const value of Object.values(eventBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid event config');
@@ -153,10 +153,19 @@ if (densityBalance.specialClearance >= eventBalance.corridor) throw new Error('S
 
 export const movingVersion = 'p61-scenarios-3';
 
+/** C3 early-game relief, using active gameplay seconds and an independent seeded roll. */
+export const earlyBalance = Object.freeze({ fullReliefSeconds: 45, endSeconds: 90,
+  thirdLayerReduction: .25, minimumApproachSpeed: 8 });
+if (earlyBalance.fullReliefSeconds <= 0 || earlyBalance.endSeconds <= earlyBalance.fullReliefSeconds ||
+    earlyBalance.thirdLayerReduction < 0 || earlyBalance.thirdLayerReduction > 1)
+  throw new Error('Invalid early-game relief');
+
 /** Opt-in P6.1 scenarios only. Units: m, m/s, s. No normal-route spawn tuning. */
 export const movingBalance = Object.freeze({ trainWidth: 24, trainDepth: 2.8, trainSpeed: (24 + balance.laneWidth * balance.laneCount) / 4, trainCrossSeconds: 4, trainOrigin: 20,
   npcWidth: .65, npcDepth: .65, patrolSpeed: 4.5, patrolFastSpeed: 6.3, patrolStaggerSpeed: 5.6, patrolSlowSpeed: 3.8, patrolStaggerDepth: 3, patrolBound: 4.35,
-  barrierWidth: 6.2, barrierDepth: 1.4, blockerDamage: 20, vendorSpeed: 3.4, vendorWidth: 1.8, vendorLength: 2.1, ambulanceSpeed: 16 });
+  barrierWidth: 6.2, barrierDepth: 1.4, blockerDamage: 20, vendorSpeed: 3.4,
+  vendorBurstSpeed: 6, vendorCruiseSpeed: 3.8, vendorBurstSeconds: .15, vendorEaseSeconds: .45,
+  vendorWidth: 1.8, vendorLength: 2.1, ambulanceSpeed: 16 });
 for (const value of Object.values(movingBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid moving hazard config');
 if (movingBalance.npcWidth + 2 * movingBalance.patrolBound > balance.laneWidth * balance.laneCount ||
     movingBalance.trainOrigin - movingBalance.trainWidth / 2 < balance.laneWidth * 1.5 ||

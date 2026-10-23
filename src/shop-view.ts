@@ -1,8 +1,7 @@
-import { eventBalance } from './config';
 import { itemBalance, shopBalance } from './config';
 import type { Run } from './survival';
 import { effectiveVehicle, vehicles, type VehicleKind } from './vehicles';
-import { reachableShop, upgradeNames, upgradePrice, vehicleSummary, type ShopCommand, type UpgradeKind } from './shop';
+import { powerItemPrice, reachableShop, upgradeNames, upgradePrice, vehicleSummary, type ShopCommand, type UpgradeKind } from './shop';
 
 import { itemNames, type PowerItem } from './items';
 
@@ -83,7 +82,7 @@ export class ShopView {
         button(price === undefined ? 'Tối đa' : 'Nâng cấp', `data-upgrade="${kind}" aria-label="Nâng cấp ${upgradeNames[kind]}"`, price === undefined || run.money < price));
     }).join('');
     if (this.tab === 'power-item') content = (['nitro', 'star', 'grab', 'banana'] as const).map(item => {
-      const price = item === 'nitro' ? itemBalance.nitroPrice : item === 'star' ? itemBalance.starPrice : item === 'banana' ? eventBalance.bananaPrice : itemBalance.grabPrice;
+      const price = powerItemPrice(item, run.world.directorVersion === 'backup');
       const effect = item === 'nitro' ? 'Boost ' + itemBalance.boostSeconds + ' s; Space nhảy ' + itemBalance.jumpSeconds + ' s khi đang boost; không vượt xe cao' :
         item === 'star' ? 'Miễn damage/debuff ' + itemBalance.starSeconds + ' s; không bỏ qua event' :
         item === 'banana' ? 'Trong cửa sổ cảnh báo: vô hiệu cả nhóm công an/dân phòng; họ đứng yên và chạm vào không bị bắt' :

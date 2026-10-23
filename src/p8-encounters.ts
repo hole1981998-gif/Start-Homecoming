@@ -1,4 +1,4 @@
-import { balance, densityBalance, forceBalance, movingBalance } from './config';
+import { balance, densityBalance, earlyBalance, forceBalance, movingBalance } from './config';
 import { directorRoll } from './balance-director';
 import { crossX } from './cross-motion';
 import { movingEvent } from './moving-events';
@@ -19,6 +19,17 @@ for (let index = 3; index < 250; index++) {
 }
 
 export interface EncounterPlan { id: number; actors: Entity[]; heavy: boolean }
+/** A stable, independent roll removes only a third layer; the seeded template remains unchanged. */
+export function softenEarlyEncounter(plan: EncounterPlan, seed: number, index: number,
+  arrivalSeconds: number): EncounterPlan {
+  if (plan.actors.length < 3 || arrivalSeconds >= earlyBalance.endSeconds) return plan;
+  const ramp = arrivalSeconds <= earlyBalance.fullReliefSeconds ? 1 :
+    (earlyBalance.endSeconds - arrivalSeconds) /
+      (earlyBalance.endSeconds - earlyBalance.fullReliefSeconds);
+  const threshold = earlyBalance.thirdLayerReduction * ramp;
+  if (directorRoll(seed, index, 0x425e2f19) / 0x100000000 >= threshold) return plan;
+  return { ...plan, actors: plan.actors.slice(0, 2), heavy: false };
+}
 type Factory = (kind: EntityKind, id: string, distance: number, x: number) => Entity;
 const lane = balance.laneWidth;
 

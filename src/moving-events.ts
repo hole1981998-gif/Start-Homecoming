@@ -6,7 +6,7 @@ import type { JamVariant } from './special-events';
 
 /** Separate seeded event stream: never consumes hazard/shop RNG. */
 export function movingEvent(event: Entity, index: number, seed: number, now: number,
-  jamVariant?: JamVariant): Entity[] {
+  jamVariant?: JamVariant, legacyVendor = false): Entity[] {
   const hash = (Math.imul(seed ^ Math.imul(index + 1, 0x9e3779b1), 1664525) + 1013904223) >>> 0;
   const side = hash & 1 ? 1 : -1;
   const motion = (origin: number, velocity: number, type: CrossMotion['type'] = 'linear'): CrossMotion =>
@@ -41,7 +41,8 @@ export function movingEvent(event: Entity, index: number, seed: number, now: num
       event.displayName = 'Rào sửa đường'; event.help = 'Né lane còn trống. Chạm rào gây ngã xe.';
     } else if (variant === 'vendor') {
       event.x = -side * 6; event.width = c.vendorWidth; event.length = c.vendorLength;
-      event.crossMotion = motion(event.x, side * c.vendorSpeed);
+      event.crossMotion = motion(event.x, side * (legacyVendor ? c.vendorSpeed : c.vendorBurstSpeed),
+        legacyVendor ? 'linear' : 'vendor');
       // Start from the actual approach, not a cruise-speed ETA fixed at spawn time.
       event.motionWaiting = true; event.crossingRole = 'vendor';
       event.displayName = 'Hàng rong băng đường'; event.help = 'Vật cản chạy ngang; A/D né hoặc S chọn lúc đi qua. Chạm gây ngã.';

@@ -14,6 +14,12 @@ export type ShopCommand = { sequence: number } & (
   { kind: 'service'; item: ServiceKind } | { kind: 'power-item'; item: PowerItem } | { kind: 'upgrade'; upgrade: UpgradeKind; targetId?: string });
 export const upgradeNames: Record<UpgradeKind, string> = {
   engine: 'Động cơ', tank: 'Bình xăng', armour: 'Gia cố', economy: 'Tiết kiệm xăng' };
+/** The noforce backup keeps its pre-C3 shop prices. */
+export function powerItemPrice(item: PowerItem, backup = false): number {
+  if (backup) return { nitro: 120, star: 180, banana: 80, grab: 240 }[item];
+  return item === 'nitro' ? itemBalance.nitroPrice : item === 'star' ? itemBalance.starPrice :
+    item === 'banana' ? eventBalance.bananaPrice : itemBalance.grabPrice;
+}
 export function upgradePrice(kind: UpgradeKind, level: number): number | undefined {
   return shopBalance[`${kind}Prices`][level];
 }
@@ -69,7 +75,7 @@ export function transact(run: Run, command: ShopCommand): { run: Run; message: s
     if (slot < 0) return fail('Kho hai ô đã đầy.');
     const count = stock.items?.[command.item] ?? 0;
     if (count <= 0) return fail('Món này đã hết.');
-    price = command.item === 'nitro' ? itemBalance.nitroPrice : command.item === 'star' ? itemBalance.starPrice : command.item === 'banana' ? eventBalance.bananaPrice : itemBalance.grabPrice;
+    price = powerItemPrice(command.item, run.world.directorVersion === 'backup');
     next.grabUses = run.grabUses.map((uses, index) => index === slot ? command.item === 'grab' ? itemBalance.grabUses : 0 : uses);
     next.inventory = run.inventory.map((value, index) => index === slot ? command.item : value);
     updatedStock.items = { ...stock.items!, [command.item]: count - 1 };

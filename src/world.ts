@@ -1,12 +1,12 @@
 import { crossX, type CrossMotion } from './cross-motion';
 import { directorRoll, layerCount, roadHazard, waterSizeIndex } from './balance-director';
-import { hasTimedEscape, makeP8Encounter, p8Affordable, p8EncounterDistance,
+import { hasTimedEscape, makeP8Encounter, softenEarlyEncounter, p8Affordable, p8EncounterDistance,
   p8ProtectedCorridor } from './p8-encounters';
 import { fillStressWorld } from './stress-world';
 import { movingEvent } from './moving-events';
 import { isSpecial, specialPlan } from './special-events';
 import { eventBalance } from './config';
-import { balance, cargoBalance, densityBalance, forceBalance, hazardSizes, itemBalance, shopBalance, stressBalance } from './config';
+import { balance, cargoBalance, densityBalance, earlyBalance, forceBalance, hazardSizes, itemBalance, shopBalance, stressBalance } from './config';
 import { trafficSpawnKinds, trafficTypes, vehicles, vehicleDefinition, waterFuelPerSecond, type VehicleDefinition, type VehicleKind } from './vehicles';
 export { trafficTypes } from './vehicles';
 import { nearJunction, type RouteState, type Turn } from './route';
@@ -364,8 +364,11 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
       const choices = [undefined, 15, 16, 10] as const;
       let chosen: ReturnType<typeof makeP8Encounter> | undefined;
       for (const requestedId of choices) {
-        const plan = makeP8Encounter(w.branchSeed, index, spawnAt, distance, now,
+        const candidate = makeP8Encounter(w.branchSeed, index, spawnAt, distance, now,
           w.recentPatternIds ?? [], make, requestedId);
+        const arrivalSeconds = now + Math.max(0, spawnAt - distance) /
+          Math.max(speed, earlyBalance.minimumApproachSpeed);
+        const plan = softenEarlyEncounter(candidate, w.branchSeed, index, arrivalSeconds);
         if (plan.actors.some(e => nearJunction(e.distance) &&
           Math.abs(e.distance - (balance.firstJunction + Math.round((e.distance - balance.firstJunction) /
             balance.junctionInterval) * balance.junctionInterval)) < 14)) continue;
@@ -630,7 +633,7 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     const patternId = backupDirector ? undefined : plan.kind === 'jam' ? plan.variant === 'barrier' ? 7 : plan.variant === 'vendor' ? 8 : 9 :
       plan.kind === 'police' || plan.kind === 'militia' ? 11 : plan.kind === 'train' ? 14 : undefined;
     event.patternId = patternId;
-    const actors = w.integrated ? movingEvent(event, index, w.branchSeed, now, plan.variant) : [event];
+    const actors = w.integrated ? movingEvent(event, index, w.branchSeed, now, plan.variant, backupDirector) : [event];
     if (backupDirector) for (const actor of actors) if (actor.crossingRole === 'vendor' && actor.crossMotion) {
       actor.motionWaiting = false; actor.crossingRole = undefined;
       actor.crossMotion.startedAt += Math.max(0, (actor.distance - distance) / vehicle.cruiseSpeed - 2);

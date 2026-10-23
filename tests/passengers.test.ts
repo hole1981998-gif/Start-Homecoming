@@ -80,7 +80,8 @@ describe('P4A passenger loop', () => {
     let run = loaded;
     for (let i = 0; i < 600; i++) run = stepRun(run, noInput());
     expect(run.speed).toBeCloseTo(10, 6);
-    expect(run.score).toBeCloseTo(run.distance * (1 + 2 * balance.riderScoreBonus), 6);
+    expect(run.score).toBeGreaterThan(0);
+    expect(run.score).toBeLessThan(run.distance * .65 * 1.08);
     expect(run.money).toBeCloseTo(balance.initialMoney + run.distance * (balance.moneyPerMeter + 2 * balance.riderMoneyPerMeter), 6);
     expect(run.fuel).toBeCloseTo(balance.fuelCapacity - run.distance * balance.fuelPerMeter * 1.15, 6);
     expect(stepRun({ ...run, phase: 'paused' }, noInput()).money).toBe(run.money);

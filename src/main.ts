@@ -2,7 +2,7 @@ import './style.css';
 import { balance, shopBalance } from './config';
 import { FixedClock, noInput } from './simulation';
 import { activeVehicle, dropPassenger, initialRun, names, passengerDrive, pickUpPassenger, selectTurn, stepRun, switchVehicle } from './survival';
-import { canChoose, junction } from './route';
+import { canChoose, junction, junctionWindow } from './route';
 import { leaderboard, recordResult, saveSeen, seenCards, showFlavor, saveFlavor } from './persistence';
 import { RoadRenderer } from './render';
 import { warningDistance, type EntityKind } from './world';
@@ -137,10 +137,20 @@ function resultView(): void {
     result.reason === 'secret' ? 'Bạn đã hoàn tất chuỗi bí mật và nhận huy hiệu Đã về nhà.' :
       result.reason === 'train' ? 'Tàu luôn kết thúc ván khi va chạm. Giữ S chờ mở đường hoặc nhảy bằng nitro + Space.' : result.reason === 'police' ? 'Không còn xe dự phòng hợp lệ. Dùng chuối trong cửa sổ cảnh báo ở lượt sau.' : result.reason === 'fuel' ? `Xe đã trôi thêm đủ ${balance.coastDistance} m sau khi hết xăng. Lượt sau hãy tìm bình xăng ven đường.` : 'Độ bền đã về 0 sau va chạm. Lượt sau hãy đọc cảnh báo và chừa thời gian đổi hướng.');
   const list = el<HTMLOListElement>('leaderboard-list'); list.replaceChildren();
-  for (const [index, entry] of leaderboard().slice(0, 5).entries()) {
+  const boardVersion = result.scoreVersion ?? 'legacy-v1';
+  text('leaderboard-title', boardVersion === 'speed-v1' ? 'Bảng điểm tốc độ · trên máy này' : 'Bảng điểm cũ · trên máy này');
+  for (const [index, entry] of leaderboard(boardVersion).slice(0, 5).entries()) {
     const row = document.createElement('li');
     row.textContent = `${index + 1}. ${Math.floor(entry.score)} điểm · ${Math.floor(entry.distance)} m${entry.reason === 'secret' ? ' · ⌂' : ''}`;
     list.append(row);
+  }
+  const legacy = boardVersion === 'speed-v1' ? leaderboard('legacy-v1').slice(0, 3) : [];
+  el('legacy-board').hidden = legacy.length === 0;
+  const oldList = el<HTMLOListElement>('legacy-list'); oldList.replaceChildren();
+  for (const entry of legacy) {
+    const row = document.createElement('li');
+    row.textContent = `${Math.floor(entry.score)} điểm · ${Math.floor(entry.distance)} m`;
+    oldList.append(row);
   }
 }
 function openHelp(): void {
@@ -234,16 +244,25 @@ function updateHud(): void {
   const approach = nextJunction.distance - state.distance;
   const junctionCue = el('junction-cue');
   junctionCue.hidden = state.phase !== 'running' || !!state.crash || approach < 0 || approach > Math.max(70, state.speed * 4);
+  el('junction-branches').hidden = junctionCue.hidden;
   if (!junctionCue.hidden) {
     const activeChoice = canChoose(state.distance, state.speed, nextJunction, vehicle.kind, state.route.window);
     junctionCue.classList.toggle('active', activeChoice);
     junctionCue.classList.toggle('forced', nextJunction.blockedStraight);
-    text('junction-distance', activeChoice ? `${(approach / Math.max(state.speed, 1)).toFixed(1)} s` : `${Math.ceil(approach)} m`);
+    const closeDistance = state.route.window?.index === nextJunction.index ? state.route.window.closeDistance :
+      junctionWindow(nextJunction, state.speed, vehicle.kind).closeDistance;
+    text('junction-distance', activeChoice ? `${Math.max(0, (closeDistance - state.distance) / Math.max(state.speed, 1)).toFixed(1)} s` : `${Math.ceil(approach)} m`);
     text('junction-message', state.route.choice ? state.route.choice === 'left' ? 'ĐÃ CHỌN TRÁI' : 'ĐÃ CHỌN PHẢI' :
       !activeChoice ? state.route.window?.closed ? 'ĐÃ HẾT CỬA RẼ' : 'SẮP TỚI GIAO LỘ' :
         nextJunction.blockedStraight ? 'RẼ NGAY · ĐƯỜNG THẲNG CHẶN' : 'CHỌN LỐI');
     el('junction-left').classList.toggle('selected', state.route.choice === 'left');
     el('junction-right').classList.toggle('selected', state.route.choice === 'right');
+    for (const [id, side] of [['junction-left', -1], ['junction-right', 1]] as const) {
+      const target = graphics.project(side * 5.2, 0.6, -(approach + 2));
+      const cue = el<HTMLElement>(id);
+      cue.style.left = `${Math.max(12, Math.min(88, target.x))}%`;
+      cue.style.top = `${Math.max(19, Math.min(48, target.y))}%`;
+    }
   }
   text('speed', speedText(state.phase === 'running' ? state.speed : 0)); text('distance', `${Math.floor(state.distance + 1e-8)}`);
   text('score', `${Math.floor(state.score + 1e-8)}`); text('money', formatter.format(state.money));

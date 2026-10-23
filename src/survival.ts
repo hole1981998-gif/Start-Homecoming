@@ -12,11 +12,12 @@ import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, updateJunctionWindow, type RouteState, type Turn } from './route';
 import { effectiveVehicle, newVehicle, vehicleDefinition, vehicleRam, vehicles, waterFuelPerSecond, type VehicleDefinition, type VehicleInstance } from './vehicles';
 import { splitCrashRiders } from './passenger-outcomes';
+import { scorePerMeter, scoreVersion } from './scoring';
 import { canSecretEnd, guardedSecret, initialSecret, secretLanding, secretPickup, secretTrainOverlap, secretVehicle, type SecretState } from './secret';
 
 import { jumpHeight, hasBoost, hasStar, newPowers, powerBoundaries, type PowerItem, type Powers } from './items';
 
-export interface RunResult { runId: string; seed: number; config: string; reason: 'fuel' | 'damage' | 'train' | 'police' | 'secret'; distance: number; score: number; money: number; seconds: number }
+export interface RunResult { runId: string; seed: number; config: string; scoreVersion?: 'legacy-v1' | typeof scoreVersion; reason: 'fuel' | 'damage' | 'train' | 'police' | 'secret'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
   returningRiderIds: string[]; strandedRiderIds: string[] }
 export interface Run extends State {
@@ -226,7 +227,9 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
         (vehicle.width + trainHit.width) / 2, (vehicle.length + trainHit.length) / 2)![0];
       const at = before.activeSeconds + hit * dt, stop = before.distance + (distance - before.distance) * hit;
       return { ...before, phase: 'ended', speed: 0, distance: stop, activeSeconds: at,
-        result: { runId: before.runId, seed: before.seed, config: runConfigVersion(before), reason: 'train', distance: stop,
+        result: { runId: before.runId, seed: before.seed, config: runConfigVersion(before),
+          scoreVersion: before.world.directorVersion === 'backup' ? 'legacy-v1' : scoreVersion,
+          reason: 'train', distance: stop,
           score: before.score, money: before.money, seconds: at } };
     }
     if (world.experimentalMotion) retireCrossers(movedEntities);
@@ -350,7 +353,8 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
     if (reason !== 'train' && reason !== 'secret' && r.vehicleInstances.some(v => v.id !== r.activeVehicleId && !v.disabled && v.fuel > 0 && v.durability > 0)) {
       replacementPending = true; return;
     }
-    r.result = { runId: r.runId, seed: r.seed, config: runConfigVersion(r), reason,
+    r.result = { runId: r.runId, seed: r.seed, config: runConfigVersion(r),
+      scoreVersion: r.world.directorVersion === 'backup' ? 'legacy-v1' : scoreVersion, reason,
       distance: r.distance, score: r.score, money: r.money, seconds: r.activeSeconds };
   };
   const crashDriver = (impactSpeed: number) => {
@@ -432,7 +436,12 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       if (fuelRate > 0) segment = Math.min(segment, r.fuel / fuelRate);
       if (damageRate > 0) segment = Math.min(segment, r.durability / damageRate);
       if (!powered && ds > 0) segment = Math.min(segment, r.coastRemaining / ds);
-      r.distance += ds * segment; r.score += ds * segment * balance.scorePerMeter * (1 + r.riderIds.length * balance.riderScoreBonus);
+      r.distance += ds * segment;
+      const scoringRate = r.world.directorVersion === 'backup' ?
+        balance.scorePerMeter * (1 + r.riderIds.length * balance.riderScoreBonus) :
+        scorePerMeter(before.speed + (driven.speed - before.speed) * (fraction + segment / 2),
+          r.riderIds.length, vehicleDefinition(vehicle.kind));
+      r.score += ds * segment * scoringRate;
       r.money += ds * segment * (balance.moneyPerMeter + r.riderIds.length * balance.riderMoneyPerMeter +
         (r.grabRiderIds.length ? r.grabRiderIds.filter(id => r.riderIds.includes(id)).length : 0) * balance.riderMoneyPerMeter * (itemBalance.grabMoneyMultiplier - 1)); r.activeSeconds += dt * segment;
       if (powered) r.fuel = Math.max(0, r.fuel - fuelRate * segment);

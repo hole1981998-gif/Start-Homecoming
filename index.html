@@ -25,7 +25,8 @@
       <span id="coast-cue" hidden></span>
     </div>
     <p id="item-cue" aria-label="Kho vật phẩm, dùng phím 1 và 2" hidden></p><div id="world-cues" aria-label="Cảnh báo trên đường"></div>
-    <div id="junction-cue" role="status" hidden><div class="junction-options"><span id="junction-left"><kbd>Q</kbd> ↰</span><span class="junction-straight">↑</span><span id="junction-right">↱ <kbd>E</kbd></span></div><strong id="junction-message"></strong><small id="junction-distance"></small></div>
+    <div id="junction-cue" role="status" hidden><div class="junction-options"><span class="junction-straight">↑</span></div><strong id="junction-message"></strong><small id="junction-distance"></small></div>
+    <div id="junction-branches" hidden><span id="junction-left"><kbd>Q</kbd> ↰</span><span id="junction-right">↱ <kbd>E</kbd></span></div>
     <div id="impact-cue" hidden><i data-lucide="circle-alert" aria-hidden="true"></i><strong id="impact-value"></strong><small id="impact-flavor"></small></div>
     <div id="crash-cue" role="status" aria-label="Xe đang trôi, tài xế quay lại, miễn nhiễm" hidden><span aria-hidden="true">↶</span><b id="crash-time" aria-hidden="true"></b></div>
     <div class="sr-only" id="drive-mode"></div><div class="sr-only" id="feedback" aria-live="polite"></div>
@@ -34,9 +35,10 @@
       <span class="eyebrow" id="modal-label">PROTOTYPE 7 · KẾT VÁN BÍ MẬT</span><h1 id="modal-title">Đường về nhà</h1><p id="modal-description"></p>
       <div id="instructions"><p><kbd>W</kbd> Giữ tăng tốc <kbd>S</kbd> Giữ hãm</p><p id="release-help"></p><p><kbd>A</kbd><kbd>D</kbd> Lái tự do <kbd>Q</kbd><kbd>E</kbd> Rẽ <kbd>F</kbd> Đón <kbd>G</kbd> Cho xuống <kbd>Tab</kbd> Đổi xe <kbd>Esc</kbd> Tạm dừng</p><p class="quiet">F đón và G cho khách xuống ngay. Tab đổi nhanh xe dự phòng, giữ khách và tài nguyên từng xe. R ghé cửa hàng khi đủ gần; xăng/sửa tại chỗ, phím 1/2 dùng nitro boost, star, chuối tránh bắt hoặc Grab gọi khách rồi F đón; Space nhảy khi nitro đang bật. Giao lộ Q/E vẫn cần chọn kịp khi đường thẳng bị chắn.</p></div>
       <div id="shop-panel" hidden></div><p id="shop-status" role="status" hidden></p><p id="discovery-hint" class="quiet" hidden></p>
-      <dl id="result-summary" hidden><div><dt>Quãng đường</dt><dd id="result-distance"></dd></div><div><dt>Điểm</dt><dd id="result-score"></dd></div><div><dt>Tiền còn</dt><dd id="result-money"></dd></div><div><dt>Thời gian chạy</dt><dd id="result-time"></dd></div></dl>
+      <dl id="result-summary" hidden><div class="result-score-primary"><dt>Điểm</dt><dd id="result-score"></dd></div><div><dt>Quãng đường</dt><dd id="result-distance"></dd></div><div><dt>Tiền còn</dt><dd id="result-money"></dd></div><div><dt>Thời gian chạy</dt><dd id="result-time"></dd></div></dl>
       <p id="result-badge" class="result-badge" hidden>⌂ ĐÃ VỀ NHÀ</p>
-      <section id="leaderboard" class="leaderboard" hidden><h2>Bảng điểm trên máy này</h2><ol id="leaderboard-list"></ol></section>
+      <section id="leaderboard" class="leaderboard" hidden><h2 id="leaderboard-title">Bảng điểm trên máy này</h2><ol id="leaderboard-list"></ol></section>
+      <section id="legacy-board" class="leaderboard" hidden><h2>Thành tích cũ · luật điểm trước speed-v1</h2><ol id="legacy-list"></ol></section>
       <button class="primary" id="play">Bắt đầu lái</button><button id="close-help" hidden>Đóng hướng dẫn</button>
       <div class="panel-actions"><button id="panel-help" hidden>Xem hướng dẫn</button><button id="panel-restart" hidden>Chơi lại từ đầu</button></div>
       <label id="feedback-options" hidden><input id="flavor-toggle" type="checkbox" checked /> Popup vui (luôn giữ phản hồi tài nguyên)</label>
