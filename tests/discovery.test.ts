@@ -8,6 +8,10 @@ it('first discovery pauses before danger, closes safely, and result/restart cann
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
   vi.spyOn(document, 'hasFocus').mockReturnValue(true);
   let now = 0; let nextFrame: FrameRequestCallback = () => undefined;
+  vi.stubGlobal('crypto', {
+    getRandomValues: (values: Uint32Array) => { values[0] = 17; return values; },
+    randomUUID: () => 'discovery-seed-17',
+  });
   vi.stubGlobal('performance', { now: () => now });
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { nextFrame = cb; return 1; });
   await import('../src/main');
