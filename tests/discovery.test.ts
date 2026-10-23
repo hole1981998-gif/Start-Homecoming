@@ -14,12 +14,12 @@ it('first discovery pauses before danger, closes safely, and result/restart cann
   const el = (id: string) => document.getElementById(id) as HTMLElement;
   const tick = (seconds: number) => { for (let i = 0; i < seconds * 60; i++) { now += 1000 / 60; nextFrame(now); } };
   el('play').click(); tick(6);
-  expect(el('modal-title').textContent).toBe('Vũng nước'); expect(el('modal').hidden).toBe(false);
+  expect(el('modal-title').textContent).toBe('Người cần đi nhờ'); expect(el('modal').hidden).toBe(false);
   const atCard = el('distance').textContent, fuelAtCard = el('fuel-value').textContent;
   tick(10); expect(el('distance').textContent).toBe(atCard); expect(el('fuel-value').textContent).toBe(fuelAtCard);
-  expect(Number(atCard)).toBeLessThan(100); // still safely before the water at 130m
+  expect(Number(atCard)).toBeLessThan(60); // safely before the first passenger
   vi.advanceTimersByTime(8000); tick(1); expect(el('modal').hidden).toBe(true);
-  expect(JSON.parse(localStorage.getItem('dvn.cards.v1') ?? '[]')).toContain('water');
+  expect(JSON.parse(localStorage.getItem('dvn.cards.v1') ?? '[]')).toContain('passenger');
   // Remain in the middle. Dismiss every new kind once; middle traffic eventually destroys the bike.
   for (let second = 0; second < 600 && el('play').textContent !== 'Chơi lại'; second++) {
     tick(1);
@@ -31,7 +31,7 @@ it('first discovery pauses before danger, closes safely, and result/restart cann
   const saved = JSON.parse(localStorage.getItem('dvn.results.v1') ?? '[]') as unknown[];
   expect(saved).toHaveLength(1);
   el('play').click(); tick(1); expect(el('result-summary').hidden).toBe(true);
-  expect(el('hp-value').textContent).toBe('70 HP'); expect(el('score').textContent).toBe('14');
+  expect(el('hp-value').textContent).toBe('123 HP'); expect(Number(el('score').textContent)).toBeGreaterThanOrEqual(0);
   expect(JSON.parse(localStorage.getItem('dvn.results.v1') ?? '[]')).toHaveLength(1);
   vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers();
 });

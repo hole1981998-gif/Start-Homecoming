@@ -1,0 +1,27 @@
+{
+  "name": "P6.1 stress baseline before balancing",
+  "date": "2026-10-18",
+  "commit": "581c4df",
+  "sourceArchive": "source.zip",
+  "sha256": "0f6014282dd1582bc10e5445c2bb1cc5b0fee8f4a93fe088c09e53373808a31c",
+  "bytes": 2862919,
+  "normalConfig": "p61-integrated-2",
+  "stressConfig": "p61-stress-1",
+  "runtime": {
+    "node": "24.19.0",
+    "pnpm": "11.25.0"
+  },
+  "commands": [
+    "pnpm install --frozen-lockfile",
+    "pnpm dev"
+  ],
+  "urls": [
+    "http://127.0.0.1:5173/?scenario=stress&seed=17",
+    "http://127.0.0.1:5173/?scenario=stress&seed=17&start=288",
+    "http://127.0.0.1:5173/?scenario=stress&seed=17&start=576"
+  ],
+  "data": "docs/evidence/p61/stress/summary.json",
+  "report": "docs/P61_STRESS_TRAIN_REVIEW.md",
+  "npcFuel": "enabled; ask owner whether to disable before P8 balancing",
+  "purpose": "Frozen stress/technical reference; deliberately unbalanced; not a fair difficulty/economy baseline"
+}

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { balance } from '../src/config';
 import { initialRun, selectTurn, stepRun, type Run } from '../src/survival';
 import { noInput } from '../src/simulation';
-import { canChoose, compactRoute, junction, nearJunction, pathPose } from '../src/route';
+import { canChoose, compactRoute, junction, junctionWindow, nearJunction, pathPose, updateJunctionWindow } from '../src/route';
 import { entity, fillWorld, hazardDistance, initialWorld } from '../src/world';
 
 function atJunction(index: number, seed = 17): Run {
@@ -18,6 +18,23 @@ function cross(r: Run): Run {
 }
 
 describe('P3B junction decisions', () => {
+  it('opens Q/E together, closes heavy vehicles earlier, and never reopens after braking', () => {
+    const j = junction(17, 0), speed = 14;
+    const small = junctionWindow(j, speed, 'motorcycle');
+    const car7 = junctionWindow(j, speed, 'car7');
+    const container = junctionWindow(j, speed, 'container');
+    expect(small.openDistance).toBe(car7.openDistance);
+    expect(car7.openDistance).toBe(container.openDistance);
+    expect(small.closeDistance).toBeGreaterThan(car7.closeDistance);
+    expect(car7.closeDistance).toBeGreaterThan(container.closeDistance);
+    expect(canChoose(small.openDistance - .001, speed, j, 'motorcycle', small)).toBe(false);
+    expect(canChoose(small.openDistance, speed, j, 'motorcycle', small)).toBe(true);
+    expect(canChoose(small.closeDistance, speed, j, 'motorcycle', small)).toBe(false);
+    const frozen = updateJunctionWindow(initialRun(17).route, j.distance - 40, speed, j, 'container');
+    const closed = updateJunctionWindow(frozen, container.closeDistance, speed, j, 'container');
+    expect(closed.window?.closed).toBe(true);
+    expect(canChoose(container.closeDistance - 1, 8, j, 'motorcycle', closed.window)).toBe(false);
+  });
   it('allows one Q/E decision only inside the QTE window and advances one route', () => {
     const r = atJunction(0);
     const j = junction(r.seed, 0);
@@ -91,7 +108,8 @@ describe('P3B junction decisions', () => {
         at >= distance + balance.junctionClearance && at <= distance + balance.worldLookAhead - 10);
     })!;
     const crossing = junction(seed, junctionIndex), decisionDistance = crossing.distance - 10;
-    const world = fillWorld(initialWorld(seed), decisionDistance);
+    // Isolate ordinary branch hazards from the independent P6 event corridor.
+    const world = fillWorld({ ...initialWorld(seed), nextSpecial: 1e9 }, decisionDistance);
     const old = world.entities.find(e => e.id.startsWith('hazard-') &&
       e.distance >= crossing.distance + balance.junctionClearance)!;
     expect(old).toBeDefined();
@@ -123,7 +141,7 @@ describe('P3B junction decisions', () => {
       return selectTurn({ ...initial, phase: 'running', distance, route: { ...initial.route, index: 1 },
         world: fillWorld(initialWorld(seed), distance) }, 'left');
     };
-    const early = make(crossing.distance - 18), late = make(crossing.distance - 2);
+    const early = make(crossing.distance - 18), late = make(crossing.distance - 10);
     expect(early.world.branchSeed).toBe(late.world.branchSeed);
     const oldBranch = fillWorld(early.world, crossing.distance + 50);
     const newBranch = fillWorld(late.world, crossing.distance + 50);

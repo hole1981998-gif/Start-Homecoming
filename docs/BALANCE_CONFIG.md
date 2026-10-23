@@ -1,6 +1,16 @@
 # Đường Về Nhà — Balance Config
 
+> **P8 trial 21/10/2026 (TẠM):** runtime thử tiền đầu 280; base 0,02/m; khách thường 0,20/khách/m; ô tô 4 chỗ giá 300; khách đầu 60 m, gap 360 m; shop 280/1050 m, sau đó gap 720–1080 m; hazard 80→70 m trong 3 km; special đầu 650 m, gap nhóm 360 m, tối thiểu 220 m sau dời hợp lệ. Tám kết quả cuối được phân bổ trong chu kỳ 12 slot theo seed, với police/train/accident giữ cooldown theo loại. QTE mở chung 2,4 s theo tốc độ tham chiếu lúc tiếp cận; ngưỡng đóng từ 0,6 đến 1,3 s theo xe, sàn 9 m trước tâm cua. Không cộng penalty QTE cũ. Vòng tài nguyên sau đo baseline: pickup xe máy 3 L/16 HP, fuel gap 480 m, repair gap 1000 m; car4 10 L/105 HP/0,0055 L/m/pickup 3,6 L/24 HP; car7 13 L/125 HP/0,0065 L/m/pickup 4,2 L/28 HP; mô tô 7,5 L/80 HP/0,0048 L/m/pickup 3,4 L/18 HP; tiếp tế shop 4 L/20 HP, giá 120/140. Damage, force và fuel traffic chưa đổi. Xem `P8_BALANCE_TRIAL_REVIEW.md`; các số lịch sử phía dưới không phải config hiện tại.
+
+> **Quyết định 20/10/2026:** các thông số lực thử ở `ver.force` nay cũng áp dụng cho bản chính `/`; `ver.noforce.html` giữ nguyên làm backup. Đây vẫn là số TẠM, chưa khóa cân bằng; không tự đổi fuel, HP, giá hay thu nhập trong lượt tích hợp.
+
+> **Thiết kế hiện hành P6.1:** xem DESIGN_MOVING_EVENTS_TRAFFIC.md. Feedback mới thay mô hình tàu/công an bật-tắt chắn toàn đường của bản P6; phần mô tả P6 phía dưới là lịch sử implementation, chưa phải cơ chế chuyển động đã nghiệm thu. Chưa sửa runtime trong lượt cập nhật design này.
+
 ## Quy ước
+
+**TẠM — ô tô 7 chỗ bản chính/force:** gain góc 0,22, tối đa 0,085 rad (~4,9°), đáp ứng 0,7 rad/s; điểm điều hướng lệch về trước tâm thân 12% chiều dài xe. Dùng ngưỡng tốc độ 5–15 m/s như xe lớn. Mục tiêu là đuôi quét nhẹ; không đổi grip, tốc độ, giá, xăng hay HP. Chỉ khóa số sau khi chủ dự án chơi thử.
+
+**TẠM — `ver.force` xe lớn:** buýt gain 0,62, tối đa 0,21 rad (~12°), đáp ứng 0,9 rad/s, tâm thân cách trục sau 35% chiều dài. Xe tải gain 0,4, tối đa 0,13 rad (~7,4°), đáp ứng 0,72 rad/s, tâm thân cách trục sau 32% chiều dài. Container đầu kéo tối đa 0,27 rad (~15,5°), thân đầu kéo 5 m và rơ-moóc 10 m, khớp tối đa 0,38 rad, hệ số bánh sau bám theo 0,88. Dưới 5 m/s góc mục tiêu về 0, từ 15 m/s đạt đủ hệ số. Rơ-moóc trúng chướng ngại gây damage trước đầu kéo chỉ nhận 50%; con số này là yêu cầu thử của chủ dự án, chưa cân bằng qua playtest.
 
 **TẤT CẢ con số dưới đây là TẠM, chưa được playtest**, trừ các ràng buộc đã chốt: 3 lane, khung 9:16, tối đa 2 xe, chiều rộng xe < 1,5 lane, xe secret 4 chỗ có 1 tài xế + 3 khách, chuỗi secret 4 bước. Không coi bảng này là code config đã chạy. Dùng một nguồn config TypeScript có schema/range validation khi triển khai; không rải magic number trong systems. Đơn vị: m, s, m/s, L (xăng quy ước), HP, đồng game. Đây không phải mô phỏng chi phí hay luật giao thông thực tế.
 
@@ -96,11 +106,11 @@ P2 giữ lái P1.2, xe máy 8 L / 70 HP, 0,003 L/m; nước 0,8 L/s, ổ gà 12 
 | Tiết kiệm xăng (3 cấp) | 220 / 420 / 750 | -8% tiêu hao base mỗi cấp |
 | Bơm xăng trực tiếp | 60 | +8 L, clamp tank |
 | Sửa trực tiếp | 70 | +40 HP, clamp max |
-| Gói xăng mang theo | 75 | R: +8 L cho xe đang chạy |
-| Bộ sửa mang theo | 85 | R: +40 HP cho xe đang chạy |
-| Nitro | 120 | Space tiêu 1 gói, tối đa giữ 3 |
+| Gói xăng mang theo | Bỏ | Không bán/không dùng |
+| Bộ sửa mang theo | Bỏ | Không bán/không dùng |
+| Vật phẩm mới | Chưa chốt giá | Nitro, star, chuối, Grab; theo DESIGN_ITEMS_HAZARDS.md, chưa triển khai |
 
-Đề xuất inventory vật phẩm R tối đa 3, chọn slot trong Tab; nitro dùng kho riêng. Nitro: bay 1.6 s, tăng tốc 30% trong lúc bay, cooldown 2 s; đường bay và đoàn tàu phải được kiểm tra theo xe dài nhất. Không bật bất tử toàn ván khi đang nhảy. Không thưởng tiền chỉ vì dùng item.
+Inventory ĐÃ CHỐT tối đa hai món, hai ô cố định dùng phím 1/2; R mở shop, Tab đổi xe, không dùng để chọn vật phẩm. Dùng ô 1 không dồn ô 2; món mua mới vào ô trống đầu tiên. Nitro nằm trong kho hai ô mới, không kho riêng. Các số thử cũ (bay 1.6 s, tăng tốc 30%, cooldown 2 s) chỉ là lịch sử, không tự dùng cho P5.1; đường bay và đoàn tàu phải được kiểm tra theo xe dài nhất. Không bật bất tử toàn ván khi đang nhảy. Không thưởng tiền chỉ vì dùng item.
 
 ## Nguy hiểm và tiền phạt — TẠM
 
@@ -131,7 +141,7 @@ lengthPenalty = clamp((vehicleLength - 4.2) * 0.025, 0, 0.3)
 - Một nguồn xăng miễn phí có thể tiếp cận mỗi tối đa 500 m; nếu xe tiêu hao lớn cần bảo đảm theo tầm chạy còn lại chứ không chỉ mốc 500 m.
 - Tối đa 2 nhóm nguy hiểm nặng liên tiếp; sau đó có ít nhất 3 s hành lang an toàn.
 - Cooldown công an 1200 m, tàu 800 m, tai nạn 600 m; không chồng các event bắt buộc bất khả thi.
-- Trọng số vật phẩm: xăng 45, sửa 35, nitro 20; chuẩn hóa khi roll, có pity hỗ trợ tài nguyên thấp. Pity không đảm bảo thắng và không cắt đường tiếp cận.
+- Trọng số vật phẩm mới chưa chốt; bỏ bảng roll gói xăng/sửa/nitro cũ. Pickup hồi trực tiếp trên đường giữ riêng khỏi kho.
 - Mọi thời gian phản ứng là sàn sau khi xét tốc độ/chiều dài; director phải nới khoảng cách hoặc bỏ mẫu nếu không thể đi qua.
 
 ## Cần kiểm chứng trước khóa cân bằng
@@ -186,3 +196,97 @@ Báo cáo xác suất sống tới đủ 800, phân bố thời gian đạt mố
 | Container | 130 | 50 | 4 | 1 |
 
 Damage húc của xe người chơi theo cùng thứ tự loại trên: 14/18/24/30/22/55/60/70 HP. Buýt/tải/container chỉ đi xuyên sau cú húc nếu mục tiêu thực sự về 0 HP, và vẫn mất 40% sát thương của mục tiêu, làm tròn lên; trường hợp khác vẫn chịu crash. Cần đo tỷ lệ chết, thời gian phản ứng, làn còn đi được, chi phí húc và khả năng sống của cả xe nhỏ/lớn qua nhiều seed trước khi khóa số. Bảng ba loại P4.1 phía trên là số lịch sử của lát cắt trước, không phải danh mục spawn hiện hành.
+
+## P4.2 — Thông số thử đã áp dụng
+Config `p4-2-traffic-passengers-1`: số khách xe hỏng là 1..min(capacity − 1, 3), seeded theo ID xe và seed ván; tài xế traffic không tạo thêm khách. Clearance chỗ đón 0,5 m ngoài footprint xe người chơi/hazard, NPC đứng yên. Chưa thay đổi tiền/m, thưởng khách, giá xe, spawn traffic, nhiên liệu hoặc damage. Không cộng tiền/điểm khi phá xe. Đo cơ hội đón, lượng khách thực đón và thu nhập/phút trước khi tăng cap hoặc cân chi phí húc. Những đoạn P4.2 chưa áp dụng ở trên là lịch sử.
+
+**P4.2 lượt 2:** config `p4-2-traffic-passengers-2`, không đổi số cân bằng. Khách từ xe bị người chơi húc hỏng không thể đón; 61 NPC sinh trong fixture 30 seed là người ở lại, không còn là 61 cơ hội đón. Không dùng kết quả fixture lượt đầu để suy thu nhập cứu khách.
+
+## Traffic fuel — số thử
+Config `p4-2-traffic-fuel-1`: mỗi loại traffic dùng `fuelCapacity` và `fuelPerMeter` của VehicleDefinition cùng loại (không clone số xe máy). Sinh đầy bình, không roll lượng xăng/RNG mới. Nước +0,8 L/s mỗi patch đang chạm khi còn powered, hết xăng coasting 25 m, drag 3 m/s², crawl tối đa 2 m/s, sau đó 0. Hết xăng không tự mất HP hoặc sinh khách. Các số coasting dùng config chung hiện có, chưa được cân riêng cho traffic. Giá/damage/thu nhập và xăng người chơi giữ nguyên. Chưa thêm traffic vào cảnh thường ở trạng thái gần cạn vì sẽ đổi nhịp/độ khó; đây có thể là đề xuất cân bằng riêng sau review.
+
+## P5 — Số thử đã áp dụng (`p5-roadside-economy-1`)
+Shop 600 m, 1200 m, sau đó gap seeded 600–900 m; cảnh báo tối thiểu 4 s hoặc 60 m, C đủ gần cùng phía ±30 m dọc/1,8 m ngang. Không spawn tâm hazard mới trong 45 m quanh shop. Số này TẠM và có thể làm ván dễ hơn; giữ RNG draw của hazard bị bỏ để so sánh được. Mỗi shop có xe máy/car4 và hai loại khác seeded, một chiếc mỗi loại; xăng/sửa mang theo stock 2–4 mỗi loại, không refresh khi vào lại.
+Giá/effect dùng bảng trên: engine +8% max/cấp, tank/armour +15% max/cấp, economy −8% L/m nền/cấp, ba cấp. Không tự bơm/sửa khi tăng max. Bơm 60 tiền tới +8 L; sửa 70 tới +40 HP; gói xăng 75, bộ sửa 85, cùng mức hồi và clamp. R inventory ba ô; chọn trong shop, không dùng Tab chọn món. Nitro chưa bán trước khi có Space/P6.
+Mục tiêu đo lần này là giao dịch mua thật tại shop 1200 m, không chỉ đủ tiền: pilot né hazard và chủ động tiếp cận shop, 30 seed × cruise/W, mua được 29/30 và 28/30; median có mua 85,72 s và 60,18 s. Đây là mẫu giới hạn, không bảo đảm mọi seed. Ca đường trống không nhặt đồ chỉ còn ~0,10 L trước khi mua xe mới; chưa khóa mức căng xăng. Chi phí tiếp tế sớm chủ động làm chậm việc mua ô tô; không tự tăng income để bù. Xem PROTOTYPE_5_REVIEW.md cho giới hạn và đề xuất.
+
+## P5 feedback (`p5-controls-garage-2`)
+Kho hai món/hai ô 1/2; R shop. Không đổi giá/effect, fuel/HP, income hoặc difficulty curve trong lượt này. Shop đầy catalog xe, không mua trùng loại sở hữu. Giá nâng cấp tra cấp của instance được chọn, kể cả dự phòng; không refill khi tăng max. Việc hiện đủ catalog làm lựa chọn mua khác bản roll hai loại, cần đánh giá chiến thuật sau; không gọi giá/economy hiện tại đã cân. Gate tuning riêng mốc 8 phải đo khó theo quãng đường (đầu/giữa/cuối ván) và economy/giá trước giai đoạn art 9 và SFX/VFX 10.
+
+## Yêu cầu mới — vật phẩm/chướng ngại 18/10/2026 (ưu tiên hơn mô tả cũ)
+
+Xem [DESIGN_ITEMS_HAZARDS.md](DESIGN_ITEMS_HAZARDS.md) cho cơ chế đã chốt, đề xuất cần thử, phân kỳ và gate. P5 bỏ gói xăng/bộ sửa mang theo, chỉ tiếp tế trực tiếp tại shop; giữ mua xe/nâng cấp. Pickup tài nguyên trên đường vẫn hồi trực tiếp. Nitro boost/nhảy, star miễn damage/debuff nhưng không chặn event, chuối né công an/dân phòng và Grab nhiều lượt gọi khách đặc biệt đưa vào P5.1/P5.2/P6. Bốn nhóm hazard đưa vào P6.1–P6.3. Hai ô 1/2 dành cho hệ vật phẩm tương lai; hiện chưa có món để dùng. Giá/thời lượng/số lượt/hệ số thưởng chưa chốt, không dùng số cũ như số đã cân bằng; nitro kho riêng/Space cũ không còn là thiết kế hiện hành. Star với terminal tàu là điểm cần xác nhận theo diễn giải bảo thủ trong đặc tả.
+
+
+## P5.1 — bản thử vật phẩm tăng lực (18/10/2026)
+Đã triển khai kho hai ô cố định 1/2 (cả numpad), nitro chỉ boost, Space mới nhảy khi hiệu lực còn, star miễn damage/debuff thường. Xăng/sửa chỉ là service tại chỗ, không đưa lại gói hồi tài nguyên. Nguồn thử TẠM: mỗi shop một nitro và một star, không reroll; giá 120/180. Bản thường bắt đầu kho trống; fixture DEV items có sẵn hai món. Nitro boost 4 s, trần tốc độ ×1,3, nhảy 1,6 s cao 2,4 m; star 5 s. Bấm nitro khi hết xăng/coasting hoặc dùng lại cùng hiệu lực đang chạy không tiêu món; pause/crash/kết ván không cho dùng. Hai hiệu lực khác loại có thể dùng cùng lúc, không cộng dồn cùng loại. Timer theo thời gian gameplay; pause/shop/Help không làm hết hiệu lực.
+Nitro không miễn va chạm: chỉ vượt mặt đường/xe thấp khi đủ cao và toàn bộ footprint thoát trước hạ cánh; không vượt bus/truck/container. Đụng trong lúc nhảy vẫn có thể ngã; ngã hủy boost/flight. Star không hồi/cấp xăng, tiêu hao chạy nền vẫn có; không tự phá traffic khi lướt qua. Hết star khi vẫn chạm hazard sẽ chịu hậu quả tiếp. Tại giao lộ, star vẫn ghi event/miss nhưng chặn damage/ngã của rào thường. Tàu/công an/dân phòng chưa có, chưa nghiệm thu luật terminal/trigger thực của P6; thiết kế star không bỏ trigger và tàu vẫn terminal khi đụng được giữ. Grab/chuối/hazard mới chưa triển khai.
+Các số trên đều TẠM, chưa khóa economy/difficulty. Xem [PROTOTYPE_5_1_REVIEW.md](PROTOTYPE_5_1_REVIEW.md) cho command, seed, bằng chứng manual, giới hạn và tự review.
+
+
+## Sửa điều khiển nitro theo chủ dự án — Space nhảy
+Thay luật tự nhảy của P5.1 đầu: dùng nitro bằng phím ô 1/2 chỉ boost tốc độ trong thời lượng hiện có (TẠM 4 s). Nhấn Space riêng khi nitro đang hiệu lực và xe đang ở mặt đường để nhảy. Không tiêu thêm món/không reset thời lượng boost; giữ Space không tự nhảy lặp. Sau hạ cánh có thể nhấn Space lại nếu boost còn. Không nhảy khi pause/ngã/kết ván/hết xăng/coasting hoặc không có nitro; star riêng không cho nhảy. Cú nhảy đã bắt đầu vẫn đáp bình thường nếu boost hết giữa không trung. Không đổi giá/thời lượng, không chỉnh layout/art; UX/UI hoàn chỉnh để P tương ứng. Kết quả: [NITRO_SPACE_REVIEW.md](NITRO_SPACE_REVIEW.md).
+
+
+## P5.2 — bản thử Grab và khách đặc biệt
+Đã triển khai gói Grab trong kho hai ô 1/2. Số thử TẠM: giá 240, 3 lượt/gói, một gói mỗi shop, cooldown gọi 2 s; món giữ nguyên ô cho tới khi hết lượt, không tự dồn ô. Một lượt tạo một NPC Grab phía trước khoảng 45–120 m (tối thiểu cửa sổ phản ứng theo tốc độ), có dấu primitive và nhãn Grab. Không tìm được pocket an toàn/đủ xa, đang có khách Grab còn chờ hoặc chưa chọn nhánh giao lộ thì không trừ lượt. Không tự thêm khách hoặc thưởng tiền khi gọi; phải lái tới và nhấn F. Bỏ lỡ khách mất cơ hội, không hoàn lại lượt hay nhân khách sang nhánh khác.
+Khách Grab giữ ID/type qua F/G, đổi hoặc mua xe và tai nạn. Khách quay lại tiếp tục có thưởng đúng một lần; khách rời đi không còn cộng thưởng, giữ luật từ chối đón lại sau tai nạn. Tối đa/capacity/quá tải/cruise và điểm số vẫn như khách thường. Thưởng tiền mỗi khách Grab TẠM ×10 phần riderMoneyPerMeter (0,10/m thay 0,01/m), không nhân thu nhập nền 0,50/m hoặc toàn bộ ví. Registry chỉ giữ ID khách còn liên quan trên xe/đang quay lại; type của người ngoài đường nằm trên entity. Restart xóa mọi dữ liệu ván.
+Nguồn chờ giữ vị trí đã kiểm tra để không đi vào hazard; chỉ reserve pocket đón của khách đang chờ khi sinh hazard mới, vẫn tiêu RNG draw trước khi từ chối hazard đè pocket. Không xóa hazard đã có, không clear toàn bộ đường, không cho pickup tự động. Grab chưa khóa cân bằng: gói có chi phí cơ hội so với mua xe và tích nhiều khách trên bus có thể rất lời. UI/art vẫn placeholder; hoàn thiện ở P tương ứng. Xem [PROTOTYPE_5_2_REVIEW.md](PROTOTYPE_5_2_REVIEW.md).
+
+
+## Grab chờ ở ven đường — cập nhật theo chủ dự án
+Khách Grab được gọi chỉ xuất hiện ngẫu nhiên ở hai mép ngoài mặt đường, không ở tâm hay trong lane. Bên ưu tiên lấy từ seed/branch/sequence riêng, không ưu tiên gần xe và không tiêu hazard RNG. Nếu bên đó không an toàn thì thử bên kia; cả hai không hợp lệ thì giữ lượt. Vị trí đứng tính từ nửa bề rộng đường + nửa collider NPC; kiểm tra đường tiếp cận và hazard theo vị trí xe có thể chạy sát lề, không lấy tâm NPC ngoài đường làm tâm xe. Tầm F giữ nguyên; có test đón cho cả 8 loại xe. Không đổi giá/thưởng/lượt hay layout/art. Xem [GRAB_ROADSIDE_REVIEW.md](GRAB_ROADSIDE_REVIEW.md).
+
+
+## P6 — config thử, chưa cân bằng
+Nguồn runtime: eventBalance trong src/config.ts, config version p6-special-events-1. Công an 300, dân phòng 100; thiếu tiền công an giữ nửa xăng dự phòng đang có, dân phòng lấy tới 0. Chuối giá 80/món, 1 món/shop; cửa sổ 3,5 s có xét footprint xe (tầm tối thiểu 45 m). Event đầu 1.700 m, gap 1.250 m; director có thể bỏ mẫu cạnh shop/junction/Grab; corridor 110 m. Event đầu sau shop 1.200 m để không phá nhịp mua xe đầu. Tàu đóng 8 s/mở 8 s, clearance 1,8 m; S gần ray phanh tới 0. Xe chết máy 1 khách cần F, 25% thêm chuối nếu ô trống; không ghi đè vật phẩm. Chưa đổi thu nhập, giá xe, fuel/HP hay curve theo distance. Bằng chứng/giới hạn và đề xuất tuning: [PROTOTYPE_6_REVIEW.md](PROTOTYPE_6_REVIEW.md).
+
+
+## P6.1: thay cấu hình chiếm lane (chưa code/chưa cân bằng)
+Chu kỳ tàu 8/8 s của P6 không phải design tàu chạy ngang: P6.1 cần cấu hình độ dài đoàn, tốc độ ngang, hướng, khoảng cách/cue; thời gian chiếm lane suy ra từ quỹ đạo và kích thước. Officer cần width/length một người, số lượng một/đôi khi hai, tốc độ/phase đi qua lại và trạng thái trúng chuối; chưa chốt số hay thời gian hồi phục. Không đổi tiền phạt/giá, không mặc định nâng mật độ hoặc damage traffic ở lượt ghi design này. Xem DESIGN_MOVING_EVENTS_TRAFFIC.md; tuning curve và economy giữ tại P8.
+
+
+## P6.1 — bản thử tình huống trước tích hợp (18/10/2026)
+Theo yêu cầu mới nhất của chủ dự án: triển khai và duyệt các tình huống riêng trước; chỉ làm bản tích hợp khi chủ dự án đồng ý. Đã có 15 fixture DEV tại http://127.0.0.1:5173/p61.html, version `p61-scenarios-1`: tàu ngang hữu hạn, officer 1/2 người, chuối vô hiệu cả nhóm, traffic va nhau/hazard, rào, hàng rong và cứu thương. Chỉ fixture bật experimentalMotion/experimentalTraffic; director ván thường chưa dùng các cơ chế này. Đây chưa phải hoàn thành toàn bộ P6.1.
+Các số mới đều TẠM: tàu dài ngang 24 m, sâu 2,8 m, tốc độ ngang 6 m/s; NPC rộng/sâu 0,65 m, chạy ngang 4,5 m/s trong ±4,35 m; rào rộng 6,2 m/sâu 1,4 m, damage traffic 20 một lần; hàng rong ngang 2,2 m/s; cứu thương dọc 16 m/s. Không đổi giá, thu nhập, fuel hay mật độ ván thường. Báo cáo và giới hạn tích hợp: [PROTOTYPE_6_1_SCENARIOS_REVIEW.md](PROTOTYPE_6_1_SCENARIOS_REVIEW.md). P8 tuning độ khó/economy, P9 UI/art, P10 SFX/VFX giữ nguyên.
+
+
+## P6.1 tuning tình huống — feedback 18/10/2026
+Version `p61-scenarios-2`, chỉ DEV, chưa tích hợp. Tàu chạy từ đầu vào tới đuôi rời toàn mặt đường trong 4 s (chủ dự án xác nhận), speed = (24 + 9,6)/4 = 8,4 m/s, giữ kích thước. Thời gian ở mỗi lane suy ra từ hình học, không timer tắt collider. Thêm 4 fixture công an/dân phòng: chạy nhanh 6,3 m/s; lệch nhịp 5,6 và 3,8 m/s, cách dọc 3 m, phạm vi ngang [-4,35;1,6] và [-1,6;4,35] m. Giữ nhóm/chuối/phạt như cũ. Hàng rong tăng 2,2→3,4 m/s, dài 1,5→2,1 m, rộng 0,8→1,1 m. Các số mới TẠM để chủ dự án chơi thử, chưa điều chỉnh director/difficulty curve/economy. Hub hiện có 19 ca. Báo cáo: [P61_EVASION_TUNING_REVIEW.md](P61_EVASION_TUNING_REVIEW.md).
+
+Feedback kế tiếp: P6.1 scenario version3 tăng bề rộng ngang hàng rong 1,1→1,8 m (TẠM), giữ chiều dài2,1m/tốc độ3,4m/s. Render và collider cùng đọc footprint; chỉ fixture DEV, chưa tích hợp.
+
+
+## P6.1 — đã có bản tích hợp, chờ chơi duyệt
+Chủ dự án duyệt bộ thử và yêu cầu tích hợp ngày18/10/2026. Version runtime `p61-integrated-1`: bản thường tại / bật chuyển động ngang và traffic tự tương tác; giữ bộ19fixture riêng để tái hiện. Tàu24m ngang/8,4m/s qua toàn đường4s; officer seeded một người (TẠM2/3) hoặc hai (TẠM1/3), profile thường/nhanh/lệch nhịp đã thử; chuối vô hiệu nhóm. Slot jam cũ chọn seeded rào/hàng rong/cứu thương, mỗi loại TẠM1/3; không thêm slot, giữ event đầu1700m/gap1250m/corridor110m, giá/fuel/economy không đổi. Hàng rong rộng1,8m/dài2,1m/ngang3,4m/s. Start tàu/hàng rong ước lượng theo cruise lúc spawn, lead2,4s/2s; phanh làm xe chờ quỹ đạo thật. Các mô tả “chưa tích hợp” phía trên là lịch sử. Tuning curve/economy P8, UI/art P9, SFX/VFX P10 vẫn sau. Báo cáo: [PROTOTYPE_6_1_INTEGRATED_REVIEW.md](PROTOTYPE_6_1_INTEGRATED_REVIEW.md).
+
+
+## P6.1 — stress test và sửa kích hoạt tàu (18/10/2026)
+Theo yêu cầu chủ dự án: có chế độ DEV `?scenario=stress&seed=17` dùng simulation tích hợp, cố ý dày/không cân bằng; không dùng density này cho ván thường. Thêm tối thiểu2traffic/24m,patch mỗi48m,special mỗi72m,preload480m; đủ catalogtraffic và tuần tự officer/tàu/rào/hàng rong/cứu thương/accident/broken. Container+bus,10000tiền,chuối/nitro mẫu; giữ luật ngã/hỏng/tàu terminal. `start=288` hoặc576 là checkpointQA để dễ gặp phần sau.
+
+## Thử quán tính ngang và độ bám — TẠM 19/10/2026
+
+Vận tốc ngang mục tiêu vẫn ±5 m/s, nhưng gia tốc 22 m/s² và hãm ngang 30 m/s² được nhân với `grip / (1 + (speed / 20 m/s)^2)`. Grip tạm: xe máy 0,85; mô tô 1,10; ô tô 4 chỗ 1,00; ô tô 7 chỗ 0,90; ba gác 0,70; buýt 0,75; tải 0,78; container 0,65. Hệ số nghiêng mesh tạm theo xe, tối đa 0,34 rad, không làm đổi collider. Không thêm damage tự động vì trượt, không đổi giá/xăng/thu nhập. Thử `?scenario=handling-motorcycle&seed=17`; thay tên loại bằng `motorbike`, `car4`, `car7`, `tricycle`, `bus`, `truck`, `container`. Đo quãng trượt sau nhả A/D, số lần chạm mép đường và khả năng né ở cruise/W/S trong P8 trước khi khóa số.
+
+**Sân thử va chạm riêng, chưa áp dụng cân bằng chính:** Cannon 60 Hz, restitution 0,18; motor xe người chơi tối đa 12 m/s², traffic 2,5 m/s², NPC 2,2 m/s²; khối lượng xe tạm 180–9000 kg theo loại. Damage mỗi contact mới dựa trên vận tốc tương đối sau trừ ngưỡng 1,5 m/s, nhân căn reduced mass/200, cap 32; cooldown cùng cặp 0,75 s. NPC choáng 2 s, xe 0 HP mất motor, cargo không có HP. Đây là số để nhìn và so phản lực, không đổi bảng damage của ván chính. Xem PHYSICS_COLLISION_SANDBOX_REVIEW.md.
+
+**Bản đối chiếu ver.force — TẠM:** dùng cùng khối lượng mẫu 180–9000 kg cho xe; NPC 72 kg, cargo 55/90 kg; restitution 0,12; giới hạn phản hồi vị trí dọc ±2,5 m/tick và trong mặt đường. Damage, nhiên liệu, tiền, điểm và xác suất khách của bản noforce giữ nguyên. Những số lực/khối lượng này chỉ phục vụ playtest A/B, chưa là cân bằng đã chốt.
+**Cập nhật NPC force — TẠM:** NPC body 25 kg không có phản lực chặn xe; va chạm dùng swept contact, văng dọc 2,5–6 m và lệch bên 1,2–2,6 m; player còn 98% tốc độ sau cú tông NPC. Thời gian hồi là tổng nhịp bay/ngã/đứng của `passengerMotion`; trong nhịp này không tái hit. Cờ từ chối lên xe sau player-hit không có thời hạn. Dòng 72 kg ở trên là cấu hình lịch sử trước cập nhật này.
+**Cập nhật sức nặng traffic force — TẠM:** traffic dùng khối lượng solver bằng 2 lần catalog cùng loại, kể cả xe đã dừng; xe người chơi vẫn dùng catalog gốc. Cú húc phá xác chỉ truyền một xung lực Cannon từ player vào xác; xác tiếp tục có thể tương tác với traffic/cargo. Bản đối chiếu trên xe buýt húc ô tô dừng tại 8 m: tốc độ sau tiếp xúc đầu khoảng 8,76 m/s từ 13,73 m/s ngay trước đó, ô tô dịch khoảng 0,20 m. Không đổi HP, damage, giá, fuel hoặc income.
+**Cập nhật động lượng force — TẠM:** sau xung lực đầu, vận tốc dư tối đa dọc 5,8–7,5 m/s (theo tỉ lệ khối lượng), ngang 3 m/s, hãm 10 m/s²; phần chuyển dọc tối thiểu 0,6 × tốc độ áp sát × độ dọc pháp tuyến contact. Xe hỏng chỉ trượt rồi dừng; xe sống vẫn lái bằng tốc độ nền độc lập. Cùng seed 17: buýt húc ô tô dừng làm xác đi từ 8,00 tới khoảng 10,88 m sau 100 tick; ô tô 4 chỗ húc ô tô đang chạy 5 m/s tạo thêm khoảng 1,76 m trượt ngoài quãng chạy nền sau 4 s. Các số 0,20 m ở trên chỉ mô tả khung đầu tiên, không phải tổng quãng trượt bản hiện tại. Không đổi damage/HP/fuel/economy.
+Sửa runtime thường thành `p61-integrated-2`: tàu chờ ngoài vùng vẽ, kích hoạt một lần theo khoảng tiếp cận thực max(60m,v×2,4s,v²/(2×braking)+chiều dài xe+15m), không lấy ETA trung vị cố định lúc spawn xa; giữ crossing4s và8,4m/s. Rẽ truyền activeSeconds/speed hiện tại khi fillWorld. Đây là sửa thời điểm event, không đổi giá/fuel/density normal. Báo cáo: [P61_STRESS_TRAIN_REVIEW.md](P61_STRESS_TRAIN_REVIEW.md).
+
+
+## P8 — câu hỏi bắt buộc trước cân bằng xăng traffic
+Theo yêu cầu chủ dự án18/10/2026, khi bắt đầu bước tuning/cân bằng phải hỏi: **“Có nên tắt tính năng xăng cho xe chướng ngại không?”** Chờ chủ dự án trả lời trước khi thay đổi luật fuel của traffic; hiện vẫn giữ bật. Không hiểu yêu cầu ghi chú này là đồng ý tắt. Lưu ý tác động tới xe hết xăng/coasting/dừng, mật độ ùn tắc/tai nạn phát sinh và khách từ xe hỏng; nếu cần so A/B phải giữ cùng seed/input/xe. Mốc stress và dữ liệu đã đóng băng: [BALANCE_REFERENCE_P61_STRESS.md](BALANCE_REFERENCE_P61_STRESS.md).
+
+**Tinh chỉnh C3 ngày 23/10/2026 — TẠM:** Bản chính giảm xác suất giữ lớp thứ ba của nhóm đủ điều kiện 25% khi ETA đến trước giây 45, nội suy về 0% giảm ở giây 90; giữ hai lớp đầu, không đổi số nhóm. Hàng rong chạy ngang 6,0 m/s trong 0,15 s đầu, giảm mượt về 3,8 m/s trong 0,45 s tiếp; bản backup giữ 3,4 m/s đều. Giá vật phẩm bản chính: Nitro 50, Star 80, chuối 25, Grab 120 (3 lượt); xăng/sửa, xe, nâng cấp và hiệu lực không đổi. Điểm bản chính dùng `speed-v1`: 0,65 điểm/m nhân hệ số tốc độ 0→1→1,5 theo min/cruise tải hợp lệ/max gốc, nhân thưởng khách tối đa 1,08. Lịch sử điểm cũ giữ trong bảng riêng. Cửa QTE 2,4 s và hình học cung rẽ cũ được giữ sau khi thử dời cung làm rào nhìn cắt ngang xe; chỉ cue Q/E được tách theo hai bên nhánh và đếm tới mốc đóng. Xem [P8_C3_REFINEMENT_REVIEW_2026-10-23.md](P8_C3_REFINEMENT_REVIEW_2026-10-23.md).
+
+**Vòng P8 mật độ 22/10/2026 — TẠM:** bản chính dùng trọng số normal nước:ổ gà:traffic = 2:1:1; sáu size nước có trọng số 6/8/12/14/45/15, gồm nước hai làn 5,7×24 m và toàn đường 9,6×30 m khi ngân sách nhiên liệu đủ. Special clearance thử 48 m cộng nửa chiều dài patch; shop/giao lộ/Grab vẫn có clearance riêng. Gió và cargo mỗi loại có cơ hội 10%/slot, cooldown 260 m, giữ cơ hội pending qua slot bị chặn. Bắt đầu cặp từ 350 m, ba lớp từ 850 m; trọng số yêu cầu cặp30%/ba45% vì nhiều candidate không hợp lệ, phải nghiệm thu bằng tỷ lệ *spawn thực*. Hai nhóm nặng cần 45 m hoặc 3 s nhịp thở. Thay đổi generator này chỉ cho main force; `ver.noforce` dùng lịch backup. Đây là số để thử độ phủ/độ khó, không là quyết định tăng damage hoặc tắt fuel traffic. Báo cáo: [P8_BALANCE_TRIAL_REVIEW.md](P8_BALANCE_TRIAL_REVIEW.md).
+
+
+## P6.2 — bản thử lực ngang, chờ duyệt tích hợp
+Đã có8fixture DEV tại /p61.html#forces: gió trái/phải,nước đẩy trái/phải,hai vùng ngược hướng,star,ngã,coasting. Version p62-forces-1. Mô hình TẠM là tốc độ đẩy ngang có giới hạn,không tích vận tốc:wind1,5m/s,current2m/s,tổng cap2,2m/s nhỏ hơn AD5m/s;vùng45–110m rộng9,6m. Star/crash/protected footprint miễn lực;gió vẫn tác động khi nhảy,nước đẩy không tác động khi đủ độ cao;coasting vẫn có thể trôi ngang. Rời vùng/pause không có impulse bù. Nước giữ fuel cost cũ,gió không thêm HP/fuel cost. Chỉ source lực P6.2 áp dụng cho người chơi;chưa director/NPC-force/density/economy mới. P6.1 thường và stress snapshot giữ nguyên,quyết định fuel traffic vẫn hỏi chủ dự án tại P8. Báo cáo: [PROTOTYPE_6_2_REVIEW.md](PROTOTYPE_6_2_REVIEW.md).
+
+## Cập nhật P6.2 theo feedback chơi thử (18/10/2026)
+Bản `p62-forces-2` thay thế quy tắc lực của `p62-forces-1` ở trên. Gió vẫn tạm 1,5 m/s với giới hạn tổng 2,2 m/s; chỉ miễn đẩy khi đang ngã, star hoặc đang trong bảo vệ thay xe. Tài xế trở lại xe mà xe còn trong vùng thì gió tác dụng ngay, dù ID vùng vẫn nằm trong danh sách bảo vệ damage/debuff sau tai nạn. Xe chướng ngại đang chạy, kể cả đang trôi do hết xăng, cũng bị gió đẩy ngang và va chạm theo quỹ đạo mới; xe đã dừng/hỏng và vật chắn cố định không bị đẩy. Lực ngang của nước tạm dừng theo yêu cầu chủ dự án; nước vẫn giảm tốc và hao xăng theo luật cũ. Các URL thử nước cũ trỏ về ca nước không lực. Tám fixture DEV mới gồm hai gió, một nước cơ bản, hai gió ngược hướng, star, ngã, coasting và xe chướng ngại. Chưa tích hợp nguồn gió vào ván thường/stress; dữ liệu stress P6.1 đóng băng và câu hỏi fuel traffic ở P8 giữ nguyên. Xem [P62_WIND_RECOVERY_REVIEW.md](P62_WIND_RECOVERY_REVIEW.md).

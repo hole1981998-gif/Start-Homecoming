@@ -1,0 +1,561 @@
+{
+  "date": "2026-10-18",
+  "branch": "codex/p62-environment-forces",
+  "base": "551e442",
+  "config": "p62-forces-1",
+  "sourceDigest": "3919493cf22c7e26424bc874e5c6bea378da9a2ba8904d641922cd1413c92b34",
+  "digestPaths": [
+    "index.html",
+    "p61.html",
+    "package.json",
+    "src/config.ts",
+    "src/cross-motion.ts",
+    "src/development.ts",
+    "src/environment-forces.ts",
+    "src/feedback.ts",
+    "src/force-scenarios.ts",
+    "src/grab.ts",
+    "src/items.ts",
+    "src/main.ts",
+    "src/moving-events.ts",
+    "src/moving-scenarios.ts",
+    "src/passenger-outcomes.ts",
+    "src/persistence.ts",
+    "src/prototype-hub.ts",
+    "src/render.ts",
+    "src/road-hud.ts",
+    "src/route.ts",
+    "src/shop-view.ts",
+    "src/shop.ts",
+    "src/simulation.ts",
+    "src/special-events.ts",
+    "src/stress-world.ts",
+    "src/survival.ts",
+    "src/traffic-fuel.ts",
+    "src/traffic-interactions.ts",
+    "src/vehicles.ts",
+    "src/vite-env.d.ts",
+    "src/world.ts",
+    "tests/discovery.test.ts",
+    "tests/environment-forces.test.ts",
+    "tests/grab-ui.test.ts",
+    "tests/grab.test.ts",
+    "tests/integrated-game.test.ts",
+    "tests/items-ui.test.ts",
+    "tests/items.test.ts",
+    "tests/moving-hazards.test.ts",
+    "tests/passenger-outcomes.test.ts",
+    "tests/passengers.test.ts",
+    "tests/persistence.test.ts",
+    "tests/playtest.test.ts",
+    "tests/road-hud.test.ts",
+    "tests/route.test.ts",
+    "tests/shop-garage-ui.test.ts",
+    "tests/shop-playtest.test.ts",
+    "tests/shop-ui.test.ts",
+    "tests/shop.test.ts",
+    "tests/simulation.test.ts",
+    "tests/special-events.test.ts",
+    "tests/stress.test.ts",
+    "tests/survival.test.ts",
+    "tests/traffic-fuel.test.ts",
+    "tests/traffic-passengers.test.ts",
+    "tests/traffic.test.ts",
+    "tests/ui.test.ts",
+    "tests/vehicles.test.ts"
+  ],
+  "credentialPatternMatches": 0,
+  "stressArchiveUnchanged": true,
+  "gates": {
+    "lint": 0,
+    "typecheck": 0,
+    "tests": {
+      "command": "pnpm test --maxWorkers=1 --minWorkers=1",
+      "exit": 0,
+      "tests": 192,
+      "files": 27
+    },
+    "simulation": {
+      "command": "pnpm simulate --maxWorkers=1 --minWorkers=1",
+      "exit": 0,
+      "tests": 105,
+      "files": 9
+    },
+    "build": {
+      "exit": 0,
+      "jsKB": 596.63,
+      "gzipKB": 160.87,
+      "warning": "chunk >500kB"
+    }
+  },
+  "matrix": {
+    "version": "p62-forces-1",
+    "mode": "fixed force fixtures, 6 seeds x 8 cases, 10s cap, scripted AD; not natural-route balance",
+    "cases": 48,
+    "observations": [
+      {
+        "seed": 1,
+        "scenario": "p62-wind-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 1,
+        "scenario": "p62-wind-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 1,
+        "scenario": "p62-current-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 1,
+        "scenario": "p62-current-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 1,
+        "scenario": "p62-mixed",
+        "x": -1.349,
+        "distance": 140,
+        "fuel": 3.956,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 1,
+        "scenario": "p62-star",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 1,
+        "scenario": "p62-crash",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 1,
+        "scenario": "p62-coast",
+        "x": 4.352,
+        "distance": 76,
+        "fuel": 0,
+        "hp": 70,
+        "end": "fuel"
+      },
+      {
+        "seed": 7,
+        "scenario": "p62-wind-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 7,
+        "scenario": "p62-wind-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 7,
+        "scenario": "p62-current-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 7,
+        "scenario": "p62-current-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 7,
+        "scenario": "p62-mixed",
+        "x": -1.349,
+        "distance": 140,
+        "fuel": 3.956,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 7,
+        "scenario": "p62-star",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 7,
+        "scenario": "p62-crash",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 7,
+        "scenario": "p62-coast",
+        "x": 4.352,
+        "distance": 76,
+        "fuel": 0,
+        "hp": 70,
+        "end": "fuel"
+      },
+      {
+        "seed": 17,
+        "scenario": "p62-wind-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 17,
+        "scenario": "p62-wind-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 17,
+        "scenario": "p62-current-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 17,
+        "scenario": "p62-current-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 17,
+        "scenario": "p62-mixed",
+        "x": -1.349,
+        "distance": 140,
+        "fuel": 3.956,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 17,
+        "scenario": "p62-star",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 17,
+        "scenario": "p62-crash",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 17,
+        "scenario": "p62-coast",
+        "x": 4.352,
+        "distance": 76,
+        "fuel": 0,
+        "hp": 70,
+        "end": "fuel"
+      },
+      {
+        "seed": 42,
+        "scenario": "p62-wind-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 42,
+        "scenario": "p62-wind-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 42,
+        "scenario": "p62-current-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 42,
+        "scenario": "p62-current-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 42,
+        "scenario": "p62-mixed",
+        "x": -1.349,
+        "distance": 140,
+        "fuel": 3.956,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 42,
+        "scenario": "p62-star",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 42,
+        "scenario": "p62-crash",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 42,
+        "scenario": "p62-coast",
+        "x": 4.352,
+        "distance": 76,
+        "fuel": 0,
+        "hp": 70,
+        "end": "fuel"
+      },
+      {
+        "seed": 101,
+        "scenario": "p62-wind-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 101,
+        "scenario": "p62-wind-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 101,
+        "scenario": "p62-current-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 101,
+        "scenario": "p62-current-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 101,
+        "scenario": "p62-mixed",
+        "x": -1.349,
+        "distance": 140,
+        "fuel": 3.956,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 101,
+        "scenario": "p62-star",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 101,
+        "scenario": "p62-crash",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 101,
+        "scenario": "p62-coast",
+        "x": 4.352,
+        "distance": 76,
+        "fuel": 0,
+        "hp": 70,
+        "end": "fuel"
+      },
+      {
+        "seed": 126,
+        "scenario": "p62-wind-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 126,
+        "scenario": "p62-wind-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 126,
+        "scenario": "p62-current-right",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 126,
+        "scenario": "p62-current-left",
+        "x": -2.689,
+        "distance": 140,
+        "fuel": 1.041,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 126,
+        "scenario": "p62-mixed",
+        "x": -1.349,
+        "distance": 140,
+        "fuel": 3.956,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 126,
+        "scenario": "p62-star",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 126,
+        "scenario": "p62-crash",
+        "x": -0.121,
+        "distance": 140,
+        "fuel": 4.87,
+        "hp": 70,
+        "end": "running"
+      },
+      {
+        "seed": 126,
+        "scenario": "p62-coast",
+        "x": 4.352,
+        "distance": 76,
+        "fuel": 0,
+        "hp": 70,
+        "end": "fuel"
+      }
+    ]
+  },
+  "manual": {
+    "browser": "IAB",
+    "seed": 17,
+    "wind": {
+      "distance": 105,
+      "hp": 70,
+      "starRemaining": 3.7
+    },
+    "current": {
+      "distance": 80,
+      "hp": 70,
+      "fuel": 3.6
+    },
+    "coast": {
+      "terminal": "fuel",
+      "distance": 76
+    },
+    "crash": {
+      "distance": 79,
+      "hp": 50
+    },
+    "consoleErrors": 0,
+    "performance": {
+      "frames": 240,
+      "fps": 59.999,
+      "P95ms": 16.8,
+      "meanRenderCpuMs": 1.492
+    }
+  },
+  "scope": "DEV fixtures only; no normal/stress spawning of forces",
+  "git": "No remote; local commit, no PR/CI/merge"
+}

@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { balance, validateConfig } from '../src/config';
+import { balance, validateConfig, type Balance } from '../src/config';
 import { FixedClock, initialState, noInput, step, type State } from '../src/simulation';
 const running = (): State => ({ ...initialState(), phase: 'running' });
 function run(s: State, seconds: number, input = noInput()): State {
   for (let i = 0; i < Math.round(seconds * 60); i++) s = step(s, input);
+  return s;
+}
+function runWithConfig(s: State, seconds: number, input: ReturnType<typeof noInput>, config: Balance): State {
+  for (let i = 0; i < Math.round(seconds * 60); i++) s = step(s, input, balance.fixedStep, config);
   return s;
 }
 describe('P1 gameplay and future economy invariants', () => {
@@ -85,6 +89,23 @@ describe('P1 gameplay and future economy invariants', () => {
     const bound = (balance.laneWidth * 3 - balance.vehicleWidth) / 2;
     expect(s.x).toBeCloseTo(bound); expect(s.lateralVelocity).toBe(0);
     s = run(s, 10, { ...noInput(), left: true }); expect(s.x).toBeCloseTo(-bound);
+  });
+  it('slides farther when fast or on low grip, while countersteering and road edges remain controllable', () => {
+    const coast = (speed: number, grip: number) => {
+      const start = { ...running(), x: -2, speed, lateralVelocity: 4 };
+      const pedal = speed > balance.cruiseSpeed ? { ...noInput(), accelerate: true } : { ...noInput(), brake: true };
+      const stopped = runWithConfig(start, .35, pedal, { ...balance, lateralGrip: grip });
+      return { drift: stopped.x - start.x, velocity: stopped.lateralVelocity };
+    };
+    const slow = coast(8, 1), fast = coast(20, 1), slippery = coast(20, .65);
+    expect(fast.drift).toBeGreaterThan(slow.drift);
+    expect(slippery.drift).toBeGreaterThan(fast.drift);
+    expect(slow.velocity).toBe(0);
+    expect(slippery.velocity).toBeGreaterThan(0);
+    const counter = runWithConfig({ ...running(), x: -2, speed: 20, lateralVelocity: 4 },
+      .35, { ...noInput(), accelerate: true, left: true }, { ...balance, lateralGrip: .65 });
+    expect(counter.lateralVelocity).toBeLessThan(4);
+    expect(counter.x).toBeLessThan((balance.laneWidth * balance.laneCount - balance.vehicleWidth) / 2);
   });
   it('opposing steering cancels; pause/ready cannot award distance or ticks', () => {
     expect(run(running(), 10, { ...noInput(), right: true, left: true }).x).toBe(0);

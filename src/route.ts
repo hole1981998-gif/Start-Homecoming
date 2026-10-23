@@ -1,9 +1,11 @@
 import { balance } from './config';
+import type { VehicleKind } from './vehicles';
 
 export type Turn = 'left' | 'right';
 export interface Junction { index: number; distance: number; blockedStraight: boolean; windowSeconds: number }
+export interface JunctionWindow { index: number; openDistance: number; closeDistance: number; closed: boolean }
 export interface RouteState { index: number; choice: Turn | null; turns: number; lastTurn: Turn | 'straight' | null; turnAt: number; misses: number;
-  history: { distance: number; turn: Turn }[]; origin: PathPose & { distance: number } }
+  history: { distance: number; turn: Turn }[]; origin: PathPose & { distance: number }; window?: JunctionWindow }
 export const initialRoute = (): RouteState => ({ index: 0, choice: null, turns: 0, lastTurn: null, turnAt: -1e9, misses: 0, history: [],
   origin: { distance: 0, x: 0, z: 0, heading: 0 } });
 
@@ -11,13 +13,32 @@ export const initialRoute = (): RouteState => ({ index: 0, choice: null, turns: 
 export function junction(seed: number, index: number): Junction {
   const n = (Math.imul(seed ^ (index + 1), 1664525) + 1013904223) >>> 0;
   const distance = balance.firstJunction + index * balance.junctionInterval;
-  const difficulty = Math.min(1, distance / 10000);
   return { index, distance, blockedStraight: index > 0 && n % 3 === 0,
-    windowSeconds: Math.max(.9, 1.8 - .6 * difficulty) };
+    windowSeconds: 2.4 };
 }
 
-export function canChoose(distance: number, speed: number, j: Junction): boolean {
-  return distance < j.distance && j.distance - distance <= Math.max(speed, 8) * j.windowSeconds;
+const closeLead: Record<VehicleKind, number> = {
+  motorcycle: .6, motorbike: .6, tricycle: .75, car4: .8,
+  car7: .95, truck: 1.1, bus: 1.15, container: 1.3,
+};
+export function junctionWindow(j: Junction, speed: number, kind: VehicleKind): JunctionWindow {
+  const referenceSpeed = Math.max(speed, 8);
+  return { index: j.index, openDistance: j.distance - referenceSpeed * j.windowSeconds,
+    closeDistance: j.distance - Math.max(9, referenceSpeed * closeLead[kind]), closed: false };
+}
+/** Capture the approach once; braking or swapping vehicles cannot reopen a closed QTE. */
+export function updateJunctionWindow(route: RouteState, distance: number, speed: number, j: Junction,
+  kind: VehicleKind): RouteState {
+  const gap = j.distance - distance;
+  if (gap > Math.max(70, speed * 4)) return route;
+  const window = route.window?.index === j.index ? route.window : junctionWindow(j, speed, kind);
+  const closed = window.closed || distance >= window.closeDistance;
+  return window === route.window && closed === window.closed ? route : { ...route, window: { ...window, closed } };
+}
+export function canChoose(distance: number, speed: number, j: Junction, kind: VehicleKind = 'motorcycle',
+  window?: JunctionWindow): boolean {
+  const bounds = window?.index === j.index ? window : junctionWindow(j, speed, kind);
+  return !bounds.closed && distance >= bounds.openDistance && distance < bounds.closeDistance;
 }
 
 export function nearJunction(distance: number): boolean {

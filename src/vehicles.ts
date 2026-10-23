@@ -1,14 +1,15 @@
-import { balance } from './config';
+import { balance, shopBalance } from './config';
 
 export type VehicleKind = 'motorcycle' | 'motorbike' | 'car4' | 'car7' | 'tricycle' | 'bus' | 'truck' | 'container';
 export interface VehicleDefinition {
   kind: VehicleKind; name: string; capacity: number; minSpeed: number; cruiseSpeed: number; maxSpeed: number;
   cruiseLoss: number; cruiseFloor: number; fuelCapacity: number; durabilityCapacity: number; fuelPerMeter: number;
   fuelPickup: number; repairPickup: number; width: number; length: number; price: number;
+  lateralGrip: number; leanFactor: number;
 }
 export interface VehicleInstance {
-  id: string; kind: VehicleKind; fuel: number; durability: number; upgrades: { engine: number; tank: number; armour: number };
-  disabled: boolean;
+  id: string; kind: VehicleKind; fuel: number; durability: number; upgrades: { engine: number; tank: number; armour: number; economy?: number };
+  disabled: boolean; balanceProfile?: 'backup';
 }
 /** Temporary P4B trial numbers; the motorcycle keeps its proven P4A baseline. */
 export const vehicles: Record<VehicleKind, VehicleDefinition> = {
@@ -17,36 +18,57 @@ export const vehicles: Record<VehicleKind, VehicleDefinition> = {
     cruiseFloor: balance.riderCruiseFloor, fuelCapacity: balance.fuelCapacity,
     durabilityCapacity: balance.durabilityCapacity, fuelPerMeter: balance.fuelPerMeter,
     fuelPickup: balance.fuelPickup, repairPickup: balance.repairPickup,
-    width: balance.vehicleWidth, length: balance.vehicleLength, price: 250 },
+    width: balance.vehicleWidth, length: balance.vehicleLength, price: 250,
+    lateralGrip: balance.lateralGrip, leanFactor: 1.25 },
   motorbike: { kind: 'motorbike', name: 'Mô tô', capacity: 2, minSpeed: 9, cruiseSpeed: 18.5,
-    maxSpeed: 28, cruiseLoss: 2.4, cruiseFloor: 9, fuelCapacity: 10, durabilityCapacity: 85,
-    fuelPerMeter: .004, fuelPickup: 6, repairPickup: 40, width: .96, length: 2.2, price: 600 },
+    maxSpeed: 28, cruiseLoss: 2.4, cruiseFloor: 9, fuelCapacity: 9.75, durabilityCapacity: 140,
+    fuelPerMeter: .00384, fuelPickup: 4.93, repairPickup: 28.8, width: .96, length: 2.2, price: 600,
+    lateralGrip: 1.1, leanFactor: 1.3 },
   car4: { kind: 'car4', name: 'Ô tô 4 chỗ', capacity: 4, minSpeed: 8, cruiseSpeed: 16,
-    maxSpeed: 24, cruiseLoss: 1.6, cruiseFloor: 9, fuelCapacity: 16, durabilityCapacity: 120,
-    fuelPerMeter: .005, fuelPickup: 8, repairPickup: 45, width: 1.86, length: 4.2, price: 800 },
+    maxSpeed: 24, cruiseLoss: 1.6, cruiseFloor: 9, fuelCapacity: 13, durabilityCapacity: 183.75,
+    fuelPerMeter: .0044, fuelPickup: 5.22, repairPickup: 38.4, width: 1.86, length: 4.2, price: 300,
+    lateralGrip: 1, leanFactor: .8 },
   car7: { kind: 'car7', name: 'Ô tô 7 chỗ', capacity: 7, minSpeed: 8, cruiseSpeed: 15,
-    maxSpeed: 22, cruiseLoss: .9, cruiseFloor: 9, fuelCapacity: 20, durabilityCapacity: 145,
-    fuelPerMeter: .006, fuelPickup: 10, repairPickup: 50, width: 2.08, length: 4.8, price: 1200 },
+    maxSpeed: 22, cruiseLoss: .9, cruiseFloor: 9, fuelCapacity: 16.9, durabilityCapacity: 218.75,
+    fuelPerMeter: .0052, fuelPickup: 6.09, repairPickup: 44.8, width: 2.08, length: 4.8, price: 1200,
+    lateralGrip: .9, leanFactor: .7 },
   tricycle: { kind: 'tricycle', name: 'Ba gác', capacity: 4, minSpeed: 6, cruiseSpeed: 11.5,
     maxSpeed: 17, cruiseLoss: 1, cruiseFloor: 6, fuelCapacity: 12, durabilityCapacity: 100,
-    fuelPerMeter: .0045, fuelPickup: 7, repairPickup: 40, width: 1.76, length: 3.2, price: 450 },
+    fuelPerMeter: .0045, fuelPickup: 7, repairPickup: 40, width: 1.76, length: 3.2, price: 450,
+    lateralGrip: .7, leanFactor: .9 },
   bus: { kind: 'bus', name: 'Xe buýt', capacity: 25, minSpeed: 6, cruiseSpeed: 12.5,
     maxSpeed: 19, cruiseLoss: .3, cruiseFloor: 7, fuelCapacity: 35, durabilityCapacity: 210,
-    fuelPerMeter: .01, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 10, price: 2400 },
+    fuelPerMeter: .01, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 10, price: 2400,
+    lateralGrip: .75, leanFactor: .5 },
   truck: { kind: 'truck', name: 'Xe tải', capacity: 3, minSpeed: 6, cruiseSpeed: 13,
     maxSpeed: 20, cruiseLoss: 1.3, cruiseFloor: 7, fuelCapacity: 30, durabilityCapacity: 230,
-    fuelPerMeter: .009, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 7, price: 1800 },
+    fuelPerMeter: .009, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 7, price: 1800,
+    lateralGrip: .78, leanFactor: .55 },
   container: { kind: 'container', name: 'Container', capacity: 2, minSpeed: 5, cruiseSpeed: 11.5,
     maxSpeed: 18, cruiseLoss: 1.8, cruiseFloor: 5, fuelCapacity: 45, durabilityCapacity: 300,
-    fuelPerMeter: .012, fuelPickup: 15, repairPickup: 70, width: 2.88, length: 15, price: 3000 },
+    fuelPerMeter: .012, fuelPickup: 15, repairPickup: 70, width: 2.88, length: 15, price: 3000,
+    lateralGrip: .65, leanFactor: .45 },
 };
+/** Preserve Candidate A resources in the noforce backup. All other vehicle fields share the catalog. */
+const backupResources: Partial<Record<VehicleKind, Pick<VehicleDefinition,
+  'fuelCapacity' | 'durabilityCapacity' | 'fuelPerMeter' | 'fuelPickup' | 'repairPickup'>>> = {
+  motorcycle: { fuelCapacity: 5.5, durabilityCapacity: 70, fuelPerMeter: .0045, fuelPickup: 3, repairPickup: 16 },
+  motorbike: { fuelCapacity: 7.5, durabilityCapacity: 80, fuelPerMeter: .0048, fuelPickup: 3.4, repairPickup: 18 },
+  car4: { fuelCapacity: 10, durabilityCapacity: 105, fuelPerMeter: .0055, fuelPickup: 3.6, repairPickup: 24 },
+  car7: { fuelCapacity: 13, durabilityCapacity: 125, fuelPerMeter: .0065, fuelPickup: 4.2, repairPickup: 28 },
+};
+export const waterFuelPerSecond = (profile?: 'backup') => profile === 'backup' ? .8 : balance.waterFuelPerSecond;
+export function vehicleDefinition(kind: VehicleKind, profile?: 'backup'): VehicleDefinition {
+  return profile === 'backup' ? { ...vehicles[kind], ...backupResources[kind] } : vehicles[kind];
+}
 for (const d of Object.values(vehicles)) {
   if (Object.values(d).some(value => typeof value === 'number' && !Number.isFinite(value)) ||
     !Number.isInteger(d.capacity) || d.capacity < 1 || d.minSpeed <= 0 ||
     !(d.minSpeed <= d.cruiseFloor && d.cruiseFloor < d.cruiseSpeed && d.cruiseSpeed <= d.maxSpeed) ||
     d.cruiseLoss <= 0 || d.width >= balance.laneWidth * 1.5 || d.length <= 0 ||
     d.fuelCapacity <= 0 || d.durabilityCapacity <= 0 || d.fuelPerMeter <= 0 || d.price <= 0 ||
-    d.fuelPickup <= 0 || d.repairPickup <= 0) throw new Error(`Invalid vehicle: ${d.kind}`);
+    d.fuelPickup <= 0 || d.repairPickup <= 0 || d.lateralGrip <= 0 || d.lateralGrip > 1.5 ||
+    d.leanFactor <= 0 || d.leanFactor > 1.5) throw new Error(`Invalid vehicle: ${d.kind}`);
 }
 export interface TrafficDefinition {
   kind: VehicleKind; name: string; hp: number; damage: number; width: number; length: number;
@@ -90,17 +112,25 @@ if (Object.keys(vehicleRam).length !== Object.keys(vehicles).length ||
   Object.values(vehicleRam).some(value => !Number.isFinite(value.damage) || value.damage <= 0)) {
   throw new Error('Invalid ram catalog');
 }
-export function newVehicle(kind: VehicleKind, id: string): VehicleInstance {
-  const d = vehicles[kind];
+export function newVehicle(kind: VehicleKind, id: string, balanceProfile?: 'backup'): VehicleInstance {
+  const d = vehicleDefinition(kind, balanceProfile);
   return { id, kind, fuel: d.fuelCapacity, durability: d.durabilityCapacity,
-    upgrades: { engine: 0, tank: 0, armour: 0 }, disabled: false };
+    upgrades: { engine: 0, tank: 0, armour: 0 }, disabled: false, ...(balanceProfile ? { balanceProfile } : {}) };
+}
+export function effectiveVehicle(instance: VehicleInstance): VehicleDefinition {
+  const d = vehicleDefinition(instance.kind, instance.balanceProfile), u = instance.upgrades;
+  return { ...d, maxSpeed: d.maxSpeed * (1 + u.engine * shopBalance.enginePerLevel),
+    fuelCapacity: d.fuelCapacity * (1 + u.tank * shopBalance.tankPerLevel),
+    durabilityCapacity: d.durabilityCapacity * (1 + u.armour * shopBalance.armourPerLevel),
+    fuelPerMeter: d.fuelPerMeter * (1 - (u.economy ?? 0) * shopBalance.economyPerLevel) };
 }
 export function buyVehicle(inventory: VehicleInstance[], money: number, kind: VehicleKind,
-  newId: string, discardId?: string): { inventory: VehicleInstance[]; money: number } | null {
+  newId: string, discardId?: string, balanceProfile?: 'backup'): { inventory: VehicleInstance[]; money: number } | null {
   const price = vehicles[kind].price;
+  if (inventory.some(v => v.kind === kind)) return null;
   if (!Number.isFinite(money) || money < price || inventory.some(v => v.id === newId)) return null;
   if (inventory.length === 2 && (!discardId || !inventory.some(v => v.id === discardId))) return null;
   if (inventory.length > 2 || (inventory.length < 2 && discardId)) return null;
   const kept = discardId ? inventory.filter(v => v.id !== discardId) : inventory;
-  return { inventory: [...kept, newVehicle(kind, newId)], money: money - price };
+  return { inventory: [...kept, newVehicle(kind, newId, balanceProfile)], money: money - price };
 }

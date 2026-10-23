@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Đường Về Nhà · Thử vật lý va chạm</title>
+<style>
+:root{font:16px/1.45 system-ui,sans-serif;color:#eaf1ef;background:#172329}*{box-sizing:border-box}
+body{margin:0}.shell{max-width:1120px;margin:auto;padding:18px}.heading{display:flex;justify-content:space-between;gap:24px;align-items:end}
+h1{font-size:1.5rem;margin:4px 0}p{margin:6px 0}.muted{color:#b8c9cb}.cases{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
+a,button{color:inherit}a.case,button{border:1px solid #607c82;border-radius:6px;padding:7px 11px;background:#22353b;text-decoration:none;cursor:pointer;font:inherit}
+a.case[aria-current="page"]{border-color:#f0d18e;background:#4b4434}button:hover,a.case:hover{border-color:#f0d18e}
+.play{position:relative;min-height:600px;max-height:76vh;overflow:hidden;border:1px solid #607c82;border-radius:8px;background:#253b40}
+canvas{display:block;width:100%;height:100%}.hud{position:absolute;inset:12px 12px auto;display:flex;justify-content:space-between;pointer-events:none;text-shadow:0 2px 4px #152326}
+.hud strong{font-size:1.25rem}.events{position:absolute;right:12px;top:60px;max-width:210px;text-align:right;color:#f5d7a8;pointer-events:none}
+.help{position:absolute;left:12px;bottom:12px;padding:7px 10px;background:#172329bb;border-radius:5px;pointer-events:none}
+.overlay{position:absolute;inset:0;background:#172329c9;display:grid;place-items:center}.overlay[hidden]{display:none}.panel{max-width:420px;padding:25px;background:#22363d;border:1px solid #7e9999;border-radius:9px}
+.panel h2{margin:0 0 10px}.panel button{margin-top:14px;background:#e5c987;color:#172329;font-weight:700}
+@media(max-width:650px){.shell{padding:8px}.play{height:75vh;min-height:460px}.heading{display:block}.events{font-size:.8rem}}
+</style></head><body><main class="shell">
+<div class="heading"><div><small class="muted">ĐƯỜNG VỀ NHÀ · PHÒNG THỬ RIÊNG</small><h1>Vật lý va chạm arcade × engine</h1><p class="muted">Xung lực và vật thể động do Cannon giải; luật điều khiển, damage và choáng do game quyết định.</p></div><a href="/?seed=17">← Bản chơi chính</a></div>
+<nav class="cases" aria-label="Tình huống thử">
+<a class="case" href="?case=mixed&seed=17" data-case="mixed">Hỗn hợp</a><a class="case" href="?case=traffic&seed=17" data-case="traffic">Xe ↔ xe</a>
+<a class="case" href="?case=npc&seed=17" data-case="npc">Xe ↔ NPC</a><a class="case" href="?case=cargo&seed=17" data-case="cargo">Thùng rơi</a>
+<a class="case" href="?case=chain&seed=17" data-case="chain">Chuỗi xe</a></nav>
+<section class="play" id="play" aria-label="Sân thử vật lý" tabindex="0">
+<div class="hud"><div><strong id="speed">0</strong> km/h<br/><span id="distance">0</span> m</div><div style="text-align:right"><strong id="hp">120</strong> HP<br/><span id="hits">0</span> va chạm</div></div>
+<div class="events" id="events" aria-live="polite"></div><div class="help">W/S tốc độ · A/D lái · Esc tạm dừng · R chơi lại</div>
+<div class="overlay" id="overlay"><div class="panel"><h2 id="overlay-title">Sẵn sàng thử va chạm</h2><p id="overlay-text">Lái qua các vật thể để quan sát phản lực. Đây là sân thử riêng; ván chính chưa dùng hệ vật lý này.</p><button id="start">Bắt đầu</button></div></div>
+</section></main><script type="module" src="/src/collision-prototype.ts"></script></body></html>

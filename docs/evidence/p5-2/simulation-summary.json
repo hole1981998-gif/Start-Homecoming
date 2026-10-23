@@ -1,0 +1,551 @@
+{
+  "command": "pnpm simulate",
+  "exitCode": 0,
+  "records": [
+    {
+      "config": "p5-2-grab-1",
+      "durationPerSeed": "1200s",
+      "results": [
+        {
+          "seed": 17,
+          "result": {
+            "phase": "running",
+            "distance": 15099.52888888897,
+            "speed": 12.500000000000112,
+            "x": -3.6292222222222223,
+            "lateralVelocity": 5,
+            "ticks": 72000
+          }
+        },
+        {
+          "seed": 42,
+          "result": {
+            "phase": "running",
+            "distance": 15149.21486111157,
+            "speed": 8.75000000000001,
+            "x": 2.8979999999999992,
+            "lateralVelocity": 0,
+            "ticks": 72000
+          }
+        },
+        {
+          "seed": 20261017,
+          "result": {
+            "phase": "running",
+            "distance": 15091.952916667055,
+            "speed": 15.250000000000009,
+            "x": -2.5285555555555566,
+            "lateralVelocity": 0,
+            "ticks": 72000
+          }
+        }
+      ]
+    },
+    {
+      "config": "p5-2-grab-1",
+      "scenario": "grab-income-60s",
+      "samples": [
+        {
+          "kind": "motorcycle",
+          "count": 0,
+          "metres": 840,
+          "ordinaryIncome": 420,
+          "grabIncome": 420,
+          "fuelLeft": 1.72
+        },
+        {
+          "kind": "motorcycle",
+          "count": 1,
+          "metres": 721,
+          "ordinaryIncome": 367.45,
+          "grabIncome": 432.3,
+          "fuelLeft": 2.26
+        },
+        {
+          "kind": "motorcycle",
+          "count": 3,
+          "metres": 484,
+          "ordinaryIncome": 256.79,
+          "grabIncome": 387.6,
+          "fuelLeft": 2.67
+        },
+        {
+          "kind": "car4",
+          "count": 0,
+          "metres": 960,
+          "ordinaryIncome": 480,
+          "grabIncome": 480,
+          "fuelLeft": 11.2
+        },
+        {
+          "kind": "car4",
+          "count": 1,
+          "metres": 864,
+          "ordinaryIncome": 440.8,
+          "grabIncome": 518.59,
+          "fuelLeft": 11.68
+        },
+        {
+          "kind": "car4",
+          "count": 3,
+          "metres": 675,
+          "ordinaryIncome": 357.69,
+          "grabIncome": 539.9,
+          "fuelLeft": 12.63
+        },
+        {
+          "kind": "bus",
+          "count": 0,
+          "metres": 750,
+          "ordinaryIncome": 375,
+          "grabIncome": 375,
+          "fuelLeft": 27.5
+        },
+        {
+          "kind": "bus",
+          "count": 1,
+          "metres": 732,
+          "ordinaryIncome": 373.33,
+          "grabIncome": 439.21,
+          "fuelLeft": 27.68
+        },
+        {
+          "kind": "bus",
+          "count": 3,
+          "metres": 696,
+          "ordinaryIncome": 368.93,
+          "grabIncome": 556.88,
+          "fuelLeft": 28.04
+        },
+        {
+          "kind": "bus",
+          "count": 12,
+          "metres": 536,
+          "ordinaryIncome": 332.08,
+          "grabIncome": 910.55,
+          "fuelLeft": 29.64
+        },
+        {
+          "kind": "bus",
+          "count": 24,
+          "metres": 424,
+          "ordinaryIncome": 313.6,
+          "grabIncome": 1228.97,
+          "fuelLeft": 30.76
+        }
+      ],
+      "idealBreakEvenMetresWithThreeRiders": 888.8888888888888
+    },
+    {
+      "config": "p5-2-grab-1",
+      "scenario": "power-items-30s",
+      "outcomes": [
+        {
+          "seed": 1,
+          "distance": 407,
+          "phase": "running"
+        },
+        {
+          "seed": 2,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 3,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 4,
+          "distance": 407,
+          "phase": "running"
+        },
+        {
+          "seed": 5,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 6,
+          "distance": 407,
+          "phase": "running"
+        },
+        {
+          "seed": 7,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 8,
+          "distance": 407,
+          "phase": "running"
+        },
+        {
+          "seed": 9,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 10,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 11,
+          "distance": 410,
+          "phase": "running"
+        },
+        {
+          "seed": 12,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 13,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 14,
+          "distance": 411,
+          "phase": "running"
+        },
+        {
+          "seed": 15,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 16,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 17,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 18,
+          "distance": 472,
+          "phase": "running"
+        },
+        {
+          "seed": 19,
+          "distance": 407,
+          "phase": "running"
+        },
+        {
+          "seed": 20,
+          "distance": 472,
+          "phase": "running"
+        }
+      ]
+    },
+    {
+      "config": "p5-2-grab-1",
+      "scenario": "grab-real-route-20s",
+      "outcomes": [
+        {
+          "seed": 1,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 2,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 3,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 205,
+          "money": 337.26,
+          "phase": "running"
+        },
+        {
+          "seed": 4,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 5,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 6,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 7,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 8,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 205,
+          "money": 337.26,
+          "phase": "running"
+        },
+        {
+          "seed": 9,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 10,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 11,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 12,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 13,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 14,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 15,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 205,
+          "money": 337.26,
+          "phase": "running"
+        },
+        {
+          "seed": 16,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 17,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 18,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 19,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 20,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 205,
+          "money": 337.26,
+          "phase": "running"
+        },
+        {
+          "seed": 21,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 22,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 23,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 24,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 25,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 26,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 27,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 205,
+          "money": 337.26,
+          "phase": "running"
+        },
+        {
+          "seed": 28,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 29,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        },
+        {
+          "seed": 30,
+          "calls": 3,
+          "aboard": 3,
+          "lost": 0,
+          "metres": 203,
+          "money": 336.65,
+          "phase": "running"
+        }
+      ]
+    },
+    {
+      "config": "p5-2-grab-1",
+      "summary": [
+        {
+          "strategy": "cruise",
+          "afforded": 30,
+          "medianAfford": 85.71666666666309,
+          "deaths": 9,
+          "lowFuelRuns": 30,
+          "noAffordSeeds": []
+        },
+        {
+          "strategy": "fast",
+          "afforded": 30,
+          "medianAfford": 60.1833333333312,
+          "deaths": 13,
+          "lowFuelRuns": 26,
+          "noAffordSeeds": []
+        },
+        {
+          "strategy": "slow",
+          "afforded": 30,
+          "medianAfford": 149.78333333334467,
+          "deaths": 2,
+          "lowFuelRuns": 19,
+          "noAffordSeeds": []
+        }
+      ]
+    }
+  ]
+}

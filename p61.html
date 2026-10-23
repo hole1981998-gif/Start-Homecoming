@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>P6 · Bộ thử tình huống</title>
+  <style>
+    :root { color-scheme: dark; font: 17px/1.55 system-ui,sans-serif; background:#172329; color:#e4ece8 }
+    body { margin:0; padding:32px 20px } main { max-width:980px; margin:auto }
+    h1 { font-size:1.9rem; line-height:1.2 } .notice { border-left:4px solid #dec182; padding:8px 20px; background:#24363e }
+    #cases { display:grid; grid-template-columns:repeat(auto-fit,minmax(265px,1fr)); gap:16px; margin:24px 0 }
+    article { padding:20px; border:1px solid #668087; border-radius:8px } h2 { margin-top:0; font-size:1.1rem }
+    p { margin:12px 0 } a { color:#eed49c; text-underline-offset:4px } a:focus-visible { outline:3px solid #eed49c; outline-offset:5px }
+    article a { display:inline-block; padding:8px 14px; border:1px solid #dec182; border-radius:5px }
+    .quiet { color:#b2c4c5 } kbd { padding:1px 5px; border:1px solid #668087; border-radius:3px }
+  </style>
+</head>
+<body><main>
+  <p class="quiet">ĐƯỜNG VỀ NHÀ · P6.1–P6.3 · THỬ NGHIỆM RIÊNG</p>
+  <h1>Chọn một tình huống để chơi thử</h1>
+  <p class="notice">Đã có <a href="/?seed=17">bản chơi tích hợp từ đầu</a> và <a href="/?scenario=integrated-hazards&amp;seed=17">checkpoint tích hợp gần gió và đồ rơi</a>. Checkpoint có xe/vật phẩm mẫu để kiểm tra nhanh; đây không phải bản cân bằng economy hay difficulty curve.</p>
+  <p><kbd>W/S</kbd> điều tốc · <kbd>A/D</kbd> lái · <kbd>1/2</kbd> vật phẩm · <kbd>Space</kbd> nhảy khi nitro bật · <kbd>F</kbd> đón khách · <kbd>Esc</kbd> pause. Gần tàu giữ S để dừng chờ.</p>
+  <p>Xe traffic có thanh HP phía trên. Khối xám là xe hỏng; khách chỉ lên xe khi bạn tới đủ gần và nhấn F. Với nhóm hai officer, một chuối làm cả hai đứng yên và vô hại.</p>
+  <p><a href="/?scenario=stress&amp;seed=17">Chơi stress test tích hợp — chướng ngại dày, không cân bằng</a> · <a href="/?scenario=stress&amp;seed=17&amp;start=288">Từ 288m</a> · <a href="/?scenario=stress&amp;seed=17&amp;start=576">Từ 576m</a></p>
+  <h2 id="cargo-title">P6.3 — đồ rơi từ traffic, ca thử riêng</h2><nav id="cargo" aria-label="Tình huống P6.3"></nav>
+  <h2>P6.2 — thử lực ngang, ca thử riêng</h2><nav id="forces" aria-label="Tình huống P6.2"></nav>
+  <section id="cases" aria-label="Các bản thử P6.1"></section>
+  <p class="quiet">Primitive phục vụ kiểm tra gameplay; UI/art hoàn chỉnh để phase riêng. Dùng “Bộ tình huống P6” trong màn bắt đầu/pause để quay lại.</p>
+</main><script type="module" src="/src/prototype-hub.ts"></script></body>
+</html>

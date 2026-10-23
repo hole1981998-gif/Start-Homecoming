@@ -9,11 +9,12 @@
     "lint": "eslint src tests",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --configLoader native",
-    "simulate": "vitest run --configLoader native tests/simulation.test.ts tests/playtest.test.ts --reporter=verbose",
+    "simulate": "vitest run --configLoader native tests/simulation.test.ts tests/playtest.test.ts tests/items.test.ts tests/grab.test.ts tests/special-events.test.ts tests/moving-hazards.test.ts tests/integrated-game.test.ts tests/integrated-hazards.test.ts tests/stress.test.ts tests/environment-forces.test.ts tests/traffic-cargo.test.ts --reporter=verbose",
     "build": "vite build --configLoader native",
     "preview": "vite preview --configLoader native --host 127.0.0.1"
   },
   "dependencies": {
+    "cannon-es": "^0.20.0",
     "lucide": "0.468.0",
     "three": "0.180.0"
   },

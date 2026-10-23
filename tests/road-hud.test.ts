@@ -61,6 +61,20 @@ it('traffic warning names the seeded vehicle variety', () => {
   hud.update(run, projection, true);
   expect(document.querySelector<HTMLElement>('[data-kind="traffic"]')!.getAttribute('aria-label')).toContain('Xe tải');
 });
+it('empty traffic distinguishes coasting and stopped cues from powered direction', () => {
+  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
+  const car = entity('traffic', 'empty', 30, 3.2); car.fuel = 0;
+  const run: Run = { ...initialRun(), phase: 'running', world: { ...initialRun().world, entities: [car] } };
+  car.trafficMotion = 'coasting'; car.speed = 2;
+  hud.update(run, projection, true);
+  const cue = document.querySelector<HTMLElement>('[data-kind="traffic"]')!;
+  expect(cue.getAttribute('aria-label')).toContain('đang trôi do hết xăng');
+  expect(cue.querySelector('.traffic-direction')!.textContent).toContain('⛽');
+  car.trafficMotion = 'stopped'; car.speed = 0;
+  hud.update(run, projection, true);
+  expect(cue.getAttribute('aria-label')).toContain('đã dừng vì hết xăng');
+  expect(cue.querySelector('.traffic-direction')!.textContent).toContain('■');
+});
 it('crash return cue shows remaining protection time and clears on restart', () => {
   const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
   const run: Run = { ...initialRun(), phase: 'running', crash: { elapsed: 1, side: 1, originDistance: 0, originX: 0,

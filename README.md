@@ -45,3 +45,28 @@ Các tài liệu thiết kế trong `docs/` xuất phát từ bộ tài liệu c
 Chỉ số phủ lên gameplay, tài nguyên gọn sau đuôi xe, không hiển thị số cruise/target; nút điều khiển dạng icon. Cảnh báo hazard/tiếp tế có icon, khoảng cách và vị trí theo thế giới; số hậu quả ngắn tại xe thay bảng log. Help/discovery/kết quả giữ phần giải thích an toàn. Giữ economy 0,50/m và gameplay; chưa tăng mật độ, thêm QTE hoặc VFX/SFX hoàn chỉnh. Xem [HUD_REVIEW.md](docs/HUD_REVIEW.md) cho kiểm tra và giới hạn.
 
 Chủ dự án thấy hai cung xăng/độ bền còn hơi nhọn; ghi để chỉnh hình cung ở lượt HUD sau, không đổi trong P3A. Báo cáo kiểm tra P3A ở [PROTOTYPE_3A_REVIEW.md](docs/PROTOTYPE_3A_REVIEW.md).
+
+
+### P6 — sự kiện đặc biệt
+Chơi bình thường: http://127.0.0.1:5173/?seed=17 . Event seeded bắt đầu từ khoảng 1.700 m (có thể bỏ mẫu để bảo đảm an toàn).
+Ca thử nhanh (DEV): ?scenario=events-police&seed=17, events-militia, events-jam, events-accident, events-broken, events-train. Mỗi ca có xe dự phòng và hai vật phẩm mẫu để thử; không dùng nguồn miễn phí này để đánh giá economy.
+Phím 1/2 dùng chuối trong cửa sổ bắt; gần ray giữ S để dừng chờ mở đường hoặc bật nitro rồi Space nhảy. Chạm tàu vẫn kết ván khi có star. Báo cáo: docs/PROTOTYPE_6_REVIEW.md. UI/art/SFX hoàn chỉnh theo phase riêng.
+
+
+### P6.1 — 15 tình huống để duyệt trước tích hợp
+Mở http://127.0.0.1:5173/p61.html khi `pnpm dev` đang chạy. Mỗi link dùng seed 17; W/S tốc độ, A/D lái, 1/2 vật phẩm, Space nhảy khi nitro hiệu lực, F đón khách, Esc pause. Các ca traffic đặt người chơi ở lane trái để quan sát; có thể S chờ. Chơi lại để reset cùng tình huống. Đây là hub DEV, chưa nằm trong `pnpm preview`/production build. Bản thường chưa bật cơ chế P6.1 mới. Báo cáo: [P6.1](docs/PROTOTYPE_6_1_SCENARIOS_REVIEW.md).
+
+P6.1 cập nhật: hub hiện 19 ca; thêm công an/dân phòng chạy nhanh và lệch nhịp. Tàu qua toàn đường trong 4 s; hàng rong nhanh/dài hơn. Chỉ bản thử DEV; xem docs/P61_EVASION_TUNING_REVIEW.md.
+
+
+### P6.1 — bản chơi tích hợp
+Chơi từ đầu: http://127.0.0.1:5173/?seed=17 . Tàu chạy ngang4s, công an/dân phòng một/hai người với biến thể di chuyển, chuối vô hiệu nhóm, traffic va nhau/hazard, rào/hàng rong/cứu thương đã vào director. Event đầu1700m, có thể bỏ mẫu để giữ corridor an toàn. Bộ19fixture: /p61.html. Production: pnpm build rồi pnpm preview; bản thường có cơ chế mới, fixture vẫn DEV-only.
+QA shortcut DEV: ?scenario=integrated-checkpoint&seed=1 hoặc7, bắt đầu1450m với car4/xe máy dự phòng,1000tiền và chuối/nitro mẫu; đây không phải tài nguyên ván thường hay bằng chứng economy. Báo cáo: [P6.1 tích hợp](docs/PROTOTYPE_6_1_INTEGRATED_REVIEW.md).
+
+
+### Stress test tích hợp (DEV, không cân bằng)
+http://127.0.0.1:5173/?scenario=stress&seed=17 . Hai traffic mỗi24m,patch dài và special xen kẽ; container+bus/10000tiền/chuối+nitro mẫu. Damage,ngã,hỏng,police và tàu terminal vẫn thật. Bắt đầu đoạn sau: thêm &start=288 hoặc &start=576; Chơi lại reset cùng seed/checkpoint. Không dùng kết quả để tuning economy. Hub /p61.html có link. Tàu trong bản thường cũng đã sửa kích hoạt theo tiếp cận thật; xem docs/P61_STRESS_TRAIN_REVIEW.md.
+
+
+### P6.2 — gió đẩy ngang (fixture trước tích hợp)
+Mở http://127.0.0.1:5173/p61.html#forces để chọn 8 ca. Thử `?scenario=p62-crash&seed=17` để xem gió tiếp tục đẩy sau khi tài xế lên xe, hoặc `?scenario=p62-traffic&seed=17` để xem xe chướng ngại đang chạy bị gió đẩy. Ca `p62-water-baseline` giữ hao xăng/giảm tốc của nước nhưng không có lực ngang; các URL `p62-current-right/left` cũ cũng mở ca nước này. A/D bù lực gió, 1 dùng star, 2 dùng nitro rồi Space để nhảy, Esc tạm dừng. Ván thường và stress chưa sinh vùng gió. Báo cáo sửa: docs/P62_WIND_RECOVERY_REVIEW.md.
