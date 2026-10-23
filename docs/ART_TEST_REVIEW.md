@@ -19,3 +19,7 @@ Simulation hiện hữu trong `pnpm test` chạy config `p8-encounter-c3-refinem
 **Tự review góc UI/UX designer:** Ưu tiên P1 là giữ khoảng nhìn trước xe và cue/QTE khi xe lớn, nhà/nhân vật ở hai mép và hazard rộng cùng xuất hiện. P1 nữa là phân biệt nước ngập, ổ gà và mặt đường ướt decorative khi xe chạy; bản preview tĩnh không kiểm được thời gian đọc. P2 là vị trí khách vẫy/công an/hàng rong khi camera nghiêng và lúc HUD đông. Sau tích hợp cần kiểm input/camera/HUD/onboarding/card/toast, thất bại/restart, chụp bằng chứng theo bước; hiện chưa có audit trên build art thật.
 
 Đây đều là **Codex tự review** từ test log và preview đã nhìn trong lượt này, không có art director/game designer/UI designer độc lập hay người chơi quan sát trực tiếp.
+
+## Bổ sung kiểm tra trạng thái xe
+
+Revision lúc chạy: `c6cb200` cùng thay đổi condition chưa commit trên branch local. `pnpm lint`, `pnpm typecheck`, `pnpm build` đều exit 0; `pnpm test --reporter=dot` exit 0 với 52 files/301 tests. Test mới đi qua cả tám loại xe ở vai player và traffic, kiểm lớp hư hại hiện/ẩn theo lệnh từ runtime và có thể trở lại trạng thái sạch. Các simulation vẫn dùng config/seeds nêu trên; đây không phải playtest người. Gallery đã kiểm bằng in-app browser ở tình trạng buýt hỏng nặng; trạng thái đổi được, nhưng cần xem trong camera game thật sau khi tích hợp. Nhận định game design/UI-UX và hạn chế manual ở trên vẫn áp dụng, chưa có cơ sở đổi cân bằng.

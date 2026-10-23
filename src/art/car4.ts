@@ -1,8 +1,9 @@
 import * as THREE from 'three';
+import type { VehicleCondition } from './condition';
 
 /** VEH-03 art sample. Metres, +Y up, +Z forward; no gameplay transforms live here. */
 export type Car4Finish = 'coral' | 'jade' | 'cream';
-export type Car4Condition = 'clean' | 'used' | 'damaged' | 'destroyed';
+export type Car4Condition = VehicleCondition;
 export interface Car4Art {
   root: THREE.Group;
   body: THREE.Group;

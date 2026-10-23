@@ -22,6 +22,8 @@ Asset hiện là module Three.js riêng trong `src/art/`, chưa được gắn v
 | Road / junction | `createRoadTileArt()` / `createJunctionArt()` | Centerline `pathPose()`, 4 m sample, làn 3×3,2 m, junction 90 m cross/190 m old road. Tắt vạch trong vùng ±13 m giao lộ như renderer hiện hành. |
 | Cảnh quan | `createSceneryCluster(kind, side, lod)` | Năm family `roadsideRegions(seed, distance)` theo vùng 96 m; chỉ trang trí, không spawn/collider. Giữ cả hai mép và continuity khi cua. |
 
+Mọi master xe đều có `setCondition('clean' | 'used' | 'damaged' | 'destroyed')` để diễn hình trạng thái HP/đối tượng xác xe từ runtime. Chỉ gọi `destroyed` khi logic xác định hỏng; hết xăng hoặc tạm dừng xe không đồng nghĩa hỏng nặng. Điều kiện hình ảnh không thay HP, va chạm hay kết ván. Bản xem trước xe có bộ chọn tình trạng để rà từng loại và LOD.
+
 ## Nhịp pose/animation
 
 `driverCrashPose(elapsed)` và `passengerCrashPose(elapsed)` trong `src/art/timing.ts` trả pose + phase chuẩn hóa, đọc thẳng từ `balance` hiện hành. Truyền cả hai vào `person.setPose(pose, phase)`; đoạn văng/đứng dậy có nội suy pose đơn giản, chưa là clip diễn xuất cuối. Driver: văng 0,8 s → dừng 0,5 s → trở về 1,8 s. Khách: văng 0,65 s → nằm 0,4 s → đứng 0,55 s. Không phát clock nội bộ; lấy `elapsed` từ `s.crash`/`e.passengerMotion` khi thích hợp. Pause/reset/retire/end run ngắt pose theo state; star miễn va thì không diễn ngã. Bánh/quay đầu/lean/đuôi quét/container hitch lấy transform hiện hành, không nhân thêm root motion. Tàu/công an/vendor chỉ nhận `crossMotion`, không thêm thời lượng riêng.

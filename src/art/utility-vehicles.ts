@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { VehicleCondition } from './condition';
 
 export type UtilityVehicleKind = 'tricycle' | 'bus' | 'truck' | 'container';
 export type VehicleRole = 'player' | 'traffic';
@@ -11,6 +12,7 @@ export interface UtilityVehicleArt {
   seats: THREE.Object3D[];
   sockets: Record<string, THREE.Object3D>;
   setPaint: (color: string) => void;
+  setCondition: (condition: VehicleCondition) => void;
   dispose: () => void;
 }
 const specs = {
@@ -220,9 +222,23 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
   block(used, 'road_mud_band', [Math.min(spec.width - .20, 2.5), .065, Math.min(spec.length * .48, 3)],
     [0, .56, -spec.length * .19], mud);
   used.visible = false;
+  const damaged = new THREE.Group(); damaged.name = 'damaged_panels'; root.add(damaged);
+  block(damaged, 'side_crease', [.04, .23, Math.min(1.1, spec.length * .27)],
+    [spec.width * .44, kind === 'tricycle' ? .91 : 1.22, -spec.length * .25], dark);
+  damaged.visible = false;
+  const wreck = new THREE.Group(); wreck.name = 'destroyed_panels'; root.add(wreck);
+  block(wreck, 'rear_damage', [Math.min(spec.width * .54, 1.8), .27, .045],
+    [0, kind === 'tricycle' ? .98 : 1.27, -spec.length * .48], mud).rotation.z = -.07;
+  wreck.visible = false;
   root.userData = { ...root.userData, id: `veh_${kind}_${role}_A`, axes: '+Y up, +Z forward',
     widthM: spec.width, lengthM: spec.length, lod, role, logicCollisionRole: 'reference-only' };
   const setPaint = (color: string) => paint.color.set(color);
+  const setCondition = (condition: VehicleCondition) => {
+    used.visible = condition !== 'clean';
+    damaged.visible = condition === 'damaged' || condition === 'destroyed';
+    wreck.visible = condition === 'destroyed';
+  };
+  setCondition('clean');
   const dispose = () => {
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
     root.traverse(node => { if (node instanceof THREE.Mesh) {
@@ -231,5 +247,5 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     } });
     geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
   };
-  return { root, body, tractor, trailer, wheels, seats, sockets, setPaint, dispose };
+  return { root, body, tractor, trailer, wheels, seats, sockets, setPaint, setCondition, dispose };
 }

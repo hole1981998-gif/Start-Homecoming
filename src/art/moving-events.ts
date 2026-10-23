@@ -108,6 +108,7 @@ export function createAmbulanceArt(lod: 'near' | 'far' = 'near'): MovingArt {
   const setState = (state: 'normal' | 'stunned' | 'damaged') => {
     damage.visible = state === 'damaged';
     base.setPaint(state === 'damaged' ? '#929b99' : '#d1ddda');
+    base.setCondition(state === 'damaged' ? 'damaged' : 'clean');
   };
   setState('normal');
   root.userData = { ...root.userData, id: 'veh_ambulance_A', serviceRole: 'ambulance',

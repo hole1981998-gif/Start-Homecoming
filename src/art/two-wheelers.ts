@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { VehicleCondition } from './condition';
 
 export type TwoWheelerKind = 'motorcycle' | 'motorbike';
 export interface TwoWheelerArt {
@@ -10,6 +11,7 @@ export interface TwoWheelerArt {
   sockets: Record<string, THREE.Object3D>;
   seats: Record<'driver' | 'passenger', THREE.Object3D>;
   setPaint: (color: string) => void;
+  setCondition: (condition: VehicleCondition) => void;
   dispose: () => void;
 }
 
@@ -150,6 +152,12 @@ export function createTwoWheelerArt(kind: TwoWheelerKind, lod: 'near' | 'far' = 
   const mud = new THREE.Group(); mud.name = 'used_surface'; body.add(mud);
   box(mud, 'rear_mud', [.30, .04, .25], [0, .49, -.71], muddy);
   mud.visible = false;
+  const damaged = new THREE.Group(); damaged.name = 'damaged_panels'; body.add(damaged);
+  box(damaged, 'scraped_side', [.035, .19, .43], [sport ? .36 : .32, .88, -.28], darkSteel);
+  damaged.visible = false;
+  const wreck = new THREE.Group(); wreck.name = 'destroyed_panels'; body.add(wreck);
+  box(wreck, 'bent_rear_guard', [.40, .055, .07], [0, .76, -half + .05], darkSteel).rotation.z = .18;
+  wreck.visible = false;
 
   const sockets: Record<string, THREE.Object3D> = {
     headlamp: point(frontSteer, 'headlamp_socket', [0, sport ? 1.08 : 1.15, half + .06]),
@@ -169,6 +177,12 @@ export function createTwoWheelerArt(kind: TwoWheelerKind, lod: 'near' | 'far' = 
     widthM: sport ? .96 : .896, lengthM: sport ? 2.2 : 2.0,
     logicCollisionRole: 'reference-only' };
   const setPaint = (color: string) => { paint.color.set(color); paintLight.color.set(color).multiplyScalar(1.16); paintDark.color.set(color).multiplyScalar(.72); };
+  const setCondition = (condition: VehicleCondition) => {
+    mud.visible = condition !== 'clean';
+    damaged.visible = condition === 'damaged' || condition === 'destroyed';
+    wreck.visible = condition === 'destroyed';
+  };
+  setCondition('clean');
   const dispose = () => {
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
     root.traverse(node => { if (node instanceof THREE.Mesh) {
@@ -177,5 +191,5 @@ export function createTwoWheelerArt(kind: TwoWheelerKind, lod: 'near' | 'far' = 
     } });
     geometries.forEach(geometry => geometry.dispose()); materials.forEach(material => material.dispose());
   };
-  return { root, body, frontSteer, frontWheel, rearWheel, sockets, seats, setPaint, dispose };
+  return { root, body, frontSteer, frontWheel, rearWheel, sockets, seats, setPaint, setCondition, dispose };
 }

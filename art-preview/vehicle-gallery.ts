@@ -4,10 +4,11 @@ import { createCar7Art } from '../src/art/car7';
 import { createTwoWheelerArt } from '../src/art/two-wheelers';
 import { createUtilityVehicleArt } from '../src/art/utility-vehicles';
 import { createPersonArt, mountPersonOnSeat } from '../src/art/people';
+import type { VehicleCondition } from '../src/art/condition';
 
 type Kind = 'car4' | 'car7' | 'motorcycle' | 'motorbike' | 'tricycle' | 'bus' | 'truck' | 'container';
 type Lod = 'near' | 'far';
-type PreviewArt = { root: THREE.Group; dispose: () => void };
+type PreviewArt = { root: THREE.Group; setCondition: (condition: VehicleCondition) => void; dispose: () => void };
 const create = (kind: Kind, lod: Lod): PreviewArt => {
   if (kind === 'motorcycle' || kind === 'motorbike') {
     const art = createTwoWheelerArt(kind, lod);
@@ -48,10 +49,12 @@ const views = names.map(name => {
 function draw() {
   const kind = (document.getElementById('kind') as HTMLSelectElement).value as Kind;
   const lod = (document.getElementById('lod') as HTMLSelectElement).value as Lod;
+  const condition = (document.getElementById('condition') as HTMLSelectElement).value as VehicleCondition;
   const size = { car4: 4.2, car7: 4.8, motorcycle: 2, motorbike: 2.2,
     tricycle: 3.2, bus: 10, truck: 7, container: 15 }[kind];
   for (const view of views) {
     view.setArt(create(kind, lod));
+    view.art.setCondition(condition);
     const { width, height } = view.canvas.getBoundingClientRect();
     view.renderer.setSize(Math.max(1, width), Math.max(1, height), false);
     const camera = view.camera;
@@ -74,6 +77,6 @@ function draw() {
     view.renderer.render(view.scene, camera);
   }
 }
-for (const id of ['kind', 'lod']) document.getElementById(id)?.addEventListener('change', draw);
+for (const id of ['kind', 'lod', 'condition']) document.getElementById(id)?.addEventListener('change', draw);
 new ResizeObserver(draw).observe(document.body);
 draw();

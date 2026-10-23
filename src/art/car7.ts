@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { VehicleCondition } from './condition';
 
 export interface Car7Art {
   root: THREE.Group;
@@ -7,6 +8,7 @@ export interface Car7Art {
   seats: Record<string, THREE.Object3D>;
   sockets: Record<string, THREE.Object3D>;
   setPaint: (color: string) => void;
+  setCondition: (condition: VehicleCondition) => void;
   dispose: () => void;
 }
 function mat(color: string, roughness = .6, metalness = .08) {
@@ -149,6 +151,10 @@ export function createCar7Art(lod: 'near' | 'far' = 'near'): Car7Art {
   const damaged = new THREE.Group(); damaged.name = 'damaged_panels'; body.add(damaged);
   box(damaged, 'rear_hatch_crease', [.74, .10, .04], [.25, 1.10, -2.41], damage).rotation.y = -.08;
   damaged.visible = false;
+  const wreck = new THREE.Group(); wreck.name = 'destroyed_panels'; body.add(wreck);
+  box(wreck, 'darkened_rear_hatch', [.76, .30, .027], [-.15, 1.28, -2.42], damage);
+  box(wreck, 'broken_rear_glass', [.48, .11, .023], [.33, 1.65, -2.35], mud).rotation.z = -.20;
+  wreck.visible = false;
 
   const seats: Record<string, THREE.Object3D> = {};
   for (const [row, z, xs] of [['front', .80, [-.47, .47]], ['middle', -.22, [-.48, .48]],
@@ -171,6 +177,12 @@ export function createCar7Art(lod: 'near' | 'far' = 'near'): Car7Art {
   root.userData = { id: 'veh_car7_player_A', lod, axes: '+Y up, +Z forward', widthM: 2.08,
     lengthM: 4.8, logicCollisionRole: 'reference-only', visualPivot: 'front-biased runtime adapter' };
   const setPaint = (color: string) => { paint.color.set(color); light.color.set(color).multiplyScalar(1.16); dark.color.set(color).multiplyScalar(.70); };
+  const setCondition = (condition: VehicleCondition) => {
+    used.visible = condition !== 'clean';
+    damaged.visible = condition === 'damaged' || condition === 'destroyed';
+    wreck.visible = condition === 'destroyed';
+  };
+  setCondition('clean');
   const dispose = () => {
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
     root.traverse(node => { if (node instanceof THREE.Mesh) {
@@ -179,5 +191,5 @@ export function createCar7Art(lod: 'near' | 'far' = 'near'): Car7Art {
     } });
     geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
   };
-  return { root, body, wheels, seats, sockets, setPaint, dispose };
+  return { root, body, wheels, seats, sockets, setPaint, setCondition, dispose };
 }
