@@ -34,6 +34,11 @@ skyContext.filter = 'none';
 const skyTexture = new THREE.CanvasTexture(sky);
 skyTexture.colorSpace = THREE.SRGBColorSpace;
 scene.background = skyTexture;
+const skyEnvironment = skyTexture.clone();
+skyEnvironment.mapping = THREE.EquirectangularReflectionMapping;
+skyEnvironment.needsUpdate = true;
+scene.environment = skyEnvironment;
+scene.environmentIntensity = .12;
 scene.fog = new THREE.Fog('#9eada7', 104, 156);
 scene.add(new THREE.HemisphereLight('#fff0d2', '#426c6c', 1.42));
 const sun = new THREE.DirectionalLight('#ffe5bf', 1.74);
@@ -67,7 +72,9 @@ for (const [x, z, width, length] of [[-2, 37, 26, 14], [4, 72, 21, 11]] as const
   scene.add(cloudShadow);
 }
 for (let z = -6; z <= 106; z += 4) {
-  const tile = createRoadTileArt(z < -2 ? 'near' : 'far'); tile.root.position.z = z; scene.add(tile.root);
+  const tile = createRoadTileArt(z < -2 ? 'near' : 'far');
+  tile.setWetness(.70);
+  tile.root.position.z = z; scene.add(tile.root);
 }
 const player = createCar4Art(); player.root.position.set(0, .02, 1.5); scene.add(player.root);
 const traffic = createVehicleArt('car7', 'traffic', 'near', '#a88772');

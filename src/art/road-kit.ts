@@ -4,11 +4,26 @@ import { balance } from '../config';
 export interface RoadArt {
   root: THREE.Group;
   setJunctionClearance: (clear: boolean) => void;
+  setWetness: (amount: number) => void;
   dispose: () => void;
 }
 const mat = (color: string) => new THREE.MeshStandardMaterial({
   color, roughness: 1, flatShading: true, side: THREE.DoubleSide,
 });
+function asphaltMaterial(dryColor: string, wetColor: string) {
+  const dry = new THREE.Color(dryColor), wet = new THREE.Color(wetColor);
+  const material = new THREE.MeshPhysicalMaterial({
+    color: dry, roughness: .94, clearcoat: 0, clearcoatRoughness: .31,
+    flatShading: true, side: THREE.DoubleSide,
+  });
+  const setWetness = (amount: number) => {
+    const wetness = THREE.MathUtils.clamp(amount, 0, 1);
+    material.color.copy(dry).lerp(wet, wetness);
+    material.roughness = .94 - wetness * .39;
+    material.clearcoat = wetness * .42;
+  };
+  return { material, setWetness };
+}
 function box(parent: THREE.Object3D, name: string, size: [number, number, number],
   pos: [number, number, number], material: THREE.Material) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
@@ -27,9 +42,10 @@ function disposeTree(root: THREE.Object3D) {
 export function createRoadTileArt(lod: 'near' | 'far' = 'near'): RoadArt {
   const width = balance.laneWidth * balance.laneCount;
   const root = new THREE.Group(); root.name = `road_tile_4m_${lod}`;
-  const asphalt = mat('#43565a'), edge = mat('#e0d7b3'), lane = mat('#c5d3c4');
+  const asphalt = asphaltMaterial('#43565a', '#33494e');
+  const edge = mat('#e0d7b3'), lane = mat('#c5d3c4');
   const dirt = mat('#92765d'), grass = mat('#67915e'), postMat = mat('#d6c7a4');
-  box(root, 'asphalt_4m', [width, .07, 4], [0, -.035, 0], asphalt);
+  box(root, 'asphalt_4m', [width, .07, 4], [0, -.035, 0], asphalt.material);
   const marks = new THREE.Group(); marks.name = 'markings'; root.add(marks);
   for (const side of [-1, 1]) {
     const x = side * width / 2;
@@ -47,6 +63,7 @@ export function createRoadTileArt(lod: 'near' | 'far' = 'near'): RoadArt {
   root.userData = { id: 'road_tile_4m_A', axes: '+Y up, +Z forward', widthM: width,
     lengthM: 4, segmentPlacement: 'pathPose every 4 m', collisionRole: 'none' };
   return { root, setJunctionClearance: (clear: boolean) => { marks.visible = !clear; },
+    setWetness: asphalt.setWetness,
     dispose: () => disposeTree(root) };
 }
 
@@ -54,10 +71,11 @@ export function createRoadTileArt(lod: 'near' | 'far' = 'near'): RoadArt {
 export function createJunctionArt(blockedStraight: boolean,
   lod: 'near' | 'far' = 'near'): RoadArt {
   const root = new THREE.Group(); root.name = `road_junction_${lod}`;
-  const asphalt = mat('#3d4849'), edge = mat('#cbcbb9'), dark = mat('#3b4140');
+  const asphalt = asphaltMaterial('#3d4849', '#303e43');
+  const edge = mat('#cbcbb9'), dark = mat('#3b4140');
   const amber = mat('#c99168'), white = mat('#d9d7bd');
-  box(root, 'cross_street', [90, .07, 9.6], [0, -.055, -10.2], asphalt);
-  box(root, 'old_straight', [9.6, .04, 190], [0, -.08, -95], asphalt);
+  box(root, 'cross_street', [90, .07, 9.6], [0, -.055, -10.2], asphalt.material);
+  box(root, 'old_straight', [9.6, .04, 190], [0, -.08, -95], asphalt.material);
   const markings = new THREE.Group(); markings.name = 'junction_markings'; root.add(markings);
   for (const side of [-1, 1]) {
     box(markings, `old_edge_${side}`, [.12, .025, 150],
@@ -78,5 +96,6 @@ export function createJunctionArt(blockedStraight: boolean,
     crossStreetWidthM: 90, crossStreetDepthM: 9.6, oldRoadLengthM: 190,
     collisionRole: 'none', placementSource: 'junction/pathPose' };
   return { root, setJunctionClearance: (clear: boolean) => { markings.visible = !clear; },
+    setWetness: asphalt.setWetness,
     dispose: () => disposeTree(root) };
 }

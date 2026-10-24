@@ -9,6 +9,15 @@ describe('road art follows existing route dimensions', () => {
     const asphalt = tile.root.getObjectByName('asphalt_4m') as THREE.Mesh<THREE.BoxGeometry>;
     expect(asphalt.geometry.parameters.width).toBe(balance.laneWidth * balance.laneCount);
     expect(asphalt.geometry.parameters.depth).toBe(4);
+    const material = asphalt.material as THREE.MeshPhysicalMaterial;
+    const dry = material.color.clone();
+    tile.setWetness(1);
+    expect(material.color.equals(dry)).toBe(false);
+    expect(material.roughness).toBeLessThan(.6);
+    expect(material.clearcoat).toBeGreaterThan(.4);
+    tile.setWetness(0);
+    expect(material.color.equals(dry)).toBe(true);
+    expect(material.roughness).toBeGreaterThan(.9);
     expect(tile.root.getObjectByName('lane_dash_1')?.position.x).toBe(balance.laneWidth / 2);
     tile.setJunctionClearance(true);
     expect(tile.root.getObjectByName('markings')?.visible).toBe(false);
