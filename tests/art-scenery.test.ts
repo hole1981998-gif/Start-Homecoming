@@ -121,4 +121,16 @@ describe('essential roadside scenery', () => {
     expect(instance(riceFar, 'rice_tufts').count).toBeLessThan(instance(riceNear, 'rice_tufts').count);
     for (const art of [treeA, treeB, treeC, treeFar, riceNear, riceFar]) art.dispose();
   });
+  it('keeps the near harbor jetty on the water side of the road', () => {
+    const roadHalfWidth = balance.laneWidth * balance.laneCount / 2;
+    for (const side of [-1, 1] as const) {
+      const art = createSceneryCluster('sea', side, 'near');
+      const jetty = art.root.getObjectByName('harbor_jetty')!;
+      expect(jetty).toBeDefined();
+      const bounds = new THREE.Box3().setFromObject(jetty);
+      if (side < 0) expect(bounds.max.x).toBeLessThan(-roadHalfWidth);
+      else expect(bounds.min.x).toBeGreaterThan(roadHalfWidth);
+      art.dispose();
+    }
+  });
 });

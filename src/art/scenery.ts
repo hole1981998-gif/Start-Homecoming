@@ -626,12 +626,16 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     }
     root.add(grassTufts);
   } else if (kind === 'cliffs') {
-    const toe = mat('#8f775d'), face = mat('#a98566'), upper = mat('#c19b75');
+    const toe = mat('#8f775d');
+    const face = new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
+      roughness: .94, flatShading: true, side: THREE.DoubleSide });
+    const upper = mat('#c19b75');
     const grass = mat('#70935e');
     const profile = [
-      { z: -26, h: 2.4, shift: .2 }, { z: -18, h: 4.7, shift: -.2 },
-      { z: -11, h: 3.6, shift: .3 }, { z: -3, h: 6.7, shift: -.3 },
-      { z: 6, h: 5.3, shift: .1 }, { z: 15, h: 6.1, shift: -.1 },
+      { z: -26, h: 2.4, shift: .2 }, { z: -19, h: 4.7, shift: -.2 },
+      { z: -14, h: 3.2, shift: .45 }, { z: -5, h: 6.7, shift: -.3 },
+      { z: 3, h: 5.6, shift: .1 }, { z: 9, h: 3.6, shift: .55 },
+      { z: 16, h: 6.1, shift: -.2 }, { z: 21, h: 5.1, shift: .05 },
       { z: 26, h: 3.1, shift: .3 },
     ];
     const rows = [
@@ -643,13 +647,22 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     ];
     for (let band = 0; band < rows.length - 1; band++) {
       const positions: number[] = [];
+      const faceColors: number[] = [];
       for (let i = 0; i < profile.length - 1; i++) {
         const a = rows[band](profile[i]), b = rows[band + 1](profile[i]);
         const c = rows[band](profile[i + 1]), d = rows[band + 1](profile[i + 1]);
         positions.push(...a, ...b, ...c, ...c, ...b, ...d);
+        if (band === 1) {
+          const base = new THREE.Color(i % 3 === 0 ? '#ac8869' : '#a58164');
+          for (const shade of [1, .93]) for (let vertex = 0; vertex < 3; vertex++) {
+            const color = base.clone().multiplyScalar(shade);
+            faceColors.push(color.r, color.g, color.b);
+          }
+        }
       }
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      if (band === 1) geometry.setAttribute('color', new THREE.Float32BufferAttribute(faceColors, 3));
       geometry.computeVertexNormals();
       const layer = new THREE.Mesh(geometry, [toe, face, upper, grass][band]);
       layer.name = ['cliff_toe', 'faceted_rock_face', 'sunlit_rim', 'grassy_back'][band];
@@ -821,6 +834,25 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
         box(root, `post_cap_${z}`, [.36, .09, .36], [x(.7), 1.20, z], seam);
       }
       box(root, 'storm_drain_outlet', [.08, .24, .62], [x(.7) - side * .22, .30, 2], seam);
+      const jetty = new THREE.Group(); jetty.name = 'harbor_jetty'; root.add(jetty);
+      const wood = mat('#9b7654'), woodLight = mat('#b48b61'), rope = mat('#d1b889');
+      const dockZ = -9.8;
+      for (let i = 0; i < 10; i++) {
+        box(jetty, `deck_plank_${i}`, [.50, .13, 1.72],
+          [x(1.25 + i * .53), .56, dockZ], i % 3 === 0 ? woodLight : wood);
+      }
+      for (const offset of [1.8, 5.8]) for (const edge of [-1, 1]) {
+        box(jetty, `jetty_support_${offset}_${edge}`, [.21, .85, .21],
+          [x(offset), .19, dockZ + edge * .73], wood);
+      }
+      for (const edge of [-1, 1]) {
+        box(jetty, `mooring_bollard_${edge}`, [.27, .34, .27],
+          [x(5.95), .78, dockZ + edge * .64], seam);
+        box(jetty, `mooring_rope_${edge}`, [.66, .045, .045],
+          [x(5.54), .88, dockZ + edge * .64], rope);
+      }
+      box(jetty, 'rolled_fishing_net', [.71, .24, .50], [x(2.2), .74, dockZ + .35],
+        mat('#6f9e8e'));
     }
   }
   root.userData = { id: `env_${kind}_A`, axes: '+Y up, +Z forward', variantSeed, lod,
