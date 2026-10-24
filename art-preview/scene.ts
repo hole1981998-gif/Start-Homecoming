@@ -28,7 +28,7 @@ const fill = new THREE.DirectionalLight('#a9d8d4', .68); fill.position.set(11, 8
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),
   new THREE.MeshLambertMaterial({ color: '#719570' }));
 ground.rotation.x = -Math.PI / 2; ground.position.set(0, -.12, 17); ground.receiveShadow = true; scene.add(ground);
-for (let z = -6; z <= 42; z += 4) {
+for (let z = -6; z <= 106; z += 4) {
   const tile = createRoadTileArt(z < -2 ? 'near' : 'far'); tile.root.position.z = z; scene.add(tile.root);
 }
 const player = createCar4Art(); player.root.position.set(0, .02, 1.5); scene.add(player.root);
@@ -47,6 +47,9 @@ for (const [side, z, variantSeed] of [[-1, 17, 0], [1, 17, 1]] as const) {
   art.root.position.z = z; scene.add(art.root);
   if (side === -1) nativeShop = art.root.getObjectByName('porch_house');
   if (side === 1) nativeMidrise = art.root.getObjectByName('midrise_apartments');
+  const nextDistrict = createSceneryCluster('city', side, 'far', variantSeed + 2);
+  nextDistrict.root.position.z = z + 66;
+  scene.add(nextDistrict.root);
 }
 scene.traverse(object => {
   if (object instanceof THREE.Mesh && object !== ground) {

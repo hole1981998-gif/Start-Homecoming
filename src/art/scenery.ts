@@ -169,6 +169,71 @@ function midrise(parent: THREE.Object3D, x: number, z: number, near: boolean,
   }
   return root;
 }
+function backlotBlock(parent: THREE.Object3D, x: number, z: number,
+  style: 0 | 1 | 2, near: boolean) {
+  const root = new THREE.Group(); root.name = `backlot_${style}`;
+  root.position.set(x, 0, z); parent.add(root);
+  const width = [6.3, 7.1, 5.7][style], depth = [5.8, 6.7, 6.2][style];
+  const height = [7.1, 14.2, 9.3][style];
+  const wall = mat(['#d0b789', '#9fc3ae', '#d3a783'][style]);
+  const sideWall = mat(['#bd9f78', '#84ad9d', '#bf916e'][style]);
+  const trim = mat(['#8e644e', '#567b71', '#9d5f51'][style]);
+  const shade = mat('#354e53'), frame = mat('#dfd5b6');
+  box(root, 'backlot_main', [width, height, depth], [0, height / 2, 0], wall);
+  box(root, 'backlot_shaded_wing', [.24, height, depth + .08],
+    [-width * .48, height / 2, 0], sideWall);
+  box(root, 'backlot_plinth', [width + .12, .36, depth + .10],
+    [0, .18, 0], trim);
+  box(root, 'backlot_vertical_bay', [.25, height - .38, .12],
+    [width * .38, (height + .38) / 2, depth / 2 + .05], trim);
+  if (style === 0) {
+    roof(root, 'backlot_pitched_roof', width + .48, depth + .48, height + .05, trim);
+    box(root, 'backlot_roof_ridge', [.12, .08, depth + .50],
+      [0, height + .50, 0], frame);
+  } else {
+    box(root, 'backlot_parapet', [width + .36, .38, depth + .30],
+      [0, height + .17, 0], trim);
+    box(root, 'backlot_roof_crown', [width * .58, .17, depth * .56],
+      [0, height + .42, -.20], frame);
+    box(root, 'backlot_water_tank', [style === 1 ? 1.3 : .84, .86, 1.05],
+      [width * .24, height + .76, -.8], shade);
+  }
+  const floors = style === 1 ? 5 : style === 0 ? 2 : 3;
+  const windowCount = floors * 2;
+  const recesses = new THREE.InstancedMesh(new THREE.BoxGeometry(1.12, 1.25, .035),
+    shade, windowCount);
+  const windows = new THREE.InstancedMesh(new THREE.BoxGeometry(.91, 1.03, .045),
+    new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .38 }), windowCount);
+  recesses.name = 'backlot_window_recesses'; windows.name = 'backlot_windows';
+  const dummy = new THREE.Object3D();
+  for (let floor = 0; floor < floors; floor++) {
+    const y = 2.05 + floor * (style === 1 ? 2.55 : style === 0 ? 2.55 : 2.38);
+    for (let column = 0; column < 2; column++) {
+      const i = floor * 2 + column;
+      const wx = (column ? 1 : -1) * width * .22;
+      dummy.position.set(wx, y, depth / 2 + .025); dummy.updateMatrix();
+      recesses.setMatrixAt(i, dummy.matrix);
+      dummy.position.z += .035; dummy.updateMatrix(); windows.setMatrixAt(i, dummy.matrix);
+      windows.setColorAt(i, new THREE.Color(floor === 1 && column === 0 ? '#e9bd78' : '#527e83'));
+    }
+    if (near) {
+      box(root, `backlot_floor_band_${floor}`, [width + .08, .085, .16],
+        [0, y - .80, depth / 2 + .06], trim);
+      box(root, `backlot_side_window_${floor}`, [.055, .80, .79],
+        [width / 2 + .03, y, -.70], shade);
+    }
+  }
+  root.add(recesses, windows);
+  if (near) {
+    box(root, 'backlot_door', [.91, 1.91, .055],
+      [width * .25, .96, depth / 2 + .08], shade);
+    box(root, 'backlot_canopy', [width * .62, .12, .91],
+      [-width * .12, 2.80, depth / 2 + .43], trim);
+    box(root, 'backlot_sign', [width * .45, .35, .055],
+      [-width * .12, 2.96, depth / 2 + .11], frame);
+  }
+  return root;
+}
 function wideStorefront(parent: THREE.Object3D, x: number, z: number, near: boolean,
   palette: number) {
   const root = new THREE.Group(); root.name = 'wide_storefront';
@@ -335,6 +400,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     const grass = mat('#6e9965');
     box(root, 'sidewalk_base', [4.5, .10, 66], [x(1.2), -.08, 7], pavement);
     box(root, 'sidewalk_curb', [.18, .22, 66], [x(-1.14), -.01, 7], curb);
+    box(root, 'backlot_courtyard', [12.6, .06, 68], [x(11.15), -.105, 7], mat('#8ea180'));
     const slots = [-20, -10, 3, 13, 23, 34];
     const order = [0, 1, 2, 3, 4, 5];
     if (variantSeed !== 0) for (let i = order.length - 1; i > 0; i--) {
@@ -356,6 +422,17 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       else building = house(root, 'corner_shop', x(.58), z, 4.1, 2,
         palettes[palette(slot)], near, 'shop');
       if (building) building.rotation.y = -side * Math.PI / 2;
+    }
+    for (const [i, z] of [[0, -18], [1, 7], [2, 30]] as const) {
+      const block = backlotBlock(root, x(10.2 + variation(i + 89) * 2),
+        z + jitter(i + 9), i, near);
+      block.rotation.y = -side * Math.PI / 2;
+    }
+    for (const z of [-11, 19]) {
+      box(root, `backlot_link_${z}`, [8.3, .045, 1.7],
+        [x(5.55), -.06, z], pavement);
+      box(root, `backlot_hedge_${z}`, [2.2, .45, .42],
+        [x(9.1), .22, z + 2.25], grass);
     }
     for (const z of [-25, 30]) {
       box(root, `boundary_wall_${z}`, [.22, .78, 3.2], [x(-.82), .39, z], wall);
