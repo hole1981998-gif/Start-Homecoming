@@ -41,15 +41,20 @@ describe('essential hazard art', () => {
   it('animates water normals and highlights deterministically without shifting its footprint', () => {
     const water = createSurfaceHazardArt('water', 3.2, 7);
     const floor = water.root.getObjectByName('deep_water') as THREE.Mesh;
+    const material = floor.material as THREE.MeshPhysicalMaterial;
+    expect(floor.geometry.getAttribute('uv')?.count).toBe(floor.geometry.getAttribute('position').count);
+    expect(material.normalMap).toBeInstanceOf(THREE.DataTexture);
     const position = floor.geometry.getAttribute('position');
     const initial = Array.from(position.array);
     const bounds = new THREE.Box3().setFromObject(water.root);
     water.setVisualTime?.(1.25);
     const frame = Array.from(position.array);
+    const normalOffset = material.normalMap!.offset.clone();
     expect(frame).not.toEqual(initial);
     water.setVisualTime?.(3.5);
     water.setVisualTime?.(1.25);
     expect(Array.from(position.array)).toEqual(frame);
+    expect(material.normalMap!.offset.toArray()).toEqual(normalOffset.toArray());
     expect(new THREE.Box3().setFromObject(water.root).min.x).toBeCloseTo(bounds.min.x);
     expect(new THREE.Box3().setFromObject(water.root).max.z).toBeCloseTo(bounds.max.z);
     water.dispose();

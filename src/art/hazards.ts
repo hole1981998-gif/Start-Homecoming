@@ -25,6 +25,30 @@ function cylinder(parent: THREE.Object3D, name: string, rTop: number, rBottom: n
 function point(parent: THREE.Object3D, name: string, pos: [number, number, number]) {
   const node = new THREE.Object3D(); node.name = name; node.position.set(...pos); parent.add(node); return node;
 }
+function waterNormalMap() {
+  const size = 64, data = new Uint8Array(size * size * 4);
+  const wave = (u: number, v: number) =>
+    Math.sin((u * 3 + v * .7) * Math.PI * 2) * .58 +
+    Math.sin((v * 5 - u * .9) * Math.PI * 2) * .27 +
+    Math.sin((u * 8 + v * 7) * Math.PI * 2) * .15;
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const u = x / size, v = y / size, step = 1 / size;
+    const dx = wave(u + step, v) - wave(u - step, v);
+    const dy = wave(u, v + step) - wave(u, v - step);
+    const normal = new THREE.Vector3(-dx * 1.7, -dy * 1.7, 1).normalize();
+    const index = (y * size + x) * 4;
+    data[index] = Math.round((normal.x * .5 + .5) * 255);
+    data[index + 1] = Math.round((normal.y * .5 + .5) * 255);
+    data[index + 2] = Math.round((normal.z * .5 + .5) * 255);
+    data[index + 3] = 255;
+  }
+  const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.magFilter = texture.minFilter = THREE.LinearFilter;
+  texture.repeat.set(2, 3);
+  texture.needsUpdate = true;
+  return texture;
+}
 function patch(parent: THREE.Object3D, name: string, width: number, length: number,
   y: number, material: THREE.Material) {
   const outline: [number, number][] = [[-.48, -.08], [-.44, -.29], [-.28, -.46],
@@ -68,7 +92,7 @@ function bevelBasin(parent: THREE.Object3D, kind: SurfaceHazardKind, width: numb
 function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
   width: number, length: number, lod: 'near' | 'far', material: THREE.Material) {
   const segments = lod === 'near' ? 24 : 14;
-  const positions: number[] = [], colors: number[] = [];
+  const positions: number[] = [], colors: number[] = [], uvs: number[] = [];
   const gradient = kind === 'water'
     ? ['#366b73', '#478e90', '#88b5ac']
     : ['#202725', '#33342f', '#64584b'];
@@ -86,6 +110,7 @@ function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
     ca: THREE.Color, cb: THREE.Color, cc: THREE.Color) => {
     positions.push(...a, ...b, ...c);
     colors.push(ca.r, ca.g, ca.b, cb.r, cb.g, cb.b, cc.r, cc.g, cc.b);
+    for (const p of [a, b, c]) uvs.push(p[0] / width + .5, p[2] / length + .5);
   };
   const shades = gradient.map(value => new THREE.Color(value));
   for (let i = 0; i < segments; i++) {
@@ -97,6 +122,7 @@ function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geometry.computeVertexNormals();
   const floor = new THREE.Mesh(geometry, material);
   floor.name = kind === 'water' ? 'deep_water' : 'pothole_depth';
@@ -131,10 +157,15 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   const edge = material(kind === 'water' ? '#4b6f6e' : '#504b43');
   const center = kind === 'water'
     ? new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true,
-      roughness: .20, metalness: .07, clearcoat: .82,
+      roughness: .28, metalness: .04, clearcoat: .72,
       clearcoatRoughness: .14, side: THREE.DoubleSide })
     : new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
       roughness: 1, side: THREE.DoubleSide });
+  const normalMap = kind === 'water' ? waterNormalMap() : undefined;
+  if (center instanceof THREE.MeshPhysicalMaterial && normalMap) {
+    center.normalMap = normalMap;
+    center.normalScale.set(.12, .12);
+  }
   const glint = material('#93aeb0', .27), debris = material('#827363');
   patch(root, 'readable_footprint', width, length, .015, edge);
   bevelBasin(root, kind, width, length,
@@ -174,6 +205,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
     const rippleZ = ripples.map(mesh => mesh.position.z);
     art.setVisualTime = (elapsedSeconds: number) => {
       const t = Math.max(0, elapsedSeconds);
+      if (normalMap) normalMap.offset.set(t * .009 % 1, t * .016 % 1);
       for (let i = 0; i < attribute.count; i++) {
         const offset = i * 3;
         positions[offset + 1] = base[offset + 1] +
@@ -187,6 +219,8 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
       });
     };
   }
+  const baseDispose = art.dispose;
+  art.dispose = () => { baseDispose(); normalMap?.dispose(); };
   return art;
 }
 
