@@ -137,7 +137,7 @@ function finish(root: THREE.Group, sockets: Record<string, THREE.Object3D>,
   setState('normal');
   const dispose = () => {
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
-    root.traverse(obj => { if (obj instanceof THREE.Mesh) {
+    root.traverse(obj => { if (obj instanceof THREE.Mesh || obj instanceof THREE.LineSegments) {
       geometries.add(obj.geometry);
       (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => materials.add(m));
     } });
@@ -166,7 +166,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
     center.normalMap = normalMap;
     center.normalScale.set(.12, .12);
   }
-  const glint = material('#93aeb0', .27), debris = material('#827363');
+  const glint = material('#93aeb0', .27), debris = material('#665f54');
   patch(root, 'readable_footprint', width, length, .015, edge);
   bevelBasin(root, kind, width, length,
     material(kind === 'water' ? '#528686' : '#48453e'));
@@ -184,16 +184,36 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
         [side * width * .43, .057, z * length], glint);
   } else {
     for (const side of [-1, 1]) {
-      for (const [index, z] of [-.29, .01, .27].entries()) {
+      const chips = side < 0 ? [-.29, .04, .27] : [-.17, .23];
+      for (const [index, z] of chips.entries()) {
         if (lod === 'far' && index === 1) continue;
         const chip = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0),
           index === 1 ? edge : debris);
         chip.name = `broken_rim_chip_${side}_${index}`;
-        chip.scale.set(width * (index === 1 ? .055 : .075), .025,
-          length * (index === 2 ? .06 : .075));
-        chip.position.set(side * width * .38, .061, z * length);
+        chip.scale.set(width * (index === 1 ? .039 : .052), .018,
+          length * (index === 2 ? .048 : .055));
+        chip.position.set(side * width * (.37 + index * .012), .054, z * length);
         root.add(chip);
       }
+    }
+    if (lod === 'near') {
+      const cracks = [
+        [[-.34, -.25], [-.39, -.31], [-.43, -.34]],
+        [[.32, -.27], [.39, -.32], [.43, -.30]],
+        [[-.35, .13], [-.40, .18], [-.43, .23]],
+        [[.33, .19], [.39, .24], [.42, .29]],
+        [[-.05, .36], [-.03, .40], [-.08, .43]],
+      ];
+      const positions: number[] = [];
+      for (const crack of cracks) for (let i = 0; i < crack.length - 1; i++) {
+        for (const p of [crack[i], crack[i + 1]])
+          positions.push(p[0] * width, .071, p[1] * length);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      const lines = new THREE.LineSegments(geometry,
+        new THREE.LineBasicMaterial({ color: '#242c2b' }));
+      lines.name = 'fractured_asphalt_cracks'; root.add(lines);
     }
   }
   const art = finish(root, { contact: point(root, 'contact', [0, .03, 0]) });

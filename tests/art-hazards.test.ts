@@ -63,4 +63,14 @@ describe('essential hazard art', () => {
     expect(() => createSurfaceHazardArt('water', 0, 2)).toThrow();
     expect(() => createSurfaceHazardArt('pothole', 2, Number.NaN)).toThrow();
   });
+  it('adds short near pothole cracks without expanding its world footprint', () => {
+    const near = createSurfaceHazardArt('pothole', 2.3, 4, 'near');
+    const far = createSurfaceHazardArt('pothole', 2.3, 4, 'far');
+    expect(near.root.getObjectByName('fractured_asphalt_cracks')).toBeInstanceOf(THREE.LineSegments);
+    expect(far.root.getObjectByName('fractured_asphalt_cracks')).toBeUndefined();
+    const size = new THREE.Box3().setFromObject(near.root).getSize(new THREE.Vector3());
+    expect(size.x).toBeLessThanOrEqual(2.32);
+    expect(size.z).toBeLessThanOrEqual(4.02);
+    near.dispose(); far.dispose();
+  });
 });

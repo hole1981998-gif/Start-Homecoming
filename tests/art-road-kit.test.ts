@@ -11,10 +11,12 @@ describe('road art follows existing route dimensions', () => {
     expect(asphalt.geometry.parameters.depth).toBe(4);
     const material = asphalt.material as THREE.MeshPhysicalMaterial;
     const dry = material.color.clone();
+    const dryReflection = material.envMapIntensity;
     tile.setWetness(1);
     expect(material.color.equals(dry)).toBe(false);
     expect(material.roughness).toBeLessThan(.6);
     expect(material.clearcoat).toBeGreaterThan(.4);
+    expect(material.envMapIntensity).toBeGreaterThan(dryReflection);
     tile.setWetness(0);
     expect(material.color.equals(dry)).toBe(true);
     expect(material.roughness).toBeGreaterThan(.9);

@@ -19,8 +19,9 @@ function asphaltMaterial(dryColor: string, wetColor: string) {
   const setWetness = (amount: number) => {
     const wetness = THREE.MathUtils.clamp(amount, 0, 1);
     material.color.copy(dry).lerp(wet, wetness);
-    material.roughness = .94 - wetness * .39;
-    material.clearcoat = wetness * .42;
+    material.roughness = .94 - wetness * .53;
+    material.clearcoat = wetness * .56;
+    material.envMapIntensity = .12 + wetness * 2.35;
   };
   return { material, setWetness };
 }
