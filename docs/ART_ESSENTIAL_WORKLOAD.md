@@ -46,6 +46,8 @@ Bus đã có thêm chi tiết ngoại thất đọc từ sau và bên hông: d�
 
 Nhân vật có đầu lớn hơn theo chất hoạt hình của ảnh reference, tay/chân đầy hơn và tóc dài liền form hơn; hip socket và chiều cao seat mount giữ như cũ. Đây vẫn là mesh/pose nguồn, chưa có thời gian animation mới và chưa thay thời lượng simulation.
 
+`scene.html` thử nền trời/mây/sương và bóng mây khuếch tán để so ánh sáng ở camera prototype. Đây là art study nằm riêng ở preview; gameplay renderer chưa dùng ánh sáng/thời tiết này. Mặt đường ướt, mưa/VFX, cân độ sáng bóng nhà, và đọc cue khi lái vẫn còn cần làm/kiểm sau.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

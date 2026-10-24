@@ -15,19 +15,57 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.18;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-const scene = new THREE.Scene(); scene.background = new THREE.Color('#78a7ad');
-scene.add(new THREE.HemisphereLight('#fff0d2', '#315a5c', 1.25));
-const sun = new THREE.DirectionalLight('#ffe5bf', 2.0);
+const scene = new THREE.Scene();
+const sky = document.createElement('canvas'); sky.width = 512; sky.height = 256;
+const skyContext = sky.getContext('2d')!;
+const skyColor = skyContext.createLinearGradient(0, 0, 0, sky.height);
+skyColor.addColorStop(0, '#56828c');
+skyColor.addColorStop(.55, '#8eafb0');
+skyColor.addColorStop(1, '#d5c9a9');
+skyContext.fillStyle = skyColor; skyContext.fillRect(0, 0, sky.width, sky.height);
+skyContext.filter = 'blur(17px)';
+skyContext.fillStyle = 'rgba(42,70,76,.24)';
+for (const [x, y, width, height] of [[80, 42, 134, 32], [325, 58, 163, 36],
+  [470, 25, 111, 25]] as const) {
+  skyContext.beginPath(); skyContext.ellipse(x, y, width, height, -.12, 0, Math.PI * 2);
+  skyContext.fill();
+}
+skyContext.filter = 'none';
+const skyTexture = new THREE.CanvasTexture(sky);
+skyTexture.colorSpace = THREE.SRGBColorSpace;
+scene.background = skyTexture;
+scene.fog = new THREE.Fog('#9eada7', 104, 156);
+scene.add(new THREE.HemisphereLight('#fff0d2', '#426c6c', 1.42));
+const sun = new THREE.DirectionalLight('#ffe5bf', 1.74);
 sun.position.set(-12, 19, 10); sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -34; sun.shadow.camera.right = 34;
 sun.shadow.camera.top = 48; sun.shadow.camera.bottom = -32;
 sun.shadow.camera.near = 1; sun.shadow.camera.far = 85;
 sun.shadow.bias = -.0004; scene.add(sun);
-const fill = new THREE.DirectionalLight('#a9d8d4', .68); fill.position.set(11, 8, -10); scene.add(fill);
+const fill = new THREE.DirectionalLight('#a9d8d4', .78); fill.position.set(11, 8, -10); scene.add(fill);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),
   new THREE.MeshLambertMaterial({ color: '#719570' }));
 ground.rotation.x = -Math.PI / 2; ground.position.set(0, -.12, 17); ground.receiveShadow = true; scene.add(ground);
+const shadowCanvas = document.createElement('canvas');
+shadowCanvas.width = 128; shadowCanvas.height = 128;
+const shadowContext = shadowCanvas.getContext('2d')!;
+const cloudFade = shadowContext.createRadialGradient(58, 66, 7, 64, 64, 62);
+cloudFade.addColorStop(0, 'rgba(255,255,255,.88)');
+cloudFade.addColorStop(.50, 'rgba(255,255,255,.52)');
+cloudFade.addColorStop(1, 'rgba(255,255,255,0)');
+shadowContext.fillStyle = cloudFade;
+shadowContext.fillRect(0, 0, 128, 128);
+const shadowMap = new THREE.CanvasTexture(shadowCanvas);
+for (const [x, z, width, length] of [[-2, 37, 26, 14], [4, 72, 21, 11]] as const) {
+  const cloudShadow = new THREE.Mesh(new THREE.PlaneGeometry(width, length),
+    new THREE.MeshBasicMaterial({ color: '#26434b', alphaMap: shadowMap,
+      transparent: true, opacity: .20, depthWrite: false }));
+  cloudShadow.name = `cloud_shadow_${z}`;
+  cloudShadow.rotation.x = -Math.PI / 2;
+  cloudShadow.position.set(x, .027, z);
+  scene.add(cloudShadow);
+}
 for (let z = -6; z <= 106; z += 4) {
   const tile = createRoadTileArt(z < -2 ? 'near' : 'far'); tile.root.position.z = z; scene.add(tile.root);
 }
