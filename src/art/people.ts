@@ -19,7 +19,7 @@ const cast = {
   commuter: { height: 1.66, shoulder: .40, waist: .34, skin: '#d39d78', coat: '#c75d52', pants: '#48555c', helmet: '#433c40', accessory: 'bag' },
   student: { height: 1.54, shoulder: .38, waist: .29, skin: '#a86e55', coat: '#7b85b3', pants: '#38465d', helmet: '#293e54', accessory: 'backpack' },
   child: { height: 1.24, shoulder: .34, waist: .29, skin: '#c78d6b', coat: '#d5aa62', pants: '#5b626e', helmet: '#f1cc71', accessory: 'poncho' },
-  senior: { height: 1.56, shoulder: .40, waist: .36, skin: '#a97256', coat: '#739274', pants: '#4b4d53', helmet: '#d9c5a8', accessory: 'hat' },
+  senior: { height: 1.56, shoulder: .40, waist: .36, skin: '#b98566', coat: '#d2cbb0', pants: '#344657', helmet: '#464844', accessory: 'hat' },
   worker: { height: 1.76, shoulder: .52, waist: .43, skin: '#8f5b48', coat: '#c48c5f', pants: '#3b5553', helmet: '#5b4c3f', accessory: 'satchel' },
   childRain: { height: 1.33, shoulder: .36, waist: .30, skin: '#b77959', coat: '#65a7a0', pants: '#45586c', helmet: '#e4bb65', accessory: 'poncho' },
   teenHood: { height: 1.63, shoulder: .37, waist: .28, skin: '#c48d68', coat: '#b77d96', pants: '#394a55', helmet: '#855c75', accessory: 'bag' },
@@ -149,28 +149,41 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
     mat('#a65e62', .8, true));
   mouth.name = 'mouth'; mouth.scale.set(1.6, .54, .55);
   mouth.position.set(0, -.145 * scale, headRadius * .88); head.add(mouth);
+  if (archetype === 'senior' && lod === 'near') {
+    const moustache = mat('#8e948b', .80, true);
+    for (const side of [-1, 1]) {
+      const half = new THREE.Mesh(new THREE.SphereGeometry(.042 * scale, 9, 7), moustache);
+      half.name = `silver_moustache_${side}`;
+      half.scale.set(1.12, .38, .52);
+      half.position.set(side * .034 * scale, -.112 * scale, headRadius * .91);
+      half.rotation.z = side * .22;
+      head.add(half);
+    }
+    tapered(torso, 'shirt_hem_belt', waistWidth * .54, waistWidth * .54,
+      .035 * scale, [0, .055 * scale, 0], mat('#8a664b'), 16);
+  }
 
   const arms: THREE.Group[] = [], elbows: THREE.Group[] = [], legs: THREE.Group[] = [], knees: THREE.Group[] = [];
   for (const side of [-1, 1]) {
     const arm = node(torso, `shoulder_${side}`, [side * shoulderWidth * .54, .53 * scale, 0]);
-    capsule(arm, `upper_arm_${side}`, .081 * scale, .34 * scale,
+    capsule(arm, `upper_arm_${side}`, .074 * scale, .34 * scale,
       [side * .02 * scale, -.16 * scale, 0], coat);
     const elbow = node(arm, `elbow_${side}`, [side * .02 * scale, -.31 * scale, 0]);
-    const elbowJoint = new THREE.Mesh(new THREE.SphereGeometry(.080 * scale, 10, 8), coat);
+    const elbowJoint = new THREE.Mesh(new THREE.SphereGeometry(.073 * scale, 10, 8), coat);
     elbowJoint.name = `soft_elbow_${side}`; elbow.add(elbowJoint);
-    capsule(elbow, `forearm_${side}`, .076 * scale, .30 * scale,
+    capsule(elbow, `forearm_${side}`, .070 * scale, .30 * scale,
       [0, -.13 * scale, 0], coat);
-    capsule(elbow, `hand_${side}`, .053 * scale, .12 * scale,
+    capsule(elbow, `hand_${side}`, .050 * scale, .12 * scale,
       [0, -.30 * scale, 0], skin);
     arms.push(arm); elbows.push(elbow);
 
     const leg = node(hips, `hip_leg_${side}`, [side * waistWidth * .34, -.045 * scale, 0]);
-    capsule(leg, `thigh_${side}`, .105 * scale, .43 * scale,
+    capsule(leg, `thigh_${side}`, .092 * scale, .43 * scale,
       [0, -.21 * scale, 0], pants);
     const knee = node(leg, `knee_${side}`, [0, -.37 * scale, 0]);
-    const kneeJoint = new THREE.Mesh(new THREE.SphereGeometry(.099 * scale, 12, 9), pants);
+    const kneeJoint = new THREE.Mesh(new THREE.SphereGeometry(.088 * scale, 12, 9), pants);
     kneeJoint.name = `soft_knee_${side}`; knee.add(kneeJoint);
-    capsule(knee, `shin_${side}`, .098 * scale, .41 * scale,
+    capsule(knee, `shin_${side}`, .087 * scale, .41 * scale,
       [0, -.19 * scale, 0], pants);
     const shoe = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), dark);
     shoe.name = `shoe_${side}`; shoe.scale.set(.12 * scale, .065 * scale, .17 * scale);
