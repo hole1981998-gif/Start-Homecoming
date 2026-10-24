@@ -60,6 +60,8 @@ Nước ngập được làm lại để đọc là mặt nước phủ trên đ
 
 Xe tải có mái bạt dốc nhẹ với ba gọng, thùng có gân/rail/dải màu, cửa sau có bản lề/biển/reflector và cabin có visor/grille. Những phần này tăng nhận diện từ camera sau, vẫn cùng footprint 2,72 × 7 m, ba seat socket và wheel pivots. Đây là polish mesh, chưa là nội thất hay animation hàng hóa.
 
+Container được thêm gân ngang mái, rãnh giữa, rail/dải màu trên thùng, khung góc và chi tiết khóa/cửa sau. Đầu kéo có visor, grille, bình nhiên liệu và bậc. Cấu trúc `tractor`/`trailer` và hitch, chiều rộng/dài 2,88 × 15 m theo prototype vẫn giữ; traffic tiếp tục dùng cùng family mesh nhưng không articulated như player.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

@@ -221,20 +221,27 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     sockets.cargo_drop = socket(root, 'cargo_drop', [0, 1.04, -3.50]);
     sockets.engine_smoke_fire = socket(root, 'engine_smoke_fire', [0, 1.92, 2.91]);
   } else {
+    const roofRib = material('#c3b293', .72), fleet = material('#e6b466', .53);
     tractor = new THREE.Group(); tractor.name = 'tractor'; body.add(tractor);
     trailer = new THREE.Group(); trailer.name = 'trailer'; root.add(trailer);
     block(tractor, 'tractor_chassis', [2.38, .42, 4.38], [0, .88, 5.17], dark);
     block(tractor, 'tractor_cab', [2.38, 1.72, 2.50], [0, 1.73, 5.98], paint);
     block(tractor, 'cab_roof', [2.20, .15, 2.28], [0, 2.66, 5.93], light);
+    block(tractor, 'cab_sun_visor', [2.18, .09, .25], [0, 2.69, 7.07], dark);
     face(tractor, 'windscreen', [[-1.06, 2.58, 7.04], [1.06, 2.58, 7.04],
       [1.14, 1.82, 7.30], [-1.14, 1.82, 7.30]], glass);
     for (const side of [-1, 1]) {
       block(tractor, `side_window_${side}`, [.035, .56, .78], [side * 1.21, 2.19, 5.96], glass);
       block(tractor, `mirror_${side}`, [.14, .27, .20], [side * 1.31, 2.07, 6.83], dark);
+      block(tractor, `fuel_tank_${side}`, [.18, .35, 1.03], [side * 1.20, .83, 4.73], steel);
+      block(tractor, `side_step_${side}`, [.23, .09, .68], [side * 1.22, .62, 6.10], dark);
       wheel(tractor, `tractor_front_${side}`, side * 1.18, 6.50);
       wheel(tractor, `tractor_rear_${side}`, side * 1.18, 3.65);
     }
     block(tractor, 'front_grille', [1.11, .37, .04], [0, 1.13, 7.34], dark);
+    for (const y of [1.01, 1.10, 1.19, 1.28]) block(tractor, `front_grille_slit_${y}`,
+      [.96, .026, .047], [0, y, 7.37], steel);
+    block(tractor, 'front_fleet_badge', [.48, .12, .045], [0, 1.67, 7.34], fleet);
     block(tractor, 'front_bumper', [2.51, .18, .12], [0, .67, 7.35], steel);
     for (const side of [-1, 1]) {
       block(tractor, `headlamp_${side}`, [.31, .16, .04], [side * 1.00, 1.26, 7.36], light);
@@ -245,19 +252,35 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     block(trailer, 'trailer_floor', [2.61, .30, 10.29], [0, 1.31, -2.10], dark);
     block(trailer, 'container_shell', [2.61, 2.42, 10.19], [0, 2.61, -2.15], wood);
     block(trailer, 'container_roof', [2.55, .09, 10.17], [0, 3.85, -2.15], light);
+    block(trailer, 'roof_center_channel', [.37, .025, 10.02], [0, 3.91, -2.15], roofRib);
+    for (const z of [-6.65, -5.55, -4.45, -3.35, -2.25, -1.15, -.05, 1.05, 2.15])
+      block(trailer, `roof_cross_rib_${z}`, [2.51, .035, .055], [0, 3.92, z], roofRib);
     for (const side of [-1, 1]) {
       for (let i = 0; i < (lod === 'near' ? 12 : 7); i++) {
         const z = -6.91 + i * (lod === 'near' ? .86 : 1.43);
         block(trailer, `cargo_rib_${side}_${i}`, [.04, 2.29, .055], [side * 1.328, 2.63, z], dark);
       }
+      block(trailer, `top_cargo_rail_${side}`, [.055, .12, 10.12],
+        [side * 1.33, 3.76, -2.15], steel);
+      block(trailer, `bottom_cargo_rail_${side}`, [.055, .13, 10.12],
+        [side * 1.33, 1.43, -2.15], dark);
+      block(trailer, `fleet_side_stripe_${side}`, [.052, .13, 9.99],
+        [side * 1.338, 2.03, -2.15], fleet);
+      for (const z of [-7.08, 2.77]) block(trailer, `corner_casting_${side}_${z}`,
+        [.16, 2.42, .16], [side * 1.27, 2.60, z], steel);
       wheel(trailer, `trailer_rear_${side}_a`, side * 1.18, -5.85);
       wheel(trailer, `trailer_rear_${side}_b`, side * 1.18, -6.67);
       block(trailer, `rear_latch_${side}`, [.08, 1.45, .04], [side * .69, 2.54, -7.30], steel);
+      for (const y of [1.71, 3.39]) block(trailer, `rear_hinge_${side}_${y}`,
+        [.17, .18, .055], [side * 1.02, y, -7.34], dark);
       block(trailer, `tail_${side}`, [.22, .14, .04], [side * 1.04, 1.31, -7.32], red);
       sockets[`tail_${side}`] = socket(root, `tail_socket_${side}`, [side * 1.04, 1.31, -7.35]);
     }
     block(trailer, 'rear_doors', [2.51, 2.33, .075], [0, 2.58, -7.28], wood);
     block(trailer, 'rear_center_seam', [.05, 2.30, .04], [0, 2.58, -7.34], dark);
+    block(trailer, 'rear_upper_fascia', [2.47, .11, .045], [0, 3.70, -7.35], roofRib);
+    block(trailer, 'rear_fleet_panel', [.78, .21, .046], [0, 2.84, -7.36], fleet);
+    block(trailer, 'rear_reflector_bar', [1.88, .10, .046], [0, 1.47, -7.36], amber);
     seats.push(socket(root, 'seat_driver', [-.58, 1.55, 5.98]));
     seats.push(socket(root, 'seat_passenger', [.58, 1.55, 5.98]));
     sockets.cargo_drop = socket(root, 'cargo_drop', [0, 1.65, -7.38]);
