@@ -17,7 +17,7 @@ export interface UtilityVehicleArt {
 }
 const specs = {
   tricycle: { width: 1.76, length: 3.2, color: '#c99455' },
-  bus: { width: 2.72, length: 10, color: '#6b9ca9' },
+  bus: { width: 2.72, length: 10, color: '#67a5a8' },
   truck: { width: 2.72, length: 7, color: '#a18978' },
   container: { width: 2.88, length: 15, color: '#b67a5c' },
 } as const;
@@ -104,9 +104,15 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     sockets.wheel_spray_front = socket(root, 'wheel_spray_front', [0, .25, 1.18]);
     sockets.wheel_spray_rear = socket(root, 'wheel_spray_rear', [0, .25, -1.08]);
   } else if (kind === 'bus') {
+    const stripe = material('#d9825e', .61), sign = material('#e7c57e', .55);
     block(body, 'chassis', [2.46, .48, 9.45], [0, .75, 0], dark);
     block(body, 'passenger_body', [2.52, 1.75, 9.44], [0, 1.77, 0], paint);
     block(body, 'roof_crown', [2.37, .16, 9.25], [0, 2.75, 0], light);
+    for (const side of [-1, 1]) for (const z of [-4.53, 4.53]) {
+      const corner = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, 1.58, 8), paint);
+      corner.name = `rounded_corner_${side}_${z}`;
+      corner.position.set(side * 1.10, 1.78, z); body.add(corner);
+    }
     // Front and rear are inset; the bus reads as a cabin, not a stretched rectangle.
     face(body, 'sloped_windscreen', [[-1.12, 2.62, 4.76], [1.12, 2.62, 4.76],
       [1.16, 1.81, 4.85], [-1.16, 1.81, 4.85]], glass);
@@ -119,18 +125,36 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
         block(body, `pillar_${side}_${i}`, [.06, .74, .07], [side * 1.29, 2.23, z + .48], dark);
       }
       block(body, `belt_${side}`, [.06, .09, 9.18], [side * 1.29, 1.77, 0], light);
+      block(body, `livery_ribbon_${side}`, [.055, .14, 8.92],
+        [side * 1.296, 1.29, 0], stripe);
+      block(body, `window_crown_${side}`, [.055, .055, 8.91],
+        [side * 1.298, 2.61, 0], dark);
       block(body, `side_skirt_${side}`, [.08, .20, 8.72], [side * 1.25, .79, 0], dark);
       wheel(root, `front_${side}`, side * 1.18, 3.51);
       wheel(root, `rear_${side}`, side * 1.18, -3.49);
     }
     block(body, 'service_door', [.06, 1.81, 1.20], [1.30, 1.45, 2.80], glass);
     block(body, 'door_split', [.07, 1.83, .05], [1.34, 1.45, 2.80], steel);
+    block(body, 'door_header', [.072, .10, 1.23], [1.34, 2.40, 2.80], sign);
     block(body, 'front_destination_frame', [1.42, .21, .065], [0, 2.73, 4.83], dark);
+    block(body, 'front_destination_face', [1.17, .14, .025], [0, 2.73, 4.87], sign);
+    for (const x of [-.36, -.10, .17, .41]) block(body, `front_route_glyph_${x}`,
+      [.10, .07, .027], [x, 2.73, 4.89], dark);
+    block(body, 'rear_route_panel', [1.05, .19, .055], [0, 2.47, -4.84], sign);
+    block(body, 'rear_grille', [1.33, .27, .05], [0, 1.31, -4.88], dark);
+    for (const y of [1.23, 1.31, 1.39]) block(body, `rear_grille_slit_${y}`,
+      [1.12, .025, .057], [0, y, -4.92], steel);
     lampPair(body, 4.86, -4.86, .97, 1.21);
+    block(body, 'front_lower_valance', [1.48, .19, .065], [0, 1.01, 4.88], stripe);
     block(body, 'front_bumper', [2.43, .17, .14], [0, .77, 4.89], dark);
     block(body, 'rear_bumper', [2.43, .17, .14], [0, .77, -4.89], dark);
     if (lod === 'near') {
-      for (const z of [-3.1, 0, 3.1]) block(body, `roof_vent_${z}`, [.82, .06, .45], [0, 2.87, z], dark);
+      block(body, 'roof_aircon_base', [1.06, .14, 1.86], [0, 2.88, -.40], steel);
+      block(body, 'roof_aircon_top', [.89, .08, 1.63], [0, 2.99, -.40], light);
+      for (const z of [-.94, -.40, .14]) block(body, `roof_aircon_grille_${z}`,
+        [.70, .02, .10], [0, 3.04, z], dark);
+      for (const z of [-3.10, 3.10]) block(body, `roof_vent_${z}`,
+        [.73, .08, .43], [0, 2.87, z], dark);
       block(body, 'rear_plate', [.45, .13, .025], [0, 1.0, -4.95], light);
     }
     // 25 seats including driver; visible roster stays under runtime control.

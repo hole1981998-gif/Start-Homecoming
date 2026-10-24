@@ -42,6 +42,8 @@ Chủ dự án đã bỏ giới hạn mức 50–80% để ưu tiên chất lư�
 
 Sau lượt xây phố tiếp theo, đã có hai nhà `.blend` chỉnh được (shop ven đường và midrise có tầng trệt bán hàng), công viên có giàn che/lối vào, ba nhà backlot khác chiều cao phía sau dãy mặt đường, và hai đoạn phố gần/xa nối tiếp trong cảnh mẫu. `setPose('walk', phase)` cho một nhịp bước tại chỗ, vẫn không quyết định thời gian di chuyển. Thứ tự việc còn đáng đầu tư nhất theo kiểm hình hiện tại: **(1)** nhân vật bớt dáng khớp mô-đun và thêm form tóc/trang phục rõ ở camera lái, **(2)** ánh sáng/mưa/mặt đường ướt và vật liệu nước/ổ gà khi đã có scene game thật, **(3)** gộp nhà/đường xa để giảm draw calls trước khi dùng nhiều vùng, **(4)** polish khác biệt các xe lớn trong cảnh game. Sân sau và phụ kiện nhỏ là ưu tiên sau. Mức tự đánh giá và bằng chứng ở `ART_QA_SELF_REVIEW.md`; chưa chuyển art cho code chat.
 
+Bus đã có thêm chi tiết ngoại thất đọc từ sau và bên hông: dải màu, bảng tuyến, grille và cụm mái. Đây là polish model trong cùng footprint 2,72 × 10 m; chưa dựng khoang nội thất, chưa tích hợp vào gameplay. Các xe tải/container và animation người vẫn là việc tiếp theo theo chất lượng tổng thể, không vì bus được nâng mà coi cả gói V2 đạt art direction.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
