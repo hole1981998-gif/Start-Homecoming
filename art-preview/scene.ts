@@ -16,7 +16,7 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.18;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.VSMShadowMap;
 const scene = new THREE.Scene();
 const sky = document.createElement('canvas'); sky.width = 512; sky.height = 256;
 const skyContext = sky.getContext('2d')!;
@@ -25,11 +25,16 @@ skyColor.addColorStop(0, '#56828c');
 skyColor.addColorStop(.55, '#8eafb0');
 skyColor.addColorStop(1, '#d5c9a9');
 skyContext.fillStyle = skyColor; skyContext.fillRect(0, 0, sky.width, sky.height);
-skyContext.filter = 'blur(17px)';
-skyContext.fillStyle = 'rgba(42,70,76,.24)';
-for (const [x, y, width, height] of [[80, 42, 134, 32], [325, 58, 163, 36],
-  [470, 25, 111, 25]] as const) {
+skyContext.filter = 'blur(11px)';
+skyContext.fillStyle = 'rgba(35,59,69,.43)';
+for (const [x, y, width, height] of [[64, 48, 163, 35], [260, 74, 175, 34],
+  [467, 44, 144, 30]] as const) {
   skyContext.beginPath(); skyContext.ellipse(x, y, width, height, -.12, 0, Math.PI * 2);
+  skyContext.fill();
+}
+skyContext.fillStyle = 'rgba(234,213,172,.20)';
+for (const [x, y, width, height] of [[108, 112, 145, 12], [367, 136, 199, 14]] as const) {
+  skyContext.beginPath(); skyContext.ellipse(x, y, width, height, -.04, 0, Math.PI * 2);
   skyContext.fill();
 }
 skyContext.filter = 'none';
@@ -42,14 +47,15 @@ skyEnvironment.needsUpdate = true;
 scene.environment = skyEnvironment;
 scene.environmentIntensity = .12;
 scene.fog = new THREE.Fog('#9eada7', 104, 156);
-scene.add(new THREE.HemisphereLight('#fff0d2', '#426c6c', 1.42));
+scene.add(new THREE.HemisphereLight('#fff0d2', '#658c86', 1.58));
+scene.add(new THREE.AmbientLight('#cde1d7', .34));
 const sun = new THREE.DirectionalLight('#ffe5bf', 1.74);
 sun.position.set(-12, 19, 10); sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -34; sun.shadow.camera.right = 34;
 sun.shadow.camera.top = 48; sun.shadow.camera.bottom = -32;
 sun.shadow.camera.near = 1; sun.shadow.camera.far = 85;
-sun.shadow.bias = -.0004; scene.add(sun);
+sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8; scene.add(sun);
 const fill = new THREE.DirectionalLight('#a9d8d4', .78); fill.position.set(11, 8, -10); scene.add(fill);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),
   new THREE.MeshLambertMaterial({ color: '#719570' }));
