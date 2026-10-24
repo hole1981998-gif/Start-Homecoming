@@ -46,6 +46,15 @@ skyEnvironment.mapping = THREE.EquirectangularReflectionMapping;
 skyEnvironment.needsUpdate = true;
 scene.environment = skyEnvironment;
 scene.environmentIntensity = .12;
+new THREE.TextureLoader().load(new URL('../assets/art/storm-sky-study.png', import.meta.url).href,
+  texture => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.mapping = THREE.UVMapping;
+    texture.repeat.set(.2, .52);
+    texture.offset.set(.50, .035);
+    scene.background = texture;
+    draw();
+  });
 scene.fog = new THREE.Fog('#9eada7', 104, 156);
 scene.add(new THREE.HemisphereLight('#fff0d2', '#658c86', 1.58));
 scene.add(new THREE.AmbientLight('#cde1d7', .34));

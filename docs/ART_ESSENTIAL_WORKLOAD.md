@@ -62,6 +62,20 @@ Xe tải có mái bạt dốc nhẹ với ba gọng, thùng có gân/rail/dải 
 
 Container được thêm gân ngang mái, rãnh giữa, rail/dải màu trên thùng, khung góc và chi tiết khóa/cửa sau. Đầu kéo có visor, grille, bình nhiên liệu và bậc. Cấu trúc `tractor`/`trailer` và hitch, chiều rộng/dài 2,88 × 15 m theo prototype vẫn giữ; traffic tiếp tục dùng cùng family mesh nhưng không articulated như player.
 
+## Đánh giá lại ưu tiên sau các lượt polish 24/10
+
+Các master xe, hazard, người và năm biome đều đã có source/preview. Đích hiện tại là art direction **trên 7/10**, không còn trần chất lượng 50–80% của bảng thiết yếu ban đầu. Đây là Codex tự đánh giá từ preview tĩnh, chưa phải phê duyệt của art director hay điểm game đã tích hợp. Không push/chat code theo yêu cầu hiện tại.
+
+| Ưu tiên | Việc còn lại | Bằng chứng hiện có / điều kiện hoàn tất |
+|---|---|---|
+| 1 | Cảnh mẫu có nhân vật, xe, hazard, mưa và lighting nhất quán ở camera chơi | Nhân vật vừa lên khoảng 6/10 ở ảnh tĩnh nhưng khớp/pose chưa liền; lighting/weather preview khoảng 6/10. Phải xem chuyển động, HUD/QTE và kiểm trên game thật trước khi chấm cuối. |
+| 2 | Đưa ngôn ngữ vật liệu mưa bão từ art study sang giải pháp runtime có thể đo | Có road wetness, normal nước, splash và sky texture preview; phản xạ đường còn yếu, sky texture chưa là skybox/camera-aware, chưa đo frame P95. |
+| 3 | Nâng silhouette và texture của môi trường theo từng biome | City, cây/ruộng/biển/vách tự đánh giá khoảng 6/10 tĩnh; dãy phố còn lặp, một số địa hình trống, vách còn dải liên tục. Giữ `variantSeed` và clearance khi thêm biến thể. |
+| 4 | Polish ngoại thất xe/hazard sau khi nhìn trong cảnh chơi | Car4 là mốc tốt; bus/truck/container/ba gác và hazard khoảng 6/10 ở gallery, chưa kiểm tại cự ly và tốc độ gameplay. Không đổi footprint/socket/timing để làm đẹp. |
+| 5 | Tối ưu và art direction gate cuối | Scene nhiều mesh >1.100 draw calls ở một frame preview, chưa phải FPS; cần cache/gộp/instance và chấm đủ tám tiêu chí trên cảnh đại diện đã gắn asset, mọi tiêu chí >7/10 theo yêu cầu chủ dự án. UI/typography và hiệu năng còn **chưa chấm**. |
+
+Các phụ kiện nhỏ, skin sơn thêm, nội thất, anim phụ và trang trí không giúp sửa các điểm nghẽn trên trước; ưu tiên sau khi cảnh đại diện đạt chất lượng và chạy ổn.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
