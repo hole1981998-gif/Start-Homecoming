@@ -41,4 +41,15 @@ describe('essential roadside scenery', () => {
     expect(positions[0]).toBe(positions[1]);
     expect(Math.abs(positions[0] - positions[2])).toBeGreaterThan(5);
   });
+  it('keeps distant city detail while reducing individual drawables', () => {
+    const near = createSceneryCluster('city', 1, 'near', 0);
+    const far = createSceneryCluster('city', 1, 'far', 0);
+    let nearMeshes = 0, farMeshes = 0;
+    near.root.traverse(object => { if (object instanceof THREE.Mesh) nearMeshes++; });
+    far.root.traverse(object => { if (object instanceof THREE.Mesh) farMeshes++; });
+    expect(farMeshes).toBeLessThan(nearMeshes / 3);
+    expect(new THREE.Box3().setFromObject(far.root).min.x)
+      .toBeGreaterThan(balance.laneWidth * balance.laneCount / 2);
+    near.dispose(); far.dispose();
+  });
 });

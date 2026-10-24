@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { balance } from '../config';
 import type { LandscapeKind } from '../landscape';
 
@@ -10,6 +11,48 @@ function box(parent: THREE.Object3D, name: string, size: [number, number, number
   pos: [number, number, number], material: THREE.Material) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
   mesh.name = name; mesh.position.set(...pos); parent.add(mesh); return mesh;
+}
+function batchFarMeshes(root: THREE.Group) {
+  root.updateMatrixWorld(true);
+  const buckets = new Map<string, { material: THREE.MeshStandardMaterial;
+    meshes: THREE.Mesh[]; geometries: THREE.BufferGeometry[] }>();
+  root.traverse(object => {
+    if (!(object instanceof THREE.Mesh) || object instanceof THREE.InstancedMesh ||
+      Array.isArray(object.material) || !(object.material instanceof THREE.MeshStandardMaterial) ||
+      object.material.map || object.material.transparent) return;
+    const material = object.material;
+    const key = [material.color.getHexString(), material.roughness, material.metalness,
+      material.flatShading, material.side].join('_');
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = { material, meshes: [], geometries: [] };
+      buckets.set(key, bucket);
+    }
+    const transformed = object.geometry.clone();
+    transformed.applyMatrix4(object.matrixWorld);
+    const geometry = transformed.index ? transformed.toNonIndexed() : transformed;
+    if (geometry !== transformed) transformed.dispose();
+    if (!geometry.getAttribute('normal')) geometry.computeVertexNormals();
+    if (!geometry.getAttribute('uv')) geometry.setAttribute('uv',
+      new THREE.Float32BufferAttribute(new Array(geometry.getAttribute('position').count * 2).fill(0), 2));
+    bucket.meshes.push(object);
+    bucket.geometries.push(geometry);
+  });
+  for (const [key, bucket] of buckets) {
+    if (bucket.meshes.length < 2) {
+      bucket.geometries.forEach(geometry => geometry.dispose());
+      continue;
+    }
+    const merged = mergeGeometries(bucket.geometries);
+    bucket.geometries.forEach(geometry => geometry.dispose());
+    if (!merged) continue;
+    const originalGeometry = new Set(bucket.meshes.map(mesh => mesh.geometry));
+    bucket.meshes.forEach(mesh => mesh.removeFromParent());
+    originalGeometry.forEach(geometry => geometry.dispose());
+    const mesh = new THREE.Mesh(merged, bucket.material);
+    mesh.name = `far_material_batch_${key}`;
+    root.add(mesh);
+  }
 }
 function taper(parent: THREE.Object3D, name: string, top: number, bottom: number,
   height: number, pos: [number, number, number], material: THREE.Material, sides = 6) {
@@ -572,6 +615,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
   root.userData = { id: `env_${kind}_A`, axes: '+Y up, +Z forward', variantSeed,
     roadsideSide: side, regionLengthM: 96, placementSource: 'roadsideRegions',
     collisionRole: 'decorative-only', noSpawnChange: true };
+  if (!near) batchFarMeshes(root);
   const dispose = () => {
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
     root.traverse(obj => { if (obj instanceof THREE.Mesh) {

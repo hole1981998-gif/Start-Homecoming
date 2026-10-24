@@ -50,6 +50,8 @@ Nhân vật có đầu lớn hơn theo chất hoạt hình của ảnh reference
 
 `createRoadTileArt` và `createJunctionArt` nay có `setWetness(0..1)` để code tích hợp sau điều khiển độ tối, độ nhám và clearcoat của mặt nhựa, không đổi lane width/collider. Preview đang thử mức 0,70 cùng ánh môi trường rất nhẹ; vũng nước vẫn khác màu và lòng sâu. Đây mới là nền vật liệu ướt, chưa có phản xạ động hay hạt mưa; không gọi đường/mưa hoàn tất.
 
+Mesh thường của cụm cảnh **far** được gộp theo vật liệu sau khi dựng, còn cụm near và instanced field giữ nguyên. Trong scene prototype, số draw calls giảm từ 1.535 xuống 1.097 với cùng 37.014 tam giác theo thông số browser; hình phố và khoảng trống đường được xem lại, không thấy mất công trình. Đây là giảm lệnh vẽ của preview tĩnh, chưa phải benchmark FPS/bộ nhớ hoặc tối ưu toàn game.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
