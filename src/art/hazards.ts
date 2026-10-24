@@ -49,11 +49,21 @@ function waterNormalMap() {
   texture.needsUpdate = true;
   return texture;
 }
+function waterRadius(angle: number) {
+  return .98 - Math.sin(angle * 2) ** 2 * .04 +
+    Math.sin(angle * 3 + .4) * .02;
+}
 function patch(parent: THREE.Object3D, name: string, width: number, length: number,
-  y: number, material: THREE.Material) {
-  const outline: [number, number][] = [[-.48, -.08], [-.44, -.29], [-.28, -.46],
-    [.02, -.49], [.28, -.45], [.46, -.29], [.48, -.05], [.45, .23],
-    [.29, .46], [.07, .49], [-.23, .46], [-.44, .30]];
+  y: number, material: THREE.Material, irregularWater = false) {
+  const outline: [number, number][] = irregularWater
+    ? Array.from({ length: 24 }, (_, i) => {
+      const angle = i * Math.PI * 2 / 24;
+      const radius = .49 * waterRadius(angle);
+      return [Math.cos(angle) * radius, Math.sin(angle) * radius];
+    })
+    : [[-.48, -.08], [-.44, -.29], [-.28, -.46],
+      [.02, -.49], [.28, -.45], [.46, -.29], [.48, -.05], [.45, .23],
+      [.29, .46], [.07, .49], [-.23, .46], [-.44, .30]];
   const positions: number[] = [];
   for (let i = 0; i < outline.length; i++) {
     const a = outline[i], b = outline[(i + 1) % outline.length];
@@ -72,7 +82,8 @@ function bevelBasin(parent: THREE.Object3D, kind: SurfaceHazardKind, width: numb
   for (let i = 0; i < segments; i++) {
     const p = (index: number, radius: number, y: number): [number, number, number] => {
       const angle = index * Math.PI * 2 / segments;
-      const wobble = 1 + Math.sin(index * 2.7) * .055;
+      const wobble = kind === 'water' ? waterRadius(angle) :
+        1 + Math.sin(index * 2.7) * .055;
       return [Math.cos(angle) * width * radius * wobble, y,
         Math.sin(angle) * length * radius * wobble];
     };
@@ -100,8 +111,8 @@ function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
   const rings = [0, .18, kind === 'water' ? .445 : .335];
   const vertex = (ring: number, index: number) => {
     const angle = index * Math.PI * 2 / segments;
-    const wobble = ring === 0 ? 1 : 1 + Math.sin(index * 2.7) *
-      (kind === 'water' && ring === 2 ? .055 : .024);
+    const wobble = ring === 0 ? 1 : kind === 'water' ? waterRadius(angle) :
+      1 + Math.sin(index * 2.7) * .024;
     const height = kind === 'water'
       ? [.041, .039, .035][ring] + (ring === 0 ? 0 : Math.sin(angle * 3) * .004)
       : [.022, .023, .025][ring] + (ring === 0 ? 0 : Math.sin(angle * 4) * .001);
@@ -171,7 +182,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   const glint = new THREE.MeshStandardMaterial({ color: '#a7c9bb', roughness: .32,
     transparent: true, opacity: .48, depthWrite: false, side: THREE.DoubleSide });
   const debris = material('#665f54');
-  patch(root, 'readable_footprint', width, length, .015, edge);
+  patch(root, 'readable_footprint', width, length, .015, edge, kind === 'water');
   bevelBasin(root, kind, width, length, lod,
     material(kind === 'water' ? '#5a8a89' : '#48453e'));
   basinFloor(root, kind, width, length, lod, center);
@@ -185,7 +196,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
     for (const side of [-1, 1]) for (const z of [-.20, .20])
       box(root, `wet_bank_${side}_${z}`,
         [Math.min(.035, width * .018), .004, length * .085],
-        [side * width * .32, .045, z * length], glint);
+        [side * width * .28, .045, z * length * .8], glint);
   } else {
     for (const side of [-1, 1]) {
       const chips = side < 0 ? [-.29, .04, .27] : [-.17, .23];
