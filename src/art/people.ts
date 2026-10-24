@@ -88,8 +88,8 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   const neck = tapered(torso, 'neck', .075 * scale, .08 * scale, .12 * scale,
     [0, .64 * scale, 0], skin, 6);
   neck.userData.materialRole = 'skin';
-  const head = node(torso, 'head_pivot', [0, .73 * scale, 0]);
-  const headRadius = (archetype === 'driver' ? .22 : .25) * scale *
+  const head = node(torso, 'head_pivot', [0, .67 * scale, 0]);
+  const headRadius = (archetype === 'driver' ? .28 : .30) * scale *
     (archetype === 'child' || archetype === 'childRain' ? 1.07 : 1);
   const headMesh = new THREE.Mesh(new THREE.SphereGeometry(headRadius,
     lod === 'near' ? 16 : 10, lod === 'near' ? 12 : 8), skin);
@@ -114,14 +114,14 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
       head.add(hair);
       if (archetype === 'office' || archetype === 'caretaker' || archetype === 'commuter') {
         const backHair = new THREE.Mesh(new THREE.SphereGeometry(headRadius * .91, 12, 8), hairMat);
-        backHair.name = 'back_hair'; backHair.scale.set(.96, 1.42, .58);
-        backHair.position.set(0, -.13 * scale, -headRadius * .30);
+        backHair.name = 'back_hair'; backHair.scale.set(1.02, 1.48, .78);
+        backHair.position.set(0, -.12 * scale, -headRadius * .46);
         head.add(backHair);
         for (const side of [-1, 1]) {
           const lock = new THREE.Mesh(new THREE.SphereGeometry(headRadius, 10, 8), hairMat);
           lock.name = `hair_side_lock_${side}`;
-          lock.scale.set(.31, .88, .52);
-          lock.position.set(side * headRadius * .63, -.11 * scale, -headRadius * .40);
+          lock.scale.set(.25, .82, .48);
+          lock.position.set(side * headRadius * .72, -.12 * scale, -headRadius * .42);
           head.add(lock);
         }
       }
@@ -151,27 +151,27 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   const arms: THREE.Group[] = [], elbows: THREE.Group[] = [], legs: THREE.Group[] = [], knees: THREE.Group[] = [];
   for (const side of [-1, 1]) {
     const arm = node(torso, `shoulder_${side}`, [side * shoulderWidth * .54, .53 * scale, 0]);
-    capsule(arm, `upper_arm_${side}`, .069 * scale, .34 * scale,
+    capsule(arm, `upper_arm_${side}`, .081 * scale, .34 * scale,
       [side * .02 * scale, -.16 * scale, 0], coat);
     const elbow = node(arm, `elbow_${side}`, [side * .02 * scale, -.31 * scale, 0]);
-    const elbowJoint = new THREE.Mesh(new THREE.SphereGeometry(.069 * scale, 10, 8), coat);
+    const elbowJoint = new THREE.Mesh(new THREE.SphereGeometry(.080 * scale, 10, 8), coat);
     elbowJoint.name = `soft_elbow_${side}`; elbow.add(elbowJoint);
-    capsule(elbow, `forearm_${side}`, .064 * scale, .30 * scale,
+    capsule(elbow, `forearm_${side}`, .076 * scale, .30 * scale,
       [0, -.13 * scale, 0], coat);
-    capsule(elbow, `hand_${side}`, .047 * scale, .12 * scale,
+    capsule(elbow, `hand_${side}`, .053 * scale, .12 * scale,
       [0, -.30 * scale, 0], skin);
     arms.push(arm); elbows.push(elbow);
 
     const leg = node(hips, `hip_leg_${side}`, [side * waistWidth * .34, -.045 * scale, 0]);
-    capsule(leg, `thigh_${side}`, .091 * scale, .43 * scale,
+    capsule(leg, `thigh_${side}`, .105 * scale, .43 * scale,
       [0, -.21 * scale, 0], pants);
     const knee = node(leg, `knee_${side}`, [0, -.37 * scale, 0]);
-    const kneeJoint = new THREE.Mesh(new THREE.SphereGeometry(.086 * scale, 12, 9), pants);
+    const kneeJoint = new THREE.Mesh(new THREE.SphereGeometry(.099 * scale, 12, 9), pants);
     kneeJoint.name = `soft_knee_${side}`; knee.add(kneeJoint);
-    capsule(knee, `shin_${side}`, .083 * scale, .41 * scale,
+    capsule(knee, `shin_${side}`, .098 * scale, .41 * scale,
       [0, -.19 * scale, 0], pants);
     const shoe = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), dark);
-    shoe.name = `shoe_${side}`; shoe.scale.set(.105 * scale, .065 * scale, .17 * scale);
+    shoe.name = `shoe_${side}`; shoe.scale.set(.12 * scale, .065 * scale, .17 * scale);
     shoe.position.set(0, -.39 * scale, .075 * scale); knee.add(shoe);
     legs.push(leg); knees.push(knee);
   }

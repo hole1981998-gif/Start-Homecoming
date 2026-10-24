@@ -44,6 +44,8 @@ Sau lượt xây phố tiếp theo, đã có hai nhà `.blend` chỉnh được 
 
 Bus đã có thêm chi tiết ngoại thất đọc từ sau và bên hông: dải màu, bảng tuyến, grille và cụm mái. Đây là polish model trong cùng footprint 2,72 × 10 m; chưa dựng khoang nội thất, chưa tích hợp vào gameplay. Các xe tải/container và animation người vẫn là việc tiếp theo theo chất lượng tổng thể, không vì bus được nâng mà coi cả gói V2 đạt art direction.
 
+Nhân vật có đầu lớn hơn theo chất hoạt hình của ảnh reference, tay/chân đầy hơn và tóc dài liền form hơn; hip socket và chiều cao seat mount giữ như cũ. Đây vẫn là mesh/pose nguồn, chưa có thời gian animation mới và chưa thay thời lượng simulation.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
