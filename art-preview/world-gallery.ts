@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createPropHazardArt, createSurfaceHazardArt, type PropHazardKind } from '../src/art/hazards';
 import { createAmbulanceArt, createOfficerArt, createTrainArt, createVendorArt } from '../src/art/moving-events';
 import { createRoadTileArt } from '../src/art/road-kit';
@@ -43,11 +44,25 @@ const views = (['gameplay', 'rear', 'front', 'side', 'top'] as const).map(name =
     scene.remove(art.root); art.dispose(); art = next; scene.add(art.root);
   } };
 });
+const coastBoats: THREE.Group[] = [];
+new GLTFLoader().load(new URL('../assets/art/coastal-fishing-boat.glb', import.meta.url).href,
+  gltf => {
+    for (const view of views) {
+      const boat = gltf.scene.clone(true);
+      boat.name = 'preview_coastal_fishing_boat';
+      boat.position.set(15.5, -.20, 3.4);
+      boat.rotation.y = -.3;
+      view.scene.add(boat);
+      coastBoats.push(boat);
+    }
+    draw();
+  });
 function draw() {
   const kind = (document.getElementById('kind') as HTMLSelectElement).value as Kind;
   const lod = (document.getElementById('lod') as HTMLSelectElement).value as 'near' | 'far';
   const variantSeed = Number((document.getElementById('variant') as HTMLSelectElement).value);
   const scenery = ['city', 'trees', 'cliffs', 'rice', 'sea'].includes(kind);
+  for (const boat of coastBoats) boat.visible = kind === 'sea' && lod === 'near';
   const big = kind === 'train' ? 24 : kind === 'city' ? 42 : scenery ? 31 : kind === 'road' ? 10 :
     kind === 'water' ? 7 : kind === 'pothole' ? 4 : kind === 'barrier' ? 6.2 :
     kind === 'fallen_tree' ? 4.3 : kind === 'ambulance' || kind === 'accident' ? 5 :

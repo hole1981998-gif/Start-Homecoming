@@ -75,4 +75,25 @@ describe('essential roadside scenery', () => {
       art.dispose();
     }
   });
+  it('keeps seeded vegetation stable and reduces distant rice and verge detail', () => {
+    const treeA = createSceneryCluster('trees', 1, 'near', 4);
+    const treeB = createSceneryCluster('trees', 1, 'near', 4);
+    const treeC = createSceneryCluster('trees', 1, 'near', 5);
+    const instance = (art: ReturnType<typeof createSceneryCluster>, name: string) =>
+      art.root.getObjectByName(name) as THREE.InstancedMesh;
+    const matrix = new THREE.Matrix4();
+    const first = (art: ReturnType<typeof createSceneryCluster>) => {
+      instance(art, 'seeded_verge_grass').getMatrixAt(0, matrix);
+      return matrix.toArray();
+    };
+    expect(first(treeA)).toEqual(first(treeB));
+    expect(first(treeA)).not.toEqual(first(treeC));
+    const treeFar = createSceneryCluster('trees', 1, 'far', 4);
+    expect(instance(treeFar, 'seeded_verge_grass').count)
+      .toBeLessThan(instance(treeA, 'seeded_verge_grass').count);
+    const riceNear = createSceneryCluster('rice', 1, 'near');
+    const riceFar = createSceneryCluster('rice', 1, 'far');
+    expect(instance(riceFar, 'rice_tufts').count).toBeLessThan(instance(riceNear, 'rice_tufts').count);
+    for (const art of [treeA, treeB, treeC, treeFar, riceNear, riceFar]) art.dispose();
+  });
 });

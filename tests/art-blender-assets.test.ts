@@ -28,4 +28,15 @@ describe('editable Blender roadside exports', () => {
     expect(market.y).toBeLessThan(8.2);
     expect(market.z).toBeLessThan(8);
   });
+  it('keeps the coastal skiff at roadside scale after batching its materials', async () => {
+    const bounds = await boundsOf('coastal-fishing-boat.glb');
+    const size = bounds.getSize(new THREE.Vector3());
+    expect(size.x).toBeGreaterThan(1.8);
+    expect(size.x).toBeLessThan(2.1);
+    expect(size.y).toBeGreaterThan(1.4);
+    expect(size.y).toBeLessThan(1.6);
+    expect(size.z).toBeGreaterThan(3.7);
+    expect(size.z).toBeLessThan(3.9);
+    expect(bounds.min.y).toBeGreaterThanOrEqual(0);
+  });
 });

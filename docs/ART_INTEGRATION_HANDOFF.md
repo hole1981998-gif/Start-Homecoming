@@ -40,6 +40,8 @@ Mẫu thứ ba `assets/art/corner-market.blend` / `.glb` là nhà chợ góc ph�
 
 Phố code-native dùng `variantSeed` để đổi thứ tự lô, khoảng lùi 0–1,4 m, góc xoay nhỏ, chiều rộng một số mặt tiền và màu; giữ seed ổn định từ world generation, không gọi random theo frame. Các nhà backlot có mặt sau/cửa bên để nhìn được từ cua hoặc camera xoay. Khi đặt GLB thay prefab, lấy đúng world transform của prefab tại seed đó (mẫu shop bên trái của scene vẫn giữ vị trí cố định cho phép so hiện tại), kiểm bounds với lề đường ở cả hai phía và trên cua.
 
+Biomes `trees`, `rice`, `sea` trong `createSceneryCluster` có thêm cây/thảm bụi seeded, cụm lúa ba lá với bờ ruộng/lối qua mương, và biển có gradient/gợn nhỏ/đá ven tường. Các phần này chỉ là cảnh tĩnh, không có collider hay thay đổi kích thước đường. `assets/art/coastal-fishing-boat.blend` là source thuyền cá Blender trong scene `CoastalBoat` riêng; `.glb` là bản gộp vật liệu 10 mesh, khoảng 1,94 × 1,45 × 3,79 m. `blender-boat.html` cho xoay model, còn `world-gallery.html` chỉ đặt một thuyền mẫu trên nước ở LOD near để kiểm bố cục; runtime game chưa load thuyền. Nếu dùng, chọn placement theo vùng biển/seed, cache GLB, giữ thuyền ngoài hành lang lái và đo draw calls. File `.blend` được lưu bản sao, không ghi đè `corner-market.blend` đang mở khi tạo thuyền.
+
 Mọi master xe đều có `setCondition('clean' | 'used' | 'damaged' | 'destroyed')` để diễn hình trạng thái HP/đối tượng xác xe từ runtime. Chỉ gọi `destroyed` khi logic xác định hỏng; hết xăng hoặc tạm dừng xe không đồng nghĩa hỏng nặng. Điều kiện hình ảnh không thay HP, va chạm hay kết ván. Bản xem trước xe có bộ chọn tình trạng để rà từng loại và LOD.
 
 ## Nhịp pose/animation

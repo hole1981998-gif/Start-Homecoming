@@ -524,15 +524,17 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
   } else if (kind === 'trees') {
     const grass = mat('#759b65'), soil = mat('#926c4e');
     box(root, 'green_verge', [6.3, .07, 55], [x(2.0), -.10, 3], grass);
-    for (const z of [-10, 3, 17]) box(root, `tree_soil_ring_${z}`,
-      [1.75, .075, 1.75], [x(z === 3 ? 3.3 : 1.7), -.055, z], soil);
+    for (const z of [-10, 3, 17]) taper(root, `tree_soil_ring_${z}`,
+      .78, .90, .075, [x(z === 3 ? 3.3 : 1.7), -.055, z], soil, 9);
     tree(root, 'rain_tree_A', x(1.7), -10, 5.6, near, 'rain');
     tree(root, 'rain_tree_B', x(3.3), 3, 6.3, near, 'palm');
     tree(root, 'rain_tree_C', x(1.7), 17, 4.7, near, 'flowering');
+    tree(root, 'rain_tree_D', x(4.6), -19, 3.65, near, 'flowering');
+    tree(root, 'rain_tree_E', x(4.35), 26, 4.15, near, 'rain');
     const bush = mat('#4f8a59'), bushLight = mat('#86ae63');
-    for (const z of [-17, -2, 11, 23]) {
+    for (const [index, z] of [-23, -17, -3, 10, 22, 28].entries()) {
       const shrub = new THREE.Group(); shrub.name = `understory_${z}`;
-      shrub.position.set(x(.7), .46, z); root.add(shrub);
+      shrub.position.set(x(index % 2 ? .7 : 3.3), .46, z); root.add(shrub);
       for (const [i, dx, dz, scale] of [[0, -.38, -.10, .60], [1, .22, -.26, .71],
         [2, .08, .32, .55]] as const) {
         const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0), i === 1 ? bushLight : bush);
@@ -540,6 +542,22 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
         crown.position.set(dx, i === 1 ? .18 : 0, dz); shrub.add(crown);
       }
     }
+    const grassTufts = new THREE.InstancedMesh(new THREE.ConeGeometry(.14, .48, 5),
+      mat('#ffffff'), near ? 44 : 20);
+    grassTufts.name = 'seeded_verge_grass';
+    const tuft = new THREE.Object3D();
+    for (let i = 0; i < grassTufts.count; i++) {
+      const a = Math.sin((i + 1) * 53.19 + variantSeed * 7.31) * 43758.5453;
+      const b = Math.sin((i + 1) * 91.47 + variantSeed * 3.73) * 22578.1459;
+      const fx = a - Math.floor(a), fz = b - Math.floor(b);
+      const size = .56 + ((i * 7) % 5) * .13;
+      tuft.position.set(x(.2 + fx * 4.6), .14 * size, -24 + fz * 53);
+      tuft.rotation.set(0, i * 1.73, (i % 3 - 1) * .09);
+      tuft.scale.set(size, size, size);
+      tuft.updateMatrix(); grassTufts.setMatrixAt(i, tuft.matrix);
+      grassTufts.setColorAt(i, new THREE.Color(i % 4 === 0 ? '#9ab968' : '#619457'));
+    }
+    root.add(grassTufts);
   } else if (kind === 'cliffs') {
     const toe = mat('#8f775d'), face = mat('#a98566'), upper = mat('#c19b75');
     const grass = mat('#70935e'), scree = mat('#89705b');
@@ -582,8 +600,22 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     const water = new THREE.MeshStandardMaterial({ color: '#6fa6a0', roughness: .38,
       metalness: .04, side: THREE.DoubleSide });
     const rowCount = near ? 7 : 4, columnCount = near ? 8 : 5;
-    const sprouts = new THREE.InstancedMesh(new THREE.ConeGeometry(.13, .55, 4),
-      paddy, 3 * rowCount * columnCount);
+    const leafPositions: number[] = [];
+    for (const angle of [0, Math.PI * 2 / 3, Math.PI * 4 / 3]) {
+      const dx = Math.sin(angle), dz = Math.cos(angle), px = dz, pz = -dx;
+      const left = [-px * .085, 0, -pz * .085], right = [px * .085, 0, pz * .085];
+      const midLeft = [dx * .12 - px * .050, .34, dz * .12 - pz * .050];
+      const midRight = [dx * .12 + px * .050, .34, dz * .12 + pz * .050];
+      const tip = [dx * .33, .64, dz * .33];
+      leafPositions.push(...left, ...right, ...midLeft,
+        ...right, ...midRight, ...midLeft, ...midLeft, ...midRight, ...tip);
+    }
+    const leafGeometry = new THREE.BufferGeometry();
+    leafGeometry.setAttribute('position', new THREE.Float32BufferAttribute(leafPositions, 3));
+    leafGeometry.computeVertexNormals();
+    const sprouts = new THREE.InstancedMesh(leafGeometry,
+      new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .88,
+        side: THREE.DoubleSide, flatShading: true }), 3 * rowCount * columnCount);
     sprouts.name = 'rice_tufts';
     const dummy = new THREE.Object3D(), green = new THREE.Color();
     let tuft = 0;
@@ -592,9 +624,11 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       box(root, `paddy_water_${i}`, [10.5, .03, 12.2], [x(7.1), -.08, z], water);
       for (const edgeZ of [-1, 1]) box(root, `bund_${i}_${edgeZ}`,
         [11.2, .25, .32], [x(7.1), .02, z + edgeZ * 6.3], soil);
+      for (const edgeX of [-1, 1]) box(root, `side_bund_${i}_${edgeX}`,
+        [.34, .21, 12.2], [x(7.1 + edgeX * 5.33), .01, z], soil);
       for (let row = 0; row < rowCount; row++) for (let column = 0; column < columnCount; column++) {
         dummy.position.set(x(7.1) + (column - (columnCount - 1) / 2) * (9.0 / columnCount),
-          .22, z - 4.8 + row * (9.6 / rowCount));
+          -.05, z - 4.8 + row * (9.6 / rowCount));
         dummy.rotation.set(0, (row * 3 + column) * .31, (column % 3 - 1) * .10);
         dummy.scale.setScalar(.78 + ((row * 7 + column * 3 + i) % 4) * .09);
         dummy.updateMatrix(); sprouts.setMatrixAt(tuft, dummy.matrix);
@@ -604,27 +638,62 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     }
     root.add(sprouts);
     box(root, 'field_edge_irrigation', [.7, .035, 43], [x(.25), -.08, 2], water);
+    box(root, 'irrigation_footbridge', [1.43, .09, .56], [x(.25), .015, 8], soil);
+    for (const z of [-11, 4, 20]) box(root, `ditch_reed_patch_${z}`,
+      [.22, .34, .34], [x(.15), .12, z], paddy);
     tree(root, 'field_edge_tree', x(2), 23, 4.6, near, 'palm');
   } else {
     const shore = mat('#b0a485'), seam = mat('#7d8c7f');
-    const sea = new THREE.MeshStandardMaterial({ color: '#4b91a3', roughness: .37,
-      metalness: .06, side: THREE.DoubleSide });
-    const shallow = new THREE.MeshStandardMaterial({ color: '#73aaa5', roughness: .43,
-      side: THREE.DoubleSide });
+    const sea = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: .34,
+      metalness: .04, clearcoat: .58, clearcoatRoughness: .19, side: THREE.DoubleSide });
     const foam = mat('#c4d8c0');
     box(root, 'seawall', [.38, .78, 43], [x(.7), .30, 3], shore);
     box(root, 'seawall_cap', [.55, .11, 43], [x(.7), .73, 3], shore);
-    box(root, 'water_plane', [18, .025, 43], [x(10.1), -.16, 3], sea);
-    box(root, 'shallow_tidal_band', [2.8, .018, 43], [x(2.5), -.14, 3], shallow);
+    const waterGeometry = new THREE.PlaneGeometry(18, 43, 8, 24);
+    waterGeometry.rotateX(-Math.PI / 2);
+    const points = waterGeometry.getAttribute('position') as THREE.BufferAttribute;
+    const colors: number[] = [];
+    const shallowColor = new THREE.Color('#79b5ae'), deepColor = new THREE.Color('#3d778b');
+    for (let i = 0; i < points.count; i++) {
+      const px = points.getX(i), pz = points.getZ(i);
+      const depth = side === 1 ? (px + 9) / 18 : (9 - px) / 18;
+      points.setY(i, Math.sin(pz * .56 + px * .31) * .024 +
+        Math.cos(pz * .31 - px * .42) * .012);
+      const color = shallowColor.clone().lerp(deepColor, depth * .83);
+      color.multiplyScalar(.96 + Math.sin(pz * .42 + px * .23) * .035);
+      colors.push(color.r, color.g, color.b);
+    }
+    waterGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    waterGeometry.computeVertexNormals();
+    const waterSurface = new THREE.Mesh(waterGeometry, sea);
+    waterSurface.name = 'water_plane'; waterSurface.position.set(x(10.1), -.145, 3);
+    root.add(waterSurface);
     for (const z of [-16, -7, 3, 12, 21]) {
       box(root, `water_edge_${z}`, [.11, .012, 3.8], [x(1.48), -.115, z], foam);
       box(root, `wall_vertical_seam_${z}`, [.026, .58, .035],
         [x(.7) - side * .20, .30, z + 3.1], seam);
     }
-    for (const [i, offset, z] of [[0, 4.1, -14], [1, 7.6, -6], [2, 3.8, 4],
-      [3, 11.4, 13], [4, 6.2, 20]] as const) {
-      box(root, `sea_ripple_${i}`, [1.3 + i * .18, .009, .042],
-        [x(offset), -.125, z], foam).rotation.y = (i - 2) * .09;
+    const ripples = new THREE.InstancedMesh(new THREE.BoxGeometry(1, .006, .035),
+      foam, near ? 28 : 12);
+    ripples.name = 'sea_ripples';
+    const wave = new THREE.Object3D();
+    for (let i = 0; i < ripples.count; i++) {
+      const z = -18 + i * (39 / ripples.count) + Math.sin(i * 7.1) * .8;
+      const offset = 2.3 + ((i * 11) % 15) * 1.03;
+      wave.position.set(x(offset), -.098, z);
+      wave.rotation.set(0, (i % 5 - 2) * .07, 0);
+      wave.scale.set(.75 + i % 4 * .35, 1, 1);
+      wave.updateMatrix(); ripples.setMatrixAt(i, wave.matrix);
+    }
+    root.add(ripples);
+    const rock = mat('#718b80');
+    for (let i = 0; i < (near ? 9 : 5); i++) {
+      const size = .26 + i % 4 * .11;
+      const stone = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0), i % 3 === 0 ? shore : rock);
+      stone.name = `shore_rock_${i}`;
+      stone.scale.set(size * 1.24, size * .42, size);
+      stone.position.set(x(1.7 + i % 3 * .45), -.07, -17 + i * 4.7);
+      root.add(stone);
     }
     if (near) {
       for (const z of [-15, -3, 9, 21]) {
