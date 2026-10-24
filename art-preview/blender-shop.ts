@@ -39,7 +39,7 @@ new GLTFLoader().load(url, gltf => {
   });
   scene.add(gltf.scene);
   const size = new THREE.Box3().setFromObject(gltf.scene).getSize(new THREE.Vector3());
-  metrics.textContent = `Model Blender: ${size.x.toFixed(2)} × ${size.z.toFixed(2)} × ${size.y.toFixed(2)} m · 11 cụm vật liệu`;
+  metrics.textContent = `Model Blender: ${size.x.toFixed(2)} rộng × ${size.y.toFixed(2)} cao × ${size.z.toFixed(2)} sâu m · 11 cụm vật liệu`;
   loaded = true;
 }, undefined, () => { metrics.textContent = 'Không tải được GLB.'; });
 function draw() {

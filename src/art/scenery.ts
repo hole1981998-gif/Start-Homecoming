@@ -208,12 +208,15 @@ function wideStorefront(parent: THREE.Object3D, x: number, z: number, near: bool
   }
   return root;
 }
-function pocketPark(parent: THREE.Object3D, x: number, z: number, near: boolean) {
+function pocketPark(parent: THREE.Object3D, x: number, z: number, near: boolean,
+  roadsideSide: -1 | 1) {
   const root = new THREE.Group(); root.name = 'pocket_park';
   root.position.set(x, 0, z); parent.add(root);
   const lawn = mat('#77a45c'), path = mat('#cfb990'), edge = mat('#8c8069');
   box(root, 'park_lawn', [7.5, .07, 7.7], [0, -.075, 0], lawn);
   box(root, 'park_path', [1.22, .02, 7.4], [-.3, -.027, 0], path);
+  box(root, 'park_entrance', [2.1, .025, 1.37],
+    [-roadsideSide * 2.93, -.025, 0], path);
   for (const side of [-1, 1]) {
     tree(root, `park_flowering_tree_${side}`, side * 2.34, side * 2.1,
       side < 0 ? 4.6 : 3.8, near, 'flowering');
@@ -228,6 +231,25 @@ function pocketPark(parent: THREE.Object3D, x: number, z: number, near: boolean)
     box(root, 'park_low_wall', [7.8, .43, .24], [0, .16, -3.83], edge);
     box(root, 'park_lamp_post', [.08, 3.42, .08], [.4, 1.71, 2.6], edge);
     box(root, 'park_lamp', [.34, .34, .34], [.4, 3.45, 2.6], mat('#e6c78a'));
+    const timber = mat('#9b7550'), trellis = mat('#c7a475');
+    for (const px of [-2.15, -.55]) for (const pz of [-.45, 1.45])
+      box(root, `pergola_post_${px}_${pz}`, [.13, 2.57, .13],
+        [px, 1.28, pz], timber);
+    for (let i = 0; i < 5; i++) box(root, `pergola_roof_slat_${i}`,
+      [2.03, .09, .17], [-1.35, 2.62, -.48 + i * .48], trellis);
+    const flowers = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0),
+      mat('#e5b884'), 14);
+    flowers.name = 'park_flower_border';
+    const flower = new THREE.Object3D();
+    for (let i = 0; i < 14; i++) {
+      const side = i % 2 === 0 ? -1 : 1;
+      flower.position.set(side * (2.8 + (i % 3) * .13), .20,
+        -3 + Math.floor(i / 2) * .89);
+      flower.rotation.set(0, i * .7, 0);
+      flower.scale.set(.16, .22 + i % 3 * .025, .15);
+      flower.updateMatrix(); flowers.setMatrixAt(i, flower.matrix);
+    }
+    root.add(flowers);
   }
   return root;
 }
@@ -330,7 +352,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
         4.5, 1, palettes[palette(slot)], near);
       else if (module === 3) building = wideStorefront(root, x(.48), z,
         near, palette(slot));
-      else if (module === 4) pocketPark(root, x(3.7), z, near);
+      else if (module === 4) pocketPark(root, x(3.7), z, near, side);
       else building = house(root, 'corner_shop', x(.58), z, 4.1, 2,
         palettes[palette(slot)], near, 'shop');
       if (building) building.rotation.y = -side * Math.PI / 2;
@@ -343,6 +365,17 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       [1.22, .06, 1.65], [x(-.25), -.01, z], grass);
     if (near) {
       tree(root, 'courtyard_tree', x(2.2), 39, 4.7, true, 'flowering');
+      const lampMetal = mat('#557177');
+      const lampGlass = new THREE.MeshStandardMaterial({ color: '#f0d399',
+        emissive: '#b9823c', emissiveIntensity: .26, roughness: .35 });
+      for (const z of [-15, 5, 28]) {
+        taper(root, `streetlamp_pole_${z}`, .045, .09, 4.15,
+          [x(-.78), 2.075, z], lampMetal, 7);
+        box(root, `streetlamp_arm_${z}`, [.62, .065, .07],
+          [x(-1.02), 4.05, z], lampMetal);
+        box(root, `streetlamp_head_${z}`, [.34, .18, .31],
+          [x(-1.29), 3.95, z], lampGlass);
+      }
       for (const z of [-18, 4, 32]) box(root, `drain_slot_${z}`,
         [.11, .018, .35], [x(-1.18), .105, z], mat('#67716b'));
     }

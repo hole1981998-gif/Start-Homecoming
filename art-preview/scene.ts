@@ -41,10 +41,12 @@ const pothole = createSurfaceHazardArt('pothole', 2.3, 4); pothole.root.position
 const waiting = createPersonArt('commuter'); waiting.setPose('hail', .25);
 waiting.root.position.set(-6.6, 0, 12); waiting.root.rotation.y = Math.PI / 2; scene.add(waiting.root);
 let nativeShop: THREE.Object3D | undefined;
+let nativeMidrise: THREE.Object3D | undefined;
 for (const [side, z, variantSeed] of [[-1, 17, 0], [1, 17, 1]] as const) {
   const art = createSceneryCluster('city', side, 'near', variantSeed);
   art.root.position.z = z; scene.add(art.root);
   if (side === -1) nativeShop = art.root.getObjectByName('porch_house');
+  if (side === 1) nativeMidrise = art.root.getObjectByName('midrise_apartments');
 }
 scene.traverse(object => {
   if (object instanceof THREE.Mesh && object !== ground) {
@@ -73,6 +75,22 @@ new GLTFLoader().load(shopUrl, gltf => {
   nativeShop!.visible = false;
   gltf.scene.position.set(-8.48, 0, 20);
   gltf.scene.rotation.y = Math.PI / 2;
+  gltf.scene.traverse(object => {
+    if (object instanceof THREE.Mesh) {
+      object.castShadow = true;
+      object.receiveShadow = true;
+    }
+  });
+  scene.add(gltf.scene);
+  draw();
+});
+const midriseUrl = new URL('../assets/art/roadside-midrise.glb', import.meta.url).href;
+new GLTFLoader().load(midriseUrl, gltf => {
+  if (!nativeMidrise) return;
+  const placement = nativeMidrise.getWorldPosition(new THREE.Vector3());
+  nativeMidrise.visible = false;
+  gltf.scene.position.copy(placement);
+  gltf.scene.rotation.y = -Math.PI / 2;
   gltf.scene.traverse(object => {
     if (object instanceof THREE.Mesh) {
       object.castShadow = true;

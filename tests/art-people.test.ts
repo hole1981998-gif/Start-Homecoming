@@ -43,6 +43,22 @@ describe('essential people art', () => {
     person.dispose();
   });
 
+  it('cycles a walk pose in place so movement remains owned by gameplay', () => {
+    const person = createPersonArt('commuter');
+    person.setPose('walk', .25);
+    const left = person.root.getObjectByName('hip_leg_-1')!;
+    const right = person.root.getObjectByName('hip_leg_1')!;
+    expect(left.rotation.x).toBeGreaterThan(.4);
+    expect(right.rotation.x).toBeLessThan(-.4);
+    expect(person.root.position.toArray()).toEqual([0, 0, 0]);
+    person.setPose('walk', .75);
+    expect(left.rotation.x).toBeLessThan(-.4);
+    expect(right.rotation.x).toBeGreaterThan(.4);
+    person.setPose('stand');
+    expect(person.root.position.toArray()).toEqual([0, 0, 0]);
+    person.dispose();
+  });
+
   it('mounts a rider at the vehicle hip socket while preserving the vehicle root', () => {
     const bike = createTwoWheelerArt('motorcycle');
     const rider = createPersonArt('driver');
