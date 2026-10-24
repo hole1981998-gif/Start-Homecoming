@@ -72,27 +72,57 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
 
   let tractor: THREE.Group | undefined, trailer: THREE.Group | undefined;
   if (kind === 'tricycle') {
+    const trayShade = material('#72573f', .83), trim = material('#e2c18b', .68);
     const front = new THREE.Group(); front.name = 'front_steer'; body.add(front);
     wheel(front, 'front', 0, 1.18, .29);
+    const frontFender = new THREE.Mesh(new THREE.TorusGeometry(.315, .048, 5, 16, Math.PI), paint);
+    frontFender.name = 'front_wheel_fender'; frontFender.rotation.y = Math.PI / 2;
+    frontFender.position.set(0, .30, 1.18); front.add(frontFender);
     for (const side of [-1, 1]) {
       block(front, `fork_${side}`, [.055, .62, .055], [side * .11, .72, 1.17], steel);
       block(body, `step_${side}`, [.14, .05, .47], [side * .35, .48, .43], dark);
     }
     block(body, 'front_bike_nose', [.52, .48, .73], [0, .80, .93], paint);
+    const noseCap = new THREE.Mesh(new THREE.CylinderGeometry(.20, .26, .36, 9), paint);
+    noseCap.name = 'rounded_front_cowl'; noseCap.position.set(0, 1.09, 1.07); body.add(noseCap);
+    block(body, 'front_cowl_inset', [.31, .07, .32], [0, 1.27, 1.07], trim);
     block(front, 'handlebar', [.83, .055, .065], [0, 1.34, .91], steel);
     block(front, 'front_lamp', [.29, .20, .08], [0, 1.08, 1.53], light);
     block(body, 'engine', [.46, .30, .37], [0, .52, .51], dark);
     block(body, 'driver_saddle', [.43, .11, .49], [0, 1.06, .28], dark);
+    block(body, 'rear_axle_beam', [1.41, .09, .10], [0, .34, -1.08], steel);
+    for (const side of [-1, 1]) {
+      block(body, `longitudinal_frame_${side}`, [.075, .10, 2.35],
+        [side * .50, .55, -.35], dark);
+      const brace = block(body, `tray_support_${side}`, [.06, .08, .83],
+        [side * .50, .57, -1.06], steel);
+      brace.rotation.x = -.25;
+    }
     // Open tray and thick end boards keep rear cargo/person space legible.
     block(body, 'cargo_floor', [1.52, .14, 1.81], [0, .74, -.63], wood);
     for (const side of [-1, 1]) {
       block(body, `tray_side_${side}`, [.11, .44, 1.80], [side * .70, 1.02, -.63], paint);
       block(body, `tray_upper_rail_${side}`, [.07, .05, 1.79], [side * .70, 1.25, -.63], steel);
+      block(body, `tray_outer_plank_${side}`, [.027, .25, 1.52],
+        [side * .765, 1.03, -.62], wood);
+      block(body, `tray_outer_livery_${side}`, [.032, .047, 1.56],
+        [side * .783, .92, -.62], trim);
+      for (const z of [-1.23, -.64, -.05]) block(body, `tray_stanchion_${side}_${z}`,
+        [.035, .38, .055], [side * .787, 1.05, z], trayShade);
       wheel(root, `rear_${side}`, side * .65, -1.08, .31);
+      const rearFender = new THREE.Mesh(new THREE.TorusGeometry(.33, .044, 5, 16, Math.PI), paint);
+      rearFender.name = `rear_wheel_fender_${side}`; rearFender.rotation.y = Math.PI / 2;
+      rearFender.position.set(side * .65, .32, -1.08); body.add(rearFender);
     }
     block(body, 'tail_board', [1.50, .44, .10], [0, 1.02, -1.51], paint);
     block(body, 'rear_wood_inset', [1.24, .25, .025], [0, 1.02, -1.57], wood);
-    block(body, 'rear_lamp', [.24, .11, .05], [0, .82, -1.59], red);
+    block(body, 'rear_tail_rail', [1.50, .045, .07], [0, 1.25, -1.56], steel);
+    for (const side of [-1, 1]) {
+      block(body, `rear_corner_plate_${side}`, [.09, .41, .035],
+        [side * .68, 1.03, -1.575], trayShade);
+      block(body, `rear_lamp_${side}`, [.18, .11, .055],
+        [side * .55, .82, -1.575], red);
+    }
     if (lod === 'near') {
       for (const z of [-1.28, -.52, .21]) block(body, `tray_slat_${z}`, [1.37, .03, .06], [0, .83, z], light);
       block(body, 'number_plate', [.27, .13, .03], [0, .65, -1.59], light);
