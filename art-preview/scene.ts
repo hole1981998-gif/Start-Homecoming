@@ -6,7 +6,7 @@ import { createPersonArt } from '../src/art/people';
 import { createSurfaceHazardArt } from '../src/art/hazards';
 import { createSceneryCluster } from '../src/art/scenery';
 import { createRoadTileArt } from '../src/art/road-kit';
-import { createRainArt } from '../src/art/weather';
+import { createRainArt, createRainSplashArt } from '../src/art/weather';
 import { balance } from '../src/config';
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
@@ -87,6 +87,9 @@ for (let z = -6; z <= 106; z += 4) {
 const rain = createRainArt(17);
 rain.setIntensity(.42);
 scene.add(rain.root);
+const splashes = createRainSplashArt(17);
+splashes.setIntensity(.55);
+scene.add(splashes.root);
 const player = createCar4Art(); player.root.position.set(0, .02, 1.5); scene.add(player.root);
 const traffic = createVehicleArt('car7', 'traffic', 'near', '#a88772');
 traffic.root.position.set(-3.2, .02, 21); traffic.root.rotation.y = Math.PI; scene.add(traffic.root);
@@ -195,6 +198,7 @@ function animateRain(timeMs: number) {
   if (timeMs - lastRainFrame >= 33) {
     lastRainFrame = timeMs;
     rain.update(timeMs / 1000, 0, 25);
+    splashes.update(timeMs / 1000, 0, 25);
     water.setVisualTime?.(timeMs / 1000);
     draw();
   }

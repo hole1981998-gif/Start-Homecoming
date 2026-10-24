@@ -59,3 +59,41 @@ export function createRainArt(seed = 17, drops = 420): RainArt {
     axes: '+Y up, +Z forward', seeded: true };
   return { root, setIntensity, update, dispose: () => { geometry.dispose(); material.dispose(); } };
 }
+
+/** Faint ground ripples for the same seeded rain clock; one instanced draw call. */
+export function createRainSplashArt(seed = 17, splashes = 150): RainArt {
+  const root = new THREE.Group(); root.name = 'storm_ground_splashes';
+  const geometry = new THREE.RingGeometry(.72, 1, 8);
+  geometry.rotateX(-Math.PI / 2);
+  const material = new THREE.MeshBasicMaterial({ color: '#a9c8c9', transparent: true,
+    opacity: .30, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+  const rings = new THREE.InstancedMesh(geometry, material, splashes);
+  rings.name = 'seeded_rain_ripples'; rings.frustumCulled = false;
+  root.add(rings);
+  const dummy = new THREE.Object3D();
+  const setIntensity = (amount: number) => {
+    rings.count = Math.round(splashes * THREE.MathUtils.clamp(amount, 0, 1));
+    rings.visible = rings.count > 0;
+  };
+  const update = (elapsedSeconds: number, anchorX = 0, anchorZ = 25) => {
+    const t = Math.max(0, elapsedSeconds);
+    for (let i = 0; i < splashes; i++) {
+      const rate = .56 + hash(i, 1, seed) * .7;
+      const phase = hash(i, 2, seed) + t * rate;
+      const cycle = Math.floor(phase), age = phase - cycle;
+      const x = anchorX + (hash(i + cycle * splashes, 3, seed) - .5) * 8.8;
+      const z = anchorZ + (hash(i + cycle * splashes, 4, seed) - .5) * 62;
+      const size = (.055 + age * .19) * (1 - age * .55);
+      dummy.position.set(x, .086, z);
+      dummy.scale.setScalar(size);
+      dummy.updateMatrix();
+      rings.setMatrixAt(i, dummy.matrix);
+    }
+    rings.instanceMatrix.needsUpdate = true;
+  };
+  setIntensity(.42);
+  update(0);
+  root.userData = { id: 'storm_splashes_A', collisionRole: 'none', visualOnly: true,
+    axes: '+Y up, +Z forward', seeded: true };
+  return { root, setIntensity, update, dispose: () => { geometry.dispose(); material.dispose(); } };
+}

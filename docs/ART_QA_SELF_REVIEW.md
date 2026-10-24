@@ -66,3 +66,5 @@ Thử giảm bề dày ống tay/chân của hệ người chung cho khoảng h�
 Theo đích mới của chủ dự án, art director cần đánh giá **trên 7/10** trước khi gọi visual đạt. Các điểm 6–7 trong file này chỉ thể hiện tiến độ, không là chấp thuận cuối; đây vẫn là tự đánh giá của Codex, không mạo nhận review độc lập.
 
 Gallery xe ba gác ban đầu là thùng gỗ trơn với mũi vuông. Đã thêm dè cong ba bánh, cowl trước bo, dải gỗ và nẹp hông/thành sau, đèn hậu hai bên, trục/khung đỡ dưới sàn; xem lại năm góc và camera gameplay 9:16, chiều dài/rộng không đổi. Xe nay có cấu tạo dễ nhận hơn ở góc bên và sau, nhưng người lái/đầu xe vẫn thô so với car4, nên **tự đánh giá xe ba gác 6/10 ở gallery tĩnh**. Cần tiếp tục nâng và kiểm khi chạy trước ngưỡng >7/10.
+
+Cảnh mưa có thêm các vòng gợn rất nhỏ trên đường bằng một instanced mesh seeded; đã thử mật độ thấp rồi tăng đến 55% của 150 vị trí trong `scene.html`. Ở camera prototype thấy mặt đường không còn hoàn toàn trơn trong mưa, xe/hazard vẫn tách được ở ảnh tĩnh. Các vòng hiện tròn và đều, chưa có splash trên xe/mặt nước hay kiểm khi cảnh báo dày; **giữ tự đánh giá ánh sáng/thời tiết preview 6/10**, chưa đạt đích >7/10 của art director.
