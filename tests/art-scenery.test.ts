@@ -52,4 +52,27 @@ describe('essential roadside scenery', () => {
       .toBeGreaterThan(balance.laneWidth * balance.laneCount / 2);
     near.dispose(); far.dispose();
   });
+  it('varies city frontage depth by seed without crossing the road', () => {
+    const names = ['narrow_two_storey', 'midrise_apartments', 'porch_house',
+      'wide_storefront', 'corner_shop'];
+    for (const seed of [0, 1, 2]) {
+      const art = createSceneryCluster('city', 1, 'near', seed);
+      const frontages = names.map(name => art.root.getObjectByName(name)!.position.x);
+      expect(Math.max(...frontages) - Math.min(...frontages)).toBeGreaterThan(.55);
+      expect(new THREE.Box3().setFromObject(art.root).min.x)
+        .toBeGreaterThan(balance.laneWidth * balance.laneCount / 2);
+      art.dispose();
+    }
+  });
+  it('keeps backlot facades detailed from the rear at both LODs', () => {
+    for (const lod of ['near', 'far'] as const) {
+      const art = createSceneryCluster('city', -1, lod, 2);
+      const rear = art.root.getObjectByName('backlot_rear_windows') as THREE.InstancedMesh;
+      expect(rear).toBeInstanceOf(THREE.InstancedMesh);
+      expect(rear.count).toBeGreaterThanOrEqual(4);
+      if (lod === 'near')
+        expect(art.root.getObjectByName('backlot_rear_service_door')).toBeDefined();
+      art.dispose();
+    }
+  });
 });

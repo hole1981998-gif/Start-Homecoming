@@ -247,7 +247,12 @@ function backlotBlock(parent: THREE.Object3D, x: number, z: number,
     shade, windowCount);
   const windows = new THREE.InstancedMesh(new THREE.BoxGeometry(.91, 1.03, .045),
     new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .38 }), windowCount);
+  const rearRecesses = new THREE.InstancedMesh(new THREE.BoxGeometry(1.02, 1.13, .035),
+    shade, windowCount);
+  const rearWindows = new THREE.InstancedMesh(new THREE.BoxGeometry(.81, .92, .045),
+    new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .45 }), windowCount);
   recesses.name = 'backlot_window_recesses'; windows.name = 'backlot_windows';
+  rearRecesses.name = 'backlot_rear_recesses'; rearWindows.name = 'backlot_rear_windows';
   const dummy = new THREE.Object3D();
   for (let floor = 0; floor < floors; floor++) {
     const y = 2.05 + floor * (style === 1 ? 2.55 : style === 0 ? 2.55 : 2.38);
@@ -258,15 +263,25 @@ function backlotBlock(parent: THREE.Object3D, x: number, z: number,
       recesses.setMatrixAt(i, dummy.matrix);
       dummy.position.z += .035; dummy.updateMatrix(); windows.setMatrixAt(i, dummy.matrix);
       windows.setColorAt(i, new THREE.Color(floor === 1 && column === 0 ? '#e9bd78' : '#527e83'));
+      dummy.position.set(wx, y, -depth / 2 - .025); dummy.updateMatrix();
+      rearRecesses.setMatrixAt(i, dummy.matrix);
+      dummy.position.z -= .035; dummy.updateMatrix(); rearWindows.setMatrixAt(i, dummy.matrix);
+      rearWindows.setColorAt(i, new THREE.Color(floor === 0 && column === 1 ? '#d9b782' : '#55787c'));
     }
     if (near) {
       box(root, `backlot_floor_band_${floor}`, [width + .08, .085, .16],
         [0, y - .80, depth / 2 + .06], trim);
-      box(root, `backlot_side_window_${floor}`, [.055, .80, .79],
-        [width / 2 + .03, y, -.70], shade);
+      box(root, `backlot_rear_floor_band_${floor}`, [width + .08, .075, .15],
+        [0, y - .80, -depth / 2 - .06], trim);
+      for (const side of [-1, 1]) {
+        box(root, `backlot_side_recess_${floor}_${side}`, [.035, 1.03, .94],
+          [side * (width / 2 + .02), y, -.70], shade);
+        box(root, `backlot_side_window_${floor}_${side}`, [.055, .80, .76],
+          [side * (width / 2 + .04), y, -.70], frame);
+      }
     }
   }
-  root.add(recesses, windows);
+  root.add(recesses, windows, rearRecesses, rearWindows);
   if (near) {
     box(root, 'backlot_door', [.91, 1.91, .055],
       [width * .25, .96, depth / 2 + .08], shade);
@@ -274,6 +289,10 @@ function backlotBlock(parent: THREE.Object3D, x: number, z: number,
       [-width * .12, 2.80, depth / 2 + .43], trim);
     box(root, 'backlot_sign', [width * .45, .35, .055],
       [-width * .12, 2.96, depth / 2 + .11], frame);
+    box(root, 'backlot_rear_service_door', [.94, 1.94, .06],
+      [-width * .22, .97, -depth / 2 - .08], shade);
+    box(root, 'backlot_rear_service_canopy', [1.32, .12, .60],
+      [-width * .22, 2.06, -depth / 2 - .33], trim);
   }
   return root;
 }
@@ -453,18 +472,21 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     for (let slot = 0; slot < slots.length; slot++) {
       const module = order[slot];
       const z = slots[slot] + (variantSeed === 0 && module === 2 ? 0 : jitter(slot));
+      const setback = module === 2 && variantSeed === 0 ? 0 : variation(slot + 41) * 1.4;
+      const yaw = (variation(slot + 54) - .5) * .12;
       let building: THREE.Object3D | undefined;
-      if (module === 0) building = house(root, 'narrow_two_storey', x(.55), z,
-        3.7, 2, palettes[palette(slot)], near);
-      else if (module === 1) building = midrise(root, x(.55), z, near, palette(slot));
-      else if (module === 2) building = house(root, 'porch_house', x(.48), z,
+      if (module === 0) building = house(root, 'narrow_two_storey', x(.55 + setback), z,
+        3.45 + variation(slot + 72) * .65, 2, palettes[palette(slot)], near);
+      else if (module === 1) building = midrise(root, x(.55 + setback), z, near, palette(slot));
+      else if (module === 2) building = house(root, 'porch_house', x(.48 + setback), z,
         4.5, 1, palettes[palette(slot)], near);
-      else if (module === 3) building = wideStorefront(root, x(.48), z,
+      else if (module === 3) building = wideStorefront(root, x(.48 + setback), z,
         near, palette(slot));
-      else if (module === 4) pocketPark(root, x(3.7), z, near, side);
-      else building = house(root, 'corner_shop', x(.58), z, 4.1, 2,
+      else if (module === 4) pocketPark(root, x(3.7 + setback * .55), z, near, side);
+      else building = house(root, 'corner_shop', x(.58 + setback), z,
+        3.85 + variation(slot + 81) * .60, 2,
         palettes[palette(slot)], near, 'shop');
-      if (building) building.rotation.y = -side * Math.PI / 2;
+      if (building) building.rotation.y = -side * Math.PI / 2 + yaw;
     }
     for (const [i, z] of [[0, -18], [1, 7], [2, 30]] as const) {
       const block = backlotBlock(root, x(10.2 + variation(i + 89) * 2),

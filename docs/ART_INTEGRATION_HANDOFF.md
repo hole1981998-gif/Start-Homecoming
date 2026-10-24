@@ -36,6 +36,8 @@ Riêng nước nay có `setVisualTime(elapsedSeconds)` để dao động mặt/n
 
 Mẫu thứ ba `assets/art/corner-market.blend` / `.glb` là nhà chợ góc phố mặt tiền rộng với dãy cột, hiên, ban công, biển hiệu, tháp đồng hồ, cửa bên/sau; GLB gộp 12 vật liệu, khoảng 9,50 × 8,04 × 7,90 m. `blender-market.html` cho xoay xem riêng. `scene.html` thử thay một `wide_storefront` code-native bằng GLB này, đặt lùi vào mép đường và kiểm bounding box không vào hành lang 3 làn. File `.blend` chứa scene CornerMarket đang hoạt động cùng scene midrise trước đó được giữ nguyên để không làm mất trạng thái Blender đã mở. Khi tích hợp, chọn scene/prefab đúng và kiểm placement ở mọi seed/cua; không tự dùng cho mọi cửa hàng.
 
+Phố code-native dùng `variantSeed` để đổi thứ tự lô, khoảng lùi 0–1,4 m, góc xoay nhỏ, chiều rộng một số mặt tiền và màu; giữ seed ổn định từ world generation, không gọi random theo frame. Các nhà backlot có mặt sau/cửa bên để nhìn được từ cua hoặc camera xoay. Khi đặt GLB thay prefab, lấy đúng world transform của prefab tại seed đó (mẫu shop bên trái của scene vẫn giữ vị trí cố định cho phép so hiện tại), kiểm bounds với lề đường ở cả hai phía và trên cua.
+
 Mọi master xe đều có `setCondition('clean' | 'used' | 'damaged' | 'destroyed')` để diễn hình trạng thái HP/đối tượng xác xe từ runtime. Chỉ gọi `destroyed` khi logic xác định hỏng; hết xăng hoặc tạm dừng xe không đồng nghĩa hỏng nặng. Điều kiện hình ảnh không thay HP, va chạm hay kết ván. Bản xem trước xe có bộ chọn tình trạng để rà từng loại và LOD.
 
 ## Nhịp pose/animation
