@@ -22,8 +22,10 @@ describe('essential roadside scenery', () => {
   it('gives the city roof, awning and balcony shapes beyond ordinary box facades', () => {
     const art = createSceneryCluster('city', 1);
     expect(art.root.getObjectByName('pitched_sheet_roof')).toBeDefined();
+    expect(art.root.getObjectByName('corner_shop')?.getObjectByName('shop_roof_terrace')).toBeDefined();
     expect(art.root.getObjectByName('front_awning')).toBeDefined();
     expect(art.root.getObjectByName('balcony_rail')).toBeDefined();
+    expect(art.root.getObjectByName('courtyard_shed_pitched_roof')).toBeDefined();
     art.dispose();
   });
   it('keeps seeded city variations deterministic and safely roadside', () => {

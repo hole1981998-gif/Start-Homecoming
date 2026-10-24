@@ -68,7 +68,7 @@ function roof(parent: THREE.Object3D, name: string, width: number, length: numbe
     [0, y + e, -z], [x, y, -z], [0, y + e, z], [x, y, -z], [x, y, z], [0, y + e, z],
   ].flat(2);
   shape.setAttribute('position', new THREE.Float32BufferAttribute(tris, 3)); shape.computeVertexNormals();
-  const mesh = new THREE.Mesh(shape, material); mesh.name = name; parent.add(mesh);
+  const mesh = new THREE.Mesh(shape, material); mesh.name = name; parent.add(mesh); return mesh;
 }
 function house(parent: THREE.Object3D, name: string, x: number, z: number, width: number,
   floors: 1 | 2, palette: 'warm' | 'cool' | 'ochre', near: boolean,
@@ -83,9 +83,24 @@ function house(parent: THREE.Object3D, name: string, x: number, z: number, width
   box(root, 'plaster', [width, height, 4.3], [0, height / 2, 0], wall);
   box(root, 'plinth', [width + .08, .34, 4.35], [0, .17, 0], trim);
   box(root, 'flood_stain', [width + .095, .12, 4.37], [0, .22, 0], flood);
-  roof(root, 'pitched_sheet_roof', width + .5, 4.8, height + .08, roofMat);
-  box(root, 'roof_ridge', [.11, .08, 4.85], [0, height + .49, 0], trim);
-  box(root, 'roof_eave_front', [width + .55, .09, .13], [0, height + .10, 2.36], trim);
+  if (use === 'shop') {
+    box(root, 'shop_roof_terrace', [width + .3, .16, 4.65], [0, height + .08, 0], roofMat);
+    for (const side of [-1, 1])
+      box(root, `shop_roof_side_parapet_${side}`, [.19, .66, 4.76],
+        [side * (width / 2 + .07), height + .42, 0], trim);
+    box(root, 'shop_roof_front_parapet', [width + .43, .62, .19],
+      [0, height + .40, 2.37], trim);
+    box(root, 'shop_roof_rear_parapet', [width + .43, .36, .19],
+      [0, height + .25, -2.37], trim);
+    box(root, 'shop_corner_tower', [width * .28, 1.02, .75],
+      [-width * .34, height + .59, 1.92], wall);
+    box(root, 'shop_corner_tower_cap', [width * .32, .16, .88],
+      [-width * .34, height + 1.15, 1.92], roofMat);
+  } else {
+    roof(root, 'pitched_sheet_roof', width + .5, 4.8, height + .08, roofMat);
+    box(root, 'roof_ridge', [.11, .08, 4.85], [0, height + .49, 0], trim);
+    box(root, 'roof_eave_front', [width + .55, .09, .13], [0, height + .10, 2.36], trim);
+  }
   box(root, 'front_door_recess', [1.08, 2.24, .025], [-width * .18, 1.13, 2.165], shade);
   box(root, 'front_door', [.88, 2.08, .045], [-width * .18, 1.06, 2.19], use === 'shop' ? lit : wood);
   box(root, 'door_lintel', [1.16, .12, .15], [-width * .18, 2.29, 2.24], trim);
@@ -498,6 +513,39 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
         [x(5.55), -.06, z], pavement);
       box(root, `backlot_hedge_${z}`, [2.2, .45, .42],
         [x(9.1), .22, z + 2.25], grass);
+    }
+    if (near) {
+      const timber = mat('#906e50'), sheet = mat('#ad6d54'), soil = mat('#5a624d');
+      const shedDoor = mat('#374a49'), line = mat('#d9d0b4');
+      for (const [i, z] of [-3, 17].entries()) {
+        box(root, `courtyard_garden_${i}`, [2.5, .23, 1.28],
+          [x(10.55 + i * .7), .07, z], timber);
+        box(root, `courtyard_garden_soil_${i}`, [2.20, .04, 1.03],
+          [x(10.55 + i * .7), .20, z], soil);
+        for (const dx of [-.64, 0, .64])
+          taper(root, `courtyard_crop_${i}_${dx}`, .09, .18, .46,
+            [x(10.55 + i * .7) + dx, .45, z], grass, 5);
+      }
+      box(root, 'courtyard_shed_body', [2.13, 2.10, 2.35],
+        [x(13.6), 1.05, -4.7], timber);
+      const shedRoof = roof(root, 'courtyard_shed_pitched_roof', 2.52, 2.63, 2.12, sheet);
+      shedRoof.position.set(x(13.6), 0, -4.7);
+      box(root, 'courtyard_shed_ridge', [.08, .08, 2.69],
+        [x(13.6), 2.58, -4.7], timber);
+      box(root, 'courtyard_shed_door', [.70, 1.59, .055],
+        [x(13.6) - .34, .80, -3.49], shedDoor);
+      box(root, 'courtyard_shed_window', [.53, .52, .055],
+        [x(13.6) + .55, 1.42, -3.49], mat('#557b7b'));
+      box(root, 'courtyard_shed_threshold', [1.02, .09, .35],
+        [x(13.6) - .34, .05, -3.22], sheet);
+      for (const z of [11, 16])
+        taper(root, `courtyard_clothes_post_${z}`, .055, .075, 2.25,
+          [x(12.8), 1.12, z], timber, 6);
+      box(root, 'courtyard_clothesline', [.025, .025, 5],
+        [x(12.8), 2.20, 13.5], line);
+      for (const [i, color] of ['#d8a37d', '#afbf9d', '#ca7966'].entries())
+        box(root, `courtyard_laundry_${i}`, [.075, .57 + i * .1, .76],
+          [x(12.8), 1.90, 12 + i * 1.45], mat(color));
     }
     for (const z of [-25, 30]) {
       box(root, `boundary_wall_${z}`, [.22, .78, 3.2], [x(-.82), .39, z], wall);

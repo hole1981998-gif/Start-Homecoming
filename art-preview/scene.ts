@@ -14,7 +14,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.18;
+renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.VSMShadowMap;
 const scene = new THREE.Scene();
@@ -56,16 +56,16 @@ new THREE.TextureLoader().load(new URL('../assets/art/storm-sky-study.png', impo
     draw();
   });
 scene.fog = new THREE.Fog('#9eada7', 104, 156);
-scene.add(new THREE.HemisphereLight('#fff0d2', '#658c86', 1.58));
-scene.add(new THREE.AmbientLight('#cde1d7', .34));
-const sun = new THREE.DirectionalLight('#ffe5bf', 1.74);
+scene.add(new THREE.HemisphereLight('#fff0d2', '#45666b', 1.12));
+scene.add(new THREE.AmbientLight('#cde1d7', .16));
+const sun = new THREE.DirectionalLight('#ffe5bf', 2.08);
 sun.position.set(-12, 19, 10); sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -34; sun.shadow.camera.right = 34;
 sun.shadow.camera.top = 48; sun.shadow.camera.bottom = -32;
 sun.shadow.camera.near = 1; sun.shadow.camera.far = 85;
 sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8; scene.add(sun);
-const fill = new THREE.DirectionalLight('#a9d8d4', .78); fill.position.set(11, 8, -10); scene.add(fill);
+const fill = new THREE.DirectionalLight('#a9d8d4', .42); fill.position.set(11, 8, -10); scene.add(fill);
 const sunBreak = new THREE.SpotLight('#ffdfaa', 2400, 65, Math.PI / 3, 1, 2);
 sunBreak.position.set(-10, 22, 19);
 sunBreak.target.position.set(0, 0, 24);
@@ -76,17 +76,26 @@ ground.rotation.x = -Math.PI / 2; ground.position.set(0, -.12, 17); ground.recei
 const shadowCanvas = document.createElement('canvas');
 shadowCanvas.width = 128; shadowCanvas.height = 128;
 const shadowContext = shadowCanvas.getContext('2d')!;
-const cloudFade = shadowContext.createRadialGradient(58, 66, 7, 64, 64, 62);
-cloudFade.addColorStop(0, 'rgba(255,255,255,.88)');
-cloudFade.addColorStop(.50, 'rgba(255,255,255,.52)');
-cloudFade.addColorStop(1, 'rgba(255,255,255,0)');
-shadowContext.fillStyle = cloudFade;
-shadowContext.fillRect(0, 0, 128, 128);
+const shadowPixels = shadowContext.createImageData(128, 128);
+for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
+  const nx = (x - 64) / 64, ny = (y - 64) / 64;
+  const blob = (cx: number, cy: number, rx: number, ry: number) =>
+    Math.exp(-3.5 * (((nx - cx) / rx) ** 2 + ((ny - cy) / ry) ** 2));
+  const shape = .81 * blob(-.32, -.14, .60, .64) +
+    .83 * blob(.17, .09, .68, .56) + .55 * blob(.49, -.24, .38, .43);
+  const waviness = .88 + .12 * Math.sin(x * .13 + Math.sin(y * .09) * 2.1);
+  const density = Math.min(1, shape * waviness);
+  const index = (y * 128 + x) * 4;
+  shadowPixels.data[index] = shadowPixels.data[index + 1] =
+    shadowPixels.data[index + 2] = Math.round(density * 255);
+  shadowPixels.data[index + 3] = 255;
+}
+shadowContext.putImageData(shadowPixels, 0, 0);
 const shadowMap = new THREE.CanvasTexture(shadowCanvas);
-for (const [x, z, width, length] of [[-2, 37, 26, 14], [4, 72, 21, 11]] as const) {
+for (const [x, z, width, length] of [[-2, 36, 29, 21], [4, 77, 25, 16]] as const) {
   const cloudShadow = new THREE.Mesh(new THREE.PlaneGeometry(width, length),
     new THREE.MeshBasicMaterial({ color: '#26434b', alphaMap: shadowMap,
-      transparent: true, opacity: .20, depthWrite: false }));
+      transparent: true, opacity: .34, depthWrite: false }));
   cloudShadow.name = `cloud_shadow_${z}`;
   cloudShadow.rotation.x = -Math.PI / 2;
   cloudShadow.position.set(x, .027, z);
