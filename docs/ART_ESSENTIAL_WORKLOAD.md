@@ -90,6 +90,8 @@ Cảnh `scene.html` có thể bật một lớp HUD **mô phỏng** bố cục h
 
 Buýt near có thêm gân ngang, rãnh thoát mưa và cửa thoát hiểm thấp trên mái để mặt phẳng dài bớt trống ở camera sau 9:16. LOD far bỏ các phần này; footprint/capacity/socket giữ nguyên. Đây là nâng mức đọc cấu tạo, chưa chứng minh ngoại thất bus đã đạt >7/10 khi lái và có khách thật.
 
+`scene.html` nay chọn được cả tám xe ở camera prototype hoặc camera chạy thử, có HUD minh họa cập nhật capacity/xăng/HP theo catalog. Camera lùi theo chiều dài xe và mặt đường mẫu kéo ra sau để container không lộ nền trống; đây chỉ là kiểm bố cục, không thay camera trong game. Khi thử từng loại, xe mở cho thấy tài xế mẫu còn quá to và che thân xe, đang chờ mẫu NPC Blender của chủ dự án. Car7 được thêm mép kính/cửa hậu, cụm đèn và cánh gió sau để mặt đuôi đọc rõ hơn từ camera chơi; footprint 2,08 × 4,8 m giữ nguyên. Vẫn cần chấm chất lượng trên gameplay thật.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

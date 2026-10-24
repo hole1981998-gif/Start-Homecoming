@@ -67,6 +67,7 @@ export function createCar7Art(lod: 'near' | 'far' = 'near'): Car7Art {
   // Long high roof, high rear hatch and short bonnet define an MPV/crossover silhouette.
   box(body, 'raised_roof', [1.68, .11, 3.50], [0, 1.81, -.38], light);
   box(body, 'roof_rear_edge', [1.72, .12, .15], [0, 1.76, -2.18], dark);
+  box(body, 'rear_roof_spoiler', [1.52, .07, .17], [0, 1.90, -2.18], light);
   panel(body, 'short_bonnet', [[-.83, 1.22, 1.50], [.83, 1.22, 1.50],
     [.76, 1.10, 2.26], [-.76, 1.10, 2.26]], light);
   box(body, 'front_nose', [1.77, .32, .16], [0, .80, 2.29], paint);
@@ -77,6 +78,11 @@ export function createCar7Art(lod: 'near' | 'far' = 'near'): Car7Art {
   windscreen.userData.materialRole = 'glass';
   panel(body, 'rear_hatch_glass', [[.79, 1.75, -2.16], [-.79, 1.75, -2.16],
     [-.87, 1.30, -2.28], [.87, 1.30, -2.28]], glassDeep);
+  panel(body, 'rear_glass_surround_left', [[-.84, 1.77, -2.18], [-.75, 1.77, -2.18],
+    [-.84, 1.27, -2.31], [-.91, 1.27, -2.31]], trim);
+  panel(body, 'rear_glass_surround_right', [[.75, 1.77, -2.18], [.84, 1.77, -2.18],
+    [.91, 1.27, -2.31], [.84, 1.27, -2.31]], trim);
+  box(body, 'rear_glass_lower_seal', [1.55, .045, .034], [0, 1.29, -2.30], trim);
   for (const side of [-1, 1]) {
     panel(body, `front_door_glass_${side}`, [[side * .82, 1.75, .24], [side * .82, 1.75, 1.20],
       [side * .94, 1.26, 1.46], [side * .94, 1.26, .25]], glass);
@@ -117,8 +123,11 @@ export function createCar7Art(lod: 'near' | 'far' = 'near'): Car7Art {
   }
   for (const side of [-1, 1]) {
     // Tall vertical taillights are the car7 rear identity at game distance.
+    box(body, `tail_housing_${side}`, [.22, .67, .035], [side * .77, 1.16, -2.365], trim);
     box(body, `tail_column_${side}`, [.19, .56, .055], [side * .77, 1.17, -2.385], tail);
     box(body, `tail_clear_${side}`, [.13, .12, .06], [side * .77, 1.45, -2.405], amber);
+    box(body, `tail_lower_reflector_${side}`, [.13, .075, .058],
+      [side * .77, .91, -2.405], cream);
     box(body, `headlamp_${side}`, [.37, .16, .05], [side * .65, 1.11, 2.37], cream);
     box(body, `front_indicator_${side}`, [.10, .10, .05], [side * .89, 1.00, 2.35], amber);
     box(body, `mirror_stalk_${side}`, [.06, .12, .10], [side * .94, 1.34, 1.21], trim);
@@ -130,6 +139,8 @@ export function createCar7Art(lod: 'near' | 'far' = 'near'): Car7Art {
   box(body, 'front_grille', [1.03, .18, .04], [0, .71, 2.385], trim);
   box(body, 'grille_bar', [.83, .027, .05], [0, .71, 2.405], alloy);
   box(body, 'rear_plate', [.40, .12, .025], [0, .81, -2.40], cream);
+  box(body, 'rear_hatch_garnish', [1.21, .09, .035], [0, 1.18, -2.36], light);
+  box(body, 'rear_hatch_badge', [.12, .07, .038], [0, 1.19, -2.385], alloy);
   box(body, 'high_brake_lens', [.39, .045, .045], [0, 1.78, -2.33], tail);
   if (lod === 'near') {
     for (const side of [-1, 1]) {

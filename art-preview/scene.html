@@ -37,6 +37,7 @@
     <h1>Cảnh mẫu · art direction</h1>
     <p>Model và màu đang phát triển · chưa ghép vào gameplay</p>
     <label>Góc nhìn <select id="cameraMode"><option value="prototype">Theo camera prototype</option><option value="study">Thử góc art direction</option><option value="drive">Camera chạy thử 9:16</option></select></label>
+    <label>Xe <select id="vehicleKind"><option value="car4">Ô tô 4 chỗ</option><option value="motorcycle">Xe máy</option><option value="motorbike">Mô tô</option><option value="car7">Ô tô 7 chỗ</option><option value="tricycle">Ba gác</option><option value="bus">Buýt</option><option value="truck">Tải</option><option value="container">Container</option></select></label>
     <label><input id="showHud" type="checkbox"> HUD mô phỏng</label>
     <p id="metrics"></p>
   </header>
@@ -46,13 +47,13 @@
       <div id="reviewHud" class="review-hud" hidden aria-label="Bố cục HUD minh họa, không phải gameplay">
         <div class="metric speed"><strong>18,0</strong><span>km/h · preview</span></div>
         <div class="metric distance"><strong id="reviewDistance">0</strong><span>m</span></div>
-        <div class="totals"><div><span>🏆</span> 1</div><div><span>◉</span> 280</div><div><span>♙</span> 1/4</div><small>Ô tô 4 chỗ</small></div>
+        <div class="totals"><div><span>🏆</span> 1</div><div><span>◉</span> 280</div><div><span>♙</span> <span id="reviewOccupants">1/4</span></div><small id="reviewVehicleName">Ô tô 4 chỗ</small></div>
         <div class="resources">
           <svg viewBox="0 0 200 170" aria-hidden="true">
             <path class="track" d="M 87 144 C 45 129 17 92 21 38"/><path class="fuel" d="M 87 144 C 45 129 17 92 21 38"/>
             <path class="track" d="M 113 144 C 155 129 183 92 179 38"/><path class="hp" d="M 113 144 C 155 129 183 92 179 38"/>
           </svg>
-          <div class="values"><span>⛽ 10 L</span><span>⚒ 105 HP</span></div>
+          <div class="values"><span id="reviewFuel">⛽ 13 L</span><span id="reviewHp">⚒ 184 HP</span></div>
         </div>
         <div id="cueWater" class="cue water"><b>≋</b><span>NƯỚC</span></div>
         <div id="cuePothole" class="cue pothole"><b>!</b><span>Ổ GÀ</span></div>

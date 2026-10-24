@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { createCar4Art } from '../src/art/car4';
 import { createVehicleArt } from '../src/art/vehicle-catalog';
-import { createPersonArt } from '../src/art/people';
+import { createPersonArt, mountPersonOnSeat } from '../src/art/people';
 import { createSurfaceHazardArt } from '../src/art/hazards';
 import { createSceneryCluster, optimizeNearScenery } from '../src/art/scenery';
 import { createRoadTileArt } from '../src/art/road-kit';
 import { createRainArt, createRainSplashArt } from '../src/art/weather';
 import { balance } from '../src/config';
+import { vehicles, type VehicleKind } from '../src/vehicles';
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -101,7 +101,7 @@ for (const [x, z, width, length] of [[-2, 36, 29, 21], [4, 77, 25, 16]] as const
   cloudShadow.position.set(x, .027, z);
   scene.add(cloudShadow);
 }
-for (let z = -6; z <= 106; z += 4) {
+for (let z = -34; z <= 106; z += 4) {
   const tile = createRoadTileArt(z < -2 ? 'near' : 'far');
   tile.setWetness(.70);
   tile.root.position.z = z; scene.add(tile.root);
@@ -112,7 +112,23 @@ scene.add(rain.root);
 const splashes = createRainSplashArt(17);
 splashes.setIntensity(.55);
 scene.add(splashes.root);
-const player = createCar4Art(); player.root.position.set(0, .02, 1.5); scene.add(player.root);
+let mountedDriver: ReturnType<typeof createPersonArt> | null = null;
+function createPreviewPlayer(kind: VehicleKind) {
+  const art = createVehicleArt(kind);
+  if (kind === 'motorcycle' || kind === 'motorbike' || kind === 'tricycle') {
+    const seat = art.root.getObjectByName('seat_driver');
+    if (seat) {
+      mountedDriver = createPersonArt('driver');
+      mountPersonOnSeat(mountedDriver, seat, 'riding');
+    }
+  }
+  art.root.position.set(0, .02, 1.5);
+  art.root.traverse(object => {
+    if (object instanceof THREE.Mesh) { object.castShadow = true; object.receiveShadow = true; }
+  });
+  return art;
+}
+let player = createPreviewPlayer('car4'); scene.add(player.root);
 const traffic = createVehicleArt('car7', 'traffic', 'near', '#a88772');
 traffic.root.position.set(-3.2, .02, 21); traffic.root.rotation.y = Math.PI; scene.add(traffic.root);
 const bike = createVehicleArt('motorcycle', 'traffic', 'far', '#c5a36c');
@@ -149,6 +165,9 @@ scene.traverse(object => {
 });
 const camera = new THREE.PerspectiveCamera(52, 9 / 16, .1, 140);
 const cameraMode = document.getElementById('cameraMode') as HTMLSelectElement;
+const vehicleKind = document.getElementById('vehicleKind') as HTMLSelectElement;
+const selectedVehicle = () => vehicles[vehicleKind.value as VehicleKind];
+const cameraExtra = () => Math.max(0, selectedVehicle().length - 3.5) * .9;
 const showHud = document.getElementById('showHud') as HTMLInputElement;
 const reviewHud = document.getElementById('reviewHud') as HTMLElement;
 showHud.addEventListener('change', () => { reviewHud.hidden = !showHud.checked; draw(); });
@@ -164,7 +183,7 @@ function setCamera() {
     camera.fov = 52;
     const z = cameraMode.value === 'drive' ? driveDistance : 0;
     player.root.position.z = 1.5 + z;
-    camera.position.set(0, 7.5, -11 + z);
+    camera.position.set(0, 7.5 + cameraExtra() * .4, -11 - cameraExtra() + z);
     camera.lookAt(0, 0, 12 + z);
   }
   camera.updateProjectionMatrix();
@@ -175,6 +194,18 @@ cameraMode.addEventListener('change', () => {
   lastDriveFrame = 0;
   driveFrames.length = 0;
   player.root.position.z = 1.5;
+  setCamera();
+});
+vehicleKind.addEventListener('change', () => {
+  mountedDriver?.dispose(); mountedDriver = null;
+  player.root.removeFromParent(); player.dispose();
+  player = createPreviewPlayer(vehicleKind.value as VehicleKind);
+  scene.add(player.root);
+  const vehicle = selectedVehicle();
+  document.getElementById('reviewOccupants')!.textContent = `1/${vehicle.capacity}`;
+  document.getElementById('reviewVehicleName')!.textContent = vehicle.name;
+  document.getElementById('reviewFuel')!.textContent = `⛽ ${vehicle.fuelCapacity.toFixed(0)} L`;
+  document.getElementById('reviewHp')!.textContent = `⚒ ${vehicle.durabilityCapacity.toFixed(0)} HP`;
   setCamera();
 });
 const shopUrl = new URL('../assets/art/roadside-shop.glb', import.meta.url).href;
@@ -286,7 +317,7 @@ function animateRain(timeMs: number) {
     lastRainFrame = timeMs;
     if (driving) {
       player.root.position.z = 1.5 + driveDistance;
-      camera.position.z = -11 + driveDistance;
+      camera.position.z = -11 - cameraExtra() + driveDistance;
       camera.lookAt(0, 0, 12 + driveDistance);
     }
     rain.update(timeMs / 1000, 0, 25 + driveDistance);
