@@ -52,6 +52,8 @@ Nhân vật có đầu lớn hơn theo chất hoạt hình của ảnh reference
 
 Mesh thường của cụm cảnh **far** được gộp theo vật liệu sau khi dựng, còn cụm near và instanced field giữ nguyên. Trong scene prototype, số draw calls giảm từ 1.535 xuống 1.097 với cùng 37.014 tam giác theo thông số browser; hình phố và khoảng trống đường được xem lại, không thấy mất công trình. Đây là giảm lệnh vẽ của preview tĩnh, chưa phải benchmark FPS/bộ nhớ hoặc tối ưu toàn game.
 
+Blender có thêm mẫu nhà chợ góc phố mặt tiền rộng, dãy cột/hiên, ban công, tháp đồng hồ và cửa bên/sau: `corner-market.blend` chỉnh được, `corner-market.glb` gộp 12 vật liệu, `blender-market.html` để kiểm riêng. Cảnh mẫu thử thay một storefront bằng mẫu này, vẫn chỉ preview chứ không ghép gameplay. Nhà này rộng 9,50 m và được đặt lùi để không lấn 3 làn; nếu code tích hợp, phải kiểm từng vùng/seed/đoạn cua và cache GLB.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

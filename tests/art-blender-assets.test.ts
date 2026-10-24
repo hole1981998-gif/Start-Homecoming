@@ -11,9 +11,10 @@ async function boundsOf(file: string) {
 }
 
 describe('editable Blender roadside exports', () => {
-  it('keeps both GLBs upright at their intended roadside scale', async () => {
+  it('keeps the three GLBs upright at their intended roadside scale', async () => {
     const shop = (await boundsOf('roadside-shop.glb')).getSize(new THREE.Vector3());
     const midrise = (await boundsOf('roadside-midrise.glb')).getSize(new THREE.Vector3());
+    const market = (await boundsOf('corner-market.glb')).getSize(new THREE.Vector3());
     expect(shop.y).toBeGreaterThan(shop.x);
     expect(shop.y).toBeGreaterThan(shop.z);
     expect(shop.x).toBeLessThan(5.5);
@@ -21,5 +22,10 @@ describe('editable Blender roadside exports', () => {
     expect(midrise.y).toBeLessThan(13.5);
     expect(midrise.x).toBeLessThan(7);
     expect(midrise.z).toBeLessThan(7);
+    expect(market.x).toBeGreaterThan(9.4);
+    expect(market.x).toBeLessThan(9.6);
+    expect(market.y).toBeGreaterThan(7.9);
+    expect(market.y).toBeLessThan(8.2);
+    expect(market.z).toBeLessThan(8);
   });
 });
