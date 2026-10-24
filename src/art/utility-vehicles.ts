@@ -18,7 +18,7 @@ export interface UtilityVehicleArt {
 const specs = {
   tricycle: { width: 1.76, length: 3.2, color: '#c99455' },
   bus: { width: 2.72, length: 10, color: '#67a5a8' },
-  truck: { width: 2.72, length: 7, color: '#a18978' },
+  truck: { width: 2.72, length: 7, color: '#af8c70' },
   container: { width: 2.88, length: 15, color: '#b67a5c' },
 } as const;
 function material(color: string, roughness = .62, metalness = .08) {
@@ -164,30 +164,57 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     sockets.engine_smoke_fire = socket(root, 'engine_smoke_fire', [0, 1.05, -4.15]);
     sockets.cargo_drop = socket(root, 'cargo_drop', [0, 1.05, -4.94]);
   } else if (kind === 'truck') {
+    const canvas = material('#ddd1aa', .87), accent = material('#c27c5a', .58);
     block(body, 'ladder_chassis', [2.28, .38, 6.55], [0, .83, 0], dark);
     block(body, 'cab_lower', [2.35, 1.30, 2.42], [0, 1.36, 2.12], paint);
     block(body, 'cab_roof', [2.17, .15, 2.15], [0, 2.47, 2.09], light);
+    block(body, 'cab_sun_visor', [2.11, .08, .27], [0, 2.48, 3.15], dark);
     face(body, 'angled_truck_windscreen', [[-1.02, 2.39, 3.06], [1.02, 2.39, 3.06],
       [1.08, 1.63, 3.36], [-1.08, 1.63, 3.36]], glass);
     for (const side of [-1, 1]) {
       block(body, `cab_side_window_${side}`, [.035, .52, .78], [side * 1.19, 2.12, 2.10], glass);
       block(body, `mirror_${side}`, [.16, .27, .22], [side * 1.27, 2.02, 3.00], dark);
       block(body, `cargo_side_${side}`, [.10, 1.40, 4.24], [side * 1.23, 1.57, -1.17], wood);
+      block(body, `cargo_livery_${side}`, [.045, .14, 4.12], [side * 1.294, 1.21, -1.17], accent);
+      block(body, `upper_cargo_rail_${side}`, [.055, .085, 4.22], [side * 1.298, 2.31, -1.17], steel);
+      block(body, `lower_cargo_rail_${side}`, [.055, .095, 4.23], [side * 1.298, .91, -1.17], dark);
       for (const z of [-2.85, -1.70, -.55, .60]) block(body, `cargo_rib_${side}_${z}`,
         [.035, 1.43, .08], [side * 1.29, 1.57, z], steel);
+      block(body, `front_cab_corner_${side}`, [.19, 1.17, .19],
+        [side * 1.08, 1.53, 3.25], paint);
+      block(body, `cab_step_${side}`, [.20, .10, .67],
+        [side * 1.16, .69, 2.17], steel);
       wheel(root, `front_${side}`, side * 1.15, 2.48);
       wheel(root, `rear_${side}`, side * 1.15, -2.47);
     }
     block(body, 'cargo_floor', [2.36, .16, 4.34], [0, .94, -1.17], wood);
-    block(body, 'cargo_roof', [2.38, .13, 4.27], [0, 2.35, -1.17], light);
+    block(body, 'cargo_roof_underlay', [2.38, .10, 4.27], [0, 2.30, -1.17], canvas);
+    face(body, 'tarp_slope_left', [[-1.18, 2.39, -3.33], [0, 2.53, -3.33],
+      [0, 2.53, .99], [-1.18, 2.39, .99]], canvas);
+    face(body, 'tarp_slope_right', [[0, 2.53, -3.33], [1.18, 2.39, -3.33],
+      [1.18, 2.39, .99], [0, 2.53, .99]], canvas);
+    block(body, 'tarp_ridge', [.10, .055, 4.28], [0, 2.54, -1.17], light);
     block(body, 'rear_gate', [2.30, 1.40, .10], [0, 1.59, -3.37], wood);
+    for (const y of [1.12, 1.59, 2.06]) block(body, `rear_gate_slip_${y}`,
+      [2.19, .055, .055], [0, y, -3.44], dark);
     for (const side of [-1, 1]) block(body, `rear_latch_${side}`, [.07, .87, .04], [side * .65, 1.59, -3.44], steel);
+    block(body, 'rear_fleet_badge', [.61, .17, .035], [0, 1.72, -3.46], accent);
+    block(body, 'rear_reflector', [1.60, .07, .035], [0, .94, -3.46], amber);
     block(body, 'front_grille', [.90, .28, .04], [0, 1.12, 3.37], dark);
+    for (const y of [1.03, 1.11, 1.19]) block(body, `grille_slit_${y}`,
+      [.80, .024, .047], [0, y, 3.40], steel);
+    block(body, 'front_fleet_badge', [.43, .10, .045], [0, 1.51, 3.39], accent);
     lampPair(body, 3.40, -3.44, 1.0, 1.15);
     block(body, 'front_bumper', [2.38, .18, .14], [0, .69, 3.40], dark);
     block(body, 'rear_bumper', [2.40, .15, .13], [0, .71, -3.45], dark);
-    if (lod === 'near') for (const z of [-2.76, -1.08, .61])
-      block(body, `cargo_rope_${z}`, [2.39, .035, .045], [0, 2.44, z], dark);
+    if (lod === 'near') for (const z of [-2.76, -1.08, .61]) {
+      face(body, `tarp_bow_left_${z}`, [[-1.17, 2.41, z - .025], [0, 2.55, z - .025],
+        [0, 2.55, z + .025], [-1.17, 2.41, z + .025]], dark);
+      face(body, `tarp_bow_right_${z}`, [[0, 2.55, z - .025], [1.17, 2.41, z - .025],
+        [1.17, 2.41, z + .025], [0, 2.55, z + .025]], dark);
+      for (const side of [-1, 1]) block(body, `tarp_tie_${side}_${z}`,
+        [.055, .17, .05], [side * 1.22, 2.30, z], steel);
+    }
     seats.push(socket(root, 'seat_driver', [-.57, 1.40, 2.16]));
     seats.push(socket(root, 'seat_passenger_left', [.32, 1.40, 2.16]));
     seats.push(socket(root, 'seat_passenger_right', [.70, 1.40, 2.16]));
