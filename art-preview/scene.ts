@@ -57,6 +57,10 @@ sun.shadow.camera.top = 48; sun.shadow.camera.bottom = -32;
 sun.shadow.camera.near = 1; sun.shadow.camera.far = 85;
 sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8; scene.add(sun);
 const fill = new THREE.DirectionalLight('#a9d8d4', .78); fill.position.set(11, 8, -10); scene.add(fill);
+const sunBreak = new THREE.SpotLight('#ffdfaa', 2400, 65, Math.PI / 3, 1, 2);
+sunBreak.position.set(-10, 22, 19);
+sunBreak.target.position.set(0, 0, 24);
+scene.add(sunBreak, sunBreak.target);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),
   new THREE.MeshLambertMaterial({ color: '#719570' }));
 ground.rotation.x = -Math.PI / 2; ground.position.set(0, -.12, 17); ground.receiveShadow = true; scene.add(ground);

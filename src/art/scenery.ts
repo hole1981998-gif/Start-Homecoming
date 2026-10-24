@@ -507,6 +507,13 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       [1.22, .06, 1.65], [x(-.25), -.01, z], grass);
     if (near) {
       tree(root, 'courtyard_tree', x(2.2), 39, 4.7, true, 'flowering');
+      for (const [i, z] of [-7, 22].entries()) {
+        const shiftedZ = z + (variation(i + 105) - .5) * 3;
+        tree(root, `street_tree_${i}`, x(-.48), shiftedZ,
+          i === 0 ? 3.8 : 4.3, true, i === 0 ? 'flowering' : 'rain');
+        taper(root, `street_tree_bed_${i}`, .47, .53, .08,
+          [x(-.48), -.015, shiftedZ], grass, 8);
+      }
       const lampMetal = mat('#557177');
       const lampGlass = new THREE.MeshStandardMaterial({ color: '#f0d399',
         emissive: '#b9823c', emissiveIntensity: .26, roughness: .35 });
