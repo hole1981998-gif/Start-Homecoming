@@ -86,6 +86,8 @@ Trong lượt tối ưu tiếp theo, `optimizeNearScenery(root)` gộp mesh tĩn
 
 Biên nước hazard nay dùng một profile bất đối xứng chung cho footprint, vách nông và mặt nước, thay viền bầu dục lặp; phần nhìn vẫn phủ gần đúng width/length entity theo test. Nó chưa thành mô phỏng nước có splash khi xe lao qua hoặc phản xạ động, và không đổi collision/timing của hazard.
 
+Cảnh `scene.html` có thể bật một lớp HUD **mô phỏng** bố cục hiện hành (tốc độ, tiền/người, vòng tài nguyên, cue nước/ổ gà) ở camera tĩnh hoặc chạy thử. Đây là công cụ soi tương phản/chồng lấn, không đọc state game và không thay HUD/runtime. Khi bật HUD trong preview chuyển động, cue được chiếu theo camera của cảnh; chữ góc phải trên mặt tiền sáng còn cần kiểm/tuning trong game thật.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

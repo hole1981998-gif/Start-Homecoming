@@ -149,6 +149,9 @@ scene.traverse(object => {
 });
 const camera = new THREE.PerspectiveCamera(52, 9 / 16, .1, 140);
 const cameraMode = document.getElementById('cameraMode') as HTMLSelectElement;
+const showHud = document.getElementById('showHud') as HTMLInputElement;
+const reviewHud = document.getElementById('reviewHud') as HTMLElement;
+showHud.addEventListener('change', () => { reviewHud.hidden = !showHud.checked; draw(); });
 let driveDistance = 0;
 let lastDriveFrame = 0;
 const driveFrames: number[] = [];
@@ -247,6 +250,18 @@ function draw() {
   const width = canvas.clientWidth, height = canvas.clientHeight;
   renderer.setSize(width, height, false);
   camera.aspect = width / height; camera.updateProjectionMatrix(); renderer.render(scene, camera);
+  if (!reviewHud.hidden) {
+    document.getElementById('reviewDistance')!.textContent =
+      String(Math.round(cameraMode.value === 'drive' ? driveDistance : 0));
+    for (const [id, x, z] of [['cueWater', 3.2, 12], ['cuePothole', 0, 27]] as const) {
+      const cue = document.getElementById(id)!;
+      const projected = new THREE.Vector3(x, .8, z).project(camera);
+      cue.hidden = projected.z < -1 || projected.z > 1 ||
+        Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1;
+      cue.style.left = `${(projected.x + 1) * 50}%`;
+      cue.style.top = `${(1 - projected.y) * 50}%`;
+    }
+  }
   const frameP95 = driveFrames.length >= 30 ?
     [...driveFrames].sort((a, b) => a - b)[Math.floor(driveFrames.length * .95)] : null;
   document.getElementById('metrics')!.textContent =
