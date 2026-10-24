@@ -179,6 +179,14 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     block(body, 'front_bumper', [2.43, .17, .14], [0, .77, 4.89], dark);
     block(body, 'rear_bumper', [2.43, .17, .14], [0, .77, -4.89], dark);
     if (lod === 'near') {
+      const roofRib = material('#c9c8ae', .72);
+      for (const z of [-3.75, -2.67, -1.58, .93, 2.12, 3.35])
+        block(body, `roof_cross_rib_${z}`, [2.16, .024, .055], [0, 2.85, z], roofRib);
+      block(body, 'roof_escape_hatch_frame', [1.01, .055, .91], [0, 2.87, 2.69], steel);
+      block(body, 'roof_escape_hatch', [.85, .022, .74], [0, 2.91, 2.69], light);
+      for (const side of [-1, 1])
+        block(body, `roof_rain_gutter_${side}`, [.045, .035, 8.84],
+          [side * 1.20, 2.83, 0], roofRib);
       block(body, 'roof_aircon_base', [1.06, .14, 1.86], [0, 2.88, -.40], steel);
       block(body, 'roof_aircon_top', [.89, .08, 1.63], [0, 2.99, -.40], light);
       for (const z of [-.94, -.40, .14]) block(body, `roof_aircon_grille_${z}`,

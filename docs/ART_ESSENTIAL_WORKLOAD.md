@@ -88,6 +88,8 @@ Biên nước hazard nay dùng một profile bất đối xứng chung cho footp
 
 Cảnh `scene.html` có thể bật một lớp HUD **mô phỏng** bố cục hiện hành (tốc độ, tiền/người, vòng tài nguyên, cue nước/ổ gà) ở camera tĩnh hoặc chạy thử. Đây là công cụ soi tương phản/chồng lấn, không đọc state game và không thay HUD/runtime. Khi bật HUD trong preview chuyển động, cue được chiếu theo camera của cảnh; chữ góc phải trên mặt tiền sáng còn cần kiểm/tuning trong game thật.
 
+Buýt near có thêm gân ngang, rãnh thoát mưa và cửa thoát hiểm thấp trên mái để mặt phẳng dài bớt trống ở camera sau 9:16. LOD far bỏ các phần này; footprint/capacity/socket giữ nguyên. Đây là nâng mức đọc cấu tạo, chưa chứng minh ngoại thất bus đã đạt >7/10 khi lái và có khách thật.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
