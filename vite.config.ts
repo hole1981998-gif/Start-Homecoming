@@ -18,5 +18,6 @@ export default defineConfig({
     artBlenderMidrise: fileURLToPath(new URL('./art-preview/blender-midrise.html', import.meta.url)),
     artBlenderMarket: fileURLToPath(new URL('./art-preview/blender-market.html', import.meta.url)),
     artBlenderBoat: fileURLToPath(new URL('./art-preview/blender-boat.html', import.meta.url)),
+    artBlenderSkyline: fileURLToPath(new URL('./art-preview/blender-skyline.html', import.meta.url)),
   } } },
 });

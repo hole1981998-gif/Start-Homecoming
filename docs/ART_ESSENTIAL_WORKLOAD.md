@@ -76,6 +76,8 @@ Các master xe, hazard, người và năm biome đều đã có source/preview. 
 
 Các phụ kiện nhỏ, skin sơn thêm, nội thất, anim phụ và trang trí không giúp sửa các điểm nghẽn trên trước; ưu tiên sau khi cảnh đại diện đạt chất lượng và chạy ổn.
 
+**Chuyển giao NPC để chủ dự án sửa (25/10):** 13 mẫu người hiện hành đã được xuất ra `assets/art/people-edit-source.blend`, mỗi mẫu một collection; `people-edit-source.glb` là snapshot từ mesh TypeScript. Tạm dừng nắn NPC trong nhánh art theo yêu cầu chủ dự án, chờ mẫu Blender được sửa rồi mới tiếp tục tích hợp/đánh giá nhân vật. Vì vậy ưu tiên trước mắt chuyển sang phố, môi trường, vật liệu/ánh sáng và ngoại thất xe/hazard. Nhà phố cao tầng `skyline-shophouse.blend`/`.glb` đã được dựng cho nhịp skyline; chỉ thử ở scene preview.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

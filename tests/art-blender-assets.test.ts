@@ -39,4 +39,29 @@ describe('editable Blender roadside exports', () => {
     expect(size.z).toBeLessThan(3.9);
     expect(bounds.min.y).toBeGreaterThanOrEqual(0);
   });
+  it('keeps the new five-level shophouse upright at city scale', async () => {
+    const bounds = await boundsOf('skyline-shophouse.glb');
+    const size = bounds.getSize(new THREE.Vector3());
+    expect(size.x).toBeGreaterThan(6.4);
+    expect(size.x).toBeLessThan(6.7);
+    expect(size.y).toBeGreaterThan(19);
+    expect(size.y).toBeLessThan(20);
+    expect(size.z).toBeGreaterThan(7.7);
+    expect(size.z).toBeLessThan(8);
+    expect(bounds.min.y).toBeGreaterThanOrEqual(0);
+  });
+  it('exports every editable person with distinct named parts', async () => {
+    const bytes = readFileSync(new URL('../assets/art/people-edit-source.glb', import.meta.url));
+    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const gltf = await new GLTFLoader().parseAsync(buffer, '');
+    const roots = gltf.scene.getObjectByName('homecoming_people_edit_source')!.children;
+    expect(roots).toHaveLength(13);
+    for (const root of roots) {
+      expect(root.name).toMatch(/^chr_.+_root$/);
+      const partNames: string[] = [];
+      root.traverse(object => partNames.push(object.name));
+      for (const part of ['head', 'coat_torso', 'hip_pivot'])
+        expect(partNames.some(name => name === part || name.startsWith(`${part}_`))).toBe(true);
+    }
+  });
 });
