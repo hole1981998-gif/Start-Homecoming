@@ -16,6 +16,12 @@ describe('essential hazard art', () => {
       expect(asset.root.userData.collisionRole).toBe('reference-only');
       const basin = asset.root.getObjectByName('sloped_basin_normals') as THREE.Mesh;
       expect(basin.geometry.getAttribute('normal')).toBeDefined();
+      const floor = asset.root.getObjectByName(kind === 'water' ? 'deep_water' : 'pothole_depth') as THREE.Mesh;
+      const colors = floor.geometry.getAttribute('color');
+      expect(colors).toBeDefined();
+      const red = Array.from({ length: colors.count }, (_, i) => colors.getX(i));
+      expect(Math.max(...red) - Math.min(...red)).toBeGreaterThan(.05);
+      expect(floor.geometry.getAttribute('normal')).toBeDefined();
       asset.dispose();
     }
   });

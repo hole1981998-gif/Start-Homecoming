@@ -61,6 +61,43 @@ function bevelBasin(parent: THREE.Object3D, width: number, length: number,
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = 'sloped_basin_normals'; parent.add(mesh);
 }
+function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
+  width: number, length: number, lod: 'near' | 'far', material: THREE.Material) {
+  const segments = lod === 'near' ? 24 : 14;
+  const positions: number[] = [], colors: number[] = [];
+  const gradient = kind === 'water'
+    ? ['#305e69', '#407f82', '#76aaa4']
+    : ['#202725', '#33342f', '#64584b'];
+  const rings = [0, .18, .335];
+  const vertex = (ring: number, index: number) => {
+    const angle = index * Math.PI * 2 / segments;
+    const wobble = ring === 0 ? 1 : 1 + Math.sin(index * 2.7) * .024;
+    const height = kind === 'water'
+      ? [.041, .039, .035][ring] + (ring === 0 ? 0 : Math.sin(angle * 3) * .004)
+      : [.022, .023, .025][ring] + (ring === 0 ? 0 : Math.sin(angle * 4) * .001);
+    return [Math.cos(angle) * width * rings[ring] * wobble, height,
+      Math.sin(angle) * length * rings[ring] * wobble] as const;
+  };
+  const push = (a: readonly number[], b: readonly number[], c: readonly number[],
+    ca: THREE.Color, cb: THREE.Color, cc: THREE.Color) => {
+    positions.push(...a, ...b, ...c);
+    colors.push(ca.r, ca.g, ca.b, cb.r, cb.g, cb.b, cc.r, cc.g, cc.b);
+  };
+  const shades = gradient.map(value => new THREE.Color(value));
+  for (let i = 0; i < segments; i++) {
+    const next = (i + 1) % segments;
+    push(vertex(0, 0), vertex(1, next), vertex(1, i), shades[0], shades[1], shades[1]);
+    push(vertex(1, i), vertex(1, next), vertex(2, i), shades[1], shades[1], shades[2]);
+    push(vertex(2, i), vertex(1, next), vertex(2, next), shades[2], shades[1], shades[2]);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.computeVertexNormals();
+  const floor = new THREE.Mesh(geometry, material);
+  floor.name = kind === 'water' ? 'deep_water' : 'pothole_depth';
+  parent.add(floor);
+}
 function finish(root: THREE.Group, sockets: Record<string, THREE.Object3D>,
   worn?: THREE.Object3D, broken?: THREE.Object3D): HazardArt {
   const setState = (state: 'normal' | 'used' | 'broken') => {
@@ -89,15 +126,16 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
     axes: '+Y up, +Z forward', collisionRole: 'reference-only' };
   const edge = material(kind === 'water' ? '#45534e' : '#504b43');
   const center = kind === 'water'
-    ? new THREE.MeshPhysicalMaterial({ color: '#477d83', roughness: .24,
-      metalness: .06, clearcoat: .75, clearcoatRoughness: .18, side: THREE.DoubleSide })
-    : material('#232b2a', .98);
+    ? new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true,
+      roughness: .20, metalness: .07, clearcoat: .82,
+      clearcoatRoughness: .14, side: THREE.DoubleSide })
+    : new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
+      roughness: 1, side: THREE.DoubleSide });
   const glint = material('#93aeb0', .27), debris = material('#827363');
   patch(root, 'readable_footprint', width, length, .015, edge);
   bevelBasin(root, width, length,
     material(kind === 'water' ? '#354f4d' : '#48453e'));
-  patch(root, kind === 'water' ? 'deep_water' : 'pothole_depth',
-    width * .69, length * .69, kind === 'water' ? .036 : .023, center);
+  basinFloor(root, kind, width, length, lod, center);
   if (kind === 'water') {
     for (let i = 0; i < (lod === 'near' ? 5 : 2); i++) {
       const z = (i / (lod === 'near' ? 5 : 2) - .42) * length * .72;
