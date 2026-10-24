@@ -16,7 +16,7 @@ export interface PersonArt {
 }
 const cast = {
   driver: { height: 1.72, shoulder: .46, waist: .33, skin: '#b67f62', coat: '#4c98a4', pants: '#314750', helmet: '#e5d9ba', accessory: 'helmet' },
-  commuter: { height: 1.66, shoulder: .40, waist: .34, skin: '#d39d78', coat: '#c75d52', pants: '#48555c', helmet: '#433c40', accessory: 'bag' },
+  commuter: { height: 1.66, shoulder: .40, waist: .34, skin: '#d39d78', coat: '#c75d52', pants: '#48555c', helmet: '#aa7658', accessory: 'none' },
   student: { height: 1.54, shoulder: .38, waist: .29, skin: '#a86e55', coat: '#7b85b3', pants: '#38465d', helmet: '#293e54', accessory: 'backpack' },
   child: { height: 1.24, shoulder: .34, waist: .29, skin: '#c78d6b', coat: '#d5aa62', pants: '#5b626e', helmet: '#f1cc71', accessory: 'poncho' },
   senior: { height: 1.56, shoulder: .40, waist: .36, skin: '#b98566', coat: '#d2cbb0', pants: '#344657', helmet: '#464844', accessory: 'hat' },
@@ -46,6 +46,36 @@ function capsule(parent: THREE.Object3D, name: string, radius: number, height: n
   const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius,
     Math.max(.01, height - 2 * radius), 4, 9), material);
   mesh.name = name; mesh.position.set(...pos); parent.add(mesh); return mesh;
+}
+function tailoredLimb(parent: THREE.Object3D, name: string, scale: number,
+  profile: ReadonlyArray<readonly [number, number]>, material: THREE.Material,
+  lod: 'near' | 'far') {
+  const points = profile.map(([radius, y]) => new THREE.Vector2(radius * scale, y * scale));
+  const mesh = new THREE.Mesh(new THREE.LatheGeometry(points, lod === 'near' ? 14 : 8), material);
+  mesh.name = name; parent.add(mesh); return mesh;
+}
+function sweptBackHair(parent: THREE.Object3D, headRadius: number,
+  material: THREE.Material, lod: 'near' | 'far') {
+  const rings: ReadonlyArray<readonly [number, number, number]> = [
+    [.22, .13, .16], [.10, .26, .29], [-.07, .30, .35],
+    [-.25, .28, .36], [-.45, .21, .29], [-.51, .12, .18],
+  ];
+  const sides = lod === 'near' ? 12 : 7;
+  const vertices: number[] = [], indices: number[] = [];
+  for (const [y, width, depth] of rings) for (let j = 0; j <= sides; j++) {
+    const angle = -Math.PI / 2 + j * Math.PI / sides;
+    vertices.push(Math.sin(angle) * width * headRadius / .30,
+      y * headRadius / .30, -.035 - Math.cos(angle) * depth * headRadius / .30);
+  }
+  for (let i = 0; i < rings.length - 1; i++) for (let j = 0; j < sides; j++) {
+    const a = i * (sides + 1) + j, b = a + sides + 1;
+    indices.push(a, b, a + 1, a + 1, b, b + 1);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices); geometry.computeVertexNormals();
+  const hair = new THREE.Mesh(geometry, material);
+  hair.name = 'back_hair'; parent.add(hair); return hair;
 }
 function node(parent: THREE.Object3D, name: string, pos: [number, number, number]) {
   const group = new THREE.Group(); group.name = name; group.position.set(...pos); parent.add(group); return group;
@@ -115,17 +145,7 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
         hair.rotation.z = -.13;
       head.add(hair);
       if (archetype === 'office' || archetype === 'caretaker' || archetype === 'commuter') {
-        const backHair = new THREE.Mesh(new THREE.SphereGeometry(headRadius * .91, 12, 8), hairMat);
-        backHair.name = 'back_hair'; backHair.scale.set(1.02, 1.48, .78);
-        backHair.position.set(0, -.12 * scale, -headRadius * .46);
-        head.add(backHair);
-        for (const side of [-1, 1]) {
-          const lock = new THREE.Mesh(new THREE.SphereGeometry(headRadius, 10, 8), hairMat);
-          lock.name = `hair_side_lock_${side}`;
-          lock.scale.set(.25, .82, .48);
-          lock.position.set(side * headRadius * .72, -.12 * scale, -headRadius * .42);
-          head.add(lock);
-        }
+        sweptBackHair(head, headRadius, hairMat, lod);
       }
     }
   }
@@ -166,25 +186,30 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   const arms: THREE.Group[] = [], elbows: THREE.Group[] = [], legs: THREE.Group[] = [], knees: THREE.Group[] = [];
   for (const side of [-1, 1]) {
     const arm = node(torso, `shoulder_${side}`, [side * shoulderWidth * .54, .53 * scale, 0]);
-    capsule(arm, `upper_arm_${side}`, .074 * scale, .34 * scale,
-      [side * .02 * scale, -.16 * scale, 0], coat);
+    tailoredLimb(arm, `upper_arm_${side}`, scale,
+      [[0, .035], [.054, .034], [.077, -.018], [.087, -.085],
+        [.080, -.23], [.077, -.34], [.063, -.375], [0, -.375]], coat, lod)
+      .position.x = side * .02 * scale;
     const elbow = node(arm, `elbow_${side}`, [side * .02 * scale, -.31 * scale, 0]);
-    const elbowJoint = new THREE.Mesh(new THREE.SphereGeometry(.073 * scale, 10, 8), coat);
+    const elbowJoint = new THREE.Mesh(new THREE.SphereGeometry(.057 * scale, 10, 8), coat);
     elbowJoint.name = `soft_elbow_${side}`; elbow.add(elbowJoint);
-    capsule(elbow, `forearm_${side}`, .070 * scale, .30 * scale,
-      [0, -.13 * scale, 0], coat);
+    tailoredLimb(elbow, `forearm_${side}`, scale,
+      [[0, .04], [.055, .03], [.071, -.055], [.067, -.15],
+        [.059, -.24], [.055, -.29], [0, -.29]], coat, lod);
     capsule(elbow, `hand_${side}`, .050 * scale, .12 * scale,
       [0, -.30 * scale, 0], skin);
     arms.push(arm); elbows.push(elbow);
 
     const leg = node(hips, `hip_leg_${side}`, [side * waistWidth * .34, -.045 * scale, 0]);
-    capsule(leg, `thigh_${side}`, .092 * scale, .43 * scale,
-      [0, -.21 * scale, 0], pants);
+    tailoredLimb(leg, `thigh_${side}`, scale,
+      [[0, .035], [.084, .03], [.105, -.06], [.102, -.20],
+        [.105, -.35], [.098, -.41], [0, -.41]], pants, lod);
     const knee = node(leg, `knee_${side}`, [0, -.37 * scale, 0]);
-    const kneeJoint = new THREE.Mesh(new THREE.SphereGeometry(.088 * scale, 12, 9), pants);
+    const kneeJoint = new THREE.Mesh(new THREE.SphereGeometry(.072 * scale, 12, 9), pants);
     kneeJoint.name = `soft_knee_${side}`; knee.add(kneeJoint);
-    capsule(knee, `shin_${side}`, .087 * scale, .41 * scale,
-      [0, -.19 * scale, 0], pants);
+    tailoredLimb(knee, `shin_${side}`, scale,
+      [[0, .04], [.078, .035], [.086, -.04], [.078, -.18],
+        [.079, -.32], [.085, -.39], [0, -.41]], pants, lod);
     const shoe = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), dark);
     shoe.name = `shoe_${side}`; shoe.scale.set(.12 * scale, .065 * scale, .17 * scale);
     shoe.position.set(0, -.39 * scale, .075 * scale); knee.add(shoe);
@@ -217,7 +242,7 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
     if (spec.accessory !== 'backpack') {
       pack.name = 'carried_bag';
       pack.scale.set(.16 * scale, .18 * scale, .095 * scale);
-      pack.position.set(shoulderWidth * .48, .04 * scale, -.13 * scale);
+      pack.position.set(shoulderWidth * .63, -.055 * scale, -.08 * scale);
       torso.add(pack);
     }
     pack.rotation.z = spec.accessory === 'satchel' ? -.09 : 0;
