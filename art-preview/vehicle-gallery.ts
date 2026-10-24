@@ -28,12 +28,15 @@ const views = names.map(name => {
   const canvas = document.getElementById(name) as HTMLCanvasElement;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-  renderer.setClearColor(name === 'gameplay' ? '#50666c' : '#617278');
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.18;
+  renderer.setClearColor(name === 'gameplay' ? '#7ba9ac' : '#7fa7a4');
   const scene = new THREE.Scene();
-  scene.add(new THREE.HemisphereLight('#fff7e5', '#394c53', 2.4));
-  const sun = new THREE.DirectionalLight('#fff0d5', 2.1); sun.position.set(-5, 9, 7); scene.add(sun);
-  const fill = new THREE.DirectionalLight('#8baeb6', 1); fill.position.set(4, 6, -3); scene.add(fill);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshLambertMaterial({ color: name === 'gameplay' ? '#35474d' : '#57696d' }));
+  scene.add(new THREE.HemisphereLight('#fff0d2', '#345b5d', 1.25));
+  const sun = new THREE.DirectionalLight('#ffe5bf', 2.0); sun.position.set(-5, 9, 7); scene.add(sun);
+  const fill = new THREE.DirectionalLight('#afd9d7', .65); fill.position.set(4, 6, -3); scene.add(fill);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshLambertMaterial({ color: name === 'gameplay' ? '#42585a' : '#729272' }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -.02; scene.add(ground);
   if (name === 'gameplay') for (const x of [-1.65, 1.65]) for (let z = -15; z < 20; z += 5) {
     const stripe = new THREE.Mesh(new THREE.BoxGeometry(.045, .008, 2), new THREE.MeshBasicMaterial({ color: '#adb8b2' }));

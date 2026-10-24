@@ -14,5 +14,6 @@ export default defineConfig({
     artPeople: fileURLToPath(new URL('./art-preview/people.html', import.meta.url)),
     artWorld: fileURLToPath(new URL('./art-preview/world-gallery.html', import.meta.url)),
     artScene: fileURLToPath(new URL('./art-preview/scene.html', import.meta.url)),
+    artBlenderShop: fileURLToPath(new URL('./art-preview/blender-shop.html', import.meta.url)),
   } } },
 });

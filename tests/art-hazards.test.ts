@@ -14,6 +14,8 @@ describe('essential hazard art', () => {
       expect(size.x).toBeGreaterThan(width * .94);
       expect(size.z).toBeGreaterThan(length * .94);
       expect(asset.root.userData.collisionRole).toBe('reference-only');
+      const basin = asset.root.getObjectByName('sloped_basin_normals') as THREE.Mesh;
+      expect(basin.geometry.getAttribute('normal')).toBeDefined();
       asset.dispose();
     }
   });

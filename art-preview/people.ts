@@ -5,10 +5,14 @@ const views = (['rear', 'front'] as const).map(name => {
   const canvas = document.getElementById(name) as HTMLCanvasElement;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-  const scene = new THREE.Scene(); scene.background = new THREE.Color('#53696c');
-  scene.add(new THREE.HemisphereLight('#fff7e5', '#34464c', 2.5));
-  const light = new THREE.DirectionalLight('#fff0d7', 2.1); light.position.set(-3, 6, 4); scene.add(light);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshLambertMaterial({ color: '#374f50' }));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.18;
+  const scene = new THREE.Scene(); scene.background = new THREE.Color('#7ba9ac');
+  scene.add(new THREE.HemisphereLight('#fff0d2', '#345b5d', 1.25));
+  const light = new THREE.DirectionalLight('#ffe5bf', 2.0); light.position.set(-3, 6, 4); scene.add(light);
+  const fill = new THREE.DirectionalLight('#afd9d7', .65); fill.position.set(4, 5, -3); scene.add(fill);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshLambertMaterial({ color: '#729272' }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -.02; scene.add(ground);
   const camera = new THREE.PerspectiveCamera(35, 1, .1, 40);
   camera.position.set(name === 'rear' ? -.3 : .3, 2.0, name === 'rear' ? -5.3 : 5.3);

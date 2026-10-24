@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { createPersonArt, mountPersonOnSeat, type PersonArchetype } from '../src/art/people';
+import { createPersonArt, mountPersonOnSeat, passengerArchetypes } from '../src/art/people';
 import { createTwoWheelerArt } from '../src/art/two-wheelers';
 import { createCar4Art } from '../src/art/car4';
 
-const cast: PersonArchetype[] = ['driver', 'commuter', 'student', 'child', 'senior', 'worker'];
+const cast = ['driver', ...passengerArchetypes] as const;
 
 describe('essential people art', () => {
   it('provides ground roots, distinct named silhouettes and attachment sockets', () => {
+    expect(new Set(passengerArchetypes).size).toBe(12);
     for (const archetype of cast) {
       const person = createPersonArt(archetype);
       const bounds = new THREE.Box3().setFromObject(person.root);

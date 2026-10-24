@@ -26,8 +26,9 @@ function point(parent: THREE.Object3D, name: string, pos: [number, number, numbe
 }
 function patch(parent: THREE.Object3D, name: string, width: number, length: number,
   y: number, material: THREE.Material) {
-  const outline: [number, number][] = [[-.47, -.48], [-.17, -.49], [.34, -.47], [.49, -.33],
-    [.46, .11], [.48, .48], [.20, .49], [-.34, .46], [-.49, .34], [-.46, -.15]];
+  const outline: [number, number][] = [[-.48, -.08], [-.44, -.29], [-.28, -.46],
+    [.02, -.49], [.28, -.45], [.46, -.29], [.48, -.05], [.45, .23],
+    [.29, .46], [.07, .49], [-.23, .46], [-.44, .30]];
   const positions: number[] = [];
   for (let i = 0; i < outline.length; i++) {
     const a = outline[i], b = outline[(i + 1) % outline.length];
@@ -38,6 +39,27 @@ function patch(parent: THREE.Object3D, name: string, width: number, length: numb
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.computeVertexNormals();
   const mesh = new THREE.Mesh(geometry, material); mesh.name = name; parent.add(mesh); return mesh;
+}
+function bevelBasin(parent: THREE.Object3D, width: number, length: number,
+  material: THREE.Material) {
+  const positions: number[] = [];
+  const segments = 14;
+  for (let i = 0; i < segments; i++) {
+    const p = (index: number, radius: number, y: number): [number, number, number] => {
+      const angle = index * Math.PI * 2 / segments;
+      const wobble = 1 + Math.sin(index * 2.7) * .055;
+      return [Math.cos(angle) * width * radius * wobble, y,
+        Math.sin(angle) * length * radius * wobble];
+    };
+    const a = p(i, .46, .055), b = p(i + 1, .46, .055);
+    const c = p(i, .345, .022), d = p(i + 1, .345, .022);
+    positions.push(...a, ...c, ...b, ...b, ...c, ...d);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = 'sloped_basin_normals'; parent.add(mesh);
 }
 function finish(root: THREE.Group, sockets: Record<string, THREE.Object3D>,
   worn?: THREE.Object3D, broken?: THREE.Object3D): HazardArt {
@@ -66,27 +88,38 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   root.userData = { id: root.name, widthM: width, lengthM: length,
     axes: '+Y up, +Z forward', collisionRole: 'reference-only' };
   const edge = material(kind === 'water' ? '#45534e' : '#504b43');
-  const center = material(kind === 'water' ? '#426c73' : '#242c2d', kind === 'water' ? .32 : .98);
+  const center = kind === 'water'
+    ? new THREE.MeshPhysicalMaterial({ color: '#477d83', roughness: .24,
+      metalness: .06, clearcoat: .75, clearcoatRoughness: .18, side: THREE.DoubleSide })
+    : material('#232b2a', .98);
   const glint = material('#93aeb0', .27), debris = material('#827363');
   patch(root, 'readable_footprint', width, length, .015, edge);
+  bevelBasin(root, width, length,
+    material(kind === 'water' ? '#354f4d' : '#48453e'));
   patch(root, kind === 'water' ? 'deep_water' : 'pothole_depth',
-    width * .82, length * .86, .022, center);
+    width * .69, length * .69, kind === 'water' ? .036 : .023, center);
   if (kind === 'water') {
     for (let i = 0; i < (lod === 'near' ? 5 : 2); i++) {
       const z = (i / (lod === 'near' ? 5 : 2) - .42) * length * .72;
-      box(root, `water_ripple_${i}`, [width * (.20 + (i % 3) * .10), .006, .025],
-        [((i * 7) % 5 - 2) * width * .09, .032, z], glint);
+      box(root, `water_ripple_${i}`, [width * (.20 + (i % 3) * .10), .004, .022],
+        [((i * 7) % 5 - 2) * width * .07, .043, z * .77], glint);
     }
     for (const side of [-1, 1]) for (const z of [-.26, .27])
       box(root, `wet_bank_${side}_${z}`,
         [Math.min(.05, width * .025), .006, length * .14],
-        [side * width * .43, .026, z * length], glint);
+        [side * width * .43, .057, z * length], glint);
   } else {
     for (const side of [-1, 1]) {
-      box(root, `broken_rim_${side}`, [width * .09, .05, length * .62],
-        [side * width * .39, .044, side * length * .04], debris);
-      if (lod === 'near') box(root, `rim_fragment_${side}`, [width * .15, .045, length * .11],
-        [side * width * .29, .045, -length * .34], edge).rotation.y = side * .25;
+      for (const [index, z] of [-.29, .01, .27].entries()) {
+        if (lod === 'far' && index === 1) continue;
+        const chip = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0),
+          index === 1 ? edge : debris);
+        chip.name = `broken_rim_chip_${side}_${index}`;
+        chip.scale.set(width * (index === 1 ? .055 : .075), .025,
+          length * (index === 2 ? .06 : .075));
+        chip.position.set(side * width * .38, .061, z * length);
+        root.add(chip);
+      }
     }
   }
   return finish(root, { contact: point(root, 'contact', [0, .03, 0]) });

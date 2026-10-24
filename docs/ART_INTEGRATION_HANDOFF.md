@@ -20,7 +20,11 @@ Asset hiện là module Three.js riêng trong `src/art/`, chưa được gắn v
 | Accident / broken traffic | `createAccidentArt()` tái dùng hai car4; broken thường dùng `createVehicleArt()` và trạng thái hỏng | Accident vẫn terminal 6,2×5 m; không gán tính chí tử đó cho xác traffic thường. |
 | Shop | `createShopArt()` | Dùng entity shop và vị trí tương tác hiện hành; chỉ hình ven đường, không tạo timer/giao dịch mới. |
 | Road / junction | `createRoadTileArt()` / `createJunctionArt()` | Centerline `pathPose()`, 4 m sample, làn 3×3,2 m, junction 90 m cross/190 m old road. Tắt vạch trong vùng ±13 m giao lộ như renderer hiện hành. |
-| Cảnh quan | `createSceneryCluster(kind, side, lod)` | Năm family `roadsideRegions(seed, distance)` theo vùng 96 m; chỉ trang trí, không spawn/collider. Giữ cả hai mép và continuity khi cua. |
+| Cảnh quan | `createSceneryCluster(kind, side, lod, variantSeed)` | Năm family `roadsideRegions(seed, distance)` theo vùng 96 m; truyền seed ổn định cho biến thể phố, không dùng `Math.random()` lúc render. Chỉ trang trí, không spawn/collider. Giữ cả hai mép và continuity khi cua. |
+
+`passengerArchetypes` trong `src/art/people.ts` nay liệt kê 12 silhouette khách để runtime chọn ổn định theo ID/seed hiện hành; đừng sinh một nhân vật mới khi khách va rồi đứng dậy. Các mẫu mới dùng chung socket/pose cơ bản, nhưng boarding, retarget riêng cho trẻ/già và diễn xuất dài trong brief vẫn cần hoàn thiện ở bước tích hợp.
+
+`assets/art/roadside-shop.glb` là mẫu nhà Blender đã gộp thành 11 cụm vật liệu, có source `.blend` chỉnh được. `scene.html` tải mẫu này thay một nhà code-native để so hình; đây là lựa chọn art, không mặc định dùng cho mọi vùng và không tạo collider. Nếu dùng trong game, load/cache GLB một lần, clone hoặc instance phần tĩnh, kiểm footprint ven đường và đo draw calls ở cảnh đông.
 
 Mọi master xe đều có `setCondition('clean' | 'used' | 'damaged' | 'destroyed')` để diễn hình trạng thái HP/đối tượng xác xe từ runtime. Chỉ gọi `destroyed` khi logic xác định hỏng; hết xăng hoặc tạm dừng xe không đồng nghĩa hỏng nặng. Điều kiện hình ảnh không thay HP, va chạm hay kết ván. Bản xem trước xe có bộ chọn tình trạng để rà từng loại và LOD.
 
@@ -32,5 +36,5 @@ Mọi master xe đều có `setCondition('clean' | 'used' | 'damaged' | 'destroy
 
 - Trong browser game thật: lái, camera, HUD, hai chiều traffic, đủ tám xe, bus nhiều khách, container góc cua, nước lớn/ổ gà dài, tàu hai chiều, vendor và cứu thương; kiểm thất bại/restart.
 - So mesh với collider/footprint tại góc cua và lúc xe nghiêng, khi traffic ngược chiều, lúc khách văng; kiểm không che cảnh báo/QTE và không làm giảm khoảng nhìn trước xe.
-- Đo frame P95/draw calls/triangles/animation CPU ở cảnh đông trên thiết bị mục tiêu. Preview cảnh tĩnh riêng có 460 draw calls / 8.474 tam giác (ba xe, đường và hai cụm cảnh); đây chưa là benchmark game. Pooling và gộp chi tiết tĩnh/LOD traffic theo số đo thật, không khẳng định 60 FPS.
+- Đo frame P95/draw calls/triangles/animation CPU ở cảnh đông trên thiết bị mục tiêu. Preview cảnh tĩnh sau đợt thêm phố ghi khoảng 650–680 draw calls / 20–21 nghìn tam giác, thay đổi theo góc chụp/GLB đang tải; đây chưa là benchmark game. Pooling và gộp chi tiết tĩnh/LOD traffic theo số đo thật, không khẳng định 60 FPS.
 - Art direction gate: chấm cảnh thật tám tiêu chí trong `GAME_DESIGN.md`, sửa mọi tiêu chí dưới 6/10 trước khi gọi là đạt. Preview độc lập chỉ đủ để tự đánh giá sơ bộ.

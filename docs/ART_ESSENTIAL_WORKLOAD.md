@@ -17,11 +17,11 @@ Ngày 24/10/2026. Đây là kế hoạch sản xuất rút gọn theo ưu tiên 
 |---|---|---|---|
 | V1 — xe cơ bản | Car4, xe máy, mô tô, car7. Mỗi loại có ngoại thất gần/xa, root/pivot/socket, một finish, footprint chuẩn. | 3 palette, cabin/ghế đẹp, cosmetic animation tinh. | Source + preview + unit checks xong; chưa tích hợp, chưa có duyệt art. |
 | V2 — xe còn lại và traffic | Ba gác, bus, truck, container. Reuse cả tám master cho traffic; container player có đầu kéo/rơ-moóc, traffic một cụm. | Chi tiết nội thất, mọi skin traffic, hàng hóa trang trí. | Source + catalog factory + unit checks xong; chưa tích hợp, chưa có duyệt art. |
-| C1 — người thiết yếu | Một tài xế rõ từ sau, khách nhiều silhouette cốt lõi; pose lái/ngồi, vẫy, va/ngã, đứng dậy, từ chối. Mount trên các loại xe. | Đủ 12 archetype, secondary gesture và biểu cảm tinh. | Source 6 archetype, pose, mount, preview, unit checks xong; chưa nối roster/animation runtime. |
+| C1 — người thiết yếu | Một tài xế rõ từ sau, khách nhiều silhouette cốt lõi; pose lái/ngồi, vẫy, va/ngã, đứng dậy, từ chối. Mount trên các loại xe. | Secondary gesture và biểu cảm tinh. | Source 12 khách + tài xế, pose, mount, preview, unit checks xong; tỷ lệ/trang phục còn cần nâng tiếp, chưa nối roster/animation runtime. |
 | H1 — hazard tĩnh và điểm dịch vụ | Nước các footprint đang dùng, ổ gà, rào, hàng rơi, pickup xăng/sửa, cụm tai nạn tái dùng car4, shop một silhouette. | Cây đổ hiện là mẫu dự phòng, không thêm spawn; shop nhiều skin, vết nhỏ/biến thể nhiều, props dressing. | Source + preview + footprint checks xong; chưa nối renderer. |
 | H2 — hazard chuyển động | Tàu hữu hạn, công an/dân phòng, hàng rong, cứu thương. Chỉ pose/part cần đọc hướng và trạng thái. | Animation phản ứng dài, clip phụ. | Source + preview + unit checks xong; chưa kiểm chuyển động trong game. |
 | R1 — đường | Mặt đường 4 m theo pathPose, mép/làn/bờ, giao lộ và rào nhánh thẳng hiện hành. | Drain/patch/biển nhỏ lặp lại; transition cảnh quan ở bản polish. | Source + checks xong; chưa nối geometry động của route. |
-| E1 — cảnh quan | Ít module nhà, cây/bụi, ruộng, đồi, ven biển; năm family đang có trong `landscape.ts`. | Hồ/sông riêng, mọi facade/prop/LOD biến thể trong guide đầy đủ, anim cây. | Source + preview + clearance checks xong; chưa nối placement trong game. |
+| E1 — cảnh quan | Nhà thấp, cửa hàng mặt tiền rộng, chung cư nhỏ, công viên, cây/bụi, ruộng, đồi, ven biển; năm family đang có trong `landscape.ts`. | Hồ/sông riêng, mọi facade/prop/LOD biến thể trong guide đầy đủ, anim cây. | Source + preview + clearance/seed checks xong; còn mặt bên phẳng và nhịp phố cần tuning, chưa nối placement trong game. |
 | I1 — nối và QA | Chat code gắn asset, kiểm camera/collider/state/perf trong game; hoàn thiện các lỗi cản gameplay. | FX/SFX/shader/đèn production. | Chờ asset và chat code. |
 
 ## VEH-03 car4 mẫu
@@ -33,6 +33,12 @@ QA kỹ thuật hiện có: footprint render so với 1,86 × 4,2 m trong `src/v
 LOD near/far đo từ model player theo thứ tự tam giác: xe máy 1.982/1.566, mô tô 1.996/1.580, car4 2.625/1.549, car7 2.194/1.294, ba gác 528/384, buýt 1.040/864, tải 798/634, container 1.258/882. Đây là độ phức tạp mesh, **không phải thang đo chất lượng 80%**. Traffic xe mở cộng thêm tài xế. Draw calls thực tế vẫn cần tối ưu sau tích hợp.
 
 Các mục guide cũ bị hoãn ở đây không bị gọi là “đã hoàn tất”. Khi có game đầy đủ thiết yếu, mở một đợt polish riêng và kiểm lại workload gốc theo ID.
+
+## Mở lại art direction đầy đủ theo yêu cầu mới
+
+Chủ dự án đã bỏ giới hạn mức 50–80% để ưu tiên chất lượng và nuance theo `ART_DIRECTION_3D.md`. Bảng thiết yếu phía trên là mốc lịch sử, không còn là trần chất lượng. Đợt nâng đầu tiên đã thêm 12 archetype khách (ngoài tài xế), tách silhouette cây tán rộng/cọ/cây hoa, thay ba nón vách đá bằng dải địa hình, dựng ruộng lúa theo khóm có instancing, thêm lớp ven biển và cấu trúc nhà/màu sáng ấm. Một nhà ven đường được dựng bằng Blender; source `assets/art/roadside-shop.blend`, bản xuất gộp vật liệu `assets/art/roadside-shop.glb`, preview `/art-preview/blender-shop.html`. Mẫu Blender hiện là art candidate trong scene preview, chưa là prefab game.
+
+`/art-preview/scene.html` cho chuyển giữa camera prototype và góc art direction đề xuất; lựa chọn thứ hai chỉ để so bố cục, không đổi camera gameplay. Lighting/tone mapping/shadow trong preview là nghiên cứu màu; renderer game chưa đổi. Theo feedback mới, thành phố có thêm dãy nhà cao tầng, cửa hàng mặt tiền rộng, công viên và biến thể vị trí/màu theo seed cố định; `/art-preview/world-gallery.html` cho xem ba seed mẫu. Nhân vật được sửa đầu, tóc/mũ, tay chân và mặt theo ảnh tham chiếu người dùng, nhưng quần áo và tỷ lệ còn cần nâng tiếp. Nước có vật liệu phản chiếu nhẹ; ổ gà có vách dốc/normal tạo lớp sâu bằng hình khối, collider không đổi. Cần tiếp tục hoàn thiện chất lượng ngoại thất các xe còn lại, diễn xuất nhân vật, các vùng môi trường/điểm dịch vụ, FX/ánh sáng trong game, hiệu năng và art gate; không gọi gói này là art cuối đạt reference.
 
 ## Hợp đồng với prototype hiện hành
 

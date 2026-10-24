@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 
-export type PersonArchetype = 'driver' | 'commuter' | 'student' | 'child' | 'senior' | 'worker';
+export type PersonArchetype = 'driver' | 'commuter' | 'student' | 'child' | 'senior' | 'worker' |
+  'childRain' | 'teenHood' | 'office' | 'active' | 'parent' | 'caretaker' | 'elderPoncho';
+export const passengerArchetypes = ['commuter', 'student', 'child', 'childRain',
+  'teenHood', 'office', 'active', 'worker', 'parent', 'caretaker', 'senior',
+  'elderPoncho'] as const satisfies readonly PersonArchetype[];
 export type EssentialPose = 'stand' | 'seated' | 'riding' | 'hail' | 'ejected' |
   'grounded' | 'recover' | 'refuse';
 export interface PersonArt {
@@ -17,9 +21,16 @@ const cast = {
   child: { height: 1.24, shoulder: .34, waist: .29, skin: '#c78d6b', coat: '#d5aa62', pants: '#5b626e', helmet: '#f1cc71', accessory: 'poncho' },
   senior: { height: 1.56, shoulder: .40, waist: .36, skin: '#a97256', coat: '#739274', pants: '#4b4d53', helmet: '#d9c5a8', accessory: 'hat' },
   worker: { height: 1.76, shoulder: .52, waist: .43, skin: '#8f5b48', coat: '#c48c5f', pants: '#3b5553', helmet: '#5b4c3f', accessory: 'satchel' },
+  childRain: { height: 1.33, shoulder: .36, waist: .30, skin: '#b77959', coat: '#65a7a0', pants: '#45586c', helmet: '#e4bb65', accessory: 'poncho' },
+  teenHood: { height: 1.63, shoulder: .37, waist: .28, skin: '#c48d68', coat: '#b77d96', pants: '#394a55', helmet: '#855c75', accessory: 'bag' },
+  office: { height: 1.70, shoulder: .41, waist: .31, skin: '#9c6650', coat: '#d3a56d', pants: '#3f5864', helmet: '#5d8d91', accessory: 'bag' },
+  active: { height: 1.75, shoulder: .43, waist: .30, skin: '#b78160', coat: '#81a95e', pants: '#324c51', helmet: '#f0d183', accessory: 'helmet' },
+  parent: { height: 1.65, shoulder: .50, waist: .45, skin: '#d39c76', coat: '#ba7966', pants: '#52535f', helmet: '#855c48', accessory: 'satchel' },
+  caretaker: { height: 1.82, shoulder: .42, waist: .34, skin: '#a16f54', coat: '#6c91ab', pants: '#3e5460', helmet: '#d4c4a2', accessory: 'bag' },
+  elderPoncho: { height: 1.50, shoulder: .43, waist: .39, skin: '#b47e63', coat: '#9a8066', pants: '#424d54', helmet: '#d2bba0', accessory: 'poncho' },
 } as const;
-function mat(color: string, roughness = .85) {
-  return new THREE.MeshStandardMaterial({ color, roughness, flatShading: true, side: THREE.DoubleSide });
+function mat(color: string, roughness = .85, smooth = false) {
+  return new THREE.MeshStandardMaterial({ color, roughness, flatShading: !smooth, side: THREE.DoubleSide });
 }
 function box(parent: THREE.Object3D, name: string, dims: [number, number, number],
   pos: [number, number, number], material: THREE.Material) {
@@ -28,6 +39,12 @@ function box(parent: THREE.Object3D, name: string, dims: [number, number, number
 function tapered(parent: THREE.Object3D, name: string, top: number, bottom: number, height: number,
   pos: [number, number, number], material: THREE.Material, segments = 6) {
   const mesh = new THREE.Mesh(new THREE.CylinderGeometry(top, bottom, height, segments), material);
+  mesh.name = name; mesh.position.set(...pos); parent.add(mesh); return mesh;
+}
+function capsule(parent: THREE.Object3D, name: string, radius: number, height: number,
+  pos: [number, number, number], material: THREE.Material) {
+  const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius,
+    Math.max(.01, height - 2 * radius), 4, 9), material);
   mesh.name = name; mesh.position.set(...pos); parent.add(mesh); return mesh;
 }
 function node(parent: THREE.Object3D, name: string, pos: [number, number, number]) {
@@ -39,80 +56,184 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   const spec = cast[archetype], scale = spec.height / 1.72, hipHeight = .85 * scale;
   const root = new THREE.Group(); root.name = `chr_${archetype}_root`;
   const hips = node(root, 'hip_pivot', [0, hipHeight, 0]);
-  const coat = mat(spec.coat), coatShade = mat(spec.coat, .98), pants = mat(spec.pants), skin = mat(spec.skin);
-  const dark = mat('#35454a'), light = mat('#eadfc7'), accessoryMat = mat(spec.helmet);
+  const coat = mat(spec.coat, .78, true), coatShade = mat(spec.coat, .91);
+  const pants = mat(spec.pants, .86, true), skin = mat(spec.skin, .67, true);
+  const dark = mat('#28373d', .72, true), light = mat('#eadfc7');
+  const accessoryMat = mat(spec.helmet, .72, true);
   const torso = node(hips, 'torso_pivot', [0, 0, 0]);
   const shoulderWidth = spec.shoulder * scale, waistWidth = spec.waist * scale;
-  tapered(torso, 'coat_torso', shoulderWidth * .69, waistWidth * .67, .55 * scale,
-    [0, .30 * scale, 0], coat, 5);
-  tapered(torso, 'coat_hem', waistWidth * .62, waistWidth * .82, .19 * scale,
-    [0, .03 * scale, .01], coatShade, 5);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), coat);
+  body.name = 'coat_torso';
+  body.scale.set(shoulderWidth * .56, .34 * scale, .21 * scale);
+  body.position.y = .30 * scale; torso.add(body);
+  const hem = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), coatShade);
+  hem.name = 'coat_hem'; hem.scale.set(waistWidth * .73, .135 * scale, .22 * scale);
+  hem.position.y = .065 * scale; torso.add(hem);
   // Large folded flaps give the coat shape in rain without texture noise.
   if (lod === 'near') {
     box(torso, 'coat_placket', [.045 * scale, .38 * scale, .018], [0, .28 * scale, .19 * scale], light);
-    for (const side of [-1, 1]) box(torso, `rain_fold_${side}`, [.035, .24 * scale, .025],
-      [side * waistWidth * .43, .16 * scale, .14 * scale], coatShade).rotation.z = side * .13;
+    for (const side of [-1, 1]) box(torso, `rain_fold_${side}`, [.018, .15 * scale, .012],
+      [side * waistWidth * .39, .16 * scale, .21 * scale], coatShade).rotation.z = side * .13;
   }
   const neck = tapered(torso, 'neck', .075 * scale, .08 * scale, .12 * scale,
     [0, .64 * scale, 0], skin, 6);
   neck.userData.materialRole = 'skin';
-  const head = node(torso, 'head_pivot', [0, .72 * scale, 0]);
-  const headMesh = new THREE.Mesh(new THREE.SphereGeometry(.18 * scale, lod === 'near' ? 10 : 7, 6), skin);
-  headMesh.name = 'head'; headMesh.scale.set(1, 1.08, .90); head.add(headMesh);
-  box(head, 'nose', [.07 * scale, .065 * scale, .07 * scale], [0, -.025 * scale, .17 * scale], skin);
-  const hair = tapered(head, 'hair_cap', .16 * scale, .20 * scale, .09 * scale,
-    [0, .15 * scale, -.015 * scale], dark, 8);
-  hair.rotation.z = archetype === 'senior' ? -.08 : .05;
-  if (lod === 'near' && archetype !== 'driver') {
-    for (const side of [-1, 1]) box(head, `eyebrow_${side}`, [.055 * scale, .018 * scale, .018],
-      [side * .074 * scale, .02 * scale, .166 * scale], dark);
+  const head = node(torso, 'head_pivot', [0, .73 * scale, 0]);
+  const headRadius = (archetype === 'driver' ? .22 : .25) * scale *
+    (archetype === 'child' || archetype === 'childRain' ? 1.07 : 1);
+  const headMesh = new THREE.Mesh(new THREE.SphereGeometry(headRadius,
+    lod === 'near' ? 16 : 10, lod === 'near' ? 12 : 8), skin);
+  headMesh.name = 'head'; headMesh.scale.set(1, 1.02, .95); head.add(headMesh);
+  const hairMat = mat(archetype === 'senior' || archetype === 'elderPoncho' ? '#5c6260' :
+    archetype === 'office' || archetype === 'teenHood' ? '#302d38' : '#3d3231', .67, true);
+  if (spec.accessory !== 'helmet' && spec.accessory !== 'poncho') {
+    if (archetype === 'senior') {
+      for (const side of [-1, 1]) {
+        const sideHair = new THREE.Mesh(new THREE.SphereGeometry(headRadius * .38, 9, 7), hairMat);
+        sideHair.name = `grey_side_hair_${side}`;
+        sideHair.scale.set(.72, 1.1, .85);
+        sideHair.position.set(side * headRadius * .88, -.015 * scale, -.04 * scale);
+        head.add(sideHair);
+      }
+    } else {
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(headRadius * 1.035,
+        lod === 'near' ? 16 : 10, 8, 0, Math.PI * 2, 0, Math.PI * .40), hairMat);
+      hair.name = 'sculpted_hair'; hair.position.set(0, .025 * scale, -.012 * scale);
+      head.add(hair);
+      if (lod === 'near' && (archetype === 'commuter' || archetype === 'office' ||
+        archetype === 'caretaker' || archetype === 'teenHood')) {
+        const fringe = new THREE.Mesh(new THREE.SphereGeometry(headRadius * .34, 10, 8), hairMat);
+        fringe.name = 'side_swept_fringe';
+        fringe.scale.set(1.17, .48, .45);
+        fringe.position.set(-headRadius * .37, headRadius * .69, headRadius * .72);
+        fringe.rotation.z = -.26; head.add(fringe);
+      }
+      if (archetype === 'office' || archetype === 'caretaker' || archetype === 'commuter') {
+        const backHair = new THREE.Mesh(new THREE.SphereGeometry(headRadius * .91, 12, 8), hairMat);
+        backHair.name = 'back_hair'; backHair.scale.set(.91, 1.19, .55);
+        backHair.position.set(0, -.17 * scale, -headRadius * .69);
+        head.add(backHair);
+      }
+    }
   }
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(.038 * scale, 8, 6), skin);
+  nose.name = 'nose'; nose.scale.set(.90, .72, 1.14);
+  nose.position.set(0, -.055 * scale, headRadius * .94); head.add(nose);
+  for (const side of [-1, 1]) {
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(.054 * scale, 8, 6), skin);
+    ear.name = `ear_${side}`; ear.scale.set(.70, 1, .68);
+    ear.position.set(side * headRadius * .95, -.045 * scale, 0); head.add(ear);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(.028 * scale, 8, 6),
+      mat('#315986', .42, true));
+    eye.name = `eye_${side}`;
+    eye.position.set(side * headRadius * .35, .005 * scale, headRadius * .91);
+    head.add(eye);
+    if (lod === 'near' && archetype !== 'driver') box(head, `eyebrow_${side}`,
+      [.064 * scale, .014 * scale, .012],
+      [side * headRadius * .35, .075 * scale, headRadius * .91], hairMat);
+  }
+  const mouth = new THREE.Mesh(new THREE.SphereGeometry(.022 * scale, 8, 6),
+    mat('#a65e62', .8, true));
+  mouth.name = 'mouth'; mouth.scale.set(1.6, .54, .55);
+  mouth.position.set(0, -.145 * scale, headRadius * .88); head.add(mouth);
 
   const arms: THREE.Group[] = [], elbows: THREE.Group[] = [], legs: THREE.Group[] = [], knees: THREE.Group[] = [];
   for (const side of [-1, 1]) {
     const arm = node(torso, `shoulder_${side}`, [side * shoulderWidth * .55, .54 * scale, 0]);
-    tapered(arm, `upper_arm_${side}`, .09 * scale, .07 * scale, .32 * scale,
-      [side * .02 * scale, -.16 * scale, 0], coat, 5);
+    capsule(arm, `upper_arm_${side}`, .075 * scale, .32 * scale,
+      [side * .02 * scale, -.16 * scale, 0], coat);
     const elbow = node(arm, `elbow_${side}`, [side * .02 * scale, -.31 * scale, 0]);
-    tapered(elbow, `forearm_${side}`, .074 * scale, .057 * scale, .28 * scale,
-      [0, -.14 * scale, 0], coatShade, 5);
-    box(elbow, `hand_${side}`, [.11 * scale, .11 * scale, .085 * scale],
+    capsule(elbow, `forearm_${side}`, .062 * scale, .28 * scale,
+      [0, -.14 * scale, 0], coatShade);
+    capsule(elbow, `hand_${side}`, .057 * scale, .13 * scale,
       [0, -.31 * scale, 0], skin);
     arms.push(arm); elbows.push(elbow);
 
     const leg = node(hips, `hip_leg_${side}`, [side * waistWidth * .34, -.045 * scale, 0]);
-    tapered(leg, `thigh_${side}`, .12 * scale, .095 * scale, .41 * scale,
-      [0, -.21 * scale, 0], pants, 5);
+    capsule(leg, `thigh_${side}`, .102 * scale, .41 * scale,
+      [0, -.21 * scale, 0], pants);
     const knee = node(leg, `knee_${side}`, [0, -.37 * scale, 0]);
-    tapered(knee, `shin_${side}`, .092 * scale, .071 * scale, .39 * scale,
-      [0, -.19 * scale, 0], pants, 5);
-    box(knee, `shoe_${side}`, [.16 * scale, .10 * scale, .23 * scale],
-      [0, -.39 * scale, .065 * scale], dark);
+    const kneeJoint = new THREE.Mesh(new THREE.SphereGeometry(.095 * scale, 9, 7), pants);
+    kneeJoint.name = `soft_knee_${side}`; knee.add(kneeJoint);
+    capsule(knee, `shin_${side}`, .083 * scale, .39 * scale,
+      [0, -.19 * scale, 0], pants);
+    const shoe = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), dark);
+    shoe.name = `shoe_${side}`; shoe.scale.set(.105 * scale, .072 * scale, .16 * scale);
+    shoe.position.set(0, -.39 * scale, .075 * scale); knee.add(shoe);
     legs.push(leg); knees.push(knee);
   }
 
   if (spec.accessory === 'helmet') {
-    const helmet = new THREE.Mesh(new THREE.SphereGeometry(.205 * scale, 10, 6, 0, Math.PI * 2, 0, Math.PI * .55), accessoryMat);
-    helmet.name = 'rain_helmet'; helmet.position.y = .02 * scale; head.add(helmet);
-    box(head, 'helmet_brim', [.39 * scale, .045 * scale, .21 * scale], [0, .06 * scale, .10 * scale], accessoryMat);
+    const helmet = new THREE.Mesh(new THREE.SphereGeometry(headRadius * 1.09,
+      16, 10, 0, Math.PI * 2, 0, Math.PI * .40), accessoryMat);
+    helmet.name = 'rain_helmet'; helmet.position.y = .036 * scale; head.add(helmet);
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(headRadius * 1.22,
+      headRadius * 1.22, .025 * scale, 16), accessoryMat);
+    brim.name = 'helmet_brim'; brim.scale.z = 1.15;
+    brim.position.y = .095 * scale; head.add(brim);
   } else if (spec.accessory === 'hat') {
     tapered(head, 'soft_hat_crown', .14 * scale, .18 * scale, .18 * scale,
       [0, .23 * scale, 0], accessoryMat, 7);
     box(head, 'soft_hat_brim', [.43 * scale, .035 * scale, .35 * scale],
       [0, .14 * scale, .035 * scale], accessoryMat);
   } else if (spec.accessory === 'backpack' || spec.accessory === 'bag' || spec.accessory === 'satchel') {
-    const pack = box(torso, 'carried_bag', spec.accessory === 'backpack' ?
-      [.38 * scale, .46 * scale, .18 * scale] : [.28 * scale, .32 * scale, .15 * scale],
-    spec.accessory === 'backpack' ? [0, .26 * scale, -.24 * scale] :
-      [shoulderWidth * .43, .03 * scale, -.13 * scale], accessoryMat);
+    const pack = spec.accessory === 'backpack'
+      ? box(torso, 'carried_bag', [.33 * scale, .39 * scale, .16 * scale],
+        [0, .27 * scale, -.24 * scale], accessoryMat)
+      : new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), accessoryMat);
+    if (spec.accessory !== 'backpack') {
+      pack.name = 'carried_bag';
+      pack.scale.set(.16 * scale, .18 * scale, .095 * scale);
+      pack.position.set(shoulderWidth * .48, .04 * scale, -.13 * scale);
+      torso.add(pack);
+    }
     pack.rotation.z = spec.accessory === 'satchel' ? -.09 : 0;
     if (lod === 'near') box(torso, 'bag_strap', [.04 * scale, .52 * scale, .025],
       [-shoulderWidth * .24, .34 * scale, -.23 * scale], dark).rotation.z = -.27;
   } else if (spec.accessory === 'poncho') {
     tapered(torso, 'rain_poncho', shoulderWidth * .50, waistWidth * .87, .57 * scale,
-      [0, .28 * scale, -.01], accessoryMat, 5);
-    tapered(head, 'poncho_hood', .17 * scale, .21 * scale, .18 * scale,
-      [0, .10 * scale, -.045 * scale], accessoryMat, 7);
+      [0, .28 * scale, -.01], accessoryMat, 10);
+    const hood = new THREE.Mesh(new THREE.SphereGeometry(headRadius * 1.12,
+      16, 10, 0, Math.PI * 2, 0, Math.PI * .41), accessoryMat);
+    hood.name = 'poncho_hood'; hood.position.set(0, .035 * scale, -.045 * scale);
+    head.add(hood);
+  }
+
+  // A small number of silhouette-specific garments make the twelve passenger forms
+  // readable without changing their shared seat and animation contract.
+  if (archetype === 'childRain' || archetype === 'elderPoncho') {
+    tapered(torso, 'long_rain_cape', shoulderWidth * .56, waistWidth * 1.08,
+      .66 * scale, [0, .12 * scale, -.045 * scale], accessoryMat, 6);
+    box(torso, 'cape_hem', [waistWidth * 1.72, .055 * scale, .25 * scale],
+      [0, -.17 * scale, -.07 * scale], coatShade);
+  } else if (archetype === 'commuter') {
+    tapered(torso, 'rounded_dress_skirt', waistWidth * .54, waistWidth * .89,
+      .36 * scale, [0, -.08 * scale, 0], coat, 14);
+    box(torso, 'dress_waist_band', [waistWidth * 1.2, .045 * scale, .25 * scale],
+      [0, .095 * scale, .06 * scale], coatShade);
+  } else if (archetype === 'teenHood') {
+    const hood = new THREE.Mesh(new THREE.SphereGeometry(headRadius * 1.11,
+      16, 10, 0, Math.PI * 2, 0, Math.PI * .41), coatShade);
+    hood.name = 'oversized_hood'; hood.position.set(0, .04 * scale, -.07 * scale);
+    head.add(hood);
+    box(torso, 'crossbody_sash', [.055 * scale, .61 * scale, .025],
+      [.015, .31 * scale, .20 * scale], accessoryMat).rotation.z = -.42;
+  } else if (archetype === 'office' || archetype === 'caretaker') {
+    for (const side of [-1, 1]) box(torso, `long_coat_tail_${side}`,
+      [waistWidth * .56, .39 * scale, .18 * scale],
+      [side * waistWidth * .38, -.15 * scale, -.025], coat);
+    box(torso, 'rain_collar', [shoulderWidth * 1.08, .10 * scale, .28 * scale],
+      [0, .58 * scale, -.015], accessoryMat);
+  } else if (archetype === 'active') {
+    box(torso, 'short_vest_band', [shoulderWidth * 1.13, .16 * scale, .26 * scale],
+      [0, .44 * scale, -.02], accessoryMat);
+    box(torso, 'sport_back_panel', [shoulderWidth * .74, .28 * scale, .05],
+      [0, .28 * scale, -.19 * scale], accessoryMat);
+  } else if (archetype === 'parent') {
+    box(torso, 'wide_rain_shawl', [shoulderWidth * 1.20, .22 * scale, .33 * scale],
+      [0, .51 * scale, -.04], accessoryMat);
+    box(elbows[0], 'carried_parcel', [.22 * scale, .25 * scale, .18 * scale],
+      [0, -.35 * scale, .07 * scale], accessoryMat);
   }
 
   const sockets: Record<string, THREE.Object3D> = {
@@ -127,7 +248,7 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
     hips.position.y = hipHeight;
     hips.rotation.set(0, 0, 0);
     torso.position.y = 0;
-    torso.rotation.set(archetype === 'senior' ? .10 : 0, 0, 0);
+    torso.rotation.set(archetype === 'senior' || archetype === 'elderPoncho' ? .10 : 0, 0, 0);
     head.rotation.set(0, 0, 0);
     for (const part of [...arms, ...elbows, ...legs, ...knees]) part.rotation.set(0, 0, 0);
     if (pose === 'seated' || pose === 'riding') {
@@ -136,6 +257,10 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
         knees[i].rotation.x = pose === 'riding' ? 1.0 : 1.33; }
       if (pose === 'riding') { torso.rotation.x = .22; arms[0].rotation.x = -.92; arms[1].rotation.x = -.92;
         elbows[0].rotation.x = -.35; elbows[1].rotation.x = -.35; }
+    } else if (pose === 'stand') {
+      const sway = .10 + Math.sin(phase * Math.PI * 2) * .10;
+      legs[0].rotation.x = sway; legs[1].rotation.x = -sway;
+      arms[0].rotation.x = -sway * .75; arms[1].rotation.x = sway * .75;
     } else if (pose === 'hail') {
       arms[1].rotation.z = 2.35 + Math.sin(phase * Math.PI * 2) * .15;
       elbows[1].rotation.z = -.33;

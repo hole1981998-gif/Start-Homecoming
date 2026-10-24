@@ -24,4 +24,19 @@ describe('essential roadside scenery', () => {
     expect(art.root.getObjectByName('balcony_rail')).toBeDefined();
     art.dispose();
   });
+  it('keeps seeded city variations deterministic and safely roadside', () => {
+    const roadHalfWidth = balance.laneWidth * balance.laneCount / 2;
+    const positions: number[] = [];
+    for (const seed of [0, 0, 1, 2]) {
+      const art = createSceneryCluster('city', -1, 'near', seed);
+      const bounds = new THREE.Box3().setFromObject(art.root);
+      expect(bounds.max.x).toBeLessThan(-roadHalfWidth);
+      for (const name of ['midrise_apartments', 'wide_storefront', 'pocket_park'])
+        expect(art.root.getObjectByName(name)).toBeDefined();
+      positions.push(art.root.getObjectByName('midrise_apartments')!.position.z);
+      art.dispose();
+    }
+    expect(positions[0]).toBe(positions[1]);
+    expect(positions[0]).not.toBe(positions[2]);
+  });
 });
