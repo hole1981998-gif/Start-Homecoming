@@ -41,9 +41,10 @@ const pothole = createSurfaceHazardArt('pothole', 2.3, 4); pothole.root.position
 const waiting = createPersonArt('commuter'); waiting.setPose('hail', .25);
 waiting.root.position.set(-6.6, 0, 12); waiting.root.rotation.y = Math.PI / 2; scene.add(waiting.root);
 let nativeShop: THREE.Object3D | undefined;
-for (const [kind, side, z] of [['city', -1, 17], ['trees', 1, 17]] as const) {
-  const art = createSceneryCluster(kind, side); art.root.position.z = z; scene.add(art.root);
-  if (kind === 'city') nativeShop = art.root.getObjectByName('porch_house');
+for (const [side, z, variantSeed] of [[-1, 17, 0], [1, 17, 1]] as const) {
+  const art = createSceneryCluster('city', side, 'near', variantSeed);
+  art.root.position.z = z; scene.add(art.root);
+  if (side === -1) nativeShop = art.root.getObjectByName('porch_house');
 }
 scene.traverse(object => {
   if (object instanceof THREE.Mesh && object !== ground) {

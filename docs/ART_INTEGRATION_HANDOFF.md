@@ -36,5 +36,5 @@ Mọi master xe đều có `setCondition('clean' | 'used' | 'damaged' | 'destroy
 
 - Trong browser game thật: lái, camera, HUD, hai chiều traffic, đủ tám xe, bus nhiều khách, container góc cua, nước lớn/ổ gà dài, tàu hai chiều, vendor và cứu thương; kiểm thất bại/restart.
 - So mesh với collider/footprint tại góc cua và lúc xe nghiêng, khi traffic ngược chiều, lúc khách văng; kiểm không che cảnh báo/QTE và không làm giảm khoảng nhìn trước xe.
-- Đo frame P95/draw calls/triangles/animation CPU ở cảnh đông trên thiết bị mục tiêu. Preview cảnh tĩnh sau đợt thêm phố ghi khoảng 650–680 draw calls / 20–21 nghìn tam giác, thay đổi theo góc chụp/GLB đang tải; đây chưa là benchmark game. Pooling và gộp chi tiết tĩnh/LOD traffic theo số đo thật, không khẳng định 60 FPS.
+- Đo frame P95/draw calls/triangles/animation CPU ở cảnh đông trên thiết bị mục tiêu. Preview cảnh tĩnh với hai bên là phố ghi khoảng 860–900 draw calls / 24–25 nghìn tam giác, thay đổi theo góc chụp/GLB đang tải; đây chưa là benchmark game. Pooling và gộp chi tiết tĩnh/LOD traffic theo số đo thật, không khẳng định 60 FPS.
 - Art direction gate: chấm cảnh thật tám tiêu chí trong `GAME_DESIGN.md`, sửa mọi tiêu chí dưới 6/10 trước khi gọi là đạt. Preview độc lập chỉ đủ để tự đánh giá sơ bộ.

@@ -37,6 +37,6 @@ describe('essential roadside scenery', () => {
       art.dispose();
     }
     expect(positions[0]).toBe(positions[1]);
-    expect(positions[0]).not.toBe(positions[2]);
+    expect(Math.abs(positions[0] - positions[2])).toBeGreaterThan(5);
   });
 });

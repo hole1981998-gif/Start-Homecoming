@@ -313,19 +313,28 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     const grass = mat('#6e9965');
     box(root, 'sidewalk_base', [4.5, .10, 66], [x(1.2), -.08, 7], pavement);
     box(root, 'sidewalk_curb', [.18, .22, 66], [x(-1.14), -.01, 7], curb);
-    house(root, 'narrow_two_storey', x(.55), -20 + jitter(0), 3.7, 2,
-      palettes[palette(0)], near)
-      .rotation.y = -side * Math.PI / 2;
-    midrise(root, x(.55), -10 + jitter(1), near, palette(1))
-      .rotation.y = -side * Math.PI / 2;
-    house(root, 'porch_house', x(.48), 3, 4.5, 1, 'warm', near)
-      .rotation.y = -side * Math.PI / 2;
-    wideStorefront(root, x(.48), 13 + jitter(2), near, palette(2))
-      .rotation.y = -side * Math.PI / 2;
-    pocketPark(root, x(3.7), 23 + jitter(3), near);
-    house(root, 'corner_shop', x(.58), 34 + jitter(4), 4.1, 2,
-      palettes[palette(4)], near, 'shop')
-      .rotation.y = -side * Math.PI / 2;
+    const slots = [-20, -10, 3, 13, 23, 34];
+    const order = [0, 1, 2, 3, 4, 5];
+    if (variantSeed !== 0) for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(variation(i + 61) * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    for (let slot = 0; slot < slots.length; slot++) {
+      const module = order[slot];
+      const z = slots[slot] + (variantSeed === 0 && module === 2 ? 0 : jitter(slot));
+      let building: THREE.Object3D | undefined;
+      if (module === 0) building = house(root, 'narrow_two_storey', x(.55), z,
+        3.7, 2, palettes[palette(slot)], near);
+      else if (module === 1) building = midrise(root, x(.55), z, near, palette(slot));
+      else if (module === 2) building = house(root, 'porch_house', x(.48), z,
+        4.5, 1, palettes[palette(slot)], near);
+      else if (module === 3) building = wideStorefront(root, x(.48), z,
+        near, palette(slot));
+      else if (module === 4) pocketPark(root, x(3.7), z, near);
+      else building = house(root, 'corner_shop', x(.58), z, 4.1, 2,
+        palettes[palette(slot)], near, 'shop');
+      if (building) building.rotation.y = -side * Math.PI / 2;
+    }
     for (const z of [-25, 30]) {
       box(root, `boundary_wall_${z}`, [.22, .78, 3.2], [x(-.82), .39, z], wall);
       box(root, `wall_cap_${z}`, [.30, .08, 3.30], [x(-.82), .82, z], curb);
