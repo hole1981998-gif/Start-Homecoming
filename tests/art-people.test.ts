@@ -38,7 +38,7 @@ describe('essential people art', () => {
     person.setPose('recover', .5);
     expect(hip.getWorldPosition(new THREE.Vector3()).y).toBeGreaterThan(.33);
     person.setPose('stand');
-    expect(person.root.getObjectByName('shoulder_1')?.rotation.z).toBe(0);
+    expect(person.root.getObjectByName('shoulder_1')?.rotation.z).toBeCloseTo(.11);
     expect(hip.getWorldPosition(new THREE.Vector3()).y).toBe(standY);
     person.dispose();
   });
