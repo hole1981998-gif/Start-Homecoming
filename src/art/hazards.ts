@@ -7,6 +7,7 @@ export interface HazardArt {
   root: THREE.Group;
   sockets: Record<string, THREE.Object3D>;
   setState: (state: 'normal' | 'used' | 'broken') => void;
+  setVisualTime?: (elapsedSeconds: number) => void;
   dispose: () => void;
 }
 const material = (color: string, roughness = .9) =>
@@ -40,7 +41,7 @@ function patch(parent: THREE.Object3D, name: string, width: number, length: numb
   geometry.computeVertexNormals();
   const mesh = new THREE.Mesh(geometry, material); mesh.name = name; parent.add(mesh); return mesh;
 }
-function bevelBasin(parent: THREE.Object3D, width: number, length: number,
+function bevelBasin(parent: THREE.Object3D, kind: SurfaceHazardKind, width: number, length: number,
   material: THREE.Material) {
   const positions: number[] = [];
   const segments = 14;
@@ -51,8 +52,11 @@ function bevelBasin(parent: THREE.Object3D, width: number, length: number,
       return [Math.cos(angle) * width * radius * wobble, y,
         Math.sin(angle) * length * radius * wobble];
     };
-    const a = p(i, .46, .055), b = p(i + 1, .46, .055);
-    const c = p(i, .345, .022), d = p(i + 1, .345, .022);
+    const outerY = kind === 'water' ? .034 : .055;
+    const innerY = kind === 'water' ? .036 : .022;
+    const a = p(i, .46, outerY), b = p(i + 1, .46, outerY);
+    const innerRadius = kind === 'water' ? .42 : .345;
+    const c = p(i, innerRadius, innerY), d = p(i + 1, innerRadius, innerY);
     positions.push(...a, ...c, ...b, ...b, ...c, ...d);
   }
   const geometry = new THREE.BufferGeometry();
@@ -66,9 +70,9 @@ function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
   const segments = lod === 'near' ? 24 : 14;
   const positions: number[] = [], colors: number[] = [];
   const gradient = kind === 'water'
-    ? ['#305e69', '#407f82', '#76aaa4']
+    ? ['#366b73', '#478e90', '#88b5ac']
     : ['#202725', '#33342f', '#64584b'];
-  const rings = [0, .18, .335];
+  const rings = [0, .18, kind === 'water' ? .415 : .335];
   const vertex = (ring: number, index: number) => {
     const angle = index * Math.PI * 2 / segments;
     const wobble = ring === 0 ? 1 : 1 + Math.sin(index * 2.7) * .024;
@@ -124,7 +128,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   const root = new THREE.Group(); root.name = `haz_${kind}_${lod}`;
   root.userData = { id: root.name, widthM: width, lengthM: length,
     axes: '+Y up, +Z forward', collisionRole: 'reference-only' };
-  const edge = material(kind === 'water' ? '#45534e' : '#504b43');
+  const edge = material(kind === 'water' ? '#4b6f6e' : '#504b43');
   const center = kind === 'water'
     ? new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true,
       roughness: .20, metalness: .07, clearcoat: .82,
@@ -133,14 +137,15 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
       roughness: 1, side: THREE.DoubleSide });
   const glint = material('#93aeb0', .27), debris = material('#827363');
   patch(root, 'readable_footprint', width, length, .015, edge);
-  bevelBasin(root, width, length,
-    material(kind === 'water' ? '#354f4d' : '#48453e'));
+  bevelBasin(root, kind, width, length,
+    material(kind === 'water' ? '#528686' : '#48453e'));
   basinFloor(root, kind, width, length, lod, center);
+  const ripples: THREE.Mesh[] = [];
   if (kind === 'water') {
     for (let i = 0; i < (lod === 'near' ? 5 : 2); i++) {
       const z = (i / (lod === 'near' ? 5 : 2) - .42) * length * .72;
-      box(root, `water_ripple_${i}`, [width * (.20 + (i % 3) * .10), .004, .022],
-        [((i * 7) % 5 - 2) * width * .07, .043, z * .77], glint);
+      ripples.push(box(root, `water_ripple_${i}`, [width * (.20 + (i % 3) * .10), .004, .022],
+        [((i * 7) % 5 - 2) * width * .07, .043, z * .77], glint));
     }
     for (const side of [-1, 1]) for (const z of [-.26, .27])
       box(root, `wet_bank_${side}_${z}`,
@@ -160,7 +165,29 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
       }
     }
   }
-  return finish(root, { contact: point(root, 'contact', [0, .03, 0]) });
+  const art = finish(root, { contact: point(root, 'contact', [0, .03, 0]) });
+  if (kind === 'water') {
+    const floor = root.getObjectByName('deep_water') as THREE.Mesh<THREE.BufferGeometry>;
+    const attribute = floor.geometry.getAttribute('position') as THREE.BufferAttribute;
+    const positions = attribute.array as Float32Array;
+    const base = Float32Array.from(positions);
+    const rippleZ = ripples.map(mesh => mesh.position.z);
+    art.setVisualTime = (elapsedSeconds: number) => {
+      const t = Math.max(0, elapsedSeconds);
+      for (let i = 0; i < attribute.count; i++) {
+        const offset = i * 3;
+        positions[offset + 1] = base[offset + 1] +
+          Math.sin(base[offset] * 5.7 + base[offset + 2] * 1.8 + t * 2.2) * .0035;
+      }
+      attribute.needsUpdate = true;
+      floor.geometry.computeVertexNormals();
+      ripples.forEach((mesh, i) => {
+        mesh.position.z = rippleZ[i] + Math.sin(t * 1.7 + i * 1.9) * length * .012;
+        mesh.scale.x = 1 + Math.sin(t * 2.1 + i * 1.3) * .09;
+      });
+    };
+  }
+  return art;
 }
 
 /** Small, legible props; reuse these for dropped cargo and pickups. */

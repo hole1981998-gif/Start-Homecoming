@@ -189,6 +189,7 @@ function animateRain(timeMs: number) {
   if (timeMs - lastRainFrame >= 33) {
     lastRainFrame = timeMs;
     rain.update(timeMs / 1000, 0, 25);
+    water.setVisualTime?.(timeMs / 1000);
     draw();
   }
   requestAnimationFrame(animateRain);

@@ -38,6 +38,22 @@ describe('essential hazard art', () => {
       asset.dispose();
     }
   });
+  it('animates water normals and highlights deterministically without shifting its footprint', () => {
+    const water = createSurfaceHazardArt('water', 3.2, 7);
+    const floor = water.root.getObjectByName('deep_water') as THREE.Mesh;
+    const position = floor.geometry.getAttribute('position');
+    const initial = Array.from(position.array);
+    const bounds = new THREE.Box3().setFromObject(water.root);
+    water.setVisualTime?.(1.25);
+    const frame = Array.from(position.array);
+    expect(frame).not.toEqual(initial);
+    water.setVisualTime?.(3.5);
+    water.setVisualTime?.(1.25);
+    expect(Array.from(position.array)).toEqual(frame);
+    expect(new THREE.Box3().setFromObject(water.root).min.x).toBeCloseTo(bounds.min.x);
+    expect(new THREE.Box3().setFromObject(water.root).max.z).toBeCloseTo(bounds.max.z);
+    water.dispose();
+  });
   it('rejects invalid world footprints', () => {
     expect(() => createSurfaceHazardArt('water', 0, 2)).toThrow();
     expect(() => createSurfaceHazardArt('pothole', 2, Number.NaN)).toThrow();
