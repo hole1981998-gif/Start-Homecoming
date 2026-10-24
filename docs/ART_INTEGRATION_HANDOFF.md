@@ -28,6 +28,8 @@ Nước và ổ gà có lớp lòng nhiều vòng với màu từ rìa vào tâm
 
 Riêng nước nay có `setVisualTime(elapsedSeconds)` để dao động mặt/normal và gợn sáng theo clock do runtime cấp; ổ gà không dùng animation này. Mép nước được làm phẳng, mặt nước rộng hơn trong cùng footprint để không đọc thành hố sâu. Khi pause/reset, truyền thời gian simulation tương ứng; không dùng clock độc lập hoặc dùng mesh động để suy độ sâu damage.
 
+Mặt nước đã nới tới gần viền footprint, dải vát rất nông; glint mép ngắn và nằm trong mặt nước. Ổ gà giữ độ sâu riêng. Các thay đổi này chỉ ở hình, không thay entity `width/length` hay vị trí va chạm; khi tích hợp vẫn phải so độ đọc nước/ổ gà trên các cỡ footprint đang dùng dưới mưa và ở tốc độ thật.
+
 `createRainArt(seed)` trong `src/art/weather.ts` tạo một `LineSegments` visual, không có collider/spawn; gọi `update(simulationElapsedSeconds, cameraOrPlayerX, cameraOrPlayerZ)` theo clock của game để pause/reset diễn đúng thời gian, và `setIntensity(0..1)` theo vùng/thời tiết. Không tự dùng wall clock trong game. Preview dùng clock browser để kiểm hình; bản tích hợp cần kiểm mưa không che cảnh báo, HUD, mép hazard và tín hiệu traffic.
 
 `createRainSplashArt(seed)` là một `InstancedMesh` gợn mưa rất mỏng trên mặt đường, cùng hợp đồng `update(elapsedSeconds, anchorX, anchorZ)` / `setIntensity` / `dispose`, không va chạm. Dùng cùng seed/clock với vệt mưa và cập nhật khi game chạy; pause/reset phải giữ pha ổn định. Vị trí visual nằm trong bề ngang 8,8 m của đường ba làn. Kiểm rằng các vòng nhỏ không bị đọc nhầm là ổ gà/nước và không tăng nhiễu khi có QTE; có thể giảm intensity ở đoạn cảnh báo dày.

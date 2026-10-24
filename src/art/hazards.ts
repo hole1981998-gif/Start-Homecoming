@@ -66,9 +66,9 @@ function patch(parent: THREE.Object3D, name: string, width: number, length: numb
   const mesh = new THREE.Mesh(geometry, material); mesh.name = name; parent.add(mesh); return mesh;
 }
 function bevelBasin(parent: THREE.Object3D, kind: SurfaceHazardKind, width: number, length: number,
-  material: THREE.Material) {
+  lod: 'near' | 'far', material: THREE.Material) {
   const positions: number[] = [];
-  const segments = 14;
+  const segments = lod === 'near' ? 24 : 14;
   for (let i = 0; i < segments; i++) {
     const p = (index: number, radius: number, y: number): [number, number, number] => {
       const angle = index * Math.PI * 2 / segments;
@@ -76,10 +76,11 @@ function bevelBasin(parent: THREE.Object3D, kind: SurfaceHazardKind, width: numb
       return [Math.cos(angle) * width * radius * wobble, y,
         Math.sin(angle) * length * radius * wobble];
     };
-    const outerY = kind === 'water' ? .034 : .055;
-    const innerY = kind === 'water' ? .036 : .022;
-    const a = p(i, .46, outerY), b = p(i + 1, .46, outerY);
-    const innerRadius = kind === 'water' ? .42 : .345;
+    const outerY = kind === 'water' ? .027 : .055;
+    const innerY = kind === 'water' ? .035 : .022;
+    const a = p(i, kind === 'water' ? .47 : .46, outerY);
+    const b = p(i + 1, kind === 'water' ? .47 : .46, outerY);
+    const innerRadius = kind === 'water' ? .445 : .345;
     const c = p(i, innerRadius, innerY), d = p(i + 1, innerRadius, innerY);
     positions.push(...a, ...c, ...b, ...b, ...c, ...d);
   }
@@ -96,10 +97,11 @@ function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
   const gradient = kind === 'water'
     ? ['#366b73', '#478e90', '#88b5ac']
     : ['#202725', '#33342f', '#64584b'];
-  const rings = [0, .18, kind === 'water' ? .415 : .335];
+  const rings = [0, .18, kind === 'water' ? .445 : .335];
   const vertex = (ring: number, index: number) => {
     const angle = index * Math.PI * 2 / segments;
-    const wobble = ring === 0 ? 1 : 1 + Math.sin(index * 2.7) * .024;
+    const wobble = ring === 0 ? 1 : 1 + Math.sin(index * 2.7) *
+      (kind === 'water' && ring === 2 ? .055 : .024);
     const height = kind === 'water'
       ? [.041, .039, .035][ring] + (ring === 0 ? 0 : Math.sin(angle * 3) * .004)
       : [.022, .023, .025][ring] + (ring === 0 ? 0 : Math.sin(angle * 4) * .001);
@@ -154,7 +156,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   const root = new THREE.Group(); root.name = `haz_${kind}_${lod}`;
   root.userData = { id: root.name, widthM: width, lengthM: length,
     axes: '+Y up, +Z forward', collisionRole: 'reference-only' };
-  const edge = material(kind === 'water' ? '#4b6f6e' : '#504b43');
+  const edge = material(kind === 'water' ? '#3c585b' : '#504b43');
   const center = kind === 'water'
     ? new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true,
       roughness: .28, metalness: .04, clearcoat: .72,
@@ -166,10 +168,12 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
     center.normalMap = normalMap;
     center.normalScale.set(.12, .12);
   }
-  const glint = material('#93aeb0', .27), debris = material('#665f54');
+  const glint = new THREE.MeshStandardMaterial({ color: '#a7c9bb', roughness: .32,
+    transparent: true, opacity: .48, depthWrite: false, side: THREE.DoubleSide });
+  const debris = material('#665f54');
   patch(root, 'readable_footprint', width, length, .015, edge);
-  bevelBasin(root, kind, width, length,
-    material(kind === 'water' ? '#528686' : '#48453e'));
+  bevelBasin(root, kind, width, length, lod,
+    material(kind === 'water' ? '#5a8a89' : '#48453e'));
   basinFloor(root, kind, width, length, lod, center);
   const ripples: THREE.Mesh[] = [];
   if (kind === 'water') {
@@ -178,10 +182,10 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
       ripples.push(box(root, `water_ripple_${i}`, [width * (.20 + (i % 3) * .10), .004, .022],
         [((i * 7) % 5 - 2) * width * .07, .043, z * .77], glint));
     }
-    for (const side of [-1, 1]) for (const z of [-.26, .27])
+    for (const side of [-1, 1]) for (const z of [-.20, .20])
       box(root, `wet_bank_${side}_${z}`,
-        [Math.min(.05, width * .025), .006, length * .14],
-        [side * width * .43, .057, z * length], glint);
+        [Math.min(.035, width * .018), .004, length * .085],
+        [side * width * .32, .045, z * length], glint);
   } else {
     for (const side of [-1, 1]) {
       const chips = side < 0 ? [-.29, .04, .27] : [-.17, .23];

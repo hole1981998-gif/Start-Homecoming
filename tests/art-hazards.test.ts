@@ -59,6 +59,20 @@ describe('essential hazard art', () => {
     expect(new THREE.Box3().setFromObject(water.root).max.z).toBeCloseTo(bounds.max.z);
     water.dispose();
   });
+  it('keeps floodwater broad and almost flat while the pothole stays recessed', () => {
+    const water = createSurfaceHazardArt('water', 3.2, 7);
+    const hole = createSurfaceHazardArt('pothole', 2.3, 4);
+    const waterFloor = water.root.getObjectByName('deep_water')!;
+    const waterRim = water.root.getObjectByName('sloped_basin_normals')!;
+    const holeRim = hole.root.getObjectByName('sloped_basin_normals')!;
+    const floorWidth = new THREE.Box3().setFromObject(waterFloor).getSize(new THREE.Vector3()).x;
+    expect(floorWidth).toBeGreaterThan(3.2 * .85);
+    const rimHeight = (object: THREE.Object3D) =>
+      new THREE.Box3().setFromObject(object).getSize(new THREE.Vector3()).y;
+    expect(rimHeight(waterRim)).toBeLessThan(.015);
+    expect(rimHeight(holeRim)).toBeGreaterThan(.025);
+    water.dispose(); hole.dispose();
+  });
   it('rejects invalid world footprints', () => {
     expect(() => createSurfaceHazardArt('water', 0, 2)).toThrow();
     expect(() => createSurfaceHazardArt('pothole', 2, Number.NaN)).toThrow();
