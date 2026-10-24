@@ -18,7 +18,7 @@ const cast = {
   driver: { height: 1.72, shoulder: .46, waist: .33, skin: '#b67f62', coat: '#4c98a4', pants: '#314750', helmet: '#e5d9ba', accessory: 'helmet' },
   commuter: { height: 1.66, shoulder: .40, waist: .34, skin: '#d39d78', coat: '#c75d52', pants: '#48555c', helmet: '#aa7658', accessory: 'none' },
   student: { height: 1.54, shoulder: .38, waist: .29, skin: '#a86e55', coat: '#7b85b3', pants: '#38465d', helmet: '#293e54', accessory: 'backpack' },
-  child: { height: 1.24, shoulder: .34, waist: .29, skin: '#c78d6b', coat: '#d5aa62', pants: '#5b626e', helmet: '#f1cc71', accessory: 'poncho' },
+  child: { height: 1.24, shoulder: .34, waist: .29, skin: '#c78d6b', coat: '#c9674f', pants: '#816e56', helmet: '#af654b', accessory: 'cap' },
   senior: { height: 1.56, shoulder: .40, waist: .36, skin: '#b98566', coat: '#d2cbb0', pants: '#344657', helmet: '#464844', accessory: 'hat' },
   worker: { height: 1.76, shoulder: .52, waist: .43, skin: '#8f5b48', coat: '#c48c5f', pants: '#3b5553', helmet: '#5b4c3f', accessory: 'satchel' },
   childRain: { height: 1.33, shoulder: .36, waist: .30, skin: '#b77959', coat: '#65a7a0', pants: '#45586c', helmet: '#e4bb65', accessory: 'poncho' },
@@ -120,15 +120,15 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   const neck = tapered(torso, 'neck', .075 * scale, .08 * scale, .12 * scale,
     [0, .64 * scale, 0], skin, 6);
   neck.userData.materialRole = 'skin';
-  const head = node(torso, 'head_pivot', [0, .67 * scale, 0]);
-  const headRadius = (archetype === 'driver' ? .28 : .30) * scale *
+  const head = node(torso, 'head_pivot', [0, .63 * scale, 0]);
+  const headRadius = (archetype === 'driver' ? .33 : .36) * scale *
     (archetype === 'child' || archetype === 'childRain' ? 1.07 : 1);
   const headMesh = new THREE.Mesh(new THREE.SphereGeometry(headRadius,
     lod === 'near' ? 16 : 10, lod === 'near' ? 12 : 8), skin);
   headMesh.name = 'head'; headMesh.scale.set(1, 1.02, .95); head.add(headMesh);
   const hairMat = mat(archetype === 'senior' ? '#aeb1a7' : archetype === 'elderPoncho' ? '#8c938e' :
     archetype === 'office' || archetype === 'teenHood' ? '#302d38' : '#3d3231', .67, true);
-  if (spec.accessory !== 'helmet' && spec.accessory !== 'poncho') {
+  if (spec.accessory !== 'helmet' && spec.accessory !== 'poncho' && spec.accessory !== 'cap') {
     if (archetype === 'senior') {
       for (const side of [-1, 1]) {
         const sideHair = new THREE.Mesh(new THREE.SphereGeometry(headRadius * .30, 9, 7), hairMat);
@@ -224,15 +224,22 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
       headRadius * 1.22, .025 * scale, 16), accessoryMat);
     brim.name = 'helmet_brim'; brim.scale.z = 1.15;
     brim.position.y = .095 * scale; head.add(brim);
+  } else if (spec.accessory === 'cap') {
+    const crown = new THREE.Mesh(new THREE.SphereGeometry(headRadius * 1.04,
+      16, 10, 0, Math.PI * 2, 0, Math.PI * .52), accessoryMat);
+    crown.name = 'soft_cap_crown'; crown.position.y = .035 * scale; head.add(crown);
+    const visor = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 6), accessoryMat);
+    visor.name = 'soft_cap_visor'; visor.scale.set(headRadius * .90, .025 * scale, headRadius * .68);
+    visor.position.set(0, headRadius * .30, headRadius * .94); head.add(visor);
   } else if (spec.accessory === 'hat') {
     const brim = new THREE.Mesh(new THREE.CylinderGeometry(headRadius * 1.31,
       headRadius * 1.31, .035 * scale, 16), accessoryMat);
     brim.name = 'soft_hat_brim'; brim.scale.z = .90;
-    brim.position.set(0, .22 * scale, .025 * scale); head.add(brim);
+    brim.position.set(0, headRadius * .75, .025 * scale); head.add(brim);
     tapered(head, 'soft_hat_crown', .18 * scale, .24 * scale, .21 * scale,
-      [0, .33 * scale, .015 * scale], accessoryMat, 12);
+      [0, headRadius * .75 + .11 * scale, .015 * scale], accessoryMat, 12);
     const hatBand = tapered(head, 'hat_band', .242 * scale, .243 * scale,
-      .045 * scale, [0, .255 * scale, .015 * scale], hairMat, 12);
+      .045 * scale, [0, headRadius * .75 + .035 * scale, .015 * scale], hairMat, 12);
     hatBand.scale.z = .91;
   } else if (spec.accessory === 'backpack' || spec.accessory === 'bag' || spec.accessory === 'satchel') {
     const pack = spec.accessory === 'backpack'

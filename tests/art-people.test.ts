@@ -79,6 +79,15 @@ describe('essential people art', () => {
     expect(brimBounds.max.y).toBeGreaterThan(headBounds.max.y - .1);
     person.dispose();
   });
+  it('keeps the child cap attached with a visible forward visor', () => {
+    const person = createPersonArt('child');
+    const head = new THREE.Box3().setFromObject(person.root.getObjectByName('head')!);
+    const crown = new THREE.Box3().setFromObject(person.root.getObjectByName('soft_cap_crown')!);
+    const visor = new THREE.Box3().setFromObject(person.root.getObjectByName('soft_cap_visor')!);
+    expect(crown.min.y).toBeLessThan(head.max.y - .03);
+    expect(visor.max.z).toBeGreaterThan(head.max.z + .06);
+    person.dispose();
+  });
   it('keeps a seated driver under the car4 roof without scaling the whole person', () => {
     const car = createCar4Art();
     const driver = createPersonArt('driver');
