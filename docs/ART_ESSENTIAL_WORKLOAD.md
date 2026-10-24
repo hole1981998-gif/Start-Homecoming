@@ -54,6 +54,8 @@ Mesh thường của cụm cảnh **far** được gộp theo vật liệu sau k
 
 Blender có thêm mẫu nhà chợ góc phố mặt tiền rộng, dãy cột/hiên, ban công, tháp đồng hồ và cửa bên/sau: `corner-market.blend` chỉnh được, `corner-market.glb` gộp 12 vật liệu, `blender-market.html` để kiểm riêng. Cảnh mẫu thử thay một storefront bằng mẫu này, vẫn chỉ preview chứ không ghép gameplay. Nhà này rộng 9,50 m và được đặt lùi để không lấn 3 làn; nếu code tích hợp, phải kiểm từng vùng/seed/đoạn cua và cache GLB.
 
+Lớp mưa visual seeded trong `src/art/weather.ts` dùng một draw call, nhận thời gian và vị trí neo từ runtime, cho đổi cường độ mà không tác động simulation. Preview thử mưa nhẹ trong camera prototype để kiểm nước/ổ gà vẫn đọc được. Chưa có splash/hạt trên kính, gió theo biome, mặt nước gợn theo mưa hoặc kiểm thời tiết trong gameplay.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

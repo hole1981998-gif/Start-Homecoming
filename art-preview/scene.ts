@@ -6,6 +6,7 @@ import { createPersonArt } from '../src/art/people';
 import { createSurfaceHazardArt } from '../src/art/hazards';
 import { createSceneryCluster } from '../src/art/scenery';
 import { createRoadTileArt } from '../src/art/road-kit';
+import { createRainArt } from '../src/art/weather';
 import { balance } from '../src/config';
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
@@ -77,6 +78,9 @@ for (let z = -6; z <= 106; z += 4) {
   tile.setWetness(.70);
   tile.root.position.z = z; scene.add(tile.root);
 }
+const rain = createRainArt(17);
+rain.setIntensity(.42);
+scene.add(rain.root);
 const player = createCar4Art(); player.root.position.set(0, .02, 1.5); scene.add(player.root);
 const traffic = createVehicleArt('car7', 'traffic', 'near', '#a88772');
 traffic.root.position.set(-3.2, .02, 21); traffic.root.rotation.y = Math.PI; scene.add(traffic.root);
@@ -180,3 +184,13 @@ function draw() {
     `Cảnh tĩnh: ${renderer.info.render.calls} draw calls · ${renderer.info.render.triangles} tam giác`;
 }
 new ResizeObserver(draw).observe(canvas); setCamera();
+let lastRainFrame = 0;
+function animateRain(timeMs: number) {
+  if (timeMs - lastRainFrame >= 33) {
+    lastRainFrame = timeMs;
+    rain.update(timeMs / 1000, 0, 25);
+    draw();
+  }
+  requestAnimationFrame(animateRain);
+}
+requestAnimationFrame(animateRain);
