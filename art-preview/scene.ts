@@ -149,6 +149,9 @@ scene.traverse(object => {
 });
 const camera = new THREE.PerspectiveCamera(52, 9 / 16, .1, 140);
 const cameraMode = document.getElementById('cameraMode') as HTMLSelectElement;
+let driveDistance = 0;
+let lastDriveFrame = 0;
+const driveFrames: number[] = [];
 function setCamera() {
   if (cameraMode.value === 'study') {
     camera.fov = 49;
@@ -156,13 +159,21 @@ function setCamera() {
     camera.lookAt(0, 0, 13);
   } else {
     camera.fov = 52;
-    camera.position.set(0, 7.5, -11);
-    camera.lookAt(0, 0, 12);
+    const z = cameraMode.value === 'drive' ? driveDistance : 0;
+    player.root.position.z = 1.5 + z;
+    camera.position.set(0, 7.5, -11 + z);
+    camera.lookAt(0, 0, 12 + z);
   }
   camera.updateProjectionMatrix();
   draw();
 }
-cameraMode.addEventListener('change', setCamera);
+cameraMode.addEventListener('change', () => {
+  driveDistance = 0;
+  lastDriveFrame = 0;
+  driveFrames.length = 0;
+  player.root.position.z = 1.5;
+  setCamera();
+});
 const shopUrl = new URL('../assets/art/roadside-shop.glb', import.meta.url).href;
 new GLTFLoader().load(shopUrl, gltf => {
   nativeShop!.visible = false;
@@ -218,7 +229,7 @@ new GLTFLoader().load(skylineUrl, gltf => {
   const placement = nativeSkyline.getWorldPosition(new THREE.Vector3());
   gltf.scene.position.copy(placement);
   gltf.scene.position.x -= 1.5;
-  gltf.scene.position.z += 6;
+  gltf.scene.position.z += 27;
   gltf.scene.rotation.y = Math.PI / 2;
   const bounds = new THREE.Box3().setFromObject(gltf.scene);
   if (bounds.max.x >= -balance.laneWidth * balance.laneCount / 2) return;
@@ -236,16 +247,35 @@ function draw() {
   const width = canvas.clientWidth, height = canvas.clientHeight;
   renderer.setSize(width, height, false);
   camera.aspect = width / height; camera.updateProjectionMatrix(); renderer.render(scene, camera);
+  const frameP95 = driveFrames.length >= 30 ?
+    [...driveFrames].sort((a, b) => a - b)[Math.floor(driveFrames.length * .95)] : null;
   document.getElementById('metrics')!.textContent =
-    `Cảnh tĩnh: ${renderer.info.render.calls} draw calls · ${renderer.info.render.triangles} tam giác`;
+    `${cameraMode.value === 'drive' ? 'Preview chuyển động' : 'Cảnh tĩnh'}: ` +
+    `${renderer.info.render.calls} draw calls · ${renderer.info.render.triangles} tam giác` +
+    (frameP95 === null || cameraMode.value !== 'drive' ? '' : ` · frame P95 ${frameP95.toFixed(1)} ms (máy hiện tại)`);
 }
 new ResizeObserver(draw).observe(canvas); setCamera();
 let lastRainFrame = 0;
 function animateRain(timeMs: number) {
-  if (timeMs - lastRainFrame >= 33) {
+  const driving = cameraMode.value === 'drive';
+  if (driving && lastDriveFrame) {
+    const frame = timeMs - lastDriveFrame;
+    if (frame > 0 && frame < 100) {
+      driveFrames.push(frame);
+      if (driveFrames.length > 120) driveFrames.shift();
+      driveDistance = (driveDistance + frame * .005) % 28;
+    }
+  }
+  lastDriveFrame = driving ? timeMs : 0;
+  if (driving || timeMs - lastRainFrame >= 33) {
     lastRainFrame = timeMs;
-    rain.update(timeMs / 1000, 0, 25);
-    splashes.update(timeMs / 1000, 0, 25);
+    if (driving) {
+      player.root.position.z = 1.5 + driveDistance;
+      camera.position.z = -11 + driveDistance;
+      camera.lookAt(0, 0, 12 + driveDistance);
+    }
+    rain.update(timeMs / 1000, 0, 25 + driveDistance);
+    splashes.update(timeMs / 1000, 0, 25 + driveDistance);
     water.setVisualTime?.(timeMs / 1000);
     draw();
   }

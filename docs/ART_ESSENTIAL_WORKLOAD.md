@@ -80,6 +80,8 @@ Các phụ kiện nhỏ, skin sơn thêm, nội thất, anim phụ và trang tr�
 
 Trong lượt tối ưu tiếp theo, `optimizeNearScenery(root)` gộp mesh tĩnh **bên trong từng root công trình/cây** trước khi đặt cluster, giữ tên/transform root cho placement hoặc thay GLB. Ở cùng camera trong `scene.html`, draw calls giảm 1.126 → 870–871 (khoảng 23%); tam giác được gửi lên GPU tăng 47.240 → khoảng 50.500 khi chuyển sang culling theo cụm và thử đặt tòa cao tầng vào mặt phố. Đây là một frame preview, chưa chứng minh FPS game. Cần đo frame P95, bộ nhớ và nhiều seed/biome trước khi bật trong gameplay.
 
+`scene.html` nay có camera chạy thử 9:16, cho xe/camera tiến qua vũng nước, ổ gà và traffic trong cảnh mẫu; số frame P95 hiển thị là vòng 120 frame của **preview trên máy đang xem**, không phải benchmark game, không có HUD/collider/spawn hay giao lộ động. Skyline Blender được đẩy ra xa để nóc còn nằm trong khung 9:16 ở camera ban đầu. Cần vẫn kiểm camera theo route thật và các xe lớn, rồi đo P95 trong game trước khi chấm hiệu năng cuối.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
