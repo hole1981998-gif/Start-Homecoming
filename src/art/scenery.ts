@@ -567,7 +567,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     root.add(grassTufts);
   } else if (kind === 'cliffs') {
     const toe = mat('#8f775d'), face = mat('#a98566'), upper = mat('#c19b75');
-    const grass = mat('#70935e'), scree = mat('#89705b');
+    const grass = mat('#70935e');
     const profile = [
       { z: -26, h: 2.4, shift: .2 }, { z: -18, h: 4.7, shift: -.2 },
       { z: -11, h: 3.6, shift: .3 }, { z: -3, h: 6.7, shift: -.3 },
@@ -595,12 +595,65 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       layer.name = ['cliff_toe', 'faceted_rock_face', 'sunlit_rim', 'grassy_back'][band];
       root.add(layer);
     }
-    if (near) for (const [i, offset, z, size] of [[0, .3, -18, .62], [1, .8, -10, .41],
-      [2, .15, 1, .72], [3, .7, 10, .43], [4, .45, 20, .54]] as const) {
-      const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0), scree);
-      rock.name = `fallen_scree_${i}`;
-      rock.scale.set(size * 1.15, size * .57, size);
-      rock.position.set(x(.6 + offset), size * .30, z); root.add(rock);
+    const facePoint = (p: typeof profile[number], t: number) => {
+      const low = rows[1](p), high = rows[2](p);
+      return [low[0] + (high[0] - low[0]) * t - side * .035,
+        low[1] + (high[1] - low[1]) * t + .03, p.z] as const;
+    };
+    for (const [band, t, width, color] of [[0, .28, .054, '#92765e'],
+      [1, .69, .036, '#ba9471']] as const) {
+      const vertices: number[] = [];
+      for (let i = 0; i < profile.length - 1; i++) {
+        if ((i + band) % 3 === 2 || (band === 1 && i % 2 === 0)) continue;
+        const start = t + Math.sin(i * 4.3 + band) * .065;
+        const end = t + Math.sin((i + 1) * 4.3 + band) * .065;
+        const a = facePoint(profile[i], start), b = facePoint(profile[i], start + width);
+        const c = facePoint(profile[i + 1], end), d = facePoint(profile[i + 1], end + width);
+        vertices.push(...a, ...b, ...c, ...c, ...b, ...d);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.computeVertexNormals();
+      const seam = new THREE.Mesh(geometry, mat(color));
+      seam.name = `cliff_rock_stratum_${band}`; root.add(seam);
+    }
+    const heightAt = (z: number) => {
+      const i = Math.max(0, profile.findIndex((point, index) => index < profile.length - 1 &&
+        z >= point.z && z <= profile[index + 1].z));
+      const a = profile[i], b = profile[Math.min(i + 1, profile.length - 1)];
+      return THREE.MathUtils.lerp(a.h, b.h, (z - a.z) / (b.z - a.z || 1));
+    };
+    const rockCount = near ? 14 : 7;
+    const scatteredRock = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0),
+      mat('#ffffff'), rockCount);
+    scatteredRock.name = 'cliff_fallen_scree';
+    const stone = new THREE.Object3D();
+    for (let i = 0; i < rockCount; i++) {
+      const z = -24 + i * (49 / rockCount) + Math.sin(i * 6.1) * 1.2;
+      const size = .30 + (i * 7 % 5) * .085;
+      stone.position.set(x(.48 + (i * 3 % 6) * .28), size * .29, z);
+      stone.rotation.set(i * .43, i * .72, i * .16);
+      stone.scale.set(size * 1.3, size * .56, size);
+      stone.updateMatrix(); scatteredRock.setMatrixAt(i, stone.matrix);
+      scatteredRock.setColorAt(i, new THREE.Color(i % 3 === 0 ? '#b09473' : '#806d59'));
+    }
+    root.add(scatteredRock);
+    const shrubs = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0),
+      mat('#ffffff'), near ? 14 : 7);
+    shrubs.name = 'cliff_crest_shrubs';
+    for (let i = 0; i < shrubs.count; i++) {
+      const z = -23 + i * (48 / shrubs.count) + Math.sin(i * 4.7) * .7;
+      const size = .26 + (i * 5 % 4) * .11;
+      stone.position.set(x(6.9 + (i % 3) * 1.15), heightAt(z) * .92 + size * .24, z);
+      stone.rotation.set(0, i * .91, 0);
+      stone.scale.set(size * 1.35, size * .66, size);
+      stone.updateMatrix(); shrubs.setMatrixAt(i, stone.matrix);
+      shrubs.setColorAt(i, new THREE.Color(i % 4 === 0 ? '#a1ab69' : '#64875d'));
+    }
+    root.add(shrubs);
+    if (near) for (const z of [-14, 17]) {
+      const ledge = new THREE.Group(); ledge.position.y = heightAt(z) * .88; root.add(ledge);
+      tree(ledge, `cliff_rim_tree_${z}`, x(8.1), z, z < 0 ? 3.6 : 3.1, true, 'rain');
     }
   } else if (kind === 'rice') {
     const soil = mat('#8d7853'), paddy = mat('#8dbb61');
