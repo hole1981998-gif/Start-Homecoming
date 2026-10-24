@@ -57,7 +57,9 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   const root = new THREE.Group(); root.name = `chr_${archetype}_root`;
   const hips = node(root, 'hip_pivot', [0, hipHeight, 0]);
   const coat = mat(spec.coat, .78, true), coatShade = mat(spec.coat, .91, true);
-  const pants = mat(spec.pants, .86, true), skin = mat(spec.skin, .67, true);
+  const pants = mat(spec.pants, .86, true);
+  const skinTone = new THREE.Color(spec.skin).lerp(new THREE.Color('#e8bb99'), .18);
+  const skin = new THREE.MeshStandardMaterial({ color: skinTone, roughness: .67 });
   const dark = mat('#28373d', .72, true), light = mat('#eadfc7');
   const accessoryMat = mat(spec.helmet, .72, true);
   const torso = node(hips, 'torso_pivot', [0, 0, 0]);
@@ -94,15 +96,15 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   const headMesh = new THREE.Mesh(new THREE.SphereGeometry(headRadius,
     lod === 'near' ? 16 : 10, lod === 'near' ? 12 : 8), skin);
   headMesh.name = 'head'; headMesh.scale.set(1, 1.02, .95); head.add(headMesh);
-  const hairMat = mat(archetype === 'senior' || archetype === 'elderPoncho' ? '#5c6260' :
+  const hairMat = mat(archetype === 'senior' ? '#aeb1a7' : archetype === 'elderPoncho' ? '#8c938e' :
     archetype === 'office' || archetype === 'teenHood' ? '#302d38' : '#3d3231', .67, true);
   if (spec.accessory !== 'helmet' && spec.accessory !== 'poncho') {
     if (archetype === 'senior') {
       for (const side of [-1, 1]) {
-        const sideHair = new THREE.Mesh(new THREE.SphereGeometry(headRadius * .38, 9, 7), hairMat);
+        const sideHair = new THREE.Mesh(new THREE.SphereGeometry(headRadius * .30, 9, 7), hairMat);
         sideHair.name = `grey_side_hair_${side}`;
-        sideHair.scale.set(.72, 1.1, .85);
-        sideHair.position.set(side * headRadius * .88, -.015 * scale, -.04 * scale);
+        sideHair.scale.set(.65, .90, .58);
+        sideHair.position.set(side * headRadius * .82, -.025 * scale, -headRadius * .23);
         head.add(sideHair);
       }
     } else {
@@ -185,10 +187,15 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
     brim.name = 'helmet_brim'; brim.scale.z = 1.15;
     brim.position.y = .095 * scale; head.add(brim);
   } else if (spec.accessory === 'hat') {
-    tapered(head, 'soft_hat_crown', .14 * scale, .18 * scale, .18 * scale,
-      [0, .23 * scale, 0], accessoryMat, 7);
-    box(head, 'soft_hat_brim', [.43 * scale, .035 * scale, .35 * scale],
-      [0, .14 * scale, .035 * scale], accessoryMat);
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(headRadius * 1.31,
+      headRadius * 1.31, .035 * scale, 16), accessoryMat);
+    brim.name = 'soft_hat_brim'; brim.scale.z = .90;
+    brim.position.set(0, .22 * scale, .025 * scale); head.add(brim);
+    tapered(head, 'soft_hat_crown', .18 * scale, .24 * scale, .21 * scale,
+      [0, .33 * scale, .015 * scale], accessoryMat, 12);
+    const hatBand = tapered(head, 'hat_band', .242 * scale, .243 * scale,
+      .045 * scale, [0, .255 * scale, .015 * scale], hairMat, 12);
+    hatBand.scale.z = .91;
   } else if (spec.accessory === 'backpack' || spec.accessory === 'bag' || spec.accessory === 'satchel') {
     const pack = spec.accessory === 'backpack'
       ? box(torso, 'carried_bag', [.33 * scale, .39 * scale, .16 * scale],

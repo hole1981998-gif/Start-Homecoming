@@ -69,6 +69,16 @@ describe('essential people art', () => {
     expect(bike.root.position.toArray()).toEqual([0, 0, 0]);
     rider.dispose(); bike.dispose();
   });
+  it('seats the senior hat on the head rather than leaving a visible air gap', () => {
+    const person = createPersonArt('senior');
+    const head = person.root.getObjectByName('head')!;
+    const brim = person.root.getObjectByName('soft_hat_brim')!;
+    const headBounds = new THREE.Box3().setFromObject(head);
+    const brimBounds = new THREE.Box3().setFromObject(brim);
+    expect(brimBounds.min.y).toBeLessThan(headBounds.max.y - .03);
+    expect(brimBounds.max.y).toBeGreaterThan(headBounds.max.y - .1);
+    person.dispose();
+  });
   it('keeps a seated driver under the car4 roof without scaling the whole person', () => {
     const car = createCar4Art();
     const driver = createPersonArt('driver');
