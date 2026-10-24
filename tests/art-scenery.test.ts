@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { balance } from '../src/config';
 import { landscapeColors, type LandscapeKind } from '../src/landscape';
-import { createSceneryCluster } from '../src/art/scenery';
+import { createSceneryCluster, optimizeNearScenery } from '../src/art/scenery';
 
 describe('essential roadside scenery', () => {
   it('covers every existing 96 m landscape family and stays out of the driving corridor', () => {
@@ -53,6 +53,29 @@ describe('essential roadside scenery', () => {
     expect(new THREE.Box3().setFromObject(far.root).min.x)
       .toBeGreaterThan(balance.laneWidth * balance.laneCount / 2);
     near.dispose(); far.dispose();
+  });
+  it('batches near static detail while preserving building placement and bounds', () => {
+    const art = createSceneryCluster('city', 1, 'near', 2);
+    const before = new THREE.Box3().setFromObject(art.root, true);
+    const countMeshes = () => {
+      let count = 0;
+      art.root.traverse(object => { if (object instanceof THREE.Mesh) count++; });
+      return count;
+    };
+    const countBefore = countMeshes();
+    const shop = art.root.getObjectByName('corner_shop')!;
+    const shopPosition = shop.position.clone();
+    optimizeNearScenery(art.root);
+    const countAfter = countMeshes();
+    expect(countAfter).toBeLessThan(countBefore * .7);
+    expect(art.root.getObjectByName('corner_shop')).toBe(shop);
+    expect(shop.position).toEqual(shopPosition);
+    const after = new THREE.Box3().setFromObject(art.root, true);
+    expect(after.min.distanceTo(before.min)).toBeLessThan(.001);
+    expect(after.max.distanceTo(before.max)).toBeLessThan(.001);
+    optimizeNearScenery(art.root);
+    expect(countMeshes()).toBe(countAfter);
+    art.dispose();
   });
   it('varies city frontage depth by seed without crossing the road', () => {
     const names = ['narrow_two_storey', 'midrise_apartments', 'porch_house',

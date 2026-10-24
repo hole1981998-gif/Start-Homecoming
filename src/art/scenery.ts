@@ -12,8 +12,9 @@ function box(parent: THREE.Object3D, name: string, size: [number, number, number
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
   mesh.name = name; mesh.position.set(...pos); parent.add(mesh); return mesh;
 }
-function batchFarMeshes(root: THREE.Group) {
+function batchStaticMeshes(root: THREE.Group, prefix = 'material_batch') {
   root.updateMatrixWorld(true);
+  const toLocal = root.matrixWorld.clone().invert();
   const buckets = new Map<string, { material: THREE.MeshStandardMaterial;
     meshes: THREE.Mesh[]; geometries: THREE.BufferGeometry[] }>();
   root.traverse(object => {
@@ -29,7 +30,7 @@ function batchFarMeshes(root: THREE.Group) {
       buckets.set(key, bucket);
     }
     const transformed = object.geometry.clone();
-    transformed.applyMatrix4(object.matrixWorld);
+    transformed.applyMatrix4(toLocal.clone().multiply(object.matrixWorld));
     const geometry = transformed.index ? transformed.toNonIndexed() : transformed;
     if (geometry !== transformed) transformed.dispose();
     if (!geometry.getAttribute('normal')) geometry.computeVertexNormals();
@@ -47,12 +48,23 @@ function batchFarMeshes(root: THREE.Group) {
     bucket.geometries.forEach(geometry => geometry.dispose());
     if (!merged) continue;
     const originalGeometry = new Set(bucket.meshes.map(mesh => mesh.geometry));
+    const originalMaterials = new Set(bucket.meshes.flatMap(mesh =>
+      Array.isArray(mesh.material) ? mesh.material : [mesh.material]));
     bucket.meshes.forEach(mesh => mesh.removeFromParent());
     originalGeometry.forEach(geometry => geometry.dispose());
+    const orphanMaterials = (root.userData.batchOrphanMaterials ??= []) as THREE.Material[];
+    originalMaterials.forEach(material => orphanMaterials.push(material));
     const mesh = new THREE.Mesh(merged, bucket.material);
-    mesh.name = `far_material_batch_${key}`;
+    mesh.name = `${prefix}_${key}`;
     root.add(mesh);
   }
+}
+/** Merge static detail per top-level prop, preserving building/tree roots for placement. Call before placing the cluster. */
+export function optimizeNearScenery(root: THREE.Group): void {
+  if (root.userData.lod !== 'near' || root.userData.optimized) return;
+  for (const child of root.children) if (child instanceof THREE.Group)
+    batchStaticMeshes(child, 'near_material_batch');
+  root.userData.optimized = true;
 }
 function taper(parent: THREE.Object3D, name: string, top: number, bottom: number,
   height: number, pos: [number, number, number], material: THREE.Material, sides = 6) {
@@ -811,16 +823,19 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       box(root, 'storm_drain_outlet', [.08, .24, .62], [x(.7) - side * .22, .30, 2], seam);
     }
   }
-  root.userData = { id: `env_${kind}_A`, axes: '+Y up, +Z forward', variantSeed,
+  root.userData = { id: `env_${kind}_A`, axes: '+Y up, +Z forward', variantSeed, lod,
     roadsideSide: side, regionLengthM: 96, placementSource: 'roadsideRegions',
     collisionRole: 'decorative-only', noSpawnChange: true };
-  if (!near) batchFarMeshes(root);
+  if (!near) batchStaticMeshes(root, 'far_material_batch');
   const dispose = () => {
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
     root.traverse(obj => { if (obj instanceof THREE.Mesh) {
       geometries.add(obj.geometry);
       (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => materials.add(m));
-    } });
+    }
+      for (const material of (obj.userData.batchOrphanMaterials ?? []) as THREE.Material[])
+        materials.add(material);
+    });
     geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
   };
   return { root, dispose };

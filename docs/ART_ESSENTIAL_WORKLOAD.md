@@ -78,6 +78,8 @@ Các phụ kiện nhỏ, skin sơn thêm, nội thất, anim phụ và trang tr�
 
 **Chuyển giao NPC để chủ dự án sửa (25/10):** 13 mẫu người hiện hành đã được xuất ra `assets/art/people-edit-source.blend`, mỗi mẫu một collection; `people-edit-source.glb` là snapshot từ mesh TypeScript. Tạm dừng nắn NPC trong nhánh art theo yêu cầu chủ dự án, chờ mẫu Blender được sửa rồi mới tiếp tục tích hợp/đánh giá nhân vật. Vì vậy ưu tiên trước mắt chuyển sang phố, môi trường, vật liệu/ánh sáng và ngoại thất xe/hazard. Nhà phố cao tầng `skyline-shophouse.blend`/`.glb` đã được dựng cho nhịp skyline; chỉ thử ở scene preview.
 
+Trong lượt tối ưu tiếp theo, `optimizeNearScenery(root)` gộp mesh tĩnh **bên trong từng root công trình/cây** trước khi đặt cluster, giữ tên/transform root cho placement hoặc thay GLB. Ở cùng camera trong `scene.html`, draw calls giảm 1.126 → 870–871 (khoảng 23%); tam giác được gửi lên GPU tăng 47.240 → khoảng 50.500 khi chuyển sang culling theo cụm và thử đặt tòa cao tầng vào mặt phố. Đây là một frame preview, chưa chứng minh FPS game. Cần đo frame P95, bộ nhớ và nhiều seed/biome trước khi bật trong gameplay.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

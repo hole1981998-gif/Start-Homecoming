@@ -4,7 +4,7 @@ import { createCar4Art } from '../src/art/car4';
 import { createVehicleArt } from '../src/art/vehicle-catalog';
 import { createPersonArt } from '../src/art/people';
 import { createSurfaceHazardArt } from '../src/art/hazards';
-import { createSceneryCluster } from '../src/art/scenery';
+import { createSceneryCluster, optimizeNearScenery } from '../src/art/scenery';
 import { createRoadTileArt } from '../src/art/road-kit';
 import { createRainArt, createRainSplashArt } from '../src/art/weather';
 import { balance } from '../src/config';
@@ -127,12 +127,15 @@ let nativeMarket: THREE.Object3D | undefined;
 let nativeSkyline: THREE.Object3D | undefined;
 for (const [side, z, variantSeed] of [[-1, 17, 0], [1, 17, 1]] as const) {
   const art = createSceneryCluster('city', side, 'near', variantSeed);
+  optimizeNearScenery(art.root);
   art.root.position.z = z; scene.add(art.root);
-  if (side === -1) nativeShop = art.root.getObjectByName('porch_house');
+  if (side === -1) {
+    nativeShop = art.root.getObjectByName('porch_house');
+    nativeSkyline = art.root.getObjectByName('corner_shop');
+  }
   if (side === 1) {
     nativeMidrise = art.root.getObjectByName('midrise_apartments');
     nativeMarket = art.root.getObjectByName('wide_storefront');
-    nativeSkyline = art.root.getObjectByName('backlot_1');
   }
   const nextDistrict = createSceneryCluster('city', side, 'far', variantSeed + 2);
   nextDistrict.root.position.z = z + 66;
@@ -214,9 +217,11 @@ new GLTFLoader().load(skylineUrl, gltf => {
   if (!nativeSkyline) return;
   const placement = nativeSkyline.getWorldPosition(new THREE.Vector3());
   gltf.scene.position.copy(placement);
-  gltf.scene.rotation.y = -Math.PI / 2;
+  gltf.scene.position.x -= 1.5;
+  gltf.scene.position.z += 6;
+  gltf.scene.rotation.y = Math.PI / 2;
   const bounds = new THREE.Box3().setFromObject(gltf.scene);
-  if (bounds.min.x <= balance.laneWidth * balance.laneCount / 2) return;
+  if (bounds.max.x >= -balance.laneWidth * balance.laneCount / 2) return;
   nativeSkyline.visible = false;
   gltf.scene.traverse(object => {
     if (object instanceof THREE.Mesh) {
