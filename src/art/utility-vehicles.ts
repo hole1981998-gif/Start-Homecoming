@@ -73,6 +73,7 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
   let tractor: THREE.Group | undefined, trailer: THREE.Group | undefined;
   if (kind === 'tricycle') {
     const trayShade = material('#72573f', .83), trim = material('#e2c18b', .68);
+    const plank = material('#a1845e', .86);
     const front = new THREE.Group(); front.name = 'front_steer'; body.add(front);
     wheel(front, 'front', 0, 1.18, .29);
     const frontFender = new THREE.Mesh(new THREE.TorusGeometry(.315, .048, 5, 16, Math.PI), paint);
@@ -124,7 +125,18 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
         [side * .55, .82, -1.575], red);
     }
     if (lod === 'near') {
+      for (const x of [-.46, 0, .46]) block(body, `tray_floor_plank_${x}`,
+        [.41, .018, 1.66], [x, .82, -.63], plank);
       for (const z of [-1.28, -.52, .21]) block(body, `tray_slat_${z}`, [1.37, .03, .06], [0, .83, z], light);
+      for (const y of [.91, 1.13]) block(body, `tailgate_plank_seam_${y}`,
+        [1.20, .018, .024], [0, y, -1.586], trayShade);
+      block(body, 'tailgate_center_latch', [.15, .13, .052], [0, 1.16, -1.595], steel);
+      for (const side of [-1, 1]) {
+        block(body, `tailgate_lower_hinge_${side}`, [.11, .11, .052],
+          [side * .57, .86, -1.595], steel);
+        block(body, `side_tray_rear_reflector_${side}`, [.024, .08, .17],
+          [side * .80, 1.09, -1.39], red);
+      }
       block(body, 'number_plate', [.27, .13, .03], [0, .65, -1.59], light);
     }
     seats.push(socket(root, 'seat_driver', [0, 1.09, .25]));

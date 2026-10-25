@@ -112,6 +112,8 @@ Hai dải bóng chéo cứng của scene preview được thay bằng `src/art/r
 
 Car7 near được thêm ô kính mái tối, gioăng, gân dập và đầu ray mái; ở camera sau 9:16 mảng mái lớn nay có cấu trúc rõ thay một tấm sơn trống. Far LOD bỏ các chi tiết này, bảy seat/socket và footprint 2,08 × 4,8 m giữ nguyên. Đây là ngoại thất nguồn, chưa chỉnh nội thất hay camera game.
 
+Ba gác near có sàn ghép ba tấm gỗ, đường ghép cửa thùng, khóa giữa, bản lề và phản quang sau bên hông; thùng vẫn trống để không che bốn vị trí khách/hàng hiện có. Từ camera 9:16 cấu trúc sàn/cửa dễ đọc hơn nhưng mẫu tài xế vẫn quá lớn so với xe; chờ chủ dự án chỉnh NPC `.blend`, không tự đổi mount/footprint.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
