@@ -5,13 +5,19 @@ import { createAmbulanceArt, createOfficerArt, createTrainArt, createVendorArt }
 import { createRoadTileArt } from '../src/art/road-kit';
 import { createSceneryCluster } from '../src/art/scenery';
 import { createAccidentArt, createShopArt } from '../src/art/special-hazards';
+import { createOpenWaterArt, type OpenWaterKind } from '../src/art/water-body';
 import type { LandscapeKind } from '../src/landscape';
 
-type Art = { root: THREE.Group; dispose: () => void };
+type Art = { root: THREE.Group; setVisualTime?: (elapsedSeconds: number) => void;
+  dispose: () => void };
 type Kind = PropHazardKind | 'water' | 'pothole' | 'train' | 'ambulance' |
-  'police' | 'militia' | 'vendor' | 'accident' | 'shop' | 'road' | LandscapeKind;
+  'police' | 'militia' | 'vendor' | 'accident' | 'shop' | 'road' | LandscapeKind |
+  OpenWaterKind;
 function make(kind: Kind, lod: 'near' | 'far', variantSeed = 0): Art {
   if (kind === 'water') return createSurfaceHazardArt('water', 3.2, 7, lod);
+  if (kind === 'river' || kind === 'lake')
+    return createOpenWaterArt(kind, kind === 'river' ? 16 : 20,
+      kind === 'river' ? 44 : 30, lod);
   if (kind === 'pothole') return createSurfaceHazardArt('pothole', 2.3, 4, lod);
   if (kind === 'train') return createTrainArt(1, lod);
   if (kind === 'ambulance') return createAmbulanceArt(lod);
@@ -40,7 +46,9 @@ const views = (['gameplay', 'rear', 'front', 'side', 'top'] as const).map(name =
   let art = make('water', 'near'); scene.add(art.root);
   const camera = name === 'gameplay' ? new THREE.PerspectiveCamera(43, 9 / 16, .1, 130) :
     new THREE.OrthographicCamera(-10, 10, 10, -10, .1, 130);
-  return { name, canvas, renderer, scene, camera, setArt(next: Art) {
+  return { name, canvas, renderer, scene, camera,
+    updateVisual(time: number) { art.setVisualTime?.(time); renderer.render(scene, camera); },
+    setArt(next: Art) {
     scene.remove(art.root); art.dispose(); art = next; scene.add(art.root);
   } };
 });
@@ -63,7 +71,8 @@ function draw() {
   const variantSeed = Number((document.getElementById('variant') as HTMLSelectElement).value);
   const scenery = ['city', 'trees', 'cliffs', 'rice', 'sea'].includes(kind);
   for (const boat of coastBoats) boat.visible = kind === 'sea' && lod === 'near';
-  const big = kind === 'train' ? 24 : kind === 'city' ? 42 : scenery ? 31 : kind === 'road' ? 10 :
+  const big = kind === 'train' ? 24 : kind === 'city' ? 42 : scenery ? 31 :
+    kind === 'river' || kind === 'lake' ? 31 : kind === 'road' ? 10 :
     kind === 'water' ? 7 : kind === 'pothole' ? 4 : kind === 'barrier' ? 6.2 :
     kind === 'fallen_tree' ? 4.3 : kind === 'ambulance' || kind === 'accident' ? 5 :
       kind === 'shop' ? 4.2 : 2.5;
@@ -93,3 +102,13 @@ function draw() {
 for (const id of ['kind', 'lod', 'variant']) document.getElementById(id)?.addEventListener('change', draw);
 new ResizeObserver(draw).observe(document.body);
 draw();
+let lastWaterFrame = 0;
+function animateWater(timeMs: number) {
+  const kind = (document.getElementById('kind') as HTMLSelectElement).value as Kind;
+  if (timeMs - lastWaterFrame >= 50 && ['water', 'river', 'lake', 'sea', 'rice'].includes(kind)) {
+    lastWaterFrame = timeMs;
+    for (const view of views) view.updateVisual(timeMs / 1000);
+  }
+  requestAnimationFrame(animateWater);
+}
+requestAnimationFrame(animateWater);
