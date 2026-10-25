@@ -80,7 +80,10 @@ describe('essential hazard art', () => {
     const rimHeight = (object: THREE.Object3D) =>
       new THREE.Box3().setFromObject(object).getSize(new THREE.Vector3()).y;
     expect(rimHeight(waterRim)).toBeLessThan(.015);
-    expect(rimHeight(holeRim)).toBeGreaterThan(.025);
+    expect(rimHeight(holeRim)).toBeGreaterThan(.05);
+    const wallColor = (holeRim as THREE.Mesh).geometry.getAttribute('color');
+    expect(wallColor).toBeDefined();
+    expect(wallColor.getX(0) - wallColor.getX(1)).toBeGreaterThan(.10);
     water.dispose(); hole.dispose();
   });
   it('uses soft square outlines and a subdivided water surface within the collider footprint', () => {

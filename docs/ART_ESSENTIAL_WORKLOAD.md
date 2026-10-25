@@ -108,6 +108,8 @@ Sông/hồ source tiếp tục tăng độ gợn mesh near theo ba tần số kh
 
 Hai dải bóng chéo cứng của scene preview được thay bằng `src/art/road-shadows.ts`: một source road-local có mép feather, hình hơi gãy và có `dispose`, đặt hai bản trên đường mẫu. Đây là mảng tối art để thử chiaroscuro, không phải shadow caster vật lý; route runtime phải đặt theo `pathPose` và kiểm hazard/cue không mất tương phản trước khi sử dụng. Không đổi lighting rig hay gameplay renderer.
 
+Ổ gà near có vách nghiêng cao hơn và vertex color từ viền đất sáng sang lòng tối theo một hướng nắng cố định; đáy tối/lạnh hơn để đọc chiều sâu từ camera sau. Water vẫn giữ mặt phẳng nông và normal map gợn riêng. Đây là chiều sâu giả lập phía trên mặt đường, không khoét geometry road/collider; cần kiểm cue trong route thật dưới bóng và mưa.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

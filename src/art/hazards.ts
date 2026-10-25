@@ -78,7 +78,9 @@ function patch(parent: THREE.Object3D, name: string, width: number, length: numb
 }
 function bevelBasin(parent: THREE.Object3D, kind: SurfaceHazardKind, width: number, length: number,
   lod: 'near' | 'far', material: THREE.Material) {
-  const positions: number[] = [];
+  const positions: number[] = [], colors: number[] = [];
+  const lightWall = new THREE.Color('#786751');
+  const deepWall = new THREE.Color('#24292a');
   const segments = lod === 'near' ? 32 : 20;
   for (let i = 0; i < segments; i++) {
     const p = (index: number, radius: number, y: number): [number, number, number] => {
@@ -87,16 +89,24 @@ function bevelBasin(parent: THREE.Object3D, kind: SurfaceHazardKind, width: numb
       return [Math.cos(angle) * width * radius * wobble, y,
         Math.sin(angle) * length * radius * wobble];
     };
-    const outerY = kind === 'water' ? .027 : .055;
-    const innerY = kind === 'water' ? .035 : .022;
+    const outerY = kind === 'water' ? .027 : .067;
+    const innerY = kind === 'water' ? .035 : .012;
     const a = p(i, kind === 'water' ? .47 : .46, outerY);
     const b = p(i + 1, kind === 'water' ? .47 : .46, outerY);
     const innerRadius = kind === 'water' ? .445 : .345;
     const c = p(i, innerRadius, innerY), d = p(i + 1, innerRadius, innerY);
     positions.push(...a, ...c, ...b, ...b, ...c, ...d);
+    if (kind === 'pothole') {
+      const shade = .83 + .17 * Math.max(0, Math.cos(i * Math.PI * 2 / segments - .8));
+      const outer = lightWall.clone().multiplyScalar(shade);
+      const inner = deepWall.clone().multiplyScalar(shade);
+      for (const color of [outer, inner, outer, outer, inner, inner])
+        colors.push(color.r, color.g, color.b);
+    }
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  if (colors.length) geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = 'sloped_basin_normals'; parent.add(mesh);
@@ -107,7 +117,7 @@ function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
   const positions: number[] = [], colors: number[] = [], uvs: number[] = [];
   const gradient = kind === 'water'
     ? ['#276b7c', '#59a7ae', '#8ac8bc']
-    : ['#202725', '#33342f', '#64584b'];
+    : ['#171e20', '#303331', '#655848'];
   const rings = kind === 'water' ? [0, .09, .18, .27, .36, .445] : [0, .18, .335];
   const vertex = (ring: number, index: number) => {
     const angle = index * Math.PI * 2 / segments;
@@ -191,8 +201,10 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
     transparent: true, opacity: .48, depthWrite: false, side: THREE.DoubleSide });
   const debris = material('#665f54');
   patch(root, 'readable_footprint', width, length, .015, edge, kind);
-  bevelBasin(root, kind, width, length, lod,
-    material(kind === 'water' ? '#5a8a89' : '#48453e'));
+  bevelBasin(root, kind, width, length, lod, kind === 'water'
+    ? material('#5a8a89')
+    : new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
+      roughness: 1, flatShading: true, side: THREE.DoubleSide }));
   basinFloor(root, kind, width, length, lod, center);
   const ripples: THREE.Mesh[] = [];
   if (kind === 'water') {
