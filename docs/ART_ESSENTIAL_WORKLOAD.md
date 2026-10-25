@@ -104,6 +104,8 @@ Rig `src/art/storm-lighting.ts` đóng gói sky gradient, môi trường cyan, n
 
 Ba nhà Blender dùng trong scene phố (`skyline-shophouse`, `corner-market`, `roadside-midrise`) đã được chỉnh vật liệu ở source `.blend` và xuất lại `.glb`: tường ấm sâu hơn, viền đất nung rõ hơn, mái/ô kính xanh bão đậm hơn. Script `assets/art/export-roadside-buildings.py` gộp 12/10 nhóm vật liệu cho market/midrise và xoay riêng midrise từ trục Y của source sang trục đứng export; `export-skyline-shophouse.py` tiếp tục giữ 12 nhóm cho skyline. Chỉ đổi palette/GLB, không đổi footprint, placement, collision hay NPC. Browser gallery cho thấy cả ba nhà đúng trục; scene phố vẫn còn fog khiến dãy xa nhạt và bóng đường proxy, cần xử lý khi runtime tích hợp.
 
+Sông/hồ source tiếp tục tăng độ gợn mesh near theo ba tần số không đồng pha, giữ far nhỏ để tránh shimmer; tâm nước sông xanh sâu hơn, bờ được nâng thành dốc thấp thay đường viền phẳng. Bờ vẫn nằm trong kích thước yêu cầu của root; hồ dùng màu/dao động dịu hơn để không trông như hố xoáy. Gallery 9:16 cho thấy các facet nước gần rõ hơn, nhưng chưa có địa hình nối bờ, foam hay placement trong route. `setVisualTime` vẫn nhận clock từ caller và không ảnh hưởng collider/spawn.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

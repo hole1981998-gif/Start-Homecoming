@@ -31,6 +31,13 @@ describe('decorative river and lake water', () => {
       const count = (art: ReturnType<typeof createOpenWaterArt>) =>
         ((art.root.children[0] as THREE.Mesh).geometry.getAttribute('position').count);
       expect(count(near)).toBeGreaterThan(count(far) * 2);
+      const crest = (art: ReturnType<typeof createOpenWaterArt>) => {
+        art.setVisualTime(1.5);
+        const position = (art.root.children[0] as THREE.Mesh).geometry.getAttribute('position');
+        return Math.max(...Array.from({ length: position.count }, (_, i) => Math.abs(position.getY(i))));
+      };
+      expect(crest(near)).toBeGreaterThan(.08);
+      expect(crest(far)).toBeLessThan(crest(near) * .5);
       near.dispose(); far.dispose();
     }
     expect(() => createOpenWaterArt('lake', 0, 4)).toThrow();

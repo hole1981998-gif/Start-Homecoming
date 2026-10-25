@@ -19,7 +19,7 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
     placementSource: 'future art placement; no spawn change' };
   const vertices: number[] = [], colors: number[] = [], indices: number[] = [];
   const edge = new THREE.Color('#8bc8b5');
-  const middle = new THREE.Color(kind === 'river' ? '#408da2' : '#3f8897');
+  const middle = new THREE.Color(kind === 'river' ? '#2a778f' : '#4a9fac');
   const color = new THREE.Color();
   if (kind === 'river') {
     const columns = lod === 'near' ? 20 : 10;
@@ -32,6 +32,7 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
         const u = col / columns;
         vertices.push((u - .5) * width * bankWidth + bend, 0, z);
         color.copy(middle).lerp(edge, Math.abs(u - .5) * 1.65);
+        color.multiplyScalar(.93 + .07 * Math.sin(z * .42 + u * 8.7));
         colors.push(color.r, color.g, color.b);
         if (row < rows && col < columns) {
           const a = row * (columns + 1) + col;
@@ -54,6 +55,8 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
         vertices.push(Math.cos(angle) * width * .43 * r * uneven, 0,
           Math.sin(angle) * length * .43 * r * uneven);
         color.copy(middle).lerp(edge, Math.max(0, r - .42) * 1.35);
+        color.multiplyScalar(.97 + .03 * Math.sin(
+          Math.cos(angle) * width * r * .38 + Math.sin(angle) * length * r * .16));
         colors.push(color.r, color.g, color.b);
         const next = (segment + 1) % segments;
         if (ring === 1) indices.push(0, 1 + next, 1 + segment);
@@ -88,16 +91,16 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
       const point = (r: number, outward: number) => {
         const vertex = (r * (columns + 1) + edgeColumn) * 3;
         return [vertices[vertex] + (edgeColumn === 0 ? -1 : 1) * outward * width,
-          -.018, vertices[vertex + 2]];
+          outward === 0 ? -.035 : .16, vertices[vertex + 2]];
       };
       const a = point(row, 0), b = point(row + 1, 0);
-      const c = point(row, .018), d = point(row + 1, .018);
+      const c = point(row, .035), d = point(row + 1, .035);
       shorePositions.push(...a, ...c, ...b, ...b, ...c, ...d);
     }
     shoreGeometry = new THREE.BufferGeometry();
     shoreGeometry.setAttribute('position', new THREE.Float32BufferAttribute(shorePositions, 3));
     shoreGeometry.computeVertexNormals();
-    shoreMaterial = new THREE.MeshStandardMaterial({ color: '#9eae83', roughness: .94,
+    shoreMaterial = new THREE.MeshStandardMaterial({ color: '#7a977a', roughness: .94,
       side: THREE.DoubleSide, flatShading: true });
     const shore = new THREE.Mesh(shoreGeometry, shoreMaterial);
     shore.name = 'river_grassy_banks';
@@ -110,7 +113,8 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
         const angle = segment * Math.PI * 2 / segments;
         const uneven = 1 + Math.sin(angle * 3 + .8) * .035 +
           Math.sin(angle * 7 - .3) * .025;
-        return [Math.cos(angle) * width * radius * uneven, -.018,
+        return [Math.cos(angle) * width * radius * uneven,
+          radius < .43 ? -.035 : .16,
           Math.sin(angle) * length * radius * uneven];
       };
       const a = point(i, .425), b = point(i + 1, .425);
@@ -120,7 +124,7 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
     shoreGeometry = new THREE.BufferGeometry();
     shoreGeometry.setAttribute('position', new THREE.Float32BufferAttribute(shorePositions, 3));
     shoreGeometry.computeVertexNormals();
-    shoreMaterial = new THREE.MeshStandardMaterial({ color: '#8da37e', roughness: .94,
+    shoreMaterial = new THREE.MeshStandardMaterial({ color: '#77947a', roughness: .94,
       side: THREE.DoubleSide, flatShading: true });
     const shore = new THREE.Mesh(shoreGeometry, shoreMaterial);
     shore.name = 'lake_vegetated_bank';
@@ -136,10 +140,12 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
       const edgeDistance = kind === 'lake'
         ? Math.hypot(x / (width * .43), z / (length * .43))
         : Math.abs(x / (width * .5));
-      const fade = Math.max(.18, 1 - edgeDistance * .68);
+      const fade = Math.max(.16, 1 - edgeDistance * .74);
+      const amplitude = (lod === 'near' ? 1 : .28) * (kind === 'lake' ? .75 : 1);
       array[i + 1] = base[i + 1] +
-        fade * (Math.sin(x * .72 + z * 1.35 + t * 1.7) * .037 +
-          Math.sin(x * 1.8 - z * .54 - t * 1.1) * .016);
+        fade * amplitude * (Math.sin(x * .68 + z * .84 + t * 1.3) * .11 +
+          Math.sin(x * 1.45 - z * .46 - t * 1.1) * .055 +
+          Math.sin(z * .19 + x * .26 + t * .65) * .07);
     }
     position.needsUpdate = true;
     geometry.computeVertexNormals();
