@@ -18,7 +18,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 configureStormRenderer(renderer);
 const scene = new THREE.Scene();
 const lighting = createStormLighting(scene);
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, 220),
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(320, 320),
   new THREE.MeshLambertMaterial({ color: '#657868' }));
 ground.rotation.x = -Math.PI / 2; ground.position.set(0, -.24, 17); ground.receiveShadow = true; scene.add(ground);
 const shadowCanvas = document.createElement('canvas');
@@ -54,7 +54,7 @@ for (const [z, skew, bandWidth] of [[-7.5, 8, 11], [24, 12, 5]] as const) {
   shade.root.position.z = z;
   scene.add(shade.root);
 }
-for (let z = -34; z <= 138; z += 4) {
+for (let z = -34; z <= 190; z += 4) {
   const tile = createRoadTileArt(z < -2 ? 'near' : 'far');
   tile.setWetness(.70);
   tile.root.position.z = z; scene.add(tile.root);

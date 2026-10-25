@@ -18,8 +18,10 @@ export function createStormLighting(scene: THREE.Scene) {
   sky.width = 512; sky.height = 256;
   const context = sky.getContext('2d')!;
   const gradient = context.createLinearGradient(0, 0, 0, sky.height);
-  gradient.addColorStop(0, '#4f7188');
-  gradient.addColorStop(.58, '#7fa8b1');
+  gradient.addColorStop(0, '#425f74');
+  gradient.addColorStop(.18, '#5da4ab');
+  gradient.addColorStop(.35, '#5da4ab');
+  gradient.addColorStop(.62, '#87b7b8');
   gradient.addColorStop(1, '#a9c6bf');
   context.fillStyle = gradient;
   context.fillRect(0, 0, sky.width, sky.height);
