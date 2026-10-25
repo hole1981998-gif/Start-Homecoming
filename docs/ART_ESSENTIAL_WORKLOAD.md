@@ -124,11 +124,17 @@ Phố seeded B/C nay phân bố sáu mặt tiền theo độ rộng thật của
 
 ## Hợp đồng với prototype hiện hành
 
+### Chỉnh sáng theo feedback mới
+
+Nắng chính và hai vệt nắng phụ trong `storm-lighting.ts` chuyển từ cam-vàng sang trắng ấm, giảm cường độ để nhà không nhuộm vàng. Hemisphere, ambient và fill thiên cyan-blue hơn để mặt khuất có sắc xanh nhưng vẫn giữ vùng tối. `markGameplayAccentTarget` chỉ đánh dấu mesh xe/hazard đường cho một directional light nhẹ riêng; cảnh phố, đường và sky không nhận đèn này. Preview đã gắn cho player, traffic, nước và ổ gà. Khi tích hợp runtime, chỉ đánh dấu các object gameplay tương ứng và cập nhật anchor theo vị trí xe.
+
+Mái car4/car7/bus/truck/container nay theo màu thân được chọn, tăng sáng vừa phải và có emissive rất nhẹ để nhận diện ở vùng bóng. Đây là màu của source art; không thêm skin/biến thể xe. Xem trực tiếp ở camera prototype `scene.html` với car4, car7, bus, truck, container; mái có hue riêng, bóng trước xe xanh hơn. Độ nổi khi lái dưới mưa/HUD thật vẫn chưa kiểm.
+
 ### Ưu tiên rút gọn sau feedback 25/10
 
 Chủ dự án ưu tiên hoàn thành bản chơi thiết yếu. Vòng polish người trước tích hợp chỉ cần **6 mẫu khách** có vai trò/hình dáng khác nhau: `commuter`, `student`, `child`, `worker`, `parent`, `senior`, cộng tài xế. Sáu mẫu khách còn lại đã có source nhưng không cần tiếp tục polish ở vòng này; không xóa để tránh phá khả năng reuse. Tạm hoãn skin sơn, nội thất, props nhỏ, biểu cảm/animation phụ và các biến thể trang trí không cải thiện độ đọc gameplay.
 
-Đích hình ảnh ưu tiên ngay: nhà ven đường có local color trung tính/tối hơn, mặt khuất nhận ambient cyan tối, nắng ấm tạo mảng sáng rõ; fog cyan tăng về cuối đường trên geometry và gradient nền trời được hòa cùng tông ở chân trời. `storm-lighting.ts`, palette nhà code-native và cảnh `scene.html` đã thử hướng này. Nhà Blender nhập vào cảnh được giảm saturation/độ sáng **ở preview**; `.blend` và `.glb` gốc chưa đổi. Nước hazard gần giảm từ lưới 12×16 ô (384 tam giác) xuống 8×10 ô (160 tam giác), các màu facet sát nhau hơn; footprint/collider giữ nguyên. Cần chủ dự án xem cảnh sau chỉnh, rồi kiểm cả hai yêu cầu trên route game thật trước khi duyệt art cuối.
+Đích hình ảnh ưu tiên ngay: nhà ven đường có local color trung tính/tối hơn, mặt khuất nhận ambient cyan tối, nắng ấm tạo mảng sáng rõ; fog cyan tăng về cuối đường trên geometry và gradient nền trời được hòa cùng tông ở chân trời. `storm-lighting.ts`, palette nhà code-native và cảnh `scene.html` đã thử hướng này. Nhà Blender nhập vào cảnh được giảm saturation/độ sáng bằng helper `gradeStormCityBuilding()` dùng lại được; `.blend` và `.glb` gốc chưa đổi. Nước hazard gần giảm từ lưới 12×16 ô (384 tam giác) xuống 8×10 ô (160 tam giác), các màu facet sát nhau hơn; footprint/collider giữ nguyên. Cần chủ dự án xem cảnh sau chỉnh, rồi kiểm cả hai yêu cầu trên route game thật trước khi duyệt art cuối.
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
 - Nước/ổ gà nhận `entity.width` và `entity.length` trực tiếp. Tàu 24×2,8 m, rào 6,2×1,4 m, vendor 1,8×2,1 m; cứu thương dùng car7 2,08×4,8 m. Animation di chuyển lấy từ `crossMotion`/simulation. Không thay nhịp train, patrol hay vendor trong art.

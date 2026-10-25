@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createVehicleArt } from '../src/art/vehicle-catalog';
 import { vehicles, type VehicleKind } from '../src/vehicles';
+import * as THREE from 'three';
 
 describe('vehicle art catalog', () => {
   it('covers all eight player and traffic roles from the same family factories', () => {
@@ -39,6 +40,26 @@ describe('vehicle art catalog', () => {
       expect([used?.visible, damage?.visible, wreck?.visible]).toEqual([true, true, true]);
       art.setCondition('clean');
       expect([used?.visible, damage?.visible, wreck?.visible]).toEqual([false, false, false]);
+      art.dispose();
+    }
+  });
+  it('keeps player roofs colored with their selected body paint', () => {
+    for (const [kind, roofNames] of [
+      ['car4', ['floating_roof']], ['car7', ['raised_roof']], ['bus', ['roof_crown']],
+      ['truck', ['cab_roof']], ['container', ['cab_roof', 'container_roof']],
+    ] as [VehicleKind, string[]][]) {
+      const art = createVehicleArt(kind, 'player');
+      const roofColors = roofNames.map(name => {
+        const roof = art.root.getObjectByName(name) as THREE.Mesh | undefined;
+        expect(roof, `${kind}: ${name}`).toBeDefined();
+        return (roof!.material as THREE.MeshStandardMaterial).color;
+      });
+      art.setPaint('#1f83c7');
+      for (const roof of roofColors) {
+        const hsl = roof.getHSL({ h: 0, s: 0, l: 0 });
+        expect(hsl.s, kind).toBeGreaterThan(.45);
+        expect(hsl.h, kind).toBeGreaterThan(.5);
+      }
       art.dispose();
     }
   });

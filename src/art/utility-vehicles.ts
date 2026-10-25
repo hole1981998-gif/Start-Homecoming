@@ -44,7 +44,8 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
   const spec = specs[kind];
   const root = new THREE.Group(); root.name = `veh_${kind}_${role}_root`;
   const body = new THREE.Group(); body.name = 'suspensionVisual'; root.add(body);
-  const paint = material(spec.color, .46, .16), light = material('#ddd2af', .55, .08);
+  const paint = material(spec.color, .46, .16), roofPaint = material(spec.color, .5, .12);
+  const light = material('#ddd2af', .55, .08);
   const dark = material('#4e5a5b', .69, .08), rubber = material('#202b30', .9);
   const glass = material('#4b6d74', .24, .08), steel = material('#b8c4c1', .43, .4);
   const red = material('#b74548', .37), amber = material('#e9b96f', .41);
@@ -149,7 +150,7 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     const stripe = material('#d9825e', .61), sign = material('#e7c57e', .55);
     block(body, 'chassis', [2.46, .48, 9.45], [0, .75, 0], dark);
     block(body, 'passenger_body', [2.52, 1.75, 9.44], [0, 1.77, 0], paint);
-    block(body, 'roof_crown', [2.37, .16, 9.25], [0, 2.75, 0], light);
+    block(body, 'roof_crown', [2.37, .16, 9.25], [0, 2.75, 0], roofPaint);
     for (const side of [-1, 1]) for (const z of [-4.53, 4.53]) {
       const corner = new THREE.Mesh(new THREE.CylinderGeometry(.16, .16, 1.58, 8), paint);
       corner.name = `rounded_corner_${side}_${z}`;
@@ -217,7 +218,7 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     const canvas = material('#ddd1aa', .87), accent = material('#c27c5a', .58);
     block(body, 'ladder_chassis', [2.28, .38, 6.55], [0, .83, 0], dark);
     block(body, 'cab_lower', [2.35, 1.30, 2.42], [0, 1.36, 2.12], paint);
-    block(body, 'cab_roof', [2.17, .15, 2.15], [0, 2.47, 2.09], light);
+    block(body, 'cab_roof', [2.17, .15, 2.15], [0, 2.47, 2.09], roofPaint);
     block(body, 'cab_sun_visor', [2.11, .08, .27], [0, 2.48, 3.15], dark);
     face(body, 'angled_truck_windscreen', [[-1.02, 2.39, 3.06], [1.02, 2.39, 3.06],
       [1.08, 1.63, 3.36], [-1.08, 1.63, 3.36]], glass);
@@ -276,7 +277,7 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     trailer = new THREE.Group(); trailer.name = 'trailer'; root.add(trailer);
     block(tractor, 'tractor_chassis', [2.38, .42, 4.38], [0, .88, 5.17], dark);
     block(tractor, 'tractor_cab', [2.38, 1.72, 2.50], [0, 1.73, 5.98], paint);
-    block(tractor, 'cab_roof', [2.20, .15, 2.28], [0, 2.66, 5.93], light);
+    block(tractor, 'cab_roof', [2.20, .15, 2.28], [0, 2.66, 5.93], roofPaint);
     block(tractor, 'cab_sun_visor', [2.18, .09, .25], [0, 2.69, 7.07], dark);
     face(tractor, 'windscreen', [[-1.06, 2.58, 7.04], [1.06, 2.58, 7.04],
       [1.14, 1.82, 7.30], [-1.14, 1.82, 7.30]], glass);
@@ -301,7 +302,7 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     block(tractor, 'fifth_wheel', [1.15, .09, .91], [0, 1.14, 3.23], dark);
     block(trailer, 'trailer_floor', [2.61, .30, 10.29], [0, 1.31, -2.10], dark);
     block(trailer, 'container_shell', [2.61, 2.42, 10.19], [0, 2.61, -2.15], wood);
-    block(trailer, 'container_roof', [2.55, .09, 10.17], [0, 3.85, -2.15], light);
+    block(trailer, 'container_roof', [2.55, .09, 10.17], [0, 3.85, -2.15], roofPaint);
     block(trailer, 'roof_center_channel', [.37, .025, 10.02], [0, 3.91, -2.15], roofRib);
     for (const z of [-6.65, -5.55, -4.45, -3.35, -2.25, -1.15, -.05, 1.05, 2.15])
       block(trailer, `roof_cross_rib_${z}`, [2.51, .035, .055], [0, 3.92, z], roofRib);
@@ -356,7 +357,12 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
   wreck.visible = false;
   root.userData = { ...root.userData, id: `veh_${kind}_${role}_A`, axes: '+Y up, +Z forward',
     widthM: spec.width, lengthM: spec.length, lod, role, logicCollisionRole: 'reference-only' };
-  const setPaint = (color: string) => paint.color.set(color);
+  const setPaint = (color: string) => {
+    paint.color.set(color);
+    roofPaint.color.set(color).offsetHSL(0, .04, .10);
+    roofPaint.emissive.set(color);
+    roofPaint.emissiveIntensity = .10;
+  };
   const setCondition = (condition: VehicleCondition) => {
     used.visible = condition !== 'clean';
     damaged.visible = condition === 'damaged' || condition === 'destroyed';

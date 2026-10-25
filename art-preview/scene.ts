@@ -6,7 +6,7 @@ import { createSurfaceHazardArt } from '../src/art/hazards';
 import { createSceneryCluster, optimizeNearScenery } from '../src/art/scenery';
 import { createRoadTileArt } from '../src/art/road-kit';
 import { createRainArt, createRainSplashArt } from '../src/art/weather';
-import { configureStormRenderer, createStormLighting } from '../src/art/storm-lighting';
+import { configureStormRenderer, createStormLighting, gradeStormCityBuilding, markGameplayAccentTarget } from '../src/art/storm-lighting';
 import { createRoadShadowArt } from '../src/art/road-shadows';
 import { balance } from '../src/config';
 import { vehicles, type VehicleKind } from '../src/vehicles';
@@ -42,7 +42,7 @@ shadowContext.putImageData(shadowPixels, 0, 0);
 const shadowMap = new THREE.CanvasTexture(shadowCanvas);
 for (const [x, z, width, length] of [[-2, 36, 29, 21], [4, 77, 25, 16]] as const) {
   const cloudShadow = new THREE.Mesh(new THREE.PlaneGeometry(width, length),
-    new THREE.MeshBasicMaterial({ color: '#26434b', alphaMap: shadowMap,
+    new THREE.MeshBasicMaterial({ color: '#1b4459', alphaMap: shadowMap,
       transparent: true, opacity: .46, depthWrite: false }));
   cloudShadow.name = `cloud_shadow_${z}`;
   cloudShadow.rotation.x = -Math.PI / 2;
@@ -79,15 +79,16 @@ function createPreviewPlayer(kind: VehicleKind) {
   art.root.traverse(object => {
     if (object instanceof THREE.Mesh) { object.castShadow = true; object.receiveShadow = true; }
   });
+  markGameplayAccentTarget(art.root);
   return art;
 }
 let player = createPreviewPlayer('car4'); scene.add(player.root);
 const traffic = createVehicleArt('car7', 'traffic', 'near', '#a88772');
-traffic.root.position.set(-3.2, .02, 21); traffic.root.rotation.y = Math.PI; scene.add(traffic.root);
+traffic.root.position.set(-3.2, .02, 21); traffic.root.rotation.y = Math.PI; markGameplayAccentTarget(traffic.root); scene.add(traffic.root);
 const bike = createVehicleArt('motorcycle', 'traffic', 'far', '#c5a36c');
-bike.root.position.set(3.2, .02, 31); scene.add(bike.root);
-const water = createSurfaceHazardArt('water', 3.2, 7); water.root.position.set(3.2, .025, 12); scene.add(water.root);
-const pothole = createSurfaceHazardArt('pothole', 2.3, 4); pothole.root.position.set(0, .035, 27); scene.add(pothole.root);
+bike.root.position.set(3.2, .02, 31); markGameplayAccentTarget(bike.root); scene.add(bike.root);
+const water = createSurfaceHazardArt('water', 3.2, 7); water.root.position.set(3.2, .025, 12); markGameplayAccentTarget(water.root); scene.add(water.root);
+const pothole = createSurfaceHazardArt('pothole', 2.3, 4); pothole.root.position.set(0, .035, 27); markGameplayAccentTarget(pothole.root); scene.add(pothole.root);
 const waiting = createPersonArt('commuter'); waiting.setPose('hail', .25);
 waiting.root.position.set(-6.6, 0, 12); waiting.root.rotation.y = Math.PI / 2; scene.add(waiting.root);
 let nativeShop: THREE.Object3D | undefined;
@@ -115,26 +116,6 @@ const biomeKind = document.getElementById('biomeKind') as HTMLSelectElement;
 const alternateBiome = new THREE.Group(); scene.add(alternateBiome);
 let alternateArts: ReturnType<typeof createSceneryCluster>[] = [];
 const importedCityBuildings: THREE.Object3D[] = [];
-function gradeImportedCity(root: THREE.Object3D): void {
-  const graded = new Map<THREE.Material, THREE.Material>();
-  const grade = (source: THREE.Material): THREE.Material => {
-    let material = graded.get(source);
-    if (!material) {
-      material = source.clone();
-      if (material instanceof THREE.MeshStandardMaterial) {
-        material.color.offsetHSL(0, -.10, -.09);
-        material.roughness = Math.max(material.roughness, .78);
-      }
-      graded.set(source, material);
-    }
-    return material;
-  };
-  root.traverse(object => {
-    if (!(object instanceof THREE.Mesh)) return;
-    object.material = Array.isArray(object.material)
-      ? object.material.map(grade) : grade(object.material);
-  });
-}
 biomeKind.addEventListener('change', () => {
   const kind = biomeKind.value as LandscapeKind;
   cityRoot.visible = kind === 'city';
@@ -165,6 +146,7 @@ scene.traverse(object => {
   }
 });
 const camera = new THREE.PerspectiveCamera(52, 9 / 16, .1, 140);
+camera.layers.enable(1);
 const cameraMode = document.getElementById('cameraMode') as HTMLSelectElement;
 const vehicleKind = document.getElementById('vehicleKind') as HTMLSelectElement;
 const selectedVehicle = () => vehicles[vehicleKind.value as VehicleKind];
@@ -213,7 +195,7 @@ vehicleKind.addEventListener('change', () => {
 });
 const shopUrl = new URL('../assets/art/roadside-shop.glb', import.meta.url).href;
 new GLTFLoader().load(shopUrl, gltf => {
-  gradeImportedCity(gltf.scene);
+  gradeStormCityBuilding(gltf.scene);
   nativeShop!.visible = false;
   gltf.scene.position.set(-8.48, 0, 20);
   gltf.scene.rotation.y = Math.PI / 2;
@@ -230,7 +212,7 @@ new GLTFLoader().load(shopUrl, gltf => {
 });
 const midriseUrl = new URL('../assets/art/roadside-midrise.glb', import.meta.url).href;
 new GLTFLoader().load(midriseUrl, gltf => {
-  gradeImportedCity(gltf.scene);
+  gradeStormCityBuilding(gltf.scene);
   if (!nativeMidrise) return;
   const placement = nativeMidrise.getWorldPosition(new THREE.Vector3());
   nativeMidrise.visible = false;
@@ -249,7 +231,7 @@ new GLTFLoader().load(midriseUrl, gltf => {
 });
 const marketUrl = new URL('../assets/art/corner-market.glb', import.meta.url).href;
 new GLTFLoader().load(marketUrl, gltf => {
-  gradeImportedCity(gltf.scene);
+  gradeStormCityBuilding(gltf.scene);
   if (!nativeMarket) return;
   const placement = nativeMarket.getWorldPosition(new THREE.Vector3());
   gltf.scene.position.copy(placement);
@@ -271,7 +253,7 @@ new GLTFLoader().load(marketUrl, gltf => {
 });
 const skylineUrl = new URL('../assets/art/skyline-shophouse.glb', import.meta.url).href;
 new GLTFLoader().load(skylineUrl, gltf => {
-  gradeImportedCity(gltf.scene);
+  gradeStormCityBuilding(gltf.scene);
   if (!nativeSkyline) return;
   const placement = nativeSkyline.getWorldPosition(new THREE.Vector3());
   gltf.scene.position.copy(placement);

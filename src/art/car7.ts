@@ -198,7 +198,12 @@ export function createCar7Art(lod: 'near' | 'far' = 'near'): Car7Art {
   sockets.exit_right = point(root, 'exit_right', [1.05, 0, -.46]);
   root.userData = { id: 'veh_car7_player_A', lod, axes: '+Y up, +Z forward', widthM: 2.08,
     lengthM: 4.8, logicCollisionRole: 'reference-only', visualPivot: 'front-biased runtime adapter' };
-  const setPaint = (color: string) => { paint.color.set(color); light.color.set(color).multiplyScalar(1.16); dark.color.set(color).multiplyScalar(.70); };
+  const setPaint = (color: string) => {
+    paint.color.set(color);
+    light.color.set(color).offsetHSL(0, .04, .10);
+    light.emissive.set(color); light.emissiveIntensity = .10;
+    dark.color.set(color).multiplyScalar(.70);
+  };
   const setCondition = (condition: VehicleCondition) => {
     used.visible = condition !== 'clean';
     damaged.visible = condition === 'damaged' || condition === 'destroyed';

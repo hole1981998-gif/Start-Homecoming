@@ -271,7 +271,9 @@ export function createCar4Art(lod: 'near' | 'far' = 'near'): Car4Art {
   };
   const setPaint = (color: string) => {
     paint.color.set(color);
-    lightPaint.color.set(color).multiplyScalar(1.16);
+    lightPaint.color.set(color).offsetHSL(0, .04, .10);
+    lightPaint.emissive.set(color);
+    lightPaint.emissiveIntensity = .10;
     darkPaint.color.set(color).multiplyScalar(.72);
   };
   const setCondition = (condition: Car4Condition) => {
