@@ -2,9 +2,39 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { balance } from '../src/config';
 import { landscapeColors, type LandscapeKind } from '../src/landscape';
-import { createSceneryCluster, optimizeNearScenery } from '../src/art/scenery';
+import { initialRoute, pathPose } from '../src/route';
+import { createBendSceneryStrip, createSceneryCluster, optimizeNearScenery, scenerySectionCrossesTurn } from '../src/art/scenery';
 
 describe('essential roadside scenery', () => {
+  it('keeps rigid 96 m clusters off a chosen turn while retaining straight sections', () => {
+    expect(scenerySectionCrossesTurn(8, [])).toBe(false);
+    expect(scenerySectionCrossesTurn(8, [800])).toBe(true);
+    expect(scenerySectionCrossesTurn(7, [800])).toBe(false);
+    expect(scenerySectionCrossesTurn(9, [800])).toBe(false);
+  });
+  it('follows either bend with continuous ground outside the driving corridor', () => {
+    const halfRoad = balance.laneWidth * balance.laneCount / 2;
+    for (const turn of ['left', 'right'] as const) {
+      const route = { ...initialRoute(), history: [{ distance: 800, turn }] };
+      const road = Array.from({ length: 105 }, (_, i) => pathPose(764 + i, route, 14));
+      const samples = Array.from({ length: 24 }, (_, i) => pathPose(770 + i * 4, route, 14));
+      for (const side of [-1, 1] as const) {
+        const art = createBendSceneryStrip('cliffs', side, samples, 'near');
+        art.root.updateMatrixWorld(true);
+        expect(art.root.children).toHaveLength(24);
+        for (let i = 0; i < 24; i++) {
+          const ground = art.root.getObjectByName(`bend_ground_${i}`)!;
+          for (const x of [-3.05, 3.05]) for (const z of [-2.1, 2.1]) {
+            const point = ground.localToWorld(new THREE.Vector3(x, 0, z));
+            const clearance = Math.min(...road.map(pose =>
+              Math.hypot(point.x - pose.x, point.z - pose.z)));
+            expect(clearance).toBeGreaterThan(halfRoad);
+          }
+        }
+        art.dispose();
+      }
+    }
+  });
   it('covers each 96 m section with continuous roadside ground', () => {
     const groundName: Record<LandscapeKind, string> = {
       city: 'sidewalk_base', trees: 'green_verge', cliffs: 'cliff_toe',

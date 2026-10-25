@@ -1,12 +1,79 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { balance } from '../config';
-import type { LandscapeKind } from '../landscape';
+import { LANDSCAPE_REGION_METRES, roadsidePoint, type LandscapeKind } from '../landscape';
 
 export interface SceneryArt {
   root: THREE.Group;
   setVisualTime?: (elapsedSeconds: number) => void;
   dispose: () => void;
+}
+/** A rigid roadside cluster cannot follow the 16 m bend through a chosen junction. */
+export function scenerySectionCrossesTurn(section: number, turnDistances: readonly number[]): boolean {
+  const center = (section + .5) * LANDSCAPE_REGION_METRES;
+  return turnDistances.some(distance => Math.abs(center - distance) < LANDSCAPE_REGION_METRES / 2 + 8);
+}
+
+/** Short roadside pieces follow the actual curved path where a rigid cluster would cross it. */
+export function createBendSceneryStrip(kind: LandscapeKind, side: -1 | 1,
+  samples: readonly { x: number; z: number; heading: number }[], lod: 'near' | 'far'): SceneryArt {
+  const root = new THREE.Group(); root.name = `env_bend_${kind}_${side}_${lod}`;
+  const groundColors: Record<LandscapeKind, string> = {
+    city: '#9c9b89', trees: '#698c63', cliffs: '#927960',
+    rice: '#908569', sea: '#61969e',
+  };
+  const ground = mat(groundColors[kind]);
+  const trim = mat(kind === 'sea' ? '#b0a485' : kind === 'city' ? '#d2bc9c' : '#786f5d');
+  const leaf = mat('#62875b');
+  const pieceLength = LANDSCAPE_REGION_METRES / samples.length + .2;
+  for (const [i, pose] of samples.entries()) {
+    const segment = new THREE.Group(); segment.name = `bend_piece_${i}`;
+    const [px, pz] = roadsidePoint(pose, side, 9.3);
+    segment.position.set(px, 0, pz);
+    segment.rotation.y = -pose.heading;
+    root.add(segment);
+    box(segment, `bend_ground_${i}`, [6.1, .045, pieceLength], [0, -.105, 0], ground);
+    if (kind === 'city' || kind === 'sea')
+      box(segment, `bend_edge_${i}`, [.30, kind === 'city' ? .17 : .52, pieceLength],
+        [-side * 2.92, kind === 'city' ? -.02 : .17, 0], trim);
+    if (i % (lod === 'near' ? 6 : 8) !== 2) continue;
+    const outward = side * 4.0;
+    if (kind === 'trees' || kind === 'city') {
+      const trunk = mat(kind === 'city' ? '#776e5d' : '#735f49');
+      box(segment, `bend_tree_trunk_${i}`, [.28, 1.55, .28], [outward, .76, 0], trunk);
+      const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 1), leaf);
+      crown.name = `bend_tree_crown_${i}`;
+      crown.position.set(outward, 2.0, 0);
+      crown.scale.set(1.0, .72, 1.05);
+      segment.add(crown);
+    } else if (kind === 'cliffs') {
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 0), trim);
+      rock.name = `bend_rock_${i}`;
+      rock.position.set(outward, .47, 0);
+      rock.scale.set(1.55, .8, 1.45);
+      segment.add(rock);
+    } else if (kind === 'rice') {
+      box(segment, `bend_bund_${i}`, [5.5, .16, .32], [side * .15, -.015, 0], trim);
+      for (const z of [-.8, .8]) box(segment, `bend_rice_${i}_${z}`,
+        [.26, .34, .26], [outward, .1, z], leaf);
+    } else {
+      box(segment, `bend_mooring_${i}`, [.3, .6, .3], [outward, .22, 0], trim);
+    }
+  }
+  root.userData = { id: `env_bend_${kind}`, lod, roadsideSide: side,
+    collisionRole: 'decorative-only', noSpawnChange: true };
+  const dispose = () => {
+    const geometries = new Set<THREE.BufferGeometry>();
+    const materials = new Set<THREE.Material>();
+    root.traverse(object => { if (object instanceof THREE.Mesh) {
+      geometries.add(object.geometry);
+      (Array.isArray(object.material) ? object.material : [object.material])
+        .forEach(material => materials.add(material));
+    } });
+    geometries.forEach(geometry => geometry.dispose());
+    materials.forEach(material => material.dispose());
+  };
+  return { root, dispose };
 }
 const mat = (color: string) => new THREE.MeshStandardMaterial({
   color, roughness: .88, flatShading: true, side: THREE.DoubleSide,

@@ -14,7 +14,7 @@ import { createOfficerArt, createTrainArt, createVendorArt, type MovingArt } fro
 import { createAccidentArt, createShopArt } from './art/special-hazards';
 import { createRoadTileArt } from './art/road-kit';
 import { configureStormRenderer, createStormLighting, gameplayAccentLayer } from './art/storm-lighting';
-import { createSceneryCluster, optimizeNearScenery, type SceneryArt } from './art/scenery';
+import { createBendSceneryStrip, createSceneryCluster, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
 import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
 import type { VehicleKind } from './vehicles';
 
@@ -439,10 +439,13 @@ export class RoadRenderer {
     const visibleScenery = new Set<string>();
     const firstRegion = Math.floor((distance - 40) / LANDSCAPE_REGION_METRES);
     const lastRegion = Math.floor((distance + 170) / LANDSCAPE_REGION_METRES);
+    const turns = s.route.history.map(turn => turn.distance);
+    if (s.route.choice) turns.push(junction(s.seed, s.route.index).distance);
     for (let section = firstRegion; section <= lastRegion; section++) {
       const center = (section + .5) * LANDSCAPE_REGION_METRES;
-      const nearJunction = [s.route.index - 1, s.route.index, s.route.index + 1].some(index =>
-        index >= 0 && Math.abs(center - junction(s.seed, index).distance) < 58);
+      const bend = scenerySectionCrossesTurn(section, turns);
+      const bendPoses = bend ? Array.from({ length: 24 }, (_, i) =>
+        pathPose(section * LANDSCAPE_REGION_METRES + i * 4 + 2, s.route, s.seed)) : null;
       const regions = roadsideRegions(s.seed, center);
       const pose = pathPose(center, s.route, s.seed);
       const lod = Math.abs(center - distance) < 80 ? 'near' : 'far';
@@ -452,15 +455,18 @@ export class RoadRenderer {
         const next = roadsideRegions(s.seed, center + LANDSCAPE_REGION_METRES);
         const seaEdges = { start: (side < 0 ? previous.left : previous.right) !== kind,
           end: (side < 0 ? next.left : next.right) !== kind };
-        const key = `${s.seed}:${section}:${side}:${kind}:${lod}:${nearJunction}`;
+        const key = `${s.seed}:${section}:${side}:${kind}:${lod}:${bend ? 'bend' : 'rigid'}`;
         visibleScenery.add(key);
         let art = this.scenery.get(key);
         if (!art) {
           const variantSeed = (s.seed ^ Math.imul(section, 0x9e3779b1) ^ (side < 0 ? 0x63c6 : 0x487d)) >>> 0;
-          art = createSceneryCluster(kind, (side * -1) as -1 | 1, lod, variantSeed, seaEdges);
-          if (lod === 'near') optimizeNearScenery(art.root);
-          art.root.position.set(pose.x, 0, pose.z);
-          art.root.rotation.y = Math.PI - pose.heading;
+          art = bend ? createBendSceneryStrip(kind, side, bendPoses!, lod) :
+            createSceneryCluster(kind, (side * -1) as -1 | 1, lod, variantSeed, seaEdges);
+          if (!bend) {
+            if (lod === 'near') optimizeNearScenery(art.root);
+            art.root.position.set(pose.x, 0, pose.z);
+            art.root.rotation.y = Math.PI - pose.heading;
+          }
           art.root.traverse(object => { if (object instanceof THREE.Mesh) {
             object.receiveShadow = true;
             object.castShadow = lod === 'near' && kind === 'city' &&
@@ -470,8 +476,10 @@ export class RoadRenderer {
           this.scenery.set(key, art);
         }
         // A junction choice can change pathPose while the same region stays cached.
-        art.root.position.set(pose.x, 0, pose.z);
-        art.root.rotation.y = Math.PI - pose.heading;
+        if (!bend) {
+          art.root.position.set(pose.x, 0, pose.z);
+          art.root.rotation.y = Math.PI - pose.heading;
+        }
         art.setVisualTime?.(s.activeSeconds);
       }
     }
