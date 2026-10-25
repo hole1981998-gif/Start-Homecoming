@@ -148,7 +148,7 @@ biomeKind.addEventListener('change', () => {
       art.root.position.z = z;
       art.root.traverse(object => {
         if (object instanceof THREE.Mesh) {
-          object.castShadow = object.position.y > .05;
+          object.castShadow = new THREE.Box3().setFromObject(object).max.y > .5;
           object.receiveShadow = true;
         }
       });
@@ -160,7 +160,7 @@ biomeKind.addEventListener('change', () => {
 });
 scene.traverse(object => {
   if (object instanceof THREE.Mesh && object !== ground) {
-    object.castShadow = object.position.y > .05;
+    object.castShadow = new THREE.Box3().setFromObject(object).max.y > .5;
     object.receiveShadow = true;
   }
 });
