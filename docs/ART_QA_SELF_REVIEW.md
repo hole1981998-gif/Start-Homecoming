@@ -1,5 +1,15 @@
 # Tự đánh giá sơ bộ art thiết yếu — 24/10/2026
 
+## I1 — tự review khi bắt đầu nối vào game (26/10/2026)
+
+**Revision:** bắt đầu ở `e9c9a9e`, tiếp tục trong diff I1 hiện hành. **Dữ liệu:** browser in-app tại `/` và các fixture `handling-car4`, `handling-bus`, `p7-secret-traffic`, `p8-water`, `supplies`, `p61-train-left`, `p61-police-one`, cùng seed 17. Ảnh/cảnh quan sát: xe máy, car4, bus player, bus traffic, nước/ổ gà, can xăng và tàu đã hiện trong camera game 9:16. Thử A với car4 thấy quãng đường/xăng/HUD cập nhật; pause giữ tài nguyên, restart về 0 m. Đây là **Codex tự review** từ phiên browser ngắn, không phải playtest độc lập hoặc đo hiệu năng. Công an ở 70 m chưa bắt được ảnh đọc gần; chưa kiểm va chạm thật với những mesh mới.
+
+**Game design:** không đổi footprint/collider, spawn hoặc thời lượng. Nước xanh và ổ gà nâu có hai silhouette khác nhau trong fixture `p8-water`, nhưng chưa đủ dữ liệu để kết luận người chơi nhận dạng đúng ở tốc độ cao hoặc khi bóng nhà phủ đường. Đề xuất kiểm lần sau: lặp seed 17 và một seed khác, cho xe tiếp cận cùng hazard từ 80 m ở tốc độ trung vị và nhanh, ghi cự ly người chơi nhận ra bằng mắt. Chưa đề xuất chỉnh cân bằng.
+
+**UI/UX:** car4 và bus giữ khoảng nhìn trước xe; cue tàu và xăng vẫn hiện trong HUD, nhưng bus dài chiếm nhiều chiều cao màn như dự kiến. Ưu tiên kiểm tiếp HP bar của traffic lớn, cue của công an/hàng rong ở cảnh đông và độ trễ khi đổi xe. Chưa chấm UI/typography, hiệu năng hay art gate cuối từ vài screenshot. Không suy việc thao tác A/pause/restart thành bằng chứng mọi hazard công bằng.
+
+**Cảnh route sau nối đường/phố/đèn:** Browser fixture `handling-car4` ở seed 17 có cây hai bên; seed 14 có phố hai bên, bóng nhà lên tile đường, vùng xa hòa cyan và mưa nhẹ. Đây là bằng chứng mảng bóng vật lý có xuất hiện trong game, khác proxy của `scene.html`. Sau sửa continuity, seed 14 đi qua mốc vùng 95 m và 218 m không còn hở nền; fixture `junction` quan sát tại 707–793 m còn trống hành lang lái. Tự đánh giá tạm **tương phản sáng/tối 6/10, mood 6/10** ở các cảnh đó; nhà xa, road shadow và màu vẫn cần đối chiếu sketch của chủ dự án. Chưa chấm tiếp cận/hiệu năng và không nâng art gate vì thiếu kiểm hazard dưới bóng, các hướng cua, đủ năm biome và FPS/P95.
+
 **Nguồn xem thực tế:** Vite local `/art-preview/scene.html` ở góc 9:16 và các trang `/art-preview/vehicle-gallery.html`, `/art-preview/people.html`, `/art-preview/world-gallery.html` ở near/far và nhiều góc. Đây là **Codex tự đánh giá từ preview**, không phải review độc lập, game build đã gắn asset hay playtest. Cảnh mẫu có car4, traffic car7/xe máy, khách vẫy, nước, ổ gà, đường, cụm nhà/cây. Chưa có HUD, mưa/VFX, thời gian chuyển động thật hoặc benchmark hiệu năng.
 
 | Tiêu chí trong `GAME_DESIGN.md` | Điểm sơ bộ | Quan sát / việc phải kiểm tiếp |

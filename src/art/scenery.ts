@@ -476,7 +476,8 @@ function tree(parent: THREE.Object3D, name: string, x: number, z: number,
 
 /** Five existing 96 m landscape families; place on the matching roadside half only. */
 export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
-  lod: 'near' | 'far' = 'near', variantSeed = 0): SceneryArt {
+  lod: 'near' | 'far' = 'near', variantSeed = 0,
+  seaEdges: { start: boolean; end: boolean } = { start: false, end: false }): SceneryArt {
   const root = new THREE.Group(); root.name = `env_${kind}_${side}_${lod}`;
   const waveSurfaces: { geometry: THREE.BufferGeometry; base: Float32Array;
     amplitude: number; phase: number }[] = [];
@@ -493,9 +494,9 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     const palettes = ['warm', 'cool', 'ochre'] as const;
     const pavement = mat('#a9a88b'), curb = mat('#e0c8a4'), wall = mat('#aa9473');
     const grass = mat('#6e9965');
-    box(root, 'sidewalk_base', [4.5, .10, 74], [x(1.2), -.08, 7], pavement);
-    box(root, 'sidewalk_curb', [.18, .22, 74], [x(-1.14), -.01, 7], curb);
-    box(root, 'backlot_courtyard', [12.6, .06, 76], [x(11.15), -.105, 7], mat('#8ea180'));
+    box(root, 'sidewalk_base', [4.5, .10, 96], [x(1.2), -.08, 0], pavement);
+    box(root, 'sidewalk_curb', [.18, .22, 96], [x(-1.14), -.01, 0], curb);
+    box(root, 'backlot_courtyard', [12.6, .06, 96], [x(11.15), -.105, 0], mat('#8ea180'));
     const slots = [-20, -10, 3, 13, 23, 34];
     const order = [0, 1, 2, 3, 4, 5];
     if (variantSeed !== 0) for (let i = order.length - 1; i > 0; i--) {
@@ -607,7 +608,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     }
   } else if (kind === 'trees') {
     const grass = mat('#759b65'), soil = mat('#926c4e');
-    box(root, 'green_verge', [6.3, .07, 55], [x(2.0), -.10, 3], grass);
+    box(root, 'green_verge', [6.3, .07, 96], [x(2.0), -.10, 0], grass);
     for (const z of [-10, 3, 17]) taper(root, `tree_soil_ring_${z}`,
       .78, .90, .075, [x(z === 3 ? 3.3 : 1.7), -.055, z], soil, 9);
     tree(root, 'rain_tree_A', x(1.7), -10, 5.6, near, 'rain');
@@ -649,11 +650,13 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     const upper = mat('#c19b75');
     const grass = mat('#70935e');
     const profile = [
+      { z: -48, h: 0, shift: 0 }, { z: -36, h: 1.2, shift: .1 },
       { z: -26, h: 2.4, shift: .2 }, { z: -19, h: 4.7, shift: -.2 },
       { z: -14, h: 3.2, shift: .45 }, { z: -5, h: 6.7, shift: -.3 },
       { z: 3, h: 5.6, shift: .1 }, { z: 9, h: 3.6, shift: .55 },
       { z: 16, h: 6.1, shift: -.2 }, { z: 21, h: 5.1, shift: .05 },
-      { z: 26, h: 3.1, shift: .3 },
+      { z: 26, h: 3.1, shift: .3 }, { z: 36, h: 1.5, shift: .15 },
+      { z: 48, h: 0, shift: 0 },
     ];
     const rows = [
       (p: typeof profile[number]): [number, number, number] => [x(1.2 + p.shift), 0, p.z],
@@ -747,6 +750,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     }
   } else if (kind === 'rice') {
     const soil = mat('#8d7853'), paddy = mat('#8dbb61');
+    box(root, 'field_soil_continuity', [15.8, .045, 96], [x(7.1), -.13, 0], soil);
     const water = new THREE.MeshStandardMaterial({ color: '#759b99', roughness: .38,
       metalness: .04, side: THREE.DoubleSide });
     const rowCount = near ? 7 : 4, columnCount = near ? 8 : 5;
@@ -796,7 +800,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       }
     }
     root.add(sprouts);
-    box(root, 'field_edge_irrigation', [.7, .035, 43], [x(.25), -.08, 2], water);
+    box(root, 'field_edge_irrigation', [.7, .035, 96], [x(.25), -.08, 0], water);
     box(root, 'irrigation_footbridge', [1.43, .09, .56], [x(.25), .015, 8], soil);
     for (const z of [-11, 4, 20]) box(root, `ditch_reed_patch_${z}`,
       [.22, .34, .34], [x(.15), .12, z], paddy);
@@ -807,9 +811,13 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       metalness: .02, clearcoat: .44, clearcoatRoughness: .22,
       flatShading: true, side: THREE.DoubleSide });
     const foam = mat('#c4d8c0');
-    box(root, 'seawall', [.38, .78, 43], [x(.7), .30, 3], shore);
-    box(root, 'seawall_cap', [.55, .11, 43], [x(.7), .73, 3], shore);
-    let waterGeometry: THREE.BufferGeometry = new THREE.PlaneGeometry(18, 43,
+    const wallStart = seaEdges.start ? -40 : -48;
+    const wallEnd = seaEdges.end ? 40 : 48;
+    const wallLength = wallEnd - wallStart;
+    const wallCenter = (wallStart + wallEnd) / 2;
+    box(root, 'seawall', [.38, .78, wallLength], [x(.7), .30, wallCenter], shore);
+    box(root, 'seawall_cap', [.55, .11, wallLength], [x(.7), .73, wallCenter], shore);
+    let waterGeometry: THREE.BufferGeometry = new THREE.PlaneGeometry(18, 96,
       near ? 14 : 7, near ? 32 : 15);
     waterGeometry.rotateX(-Math.PI / 2);
     const points = waterGeometry.getAttribute('position') as THREE.BufferAttribute;
@@ -818,6 +826,12 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     for (let i = 0; i < points.count; i++) {
       const px = points.getX(i), pz = points.getZ(i);
       const depth = side === 1 ? (px + 9) / 18 : (9 - px) / 18;
+      const edgeFade = Math.min(
+        seaEdges.start ? Math.max(0, (pz + 48) / 8) : 1,
+        seaEdges.end ? Math.max(0, (48 - pz) / 8) : 1,
+        1,
+      );
+      points.setX(i, side * 9 + (px - side * 9) * edgeFade);
       points.setY(i, Math.sin(pz * .56 + px * .31) * .024 +
         Math.cos(pz * .31 - px * .42) * .012);
       const color = shallowColor.clone().lerp(deepColor, depth * .83);
@@ -845,7 +859,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     waterColors.needsUpdate = true;
     waterGeometry.computeVertexNormals();
     const waterSurface = new THREE.Mesh(waterGeometry, sea);
-    waterSurface.name = 'water_plane'; waterSurface.position.set(x(10.1), -.145, 3);
+    waterSurface.name = 'water_plane'; waterSurface.position.set(x(10.1), -.145, 0);
     root.add(waterSurface);
     waveSurfaces.push({ geometry: waterGeometry,
       base: Float32Array.from(waterPoints.array as Float32Array),

@@ -1,14 +1,21 @@
 import { isSpecial, trainClosed } from './special-events';
 import * as THREE from 'three';
-import { balance } from './config';
+import { balance, movingBalance } from './config';
 import { jumpHeight, hasStar, hasBoost } from './items';
 import { activeVehicle, type Run } from './survival';
 import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from './world';
 import { junction, pathPose } from './route';
 import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep';
-import { LANDSCAPE_REGION_METRES, landscapeColors, landscapeWindow, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
+import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
 import { attachVehicleArtToPrototype } from './art/prototype-adapter';
 import { createVehicleArt, type VehicleArt } from './art/vehicle-catalog';
+import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './art/hazards';
+import { createOfficerArt, createTrainArt, createVendorArt, type MovingArt } from './art/moving-events';
+import { createAccidentArt, createShopArt } from './art/special-hazards';
+import { createRoadTileArt } from './art/road-kit';
+import { configureStormRenderer, createStormLighting, gameplayAccentLayer } from './art/storm-lighting';
+import { createSceneryCluster, optimizeNearScenery, type SceneryArt } from './art/scenery';
+import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
 import type { VehicleKind } from './vehicles';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
@@ -18,6 +25,7 @@ export class RoadRenderer {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(52, 9 / 16, 0.1, 180);
+  private stormLighting: ReturnType<typeof createStormLighting>;
   private bike = new THREE.Group();
   private playerArt = new Map<VehicleKind, VehicleArt>();
   private powerRing!: THREE.Mesh;
@@ -36,10 +44,12 @@ export class RoadRenderer {
   private roadPieces: THREE.Group[] = [];
   private roadSurface!: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   private ground!: THREE.Mesh;
-  private landscapeTiles: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] = [];
   private landscapeBands: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> | null = null;
   private landscapeMaterials: Record<LandscapeKind, THREE.MeshBasicMaterial> | null = null;
-  private landscapeCell = { x: NaN, z: NaN, seed: NaN };
+  private scenery = new Map<string, SceneryArt>();
+  private rainSeed = NaN;
+  private rain?: RainArt;
+  private rainSplashes?: RainArt;
   private viewState!: Run;
   private entityMeshes = new Map<string, { kind: EntityKind; trafficKind?: TrafficKind; mesh: THREE.Group }>();
   private pools: Record<EntityKind, THREE.Group[]> = { wind: [], water: [], pothole: [], traffic: [], cargo: [], fuel: [], repair: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
@@ -53,27 +63,20 @@ export class RoadRenderer {
     this.host = host;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    this.scene.background = new THREE.Color('#566770');
-    this.scene.fog = new THREE.Fog('#566770', 45, 120);
-    this.scene.add(new THREE.HemisphereLight('#dae5e5', '#444b49', 2.4));
-    const sun = new THREE.DirectionalLight('#f9e5c3', 2); sun.position.set(-8, 15, 10); this.scene.add(sun);
+    configureStormRenderer(this.renderer);
+    this.stormLighting = createStormLighting(this.scene);
+    this.stormLighting.sun.shadow.mapSize.set(1024, 1024);
+    this.stormLighting.sun.shadow.blurSamples = 8;
+    this.camera.layers.enable(gameplayAccentLayer);
     const box = (w: number, h: number, d: number, color: string, parent: THREE.Object3D = this.scene) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
       parent.add(mesh); return mesh;
     };
     this.makeBox = box;
-    this.ground = box(260, 0.1, 260, '#425951'); this.ground.position.y = -.15;
+    this.ground = box(600, 0.1, 600, '#425951'); this.ground.position.y = -.15;
     if (this.forceMode) {
-      const geometry = new THREE.PlaneGeometry(LANDSCAPE_REGION_METRES, LANDSCAPE_REGION_METRES);
       this.landscapeMaterials = Object.fromEntries(Object.entries(landscapeColors).map(([kind, color]) =>
         [kind, new THREE.MeshBasicMaterial({ color })])) as Record<keyof typeof landscapeColors, THREE.MeshBasicMaterial>;
-      for (let i = 0; i < 25; i++) {
-        const tile = new THREE.Mesh(geometry, this.landscapeMaterials.city);
-        tile.rotation.x = -Math.PI / 2;
-        tile.position.y = -.095;
-        this.scene.add(tile);
-        this.landscapeTiles.push(tile);
-      }
       // Flat color shoulders follow the centerline; the road covers their shared seam.
       const bandGeometry = new THREE.BufferGeometry();
       const bandValues = 52 * 2 * 6 * 3;
@@ -87,15 +90,14 @@ export class RoadRenderer {
     const roadIndices: number[] = [];
     for (let i = 0; i < 52; i++) roadIndices.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
     roadGeometry.setIndex(roadIndices);
-    this.roadSurface = new THREE.Mesh(roadGeometry, new THREE.MeshBasicMaterial({ color: '#303e46', side: THREE.DoubleSide }));
+    this.roadSurface = new THREE.Mesh(roadGeometry, new THREE.MeshBasicMaterial({ color: '#525b54', side: THREE.DoubleSide }));
     this.scene.add(this.roadSurface);
     for (let i = 0; i < 52; i++) {
       const piece = new THREE.Group(); this.scene.add(piece); this.roadPieces.push(piece);
-      for (const side of [-1, 1]) {
-        const edge = box(.12, .03, 4.5, '#d3d4bc', piece); edge.position.set(side * 4.9, .02, 0);
-        const stripe = box(.09, .02, 1.8, '#9caeae', piece); stripe.position.set(side * balance.laneWidth / 2, .02, 0);
-        const post = box(.18, .7, .18, '#b0b7ab', piece); post.position.set(side * 5.3, .35, 0);
-      }
+      const art = createRoadTileArt(i < 14 ? 'near' : 'far');
+      art.setWetness(.7);
+      art.root.traverse(object => { if (object instanceof THREE.Mesh) object.receiveShadow = true; });
+      piece.add(art.root);
     }
     for (let i = 0; i < 2; i++) {
       const group = new THREE.Group(), straightStub = new THREE.Group();
@@ -192,7 +194,7 @@ export class RoadRenderer {
     }
     return passengers;
   }
-  private entityMesh(kind: EntityKind, trafficKind: TrafficKind = 'car4'): THREE.Group {
+  private entityMesh(kind: EntityKind, trafficKind: TrafficKind = 'car4', width = 1, length = 1): THREE.Group {
     const pool = kind === 'traffic' ? this.trafficPools.get(trafficKind) ?? [] : this.pools[kind];
     const pooled = pool.pop(); if (pooled) return pooled;
     const g = new THREE.Group(), box = this.makeBox;
@@ -200,79 +202,48 @@ export class RoadRenderer {
       const m = box(w, h, d, color, g); m.position.set(x, y, z); return m;
     };
     if (kind === 'train') {
-      for (const x of [-.135, .135]) part(.05, .15, .4, '#35434a', x, .55, 0);
-      for (const x of [-.27, 0, .27]) {
-        part(.25, 1.65, .8, '#bc9368', x, .9, 0);
-        for (const z of [-.41, .41]) part(.2, .38, .02, '#91abb0', x, 1.24, z);
-        part(.24, .18, .5, '#303e45', x, .14, 0);
-      }
+      const art = createTrainArt(1, 'far');
+      g.add(art.root); g.userData.movingArt = art;
     } else if (kind === 'police' || kind === 'militia') {
-      const color = kind === 'police' ? '#698da8' : '#85906b';
-      const legacy = part(.8, 1.1, .8, color, 0, .55, 0);
-      const human = new THREE.Group(); g.add(human); g.userData.human = human; g.userData.legacy = legacy;
-      const torso = box(.5, .65, .3, color, human); torso.position.y = .9; g.userData.torso = torso;
-      const head = box(.36, .36, .36, '#e8d9b7', human); head.position.y = 1.45;
-      const hat = box(.45, .12, .43, color, human); hat.position.y = 1.68;
-      for (const x of [-.15, .15]) { const leg = box(.16, .55, .2, '#354d5a', human); leg.position.set(x, .3, 0); }
-      const mark = box(.22, .16, .2, '#f1d27d', human); mark.position.y = 2; g.userData.stunMark = mark;
+      const art = createOfficerArt(kind);
+      art.root.rotation.y = Math.PI;
+      g.add(art.root); g.userData.movingArt = art;
     } else if (isSpecial(kind)) {
-      const color = kind === 'accident' ? '#ad655d' : '#9a8e78';
-      part(.8, 1.1, .8, color, 0, .55, 0);
-      part(.8, .1, .15, '#eee3bc', 0, .7, .42);
+      if (kind === 'accident') {
+        const art = createAccidentArt('far'); g.add(art.root);
+      } else if (kind === 'jam') {
+        const barrier = createPropHazardArt('barrier', 'far');
+        const vendor = createVendorArt('far');
+        g.add(barrier.root, vendor.root);
+        g.userData.barrierArt = barrier; g.userData.vendorArt = vendor;
+      } else {
+        part(.8, 1.1, .8, '#9a8e78', 0, .55, 0);
+        part(.8, .1, .15, '#eee3bc', 0, .7, .42);
+      }
     } else if (kind === 'shop') {
-      part(1.8, 1.6, 3, '#688e88', 0, .8, 0); part(2.2, .2, 3.4, '#cdb376', 0, 1.7, 0);
-      part(.6, .8, .12, '#e1d9af', 0, 1.05, 1.55);
+      const art = createShopArt('far'); g.add(art.root);
     }
     else if (kind === 'wind') { part(9.6, .025, 65, '#809c91', 0, .02, 0); }
-    else if (kind === 'water') { part(3.2, .05, 7, '#5799aa', 0, .035, 0); part(2.5, .01, .1, '#abd1d5', 0, .065, -1.5); }
-    else if (kind === 'pothole') {
-      part(1.5, .03, 1.8, '#191d23', 0, .025, 0);
-      for (const x of [-.85, .85]) part(.15, .08, 2, '#dfb357', x, .05, 0);
+    else if (kind === 'water' || kind === 'pothole') {
+      const art = createSurfaceHazardArt(kind, width, length, 'near');
+      g.add(art.root); g.userData.hazardArt = art;
     } else if (kind === 'cargo') {
-      g.userData.cargoBody = part(.8, .8, .8, '#b38b61', 0, .42, 0);
-      part(.84, .08, .84, '#e5ca8f', 0, .82, 0);
-      part(.08, .84, .84, '#e5ca8f', 0, .42, 0);
+      const crate = createPropHazardArt('cargo_crate');
+      const barrel = createPropHazardArt('cargo_barrel');
+      g.add(crate.root, barrel.root);
+      g.userData.cargoCrate = crate; g.userData.cargoBarrel = barrel;
     } else if (kind === 'traffic') {
-      const d = trafficTypes[trafficKind], w = d.width, l = d.length;
-      const open = trafficKind === 'motorcycle' || trafficKind === 'motorbike' || trafficKind === 'tricycle';
-      const tall = trafficKind === 'bus' || trafficKind === 'container';
-      const bodyHeight = open ? .35 : tall ? 1.65 : trafficKind === 'truck' ? 1.25 : .82;
-      const body = part(trafficKind === 'tricycle' ? w * .35 : w * .9,
-        bodyHeight, trafficKind === 'tricycle' ? l * .43 : l * .88,
-        d.color, 0, .42 + bodyHeight / 2, trafficKind === 'tricycle' ? -l * .23 : 0);
-      g.userData.body = body;
-      if (open) {
-        const wheelZ = l * .36;
-        for (const z of [-wheelZ, wheelZ]) part(.21, .48, .36, '#202a30', 0, .25, z);
-        if (trafficKind === 'tricycle') for (const x of [-w * .35, w * .35])
-          part(.22, .46, .38, '#202a30', x, .25, wheelZ);
-        part(.34, .65, .4, '#698c91', 0, 1.05, 0);
-        part(.36, .36, .36, '#e8d9bf', 0, 1.53, -.04);
-        if (trafficKind === 'tricycle') {
-          part(w * .84, .18, l * .48, '#9a7a4f', 0, .8, l * .21);
-          for (const x of [-w * .39, w * .39]) part(.13, .4, l * .48, '#6d6561', x, 1.02, l * .21);
-          part(w * .84, .4, .12, '#6d6561', 0, 1.02, l * .44);
-        }
-      } else if (trafficKind === 'truck' || trafficKind === 'container') {
-        part(w * .75, .8, l * .24, '#a9c6cb', 0, 1.24, -l * .32);
-        part(w * .82, trafficKind === 'container' ? 1.8 : .85, l * .58,
-          trafficKind === 'container' ? '#8b8179' : '#726f72', 0, trafficKind === 'container' ? 1.54 : 1.13, l * .16);
-      } else {
-        part(w * .78, trafficKind === 'bus' ? .5 : .46, l * (trafficKind === 'bus' ? .8 : .48),
-          '#a9c6cb', 0, tall ? 1.75 : 1.18, -.05);
-      }
-      if (!open) for (const x of [-w * .42, w * .42]) for (const z of [-l * .32, l * .32])
-        part(.2, .42, .42, '#202a30', x, .27, z);
-      for (const x of [-w * .3, w * .3]) {
-        part(.2, .13, .06, '#fa9d80', x, .63, l * .45);
-        part(.2, .13, .06, '#fff0ba', x, .63, -l * .45);
-      }
+      const d = trafficTypes[trafficKind], w = d.width;
       const service = new THREE.Group(); g.add(service); g.userData.service = service;
       const serviceX = box(.65, .12, .22, '#ba625e', service); serviceX.position.y = 1.7;
       const serviceZ = box(.22, .12, .65, '#ba625e', service); serviceZ.position.y = 1.7;
       const hpBack = part(w, .09, .04, '#29373e', 0, 2.6, 0);
       const hpFill = part(w, .1, .045, '#a0d2ae', 0, 2.6, 0);
       g.userData.hpBack = hpBack; g.userData.hpFill = hpFill;
+      const art = createVehicleArt(trafficKind, 'traffic', 'far', d.color);
+      art.root.rotation.y = Math.PI;
+      g.add(art.root);
+      g.userData.trafficArt = art;
     } else if (kind === 'passenger') {
       part(.38, .7, .28, '#e2c486', 0, .92, 0);
       part(.38, .38, .38, '#e6dbc4', 0, 1.47, 0);
@@ -280,10 +251,8 @@ export class RoadRenderer {
       marker.position.y = 2; g.add(marker); g.userData.grabMarker = marker;
       for (const x of [-.12, .12]) part(.13, .55, .16, '#344d5a', x, .3, 0);
     } else {
-      const color = kind === 'fuel' ? '#82c5a0' : '#e1ded0';
-      part(.8, .8, .8, color, 0, .6, 0);
-      if (kind === 'fuel') { part(.5, .12, .2, '#e6d18f', 0, 1.1, 0); part(.18, .16, .18, '#e6d18f', .22, 1.05, .15); }
-      else { part(.48, .14, .03, '#a8423d', 0, .65, .415); part(.14, .48, .03, '#a8423d', 0, .65, .415); }
+      const art = createPropHazardArt(kind === 'fuel' ? 'fuel' : 'repair');
+      g.add(art.root); g.userData.hazardArt = art;
     }
     this.scene.add(g); return g;
   }
@@ -320,6 +289,20 @@ export class RoadRenderer {
     const playerPose = pathPose(distance, s.route, s.seed);
     const playerX = playerPose.x + Math.cos(playerPose.heading) * x;
     const playerZ = playerPose.z + Math.sin(playerPose.heading) * x;
+    this.stormLighting.setAnchor(playerX, playerZ);
+    if (this.rainSeed !== s.seed) {
+      for (const art of [this.rain, this.rainSplashes]) if (art) {
+        this.scene.remove(art.root); art.dispose();
+      }
+      this.rainSeed = s.seed;
+      this.rain = createRainArt(s.seed, 300);
+      this.rainSplashes = createRainSplashArt(s.seed, 110);
+      this.rain.setIntensity(.34);
+      this.rainSplashes.setIntensity(.20);
+      this.scene.add(this.rain.root, this.rainSplashes.root);
+    }
+    this.rain!.update(s.activeSeconds, playerX, playerZ - 18);
+    this.rainSplashes!.update(s.activeSeconds, playerX, playerZ - 18);
     const yaw = THREE.MathUtils.lerp(previous.forceYaw, s.forceYaw, alpha);
     const bodyX = !this.forceMode ? x : vehicle.kind === 'car7' ?
       car7BodyCenterX(x, vehicle.length, yaw) : vehicle.kind === 'bus' || vehicle.kind === 'truck' ?
@@ -392,19 +375,6 @@ export class RoadRenderer {
     this.camera.lookAt(playerX + Math.sin(playerPose.heading) * 12, 0,
       playerZ - Math.cos(playerPose.heading) * 12);
     this.ground.position.set(playerPose.x, -.15, playerPose.z);
-    if (this.landscapeTiles.length) {
-      const cellX = Math.floor(playerPose.x / LANDSCAPE_REGION_METRES);
-      const cellZ = Math.floor(playerPose.z / LANDSCAPE_REGION_METRES);
-      if (cellX !== this.landscapeCell.x || cellZ !== this.landscapeCell.z || s.seed !== this.landscapeCell.seed) {
-        this.landscapeCell = { x: cellX, z: cellZ, seed: s.seed };
-        for (const [i, region] of landscapeWindow(s.seed, playerPose.x, playerPose.z).entries()) {
-          const tile = this.landscapeTiles[i];
-          tile.position.x = region.x;
-          tile.position.z = region.z;
-          tile.material = this.landscapeMaterials![region.kind];
-        }
-      }
-    }
     const firstRoad = Math.floor((distance - 32) / 4) * 4;
     const roadPositions = this.roadSurface.geometry.getAttribute('position') as THREE.BufferAttribute;
     const roadSamples: ReturnType<typeof pathPose>[] = [];
@@ -420,16 +390,27 @@ export class RoadRenderer {
     if (this.landscapeBands) {
       const positions = this.landscapeBands.geometry.getAttribute('position') as THREE.BufferAttribute;
       const colors = this.landscapeBands.geometry.getAttribute('color') as THREE.BufferAttribute;
+      const colorAt = (metres: number, side: -1 | 1): THREE.Color => {
+        const boundary = Math.round(metres / LANDSCAPE_REGION_METRES) * LANDSCAPE_REGION_METRES;
+        const pick = (at: number) => {
+          const pair = roadsideRegions(s.seed, at);
+          return this.landscapeMaterials![side < 0 ? pair.left : pair.right].color;
+        };
+        if (Math.abs(metres - boundary) >= 8) return pick(metres);
+        return pick(boundary - .01).clone().lerp(pick(boundary + .01),
+          (metres - boundary + 8) / 16);
+      };
       for (let i = 0; i < this.roadPieces.length; i++) {
         const start = roadSamples[i], end = roadSamples[i + 1];
-        const regions = roadsideRegions(s.seed, firstRoad + i * 4);
         for (const [sideIndex, side] of ([-1, 1] as const).entries()) {
-          const color = this.landscapeMaterials![side < 0 ? regions.left : regions.right].color;
+          const startColor = colorAt(firstRoad - 2 + i * 4, side);
+          const endColor = colorAt(firstRoad + 2 + i * 4, side);
           const vertex = (i * 2 + sideIndex) * 6;
           const a = roadsidePoint(start, side, 0), b = roadsidePoint(start, side, 30);
           const c = roadsidePoint(end, side, 0), d = roadsidePoint(end, side, 30);
           for (const [j, xy] of [a, b, c, b, d, c].entries()) {
             positions.setXYZ(vertex + j, xy[0], -.08, xy[1]);
+            const color = j === 0 || j === 1 || j === 3 ? startColor : endColor;
             colors.setXYZ(vertex + j, color.r, color.g, color.b);
           }
         }
@@ -446,6 +427,48 @@ export class RoadRenderer {
       // No dashed lane markers or roadside posts across the middle of a junction.
       this.roadPieces[i].visible = [s.route.index - 1, s.route.index].every(index =>
         index < 0 || Math.abs(roadDistance - junction(s.seed, index).distance) >= 13);
+    }
+    const visibleScenery = new Set<string>();
+    const firstRegion = Math.floor((distance - 40) / LANDSCAPE_REGION_METRES);
+    const lastRegion = Math.floor((distance + 170) / LANDSCAPE_REGION_METRES);
+    for (let section = firstRegion; section <= lastRegion; section++) {
+      const center = (section + .5) * LANDSCAPE_REGION_METRES;
+      const nearJunction = [s.route.index - 1, s.route.index, s.route.index + 1].some(index =>
+        index >= 0 && Math.abs(center - junction(s.seed, index).distance) < 58);
+      const regions = roadsideRegions(s.seed, center);
+      const pose = pathPose(center, s.route, s.seed);
+      const lod = Math.abs(center - distance) < 80 ? 'near' : 'far';
+      for (const side of [-1, 1] as const) {
+        const kind = side < 0 ? regions.left : regions.right;
+        const previous = roadsideRegions(s.seed, center - LANDSCAPE_REGION_METRES);
+        const next = roadsideRegions(s.seed, center + LANDSCAPE_REGION_METRES);
+        const seaEdges = { start: (side < 0 ? previous.left : previous.right) !== kind,
+          end: (side < 0 ? next.left : next.right) !== kind };
+        const key = `${s.seed}:${section}:${side}:${kind}:${lod}:${nearJunction}`;
+        visibleScenery.add(key);
+        let art = this.scenery.get(key);
+        if (!art) {
+          const variantSeed = (s.seed ^ Math.imul(section, 0x9e3779b1) ^ (side < 0 ? 0x63c6 : 0x487d)) >>> 0;
+          art = createSceneryCluster(kind, (side * -1) as -1 | 1, lod, variantSeed, seaEdges);
+          if (lod === 'near') optimizeNearScenery(art.root);
+          art.root.position.set(pose.x, 0, pose.z);
+          art.root.rotation.y = Math.PI - pose.heading;
+          art.root.traverse(object => { if (object instanceof THREE.Mesh) {
+            object.receiveShadow = true;
+            object.castShadow = lod === 'near' && kind === 'city' &&
+              new THREE.Box3().setFromObject(object).max.y > 1.6;
+          } });
+          this.scene.add(art.root);
+          this.scenery.set(key, art);
+        }
+        // A junction choice can change pathPose while the same region stays cached.
+        art.root.position.set(pose.x, 0, pose.z);
+        art.root.rotation.y = Math.PI - pose.heading;
+        art.setVisualTime?.(s.activeSeconds);
+      }
+    }
+    for (const [key, art] of this.scenery) if (!visibleScenery.has(key)) {
+      this.scene.remove(art.root); art.dispose(); this.scenery.delete(key);
     }
     for (let slot = 0; slot < this.crossings.length; slot++) {
       const index = s.route.index - 1 + slot, view = this.crossings[slot];
@@ -485,7 +508,7 @@ export class RoadRenderer {
       live.add(e.id);
       let entry = this.entityMeshes.get(e.id);
       if (!entry) { entry = { kind: e.kind, trafficKind: e.trafficKind,
-        mesh: this.entityMesh(e.kind, e.trafficKind) }; this.entityMeshes.set(e.id, entry); }
+        mesh: this.entityMesh(e.kind, e.trafficKind, e.width, e.length) }; this.entityMeshes.set(e.id, entry); }
       const entityPose = pathPose(e.distance, route, s.seed);
       const pose = passengerPose(e, s.activeSeconds);
       const entityX = e.x + (e.kind === 'shop' ? Math.sign(e.x) * 2.8 : 0);
@@ -494,35 +517,50 @@ export class RoadRenderer {
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
       if (e.kind === 'cargo') {
-        (entry.mesh.userData.cargoBody as THREE.Mesh<THREE.BoxGeometry, THREE.MeshLambertMaterial>).material.color.set(e.cargoType === 'barrel' ? '#797f86' : '#b38b61');
+        (entry.mesh.userData.cargoCrate as HazardArt).root.visible = e.cargoType !== 'barrel';
+        (entry.mesh.userData.cargoBarrel as HazardArt).root.visible = e.cargoType === 'barrel';
         entry.mesh.rotation.z = (e.cargoVelocityX ?? 0) * s.activeSeconds * 1.5;
       }
+      if (e.kind === 'water') (entry.mesh.userData.hazardArt as HazardArt).setVisualTime?.(s.activeSeconds);
+      if (e.kind === 'jam') {
+        const vendor = e.crossingRole === 'vendor' || e.width === movingBalance.vendorWidth;
+        (entry.mesh.userData.barrierArt as HazardArt).root.visible = !vendor;
+        (entry.mesh.userData.vendorArt as MovingArt).root.visible = vendor;
+      }
+      if (e.kind === 'shop') entry.mesh.rotation.y += e.x > 0 ? -Math.PI / 2 : Math.PI / 2;
       if (e.kind === 'traffic') {
         (entry.mesh.userData.service as THREE.Group).visible = e.serviceRole === 'ambulance';
         const hpFill = entry.mesh.userData.hpFill as THREE.Mesh, hpBack = entry.mesh.userData.hpBack as THREE.Mesh;
         hpFill.visible = hpBack.visible = !!s.world.prototype;
         hpFill.scale.x = Math.max(0, (e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp);
         hpFill.position.x = -(1 - hpFill.scale.x) * e.width / 2;
-        const body = entry.mesh.userData.body as THREE.Mesh;
-        (body.material as THREE.MeshLambertMaterial).color.set(e.wrecked ? '#4e5558' : e.serviceRole === 'ambulance' ? '#d2dedd' :
-          trafficTypes[e.trafficKind ?? 'car4'].color);
+        const art = entry.mesh.userData.trafficArt as VehicleArt;
+        art.setPaint(e.serviceRole === 'ambulance' ? '#d2dedd' : trafficTypes[e.trafficKind ?? 'car4'].color);
+        const hpRatio = (e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp;
+        art.setCondition(e.wrecked ? 'destroyed' : hpRatio < .45 ? 'damaged' : hpRatio < .8 ? 'used' : 'clean');
       }
-      if (e.kind === 'train') entry.mesh.visible = !!e.crossMotion || trainClosed(e, s.activeSeconds);
+      if (e.kind === 'train') {
+        entry.mesh.visible = !!e.crossMotion || trainClosed(e, s.activeSeconds);
+        (entry.mesh.userData.movingArt as MovingArt).root.scale.x = (e.crossMotion?.velocity ?? 1) < 0 ? -1 : 1;
+      }
       if (e.kind === 'police' || e.kind === 'militia') {
-        (entry.mesh.userData.human as THREE.Group).visible = !!e.groupId;
-        (entry.mesh.userData.legacy as THREE.Mesh).visible = !e.groupId;
-        (entry.mesh.userData.stunMark as THREE.Mesh).visible = e.stunned === true;
-        ((entry.mesh.userData.torso as THREE.Mesh).material as THREE.MeshLambertMaterial).color.set(e.stunned ? '#d3b66a' : e.kind === 'police' ? '#698da8' : '#85906b');
+        (entry.mesh.userData.movingArt as MovingArt).setState(e.stunned ? 'stunned' : 'normal');
       }
       if (e.kind === 'passenger') (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
       const baseWidth = e.kind === 'wind' ? 9.6 : e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'wind' ? 65 : e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
-      entry.mesh.scale.set(e.kind === 'traffic' || e.kind === 'shop' ? 1 : e.width / baseWidth, 1,
-        e.kind === 'traffic' || e.kind === 'shop' ? 1 : e.length / baseLength);
+      const sizedArt = e.kind === 'water' || e.kind === 'pothole' || e.kind === 'train' ||
+        e.kind === 'police' || e.kind === 'militia' || e.kind === 'accident' ||
+        e.kind === 'jam';
+      entry.mesh.scale.set(e.kind === 'traffic' || e.kind === 'shop' || sizedArt ? 1 : e.width / baseWidth, 1,
+        e.kind === 'traffic' || e.kind === 'shop' || sizedArt ? 1 : e.length / baseLength);
     }
     for (const [id, entry] of this.entityMeshes) if (!live.has(id)) {
       entry.mesh.visible = false;
-      if (entry.kind === 'traffic') {
+      if (entry.kind === 'water' || entry.kind === 'pothole') {
+        this.scene.remove(entry.mesh);
+        (entry.mesh.userData.hazardArt as HazardArt).dispose();
+      } else if (entry.kind === 'traffic') {
         const kind = entry.trafficKind ?? 'car4';
         const pool = this.trafficPools.get(kind) ?? []; pool.push(entry.mesh); this.trafficPools.set(kind, pool);
       } else this.pools[entry.kind].push(entry.mesh);
@@ -540,6 +578,14 @@ export class RoadRenderer {
   }
   dispose(): void {
     this.observer.disconnect();
+    this.stormLighting.dispose();
+    for (const art of [this.rain, this.rainSplashes]) if (art) { this.scene.remove(art.root); art.dispose(); }
+    for (const art of this.scenery.values()) { this.scene.remove(art.root); art.dispose(); }
+    this.scenery.clear();
+    for (const entry of this.entityMeshes.values()) if (entry.kind === 'water' || entry.kind === 'pothole') {
+      this.scene.remove(entry.mesh);
+      (entry.mesh.userData.hazardArt as HazardArt).dispose();
+    }
     this.scene.traverse(object => { if (object instanceof THREE.Mesh) {
       object.geometry.dispose();
       const materials = Array.isArray(object.material) ? object.material : [object.material];

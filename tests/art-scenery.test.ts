@@ -5,6 +5,38 @@ import { landscapeColors, type LandscapeKind } from '../src/landscape';
 import { createSceneryCluster, optimizeNearScenery } from '../src/art/scenery';
 
 describe('essential roadside scenery', () => {
+  it('covers each 96 m section with continuous roadside ground', () => {
+    const groundName: Record<LandscapeKind, string> = {
+      city: 'sidewalk_base', trees: 'green_verge', cliffs: 'cliff_toe',
+      rice: 'field_soil_continuity', sea: 'water_plane',
+    };
+    for (const kind of Object.keys(groundName) as LandscapeKind[]) {
+      const art = createSceneryCluster(kind, 1, 'near');
+      const ground = art.root.getObjectByName(groundName[kind]);
+      expect(ground).toBeDefined();
+      const bounds = new THREE.Box3().setFromObject(ground!);
+      expect(bounds.min.z).toBeLessThanOrEqual(-47.99);
+      expect(bounds.max.z).toBeGreaterThanOrEqual(47.99);
+      art.dispose();
+    }
+  });
+  it('tapers the sea at biome changes while preserving full sea-to-sea joins', () => {
+    const continuous = createSceneryCluster('sea', 1, 'near');
+    const transition = createSceneryCluster('sea', 1, 'near', 0,
+      { start: true, end: true });
+    const wallBounds = (art: ReturnType<typeof createSceneryCluster>) =>
+      new THREE.Box3().setFromObject(art.root.getObjectByName('seawall')!);
+    expect(wallBounds(continuous).max.z - wallBounds(continuous).min.z).toBeCloseTo(96);
+    expect(wallBounds(transition).max.z - wallBounds(transition).min.z).toBeCloseTo(80);
+    const water = transition.root.getObjectByName('water_plane') as THREE.Mesh;
+    const vertices = water.geometry.getAttribute('position');
+    const endXs: number[] = [];
+    for (let i = 0; i < vertices.count; i++)
+      if (Math.abs(vertices.getZ(i)) > 47.99) endXs.push(vertices.getX(i));
+    expect(endXs.length).toBeGreaterThan(0);
+    expect(Math.max(...endXs) - Math.min(...endXs)).toBeLessThan(.001);
+    continuous.dispose(); transition.dispose();
+  });
   it('covers every existing 96 m landscape family and stays out of the driving corridor', () => {
     for (const kind of Object.keys(landscapeColors) as LandscapeKind[]) {
       for (const side of [-1, 1] as const) for (const lod of ['near', 'far'] as const) {

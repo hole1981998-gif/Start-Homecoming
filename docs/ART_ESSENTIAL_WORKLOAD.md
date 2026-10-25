@@ -9,7 +9,7 @@ Ngày 24/10/2026. Đây là kế hoạch sản xuất rút gọn theo ưu tiên 
 - Chỉ cần một finish đẹp cho mỗi xe lúc đầu. Nội thất ghế chi tiết, bảng điều khiển, biến thể sơn thứ hai/thứ ba, đèn/FX thật và props trang trí nhỏ để sau.
 - Bánh, trục lái, body pivot, hitch container, seat/socket phải có **điểm gắn và phân cấp** để tích hợp; không bắt buộc mô phỏng/cử động chi tiết khi chưa có runtime nối.
 - Xe máy, mô tô, car4, car7: ngoại thất bằng mức mẫu car4. Ba gác, bus, truck, container: khoảng 80% mức đó, vẫn khác silhouette thật. Hazard: khoảng 50–60%. Cảnh quan: khoảng 50%, tập trung hình lớn và cụm có bản sắc.
-- Không thay collider, balance, hướng lái, roster hoặc nguồn spawn để hợp với mesh. Asset module vẫn tách khỏi `render.ts` cho đến khi chat code tích hợp.
+- Không thay collider, balance, hướng lái, roster hoặc nguồn spawn để hợp với mesh. Asset module tách riêng; `render.ts` chỉ gọi factory trong bước tích hợp I1.
 
 ## Các gói theo thứ tự
 
@@ -20,9 +20,9 @@ Ngày 24/10/2026. Đây là kế hoạch sản xuất rút gọn theo ưu tiên 
 | C1 — người thiết yếu | Một tài xế rõ từ sau, khách nhiều silhouette cốt lõi; pose lái/ngồi, vẫy, va/ngã, đứng dậy, từ chối. Mount trên các loại xe. | Secondary gesture và biểu cảm tinh. | Source 12 khách + tài xế, pose, mount, preview, unit checks xong; tỷ lệ/trang phục còn cần nâng tiếp, chưa nối roster/animation runtime. |
 | H1 — hazard tĩnh và điểm dịch vụ | Nước các footprint đang dùng, ổ gà, rào, hàng rơi, pickup xăng/sửa, cụm tai nạn tái dùng car4, shop một silhouette. | Cây đổ hiện là mẫu dự phòng, không thêm spawn; shop nhiều skin, vết nhỏ/biến thể nhiều, props dressing. | Source + preview + footprint checks xong; chưa nối renderer. |
 | H2 — hazard chuyển động | Tàu hữu hạn, công an/dân phòng, hàng rong, cứu thương. Chỉ pose/part cần đọc hướng và trạng thái. | Animation phản ứng dài, clip phụ. | Source + preview + unit checks xong; chưa kiểm chuyển động trong game. |
-| R1 — đường | Mặt đường 4 m theo pathPose, mép/làn/bờ, giao lộ và rào nhánh thẳng hiện hành. | Drain/patch/biển nhỏ lặp lại; transition cảnh quan ở bản polish. | Source + checks xong; chưa nối geometry động của route. |
-| E1 — cảnh quan | Nhà thấp, cửa hàng mặt tiền rộng, chung cư nhỏ, công viên, cây/bụi, ruộng, đồi, ven biển; năm family đang có trong `landscape.ts`. | Hồ/sông riêng, mọi facade/prop/LOD biến thể trong guide đầy đủ, anim cây. | Source + preview + clearance/seed checks xong; còn mặt bên phẳng và nhịp phố cần tuning, chưa nối placement trong game. |
-| I1 — nối và QA | Gắn asset, kiểm camera/collider/state/perf trong game; hoàn thiện các lỗi cản gameplay. | FX/SFX/shader/đèn production. | Đã bắt đầu nối bảy xe người chơi vào renderer; container, traffic, người, hazard, đường/cảnh quan và QA tổng thể còn chờ. |
+| R1 — đường | Mặt đường 4 m theo pathPose, mép/làn/bờ, giao lộ và rào nhánh thẳng hiện hành. | Drain/patch/biển nhỏ lặp lại; transition cảnh quan ở bản polish. | Đã nối tile đường theo route động; còn QA góc cua và hiệu năng. |
+| E1 — cảnh quan | Nhà thấp, cửa hàng mặt tiền rộng, chung cư nhỏ, công viên, cây/bụi, ruộng, đồi, ven biển; năm family đang có trong `landscape.ts`. | Hồ/sông riêng, mọi facade/prop/LOD biến thể trong guide đầy đủ, anim cây. | Đã nối placement năm family trong game, sửa nền phủ đủ 96 m và chuyển màu lề; còn QA nhiều seed/góc cua, mặt bên phẳng và nhịp phố cần tuning. |
+| I1 — nối và QA | Gắn asset, kiểm camera/collider/state/perf trong game; hoàn thiện các lỗi cản gameplay. | FX/SFX/shader/đèn production. | Bảy xe người chơi, tám master traffic, hazard/event/service, tile đường, năm biome và rig sáng/mưa nhẹ đã nối bước đầu; container player, khách/tài xế, placement trên cua, tối ưu hiệu năng và QA tổng thể còn chờ. |
 
 ## VEH-03 car4 mẫu
 
