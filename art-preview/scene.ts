@@ -50,7 +50,7 @@ scene.environmentIntensity = .12;
 scene.fog = new THREE.Fog('#8ab5bb', 36, 100);
 scene.add(new THREE.HemisphereLight('#bcebf0', '#335e6a', 1.23));
 scene.add(new THREE.AmbientLight('#86bfd0', .17));
-const sun = new THREE.DirectionalLight('#ffd399', 2.18);
+const sun = new THREE.DirectionalLight('#ffbf76', 2.8);
 sun.position.set(19, 12, 20); sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -34; sun.shadow.camera.right = 34;

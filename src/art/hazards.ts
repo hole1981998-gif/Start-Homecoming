@@ -272,9 +272,9 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
 export function createPropHazardArt(kind: PropHazardKind, lod: 'near' | 'far' = 'near'): HazardArt {
   const root = new THREE.Group(); root.name = `haz_${kind}_${lod}`;
   root.userData = { id: root.name, axes: '+Y up, +Z forward', collisionRole: 'reference-only' };
-  const steel = material('#576368'), dark = material('#2c373b'), wood = material('#816956');
-  const woodLight = material('#aa8b6b'), amber = material('#e2ab55'), red = material('#bd6961');
-  const white = material('#e7dfc8'), green = material('#63887a'), worn = new THREE.Group();
+  const steel = material('#638994'), dark = material('#263b43'), wood = material('#9b704d');
+  const woodLight = material('#c39866'), amber = material('#f1b74b'), red = material('#df5b50');
+  const white = material('#f5e9cb'), green = material('#48a678'), worn = new THREE.Group();
   worn.name = 'used_overlay'; root.add(worn);
   const broken = new THREE.Group(); broken.name = 'broken_overlay'; root.add(broken);
   let top = .9;
@@ -313,6 +313,7 @@ export function createPropHazardArt(kind: PropHazardKind, lod: 'near' | 'far' = 
     box(root, 'barrier_board', [5.7, .45, .12], [0, .78, 0], amber);
     for (const x of [-2.15, -1.28, -.43, .43, 1.28, 2.15]) {
       box(root, `stripe_${x}`, [.20, .46, .018], [x, .78, .068], dark).rotation.z = -.39;
+      box(root, `stripe_back_${x}`, [.20, .46, .018], [x, .78, -.068], dark).rotation.z = .39;
     }
     box(broken, 'fallen_board', [2.1, .19, .12], [2.1, .21, .45], amber).rotation.z = -.14;
   } else {

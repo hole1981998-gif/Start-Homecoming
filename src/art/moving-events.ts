@@ -36,8 +36,8 @@ export function createTrainArt(direction: -1 | 1 = 1, lod: 'near' | 'far' = 'nea
   // The authored nose is mirrored into output +Z, then +Z is aimed along the crossing velocity.
   train.scale.z = -1; train.rotation.y = direction * Math.PI / 2; root.add(train);
   const total = movingBalance.trainWidth, depth = movingBalance.trainDepth;
-  const shell = mat('#b89169'), roof = mat('#43565d'), window = mat('#8ca7aa', .05);
-  const dark = mat('#27363d'), lamp = mat('#eddfae'), red = mat('#ac665e');
+  const shell = mat('#c69b67'), roof = mat('#385f6b'), window = mat('#95c6c8', .05);
+  const dark = mat('#243b43'), lamp = mat('#ffe1a1'), red = mat('#cb6551');
   const lengths = [5.4, 8.8, 8.8], centers = [-9.2, -2.1, 7.2];
   lengths.forEach((length, i) => {
     const z = centers[i], carriage = new THREE.Group();
@@ -84,9 +84,9 @@ export function createTrainArt(direction: -1 | 1 = 1, lod: 'near' | 'far' = 'nea
 
 /** Car7 master with service livery; gameplay keeps car7 HP, dimensions and speed. */
 export function createAmbulanceArt(lod: 'near' | 'far' = 'near'): MovingArt {
-  const base = createCar7Art(lod); base.setPaint('#d1ddda');
+  const base = createCar7Art(lod); base.setPaint('#e7eee3');
   const root = base.root; root.name = `veh_ambulance_${lod}`;
-  const red = mat('#bd5f5c'), white = mat('#e6e5d7'), dark = mat('#435157');
+  const red = mat('#e0524d'), white = mat('#f1ede0'), dark = mat('#34515d');
   const service = new THREE.Group(); service.name = 'ambulance_service'; base.body.add(service);
   box(service, 'roof_beacon_base', [.78, .09, .36], [0, 1.86, .24], dark);
   for (const side of [-1, 1]) box(service, `beacon_${side}`,
@@ -107,7 +107,7 @@ export function createAmbulanceArt(lod: 'near' | 'far' = 'near'): MovingArt {
   const sockets = { ...base.sockets, beacon: point(service, 'beacon_socket', [0, 2.04, .24]) };
   const setState = (state: 'normal' | 'stunned' | 'damaged') => {
     damage.visible = state === 'damaged';
-    base.setPaint(state === 'damaged' ? '#929b99' : '#d1ddda');
+    base.setPaint(state === 'damaged' ? '#929b99' : '#e7eee3');
     base.setCondition(state === 'damaged' ? 'damaged' : 'clean');
   };
   setState('normal');
@@ -155,8 +155,8 @@ export function createOfficerArt(kind: 'police' | 'militia', lod: 'near' | 'far'
 /** One cart silhouette spans the existing 1.8 × 2.1 m vendor footprint. */
 export function createVendorArt(lod: 'near' | 'far' = 'near'): MovingArt {
   const root = new THREE.Group(); root.name = `haz_vendor_${lod}`;
-  const wood = mat('#8c745e'), canvas = mat('#b78e67'), dark = mat('#33454a');
-  const fruit = mat('#bb9163');
+  const wood = mat('#9c7250'), canvas = mat('#c8915e'), dark = mat('#294950');
+  const fruit = mat('#de9956');
   box(root, 'cart_tray', [1.5, .18, 1.25], [0, .78, .19], wood);
   box(root, 'cart_lower', [1.24, .53, .98], [0, .46, .19], canvas);
   for (const side of [-1, 1]) {

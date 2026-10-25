@@ -98,6 +98,8 @@ Sketch mới của chủ dự án đặt đích: môi trường cyan-blue mạnh
 
 Cảnh `scene.html` nay thử ambient cyan, nắng xiên ấm, fog xanh từ khoảng 36–100 m và dải bóng dài minh họa; chọn được năm biome bằng cùng camera chơi, với HUD mock. Nền preview đã hạ để không che nước biển/ruộng. `src/art/hazards.ts` chuyển nước/ổ gà sang superellipse mềm trong footprint cũ; nước near có nhiều vòng/cạnh hơn và gợn vertex theo thời gian. Biển/ruộng near trong `src/art/scenery.ts` có plane chia lưới và `setVisualTime`; không phát clock nội bộ. `src/art/vehicle-catalog.ts` cấp tám màu player riêng và tăng nhẹ saturation cho màu traffic được truyền vào. `src/art/water-body.ts` bổ sung master sông/hồ near/far chia lưới, bờ và gợn vertex; `/art-preview/world-gallery.html` cho kiểm riêng. Đây là source decorative, chưa thêm vùng sông/hồ vào spawn/route. Material/lighting mới chưa có ở `src/render.ts`; còn phải đo camera route, contrast cue và perf game thật.
 
+Một lượt palette tiếp theo làm màu tường/viền các nhà code-native ấm-cool rõ hơn, đồng thời tăng nắng cam trong scene preview. Pickup xăng/sửa, rào, toa tàu, cứu thương và hàng rong được tăng saturation ở các mảng nhận diện; rào có sọc cả hai mặt để đọc từ hai chiều. Không đổi vị trí, socket, footprint hay animation timing. Cần xem các màu này với sky/fog và HUD trên route thật trước khi coi là palette cuối.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

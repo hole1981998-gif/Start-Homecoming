@@ -38,6 +38,16 @@ describe('essential hazard art', () => {
       asset.dispose();
     }
   });
+  it('marks both faces of the barrier without widening its collision reference', () => {
+    const barrier = createPropHazardArt('barrier');
+    const front = barrier.root.getObjectByName('stripe_0.43') as THREE.Mesh;
+    const back = barrier.root.getObjectByName('stripe_back_0.43') as THREE.Mesh;
+    expect(front.position.z).toBeGreaterThan(0);
+    expect(back.position.z).toBeLessThan(0);
+    expect(new THREE.Box3().setFromObject(barrier.root).getSize(new THREE.Vector3()).x)
+      .toBeLessThanOrEqual(6.2);
+    barrier.dispose();
+  });
   it('animates water normals and highlights deterministically without shifting its footprint', () => {
     const water = createSurfaceHazardArt('water', 3.2, 7);
     const floor = water.root.getObjectByName('deep_water') as THREE.Mesh;
