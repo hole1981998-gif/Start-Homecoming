@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createVehicleArt } from '../src/art/vehicle-catalog';
 import { createPersonArt, mountPersonOnSeat } from '../src/art/people';
-import { createSurfaceHazardArt } from '../src/art/hazards';
+import { createPropHazardArt, createSurfaceHazardArt } from '../src/art/hazards';
+import { createOfficerArt } from '../src/art/moving-events';
 import { createSceneryCluster, optimizeNearScenery } from '../src/art/scenery';
 import { createRoadTileArt } from '../src/art/road-kit';
 import { createRainArt, createRainSplashArt } from '../src/art/weather';
-import { configureStormRenderer, createStormLighting, gradeStormCityBuilding, markGameplayAccentTarget } from '../src/art/storm-lighting';
+import { configureStormRenderer, createStormLighting, gradeStormCityBuilding } from '../src/art/storm-lighting';
 import { createRoadShadowArt } from '../src/art/road-shadows';
 import { balance } from '../src/config';
 import { vehicles, type VehicleKind } from '../src/vehicles';
@@ -79,16 +80,21 @@ function createPreviewPlayer(kind: VehicleKind) {
   art.root.traverse(object => {
     if (object instanceof THREE.Mesh) { object.castShadow = true; object.receiveShadow = true; }
   });
-  markGameplayAccentTarget(art.root);
   return art;
 }
 let player = createPreviewPlayer('car4'); scene.add(player.root);
 const traffic = createVehicleArt('car7', 'traffic', 'near', '#a88772');
-traffic.root.position.set(-3.2, .02, 21); traffic.root.rotation.y = Math.PI; markGameplayAccentTarget(traffic.root); scene.add(traffic.root);
+traffic.root.position.set(-3.2, .02, 21); traffic.root.rotation.y = Math.PI; scene.add(traffic.root);
 const bike = createVehicleArt('motorcycle', 'traffic', 'far', '#c5a36c');
-bike.root.position.set(3.2, .02, 31); markGameplayAccentTarget(bike.root); scene.add(bike.root);
-const water = createSurfaceHazardArt('water', 3.2, 7); water.root.position.set(3.2, .025, 12); markGameplayAccentTarget(water.root); scene.add(water.root);
-const pothole = createSurfaceHazardArt('pothole', 2.3, 4); pothole.root.position.set(0, .035, 27); markGameplayAccentTarget(pothole.root); scene.add(pothole.root);
+bike.root.position.set(3.2, .02, 31); scene.add(bike.root);
+const water = createSurfaceHazardArt('water', 3.2, 7); water.root.position.set(3.2, .025, 12); scene.add(water.root);
+const pothole = createSurfaceHazardArt('pothole', 2.3, 4); pothole.root.position.set(0, .035, 27); scene.add(pothole.root);
+const barrel = createPropHazardArt('cargo_barrel'); barrel.root.position.set(.4, .02, 17); scene.add(barrel.root);
+const officer = createOfficerArt('police'); officer.root.position.set(1.3, .02, 23);
+officer.root.rotation.y = Math.PI / 2; scene.add(officer.root);
+for (const root of [barrel.root, officer.root]) root.traverse(object => {
+  if (object instanceof THREE.Mesh) object.castShadow = true;
+});
 const waiting = createPersonArt('commuter'); waiting.setPose('hail', .25);
 waiting.root.position.set(-6.6, 0, 12); waiting.root.rotation.y = Math.PI / 2; scene.add(waiting.root);
 let nativeShop: THREE.Object3D | undefined;

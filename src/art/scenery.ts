@@ -747,7 +747,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     }
   } else if (kind === 'rice') {
     const soil = mat('#8d7853'), paddy = mat('#8dbb61');
-    const water = new THREE.MeshStandardMaterial({ color: '#6fa6a0', roughness: .38,
+    const water = new THREE.MeshStandardMaterial({ color: '#759b99', roughness: .38,
       metalness: .04, side: THREE.DoubleSide });
     const rowCount = near ? 7 : 4, columnCount = near ? 8 : 5;
     const leafPositions: number[] = [];
@@ -814,14 +814,14 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     waterGeometry.rotateX(-Math.PI / 2);
     const points = waterGeometry.getAttribute('position') as THREE.BufferAttribute;
     const colors: number[] = [];
-    const shallowColor = new THREE.Color('#63c1e5'), deepColor = new THREE.Color('#1876c4');
+    const shallowColor = new THREE.Color('#7db5bd'), deepColor = new THREE.Color('#4b8da8');
     for (let i = 0; i < points.count; i++) {
       const px = points.getX(i), pz = points.getZ(i);
       const depth = side === 1 ? (px + 9) / 18 : (9 - px) / 18;
       points.setY(i, Math.sin(pz * .56 + px * .31) * .024 +
         Math.cos(pz * .31 - px * .42) * .012);
       const color = shallowColor.clone().lerp(deepColor, depth * .83);
-      color.multiplyScalar(.96 + Math.sin(pz * .42 + px * .23) * .035);
+      color.multiplyScalar(.98 + Math.sin(pz * .42 + px * .23) * .018);
       colors.push(color.r, color.g, color.b);
     }
     waterGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
@@ -830,7 +830,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     indexedWater.dispose();
     const waterPoints = waterGeometry.getAttribute('position') as THREE.BufferAttribute;
     const waterColors = waterGeometry.getAttribute('color') as THREE.BufferAttribute;
-    const facets = ['#176dc0', '#268bd5', '#3ba6df', '#147bc8', '#58b8e4']
+    const facets = ['#4c8ca7', '#5394ac', '#5b9ab0', '#508da6', '#61a2b4']
       .map(hex => new THREE.Color(hex));
     for (let i = 0; i < waterPoints.count; i += 3) {
       const px = (waterPoints.getX(i) + waterPoints.getX(i + 1) + waterPoints.getX(i + 2)) / 3;

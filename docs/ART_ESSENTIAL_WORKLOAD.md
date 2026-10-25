@@ -130,6 +130,10 @@ Nắng chính và hai vệt nắng phụ trong `storm-lighting.ts` chuyển từ
 
 Mái car4/car7/bus/truck/container nay theo màu thân được chọn, tăng sáng vừa phải và có emissive rất nhẹ để nhận diện ở vùng bóng. Đây là màu của source art; không thêm skin/biến thể xe. Xem trực tiếp ở camera prototype `scene.html` với car4, car7, bus, truck, container; mái có hue riêng, bóng trước xe xanh hơn. Độ nổi khi lái dưới mưa/HUD thật vẫn chưa kiểm.
 
+Sau khi xem ở camera chơi, đèn accent được chuyển sang góc chéo từ phía sau xe và tăng nhẹ để mặt đuôi, hông xe nhận sáng lạnh ở vùng bóng; nó vẫn chỉ thuộc layer gameplay. Ổ gà dùng viền ngoài xanh than và vách nghiêng cát sáng hơn để lòng tối tách khỏi đường. Nước giữ palette hiện tại. Không đổi footprint, collider, spawn hay cue HUD.
+
+Theo làm rõ của chủ dự án, layer gameplay chỉ gắn cho xe, NPC **đang ở trên đường** (công an/dân phòng, người bán hàng rong) và hazard đường; khách chờ ở lề không nhận đèn accent. Scene mẫu có thêm công an và thùng hàng để nhìn phân cấp này ở camera sau. Áo công an và đai thùng sáng hơn một chút, không đổi kích thước/pose. Nước trang trí biển, ruộng, sông, hồ đã giảm saturation và độ chênh giữa các facet; nước hazard trên làn chạy giữ nguyên để không bị lẫn với cảnh quan.
+
 ### Ưu tiên rút gọn sau feedback 25/10
 
 Chủ dự án ưu tiên hoàn thành bản chơi thiết yếu. Vòng polish người trước tích hợp chỉ cần **6 mẫu khách** có vai trò/hình dáng khác nhau: `commuter`, `student`, `child`, `worker`, `parent`, `senior`, cộng tài xế. Sáu mẫu khách còn lại đã có source nhưng không cần tiếp tục polish ở vòng này; không xóa để tránh phá khả năng reuse. Tạm hoãn skin sơn, nội thất, props nhỏ, biểu cảm/animation phụ và các biến thể trang trí không cải thiện độ đọc gameplay.

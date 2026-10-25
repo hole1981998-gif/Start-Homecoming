@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { markGameplayAccentTarget } from './storm-lighting';
 
 export type SurfaceHazardKind = 'water' | 'pothole';
 export type PropHazardKind = 'cargo_crate' | 'cargo_barrel' | 'fuel' | 'repair' |
@@ -79,7 +80,7 @@ function patch(parent: THREE.Object3D, name: string, width: number, length: numb
 function bevelBasin(parent: THREE.Object3D, kind: SurfaceHazardKind, width: number, length: number,
   lod: 'near' | 'far', material: THREE.Material) {
   const positions: number[] = [], colors: number[] = [];
-  const lightWall = new THREE.Color('#786751');
+  const lightWall = new THREE.Color('#b49a75');
   const deepWall = new THREE.Color('#24292a');
   const segments = lod === 'near' ? 32 : 20;
   for (let i = 0; i < segments; i++) {
@@ -221,6 +222,7 @@ function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
 }
 function finish(root: THREE.Group, sockets: Record<string, THREE.Object3D>,
   worn?: THREE.Object3D, broken?: THREE.Object3D): HazardArt {
+  markGameplayAccentTarget(root);
   const setState = (state: 'normal' | 'used' | 'broken') => {
     if (worn) worn.visible = state === 'used' || state === 'broken';
     if (broken) broken.visible = state === 'broken';
@@ -245,7 +247,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   const root = new THREE.Group(); root.name = `haz_${kind}_${lod}`;
   root.userData = { id: root.name, widthM: width, lengthM: length,
     axes: '+Y up, +Z forward', collisionRole: 'reference-only' };
-  const edge = material(kind === 'water' ? '#426a70' : '#504b43');
+  const edge = material(kind === 'water' ? '#426a70' : '#394951');
   const center = kind === 'water'
     ? new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true,
       roughness: .28, metalness: .04, clearcoat: .72,
@@ -344,7 +346,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
 export function createPropHazardArt(kind: PropHazardKind, lod: 'near' | 'far' = 'near'): HazardArt {
   const root = new THREE.Group(); root.name = `haz_${kind}_${lod}`;
   root.userData = { id: root.name, axes: '+Y up, +Z forward', collisionRole: 'reference-only' };
-  const steel = material('#638994'), dark = material('#263b43'), wood = material('#9b704d');
+  const steel = material('#79a3ac'), dark = material('#263b43'), wood = material('#9b704d');
   const woodLight = material('#c39866'), amber = material('#f1b74b'), red = material('#df5b50');
   const white = material('#f5e9cb'), green = material('#48a678'), worn = new THREE.Group();
   worn.name = 'used_overlay'; root.add(worn);
@@ -360,6 +362,7 @@ export function createPropHazardArt(kind: PropHazardKind, lod: 'near' | 'far' = 
     box(broken, 'split_plank', [.75, .08, .1], [.4, .61, .22], woodLight).rotation.z = -.45;
   } else if (kind === 'cargo_barrel') {
     cylinder(root, 'barrel_body', .32, .34, .75, [0, .39, 0], steel, 9);
+    cylinder(root, 'barrel_warning_band', .347, .347, .13, [0, .39, 0], amber, 9);
     for (const y of [.13, .65]) cylinder(root, `steel_band_${y}`, .35, .35, .07,
       [0, y, 0], dark, 9);
     cylinder(root, 'barrel_lid', .30, .30, .04, [0, .78, 0], steel, 9);

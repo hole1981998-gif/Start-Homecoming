@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { movingBalance } from '../config';
 import { createCar7Art } from './car7';
 import { createPersonArt, type PersonArt } from './people';
+import { markGameplayAccentTarget } from './storm-lighting';
 
 export interface MovingArt {
   root: THREE.Group;
@@ -79,6 +80,7 @@ export function createTrainArt(direction: -1 | 1 = 1, lod: 'near' | 'far' = 'nea
   root.userData = { id: 'veh_train_A', axes: '+Y up, +Z forward; crossing along world X',
     widthM: total, lengthM: depth, finite: true, collisionRole: 'reference-only',
     motionSource: 'crossMotion', crossingSeconds: movingBalance.trainCrossSeconds };
+  markGameplayAccentTarget(root);
   return { root, sockets, setState, dispose: () => disposeTree(root) };
 }
 
@@ -113,6 +115,7 @@ export function createAmbulanceArt(lod: 'near' | 'far' = 'near'): MovingArt {
   setState('normal');
   root.userData = { ...root.userData, id: 'veh_ambulance_A', serviceRole: 'ambulance',
     widthM: 2.08, lengthM: 4.8, collisionRole: 'reference-only' };
+  markGameplayAccentTarget(root);
   return { root, sockets, setState, dispose: () => base.dispose() };
 }
 
@@ -123,7 +126,7 @@ export function createOfficerArt(kind: 'police' | 'militia', lod: 'near' | 'far'
   const civilianStrap = root.getObjectByName('bag_strap');
   if (civilianBag) civilianBag.visible = false;
   if (civilianStrap) civilianStrap.visible = false;
-  const uniformColor = kind === 'police' ? '#6489a4' : '#828d6a';
+  const uniformColor = kind === 'police' ? '#7099b4' : '#98a478';
   root.traverse(obj => { if (obj instanceof THREE.Mesh &&
     (obj.name.startsWith('coat_') || obj.name.startsWith('rain_fold_') || obj.name.startsWith('upper_arm_') ||
       obj.name.startsWith('forearm_'))) (obj.material as THREE.MeshStandardMaterial).color.set(uniformColor);
@@ -132,11 +135,11 @@ export function createOfficerArt(kind: 'police' | 'militia', lod: 'near' | 'far'
   box(person.sockets.head.parent!, kind === 'police' ? 'police_cap' : 'militia_wide_hat',
     kind === 'police' ? [.43, .08, .29] : [.58, .055, .47], [0, .07, .08], cap);
   if (kind === 'police') {
-    box(root.getObjectByName('torso_pivot')!, 'police_chest_band', [.29, .11, .027],
-      [0, .39, .18], mat('#a8b6b1'));
+    box(root.getObjectByName('torso_pivot')!, 'police_chest_band', [.34, .13, .027],
+      [0, .39, .18], mat('#e3bd72'));
   } else {
     box(root.getObjectByName('torso_pivot')!, 'militia_crossbody_strap', [.055, .62, .025],
-      [.04, .31, .19], mat('#baa778')).rotation.z = -.45;
+      [.04, .31, .19], mat('#d6c087')).rotation.z = -.45;
     box(root, 'militia_side_bag', [.21, .29, .15], [.27, .63, -.06], cap);
   }
   const mark = new THREE.Group(); mark.name = 'stunned_mark'; root.add(mark);
@@ -149,6 +152,7 @@ export function createOfficerArt(kind: 'police' | 'militia', lod: 'near' | 'far'
   root.userData = { ...root.userData, id: `chr_${kind}_A`, collisionRole: 'reference-only',
     npcWidthM: movingBalance.npcWidth, npcDepthM: movingBalance.npcDepth,
     motionSource: 'crossMotion' };
+  markGameplayAccentTarget(root);
   return { root, sockets: person.sockets, setState, dispose: () => disposeTree(root) };
 }
 
@@ -180,6 +184,7 @@ export function createVendorArt(lod: 'near' | 'far' = 'near'): MovingArt {
   root.userData = { id: 'haz_vendor_A', axes: '+Y up, +Z forward',
     widthM: movingBalance.vendorWidth, lengthM: movingBalance.vendorLength,
     motionSource: 'crossMotion', collisionRole: 'reference-only' };
+  markGameplayAccentTarget(root);
   return { root, sockets: { contact: point(root, 'contact', [0, 0, 0]) },
     setState, dispose: () => disposeTree(root) };
 }

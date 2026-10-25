@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createCar4Art } from './car4';
+import { markGameplayAccentTarget } from './storm-lighting';
 
 export interface SpecialArt { root: THREE.Group; dispose: () => void }
 const mat = (color: string) => new THREE.MeshStandardMaterial({
@@ -35,6 +36,7 @@ export function createAccidentArt(lod: 'near' | 'far' = 'near'): SpecialArt {
   root.userData = { id: 'haz_accident_A', axes: '+Y up, +Z forward',
     widthM: 6.2, lengthM: 5, collisionRole: 'reference-only', terminal: true,
     source: 'two reused car4 masters' };
+  markGameplayAccentTarget(root);
   return { root, dispose: () => disposeTree(root) };
 }
 

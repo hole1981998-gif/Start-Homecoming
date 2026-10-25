@@ -5,6 +5,7 @@ import { createUtilityVehicleArt, type VehicleRole } from './utility-vehicles';
 import { createPersonArt, mountPersonOnSeat } from './people';
 import type { VehicleKind } from '../vehicles';
 import * as THREE from 'three';
+import { markGameplayAccentTarget } from './storm-lighting';
 
 export type VehicleArt = ReturnType<typeof createCar4Art> | ReturnType<typeof createCar7Art> |
   ReturnType<typeof createTwoWheelerArt> | ReturnType<typeof createUtilityVehicleArt>;
@@ -37,5 +38,6 @@ export function createVehicleArt(kind: VehicleKind, role: VehicleRole = 'player'
     ? new THREE.Color(trafficColor).offsetHSL(0, .13, .035).getStyle() : undefined;
   if (paintColor) asset.setPaint(paintColor);
   asset.root.userData.paintColor = paintColor;
+  markGameplayAccentTarget(asset.root);
   return asset;
 }

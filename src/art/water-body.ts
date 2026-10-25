@@ -18,8 +18,8 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
     axes: '+Y up, +Z forward', collisionRole: 'decorative-only',
     placementSource: 'future art placement; no spawn change' };
   const vertices: number[] = [], colors: number[] = [], indices: number[] = [];
-  const edge = new THREE.Color('#75cfe8');
-  const middle = new THREE.Color(kind === 'river' ? '#1a83c8' : '#258ed2');
+  const edge = new THREE.Color('#7eb6bd');
+  const middle = new THREE.Color(kind === 'river' ? '#4d8fa8' : '#5592a7');
   const color = new THREE.Color();
   if (kind === 'river') {
     const columns = lod === 'near' ? 12 : 7;
@@ -32,7 +32,7 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
         const u = col / columns;
         vertices.push((u - .5) * width * bankWidth + bend, 0, z);
         color.copy(middle).lerp(edge, Math.abs(u - .5) * 1.65);
-        color.multiplyScalar(.93 + .07 * Math.sin(z * .42 + u * 8.7));
+        color.multiplyScalar(.97 + .03 * Math.sin(z * .42 + u * 8.7));
         colors.push(color.r, color.g, color.b);
         if (row < rows && col < columns) {
           const a = row * (columns + 1) + col;
@@ -69,7 +69,7 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
   indexed.dispose();
   const faceColors = geometry.getAttribute('color') as THREE.BufferAttribute;
   const positions = geometry.getAttribute('position') as THREE.BufferAttribute;
-  const facets = ['#166cbe', '#248fd8', '#39a5df', '#1683cb', '#54b9e7']
+  const facets = ['#4d8faa', '#5598af', '#5b9db3', '#528fa8', '#61a2b5']
     .map(hex => new THREE.Color(hex));
   for (let i = 0; i < positions.count; i += 3) {
     const x = (positions.getX(i) + positions.getX(i + 1) + positions.getX(i + 2)) / 3;
