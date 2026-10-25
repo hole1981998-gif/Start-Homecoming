@@ -22,7 +22,7 @@ Ngày 24/10/2026. Đây là kế hoạch sản xuất rút gọn theo ưu tiên 
 | H2 — hazard chuyển động | Tàu hữu hạn, công an/dân phòng, hàng rong, cứu thương. Chỉ pose/part cần đọc hướng và trạng thái. | Animation phản ứng dài, clip phụ. | Source + preview + unit checks xong; chưa kiểm chuyển động trong game. |
 | R1 — đường | Mặt đường 4 m theo pathPose, mép/làn/bờ, giao lộ và rào nhánh thẳng hiện hành. | Drain/patch/biển nhỏ lặp lại; transition cảnh quan ở bản polish. | Source + checks xong; chưa nối geometry động của route. |
 | E1 — cảnh quan | Nhà thấp, cửa hàng mặt tiền rộng, chung cư nhỏ, công viên, cây/bụi, ruộng, đồi, ven biển; năm family đang có trong `landscape.ts`. | Hồ/sông riêng, mọi facade/prop/LOD biến thể trong guide đầy đủ, anim cây. | Source + preview + clearance/seed checks xong; còn mặt bên phẳng và nhịp phố cần tuning, chưa nối placement trong game. |
-| I1 — nối và QA | Chat code gắn asset, kiểm camera/collider/state/perf trong game; hoàn thiện các lỗi cản gameplay. | FX/SFX/shader/đèn production. | Chờ asset và chat code. |
+| I1 — nối và QA | Gắn asset, kiểm camera/collider/state/perf trong game; hoàn thiện các lỗi cản gameplay. | FX/SFX/shader/đèn production. | Đã bắt đầu nối bảy xe người chơi vào renderer; container, traffic, người, hazard, đường/cảnh quan và QA tổng thể còn chờ. |
 
 ## VEH-03 car4 mẫu
 

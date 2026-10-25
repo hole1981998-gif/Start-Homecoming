@@ -7,6 +7,9 @@ import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from '
 import { junction, pathPose } from './route';
 import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep';
 import { LANDSCAPE_REGION_METRES, landscapeColors, landscapeWindow, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
+import { attachVehicleArtToPrototype } from './art/prototype-adapter';
+import { createVehicleArt, type VehicleArt } from './art/vehicle-catalog';
+import type { VehicleKind } from './vehicles';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
   landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] }
@@ -16,6 +19,7 @@ export class RoadRenderer {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(52, 9 / 16, 0.1, 180);
   private bike = new THREE.Group();
+  private playerArt = new Map<VehicleKind, VehicleArt>();
   private powerRing!: THREE.Mesh;
   private openFrame = new THREE.Group();
   private tricycleFrame = new THREE.Group();
@@ -290,14 +294,27 @@ export class RoadRenderer {
     (this.powerRing.material as THREE.MeshBasicMaterial).color.set(hasStar(s) ? '#f7df85' : '#86d6ec');
     const tricycle = vehicle.kind === 'tricycle';
     const open = ['motorcycle', 'motorbike', 'tricycle'].includes(vehicle.kind);
-    this.openFrame.visible = open && !tricycle; this.tricycleFrame.visible = tricycle;
     const articulated = this.forceMode && vehicle.kind === 'container';
-    this.closedFrame.visible = !open && !articulated;
+    const useSourceArt = vehicle.kind !== 'container';
+    if (useSourceArt && !this.playerArt.has(vehicle.kind)) {
+      const art = createVehicleArt(vehicle.kind, 'player', 'near');
+      attachVehicleArtToPrototype(this.bike, art);
+      this.playerArt.set(vehicle.kind, art);
+    }
+    for (const [kind, art] of this.playerArt) art.root.visible = useSourceArt && kind === vehicle.kind;
+    if (useSourceArt) {
+      const ratio = s.durability / vehicle.durabilityCapacity;
+      this.playerArt.get(vehicle.kind)!.setCondition(ratio <= 0 ? 'destroyed' :
+        ratio < .45 ? 'damaged' : ratio < .8 ? 'used' : 'clean');
+    }
+    this.openFrame.visible = !useSourceArt && open && !tricycle;
+    this.tricycleFrame.visible = !useSourceArt && tricycle;
+    this.closedFrame.visible = !useSourceArt && !open && !articulated;
     this.tractorFrame.visible = articulated;
     this.trailerFrame.visible = articulated;
     const scaleX = articulated ? 1 : tricycle ? 1 : vehicle.width / (open ? balance.vehicleWidth : 1);
     const scaleZ = articulated ? 1 : tricycle ? 1 : vehicle.length / (open ? balance.vehicleLength : 2);
-    this.bike.scale.set(scaleX, 1, scaleZ);
+    this.bike.scale.set(useSourceArt ? 1 : scaleX, 1, useSourceArt ? 1 : scaleZ);
     const x = THREE.MathUtils.lerp(previous.x, s.x, alpha);
     const distance = THREE.MathUtils.lerp(previous.distance, s.distance, alpha);
     const playerPose = pathPose(distance, s.route, s.seed);

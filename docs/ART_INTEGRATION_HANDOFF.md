@@ -1,6 +1,12 @@
 # Bàn giao tích hợp art thiết yếu — 24/10/2026
 
-Asset hiện là module Three.js riêng trong `src/art/`, chưa được gắn vào `src/render.ts`. Gói này không sửa simulation, collider, RNG, cân bằng, UI hoặc âm thanh. Dùng `art-preview/car4.html`, `vehicle-gallery.html`, `people.html`, `world-gallery.html`, `scene.html` trong Vite để kiểm hình; `scene.html` là bố cục đại diện, không phải gameplay.
+Asset nằm trong module Three.js riêng ở `src/art/`. Bước I1 đầu tiên đã gắn bảy xe người chơi (trừ container) vào `src/render.ts`; traffic, người, hazard, đường và cảnh quan vẫn dùng hình prototype. Gói này không sửa simulation, collider, RNG, cân bằng, UI hoặc âm thanh. Dùng `art-preview/car4.html`, `vehicle-gallery.html`, `people.html`, `world-gallery.html`, `scene.html` trong Vite để kiểm hình; `scene.html` là bố cục đại diện, không phải gameplay.
+
+### I1 — kiểm xe người chơi trong runtime
+
+Renderer tạo một instance art khi loại xe xuất hiện lần đầu, gắn nó dưới logic root bằng `attachVehicleArtToPrototype()`, giữ scale 1:1 theo đơn vị mét và ẩn mesh placeholder cùng loại. HP của xe hiện hành chỉ điều khiển `clean/used/damaged/destroyed` bằng ngưỡng hình ảnh; va chạm và chỉ số HP vẫn thuộc simulation. Container tiếp tục dùng placeholder rơ-moóc có khớp vì mesh art nguyên khối chưa theo transform tractor/trailer riêng. Tài xế/khách vẫn là hình prototype trong game, chưa dùng collection Blender mà chủ dự án đang chỉnh.
+
+Kiểm thủ công trên trình duyệt in-app tại `/` với xe máy mặc định và `/?scenario=handling-car4&seed=17`, `/?scenario=handling-bus&seed=17`: bắt đầu ván thấy mesh mới ở camera thật; xe 4 chỗ có thể lái trái, HUD cập nhật tốc độ/quãng đường/xăng; pause giữ tài nguyên, restart trả về 0 m và HP/xăng đầu. Bus đọc được mái và đuôi trong camera thật. Đây là các kịch bản DEV, chưa kiểm chuyển xe trong ván, đủ bảy xe khi chạy, tình huống va chạm/hazard hoặc FPS/P95. Không gọi I1 hoàn tất.
 
 ## Nguồn kích thước và thời gian
 
