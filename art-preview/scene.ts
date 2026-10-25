@@ -7,6 +7,7 @@ import { createSceneryCluster, optimizeNearScenery } from '../src/art/scenery';
 import { createRoadTileArt } from '../src/art/road-kit';
 import { createRainArt, createRainSplashArt } from '../src/art/weather';
 import { configureStormRenderer, createStormLighting } from '../src/art/storm-lighting';
+import { createRoadShadowArt } from '../src/art/road-shadows';
 import { balance } from '../src/config';
 import { vehicles, type VehicleKind } from '../src/vehicles';
 import type { LandscapeKind } from '../src/landscape';
@@ -48,22 +49,10 @@ for (const [x, z, width, length] of [[-2, 36, 29, 21], [4, 77, 25, 16]] as const
   cloudShadow.position.set(x, .027, z);
   scene.add(cloudShadow);
 }
-for (const [name, corners] of [
-  ['foreground', [[6.6, -4], [6.6, 1], [-6.4, -13], [-6.4, -18]]],
-  ['midroad', [[6.6, 27], [6.6, 31], [-6.4, 17], [-6.4, 13]]],
-] as const) {
-  const positions: number[] = [];
-  for (const i of [0, 1, 2, 0, 2, 3])
-    positions.push(corners[i][0], .029, corners[i][1]);
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geometry.computeVertexNormals();
-  const shade = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
-    color: '#163a48', transparent: true, opacity: .43, depthWrite: false,
-    side: THREE.DoubleSide,
-  }));
-  shade.name = `long_shadow_${name}`;
-  scene.add(shade);
+for (const [z, bandWidth] of [[-8.5, 5], [22, 4]] as const) {
+  const shade = createRoadShadowArt(13.2, 14, bandWidth);
+  shade.root.position.z = z;
+  scene.add(shade.root);
 }
 for (let z = -34; z <= 106; z += 4) {
   const tile = createRoadTileArt(z < -2 ? 'near' : 'far');

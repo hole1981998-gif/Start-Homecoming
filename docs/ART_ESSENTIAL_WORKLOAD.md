@@ -106,6 +106,8 @@ Ba nhà Blender dùng trong scene phố (`skyline-shophouse`, `corner-market`, `
 
 Sông/hồ source tiếp tục tăng độ gợn mesh near theo ba tần số không đồng pha, giữ far nhỏ để tránh shimmer; tâm nước sông xanh sâu hơn, bờ được nâng thành dốc thấp thay đường viền phẳng. Bờ vẫn nằm trong kích thước yêu cầu của root; hồ dùng màu/dao động dịu hơn để không trông như hố xoáy. Gallery 9:16 cho thấy các facet nước gần rõ hơn, nhưng chưa có địa hình nối bờ, foam hay placement trong route. `setVisualTime` vẫn nhận clock từ caller và không ảnh hưởng collider/spawn.
 
+Hai dải bóng chéo cứng của scene preview được thay bằng `src/art/road-shadows.ts`: một source road-local có mép feather, hình hơi gãy và có `dispose`, đặt hai bản trên đường mẫu. Đây là mảng tối art để thử chiaroscuro, không phải shadow caster vật lý; route runtime phải đặt theo `pathPose` và kiểm hazard/cue không mất tương phản trước khi sử dụng. Không đổi lighting rig hay gameplay renderer.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
