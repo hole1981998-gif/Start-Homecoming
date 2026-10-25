@@ -6,6 +6,7 @@ import { createSurfaceHazardArt } from '../src/art/hazards';
 import { createSceneryCluster, optimizeNearScenery } from '../src/art/scenery';
 import { createRoadTileArt } from '../src/art/road-kit';
 import { createRainArt, createRainSplashArt } from '../src/art/weather';
+import { configureStormRenderer, createStormLighting } from '../src/art/storm-lighting';
 import { balance } from '../src/config';
 import { vehicles, type VehicleKind } from '../src/vehicles';
 import type { LandscapeKind } from '../src/landscape';
@@ -13,55 +14,9 @@ import type { LandscapeKind } from '../src/landscape';
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = .98;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.VSMShadowMap;
+configureStormRenderer(renderer);
 const scene = new THREE.Scene();
-const sky = document.createElement('canvas'); sky.width = 512; sky.height = 256;
-const skyContext = sky.getContext('2d')!;
-const skyColor = skyContext.createLinearGradient(0, 0, 0, sky.height);
-skyColor.addColorStop(0, '#4f7188');
-skyColor.addColorStop(.58, '#7fa8b1');
-skyColor.addColorStop(1, '#a9c6bf');
-skyContext.fillStyle = skyColor; skyContext.fillRect(0, 0, sky.width, sky.height);
-skyContext.filter = 'blur(11px)';
-skyContext.fillStyle = 'rgba(43,87,104,.15)';
-for (const [x, y, width, height] of [[64, 48, 163, 35], [260, 74, 175, 34],
-  [467, 44, 144, 30]] as const) {
-  skyContext.beginPath(); skyContext.ellipse(x, y, width, height, -.12, 0, Math.PI * 2);
-  skyContext.fill();
-}
-skyContext.fillStyle = 'rgba(193,224,209,.10)';
-for (const [x, y, width, height] of [[108, 112, 145, 12], [367, 136, 199, 14]] as const) {
-  skyContext.beginPath(); skyContext.ellipse(x, y, width, height, -.04, 0, Math.PI * 2);
-  skyContext.fill();
-}
-skyContext.filter = 'none';
-const skyTexture = new THREE.CanvasTexture(sky);
-skyTexture.colorSpace = THREE.SRGBColorSpace;
-scene.background = skyTexture;
-const skyEnvironment = skyTexture.clone();
-skyEnvironment.mapping = THREE.EquirectangularReflectionMapping;
-skyEnvironment.needsUpdate = true;
-scene.environment = skyEnvironment;
-scene.environmentIntensity = .12;
-scene.fog = new THREE.Fog('#8ab5bb', 36, 100);
-scene.add(new THREE.HemisphereLight('#bcebf0', '#335e6a', 1.23));
-scene.add(new THREE.AmbientLight('#86bfd0', .17));
-const sun = new THREE.DirectionalLight('#ffbf76', 2.8);
-sun.position.set(19, 12, 20); sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -34; sun.shadow.camera.right = 34;
-sun.shadow.camera.top = 48; sun.shadow.camera.bottom = -32;
-sun.shadow.camera.near = 1; sun.shadow.camera.far = 105;
-sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8; scene.add(sun);
-const fill = new THREE.DirectionalLight('#80c2d2', .38); fill.position.set(-11, 8, -10); scene.add(fill);
-const sunBreak = new THREE.SpotLight('#ffc17d', 1400, 65, Math.PI / 3, 1, 2);
-sunBreak.position.set(-10, 22, 19);
-sunBreak.target.position.set(0, 0, 24);
-scene.add(sunBreak, sunBreak.target);
+const lighting = createStormLighting(scene);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),
   new THREE.MeshLambertMaterial({ color: '#719570' }));
 ground.rotation.x = -Math.PI / 2; ground.position.set(0, -.24, 17); ground.receiveShadow = true; scene.add(ground);
@@ -213,12 +168,14 @@ let lastDriveFrame = 0;
 const driveFrames: number[] = [];
 function setCamera() {
   if (cameraMode.value === 'study') {
+    lighting.setAnchor(0, 0);
     camera.fov = 49;
     camera.position.set(0, 16, -13);
     camera.lookAt(0, 0, 13);
   } else {
     camera.fov = 52;
     const z = cameraMode.value === 'drive' ? driveDistance : 0;
+    lighting.setAnchor(0, z);
     player.root.position.z = 1.5 + z;
     camera.position.set(0, 7.5 + cameraExtra() * .4, -11 - cameraExtra() + z);
     camera.lookAt(0, 0, 12 + z);
@@ -362,6 +319,7 @@ function animateRain(timeMs: number) {
     lastRainFrame = timeMs;
     if (driving) {
       player.root.position.z = 1.5 + driveDistance;
+      lighting.setAnchor(0, driveDistance);
       camera.position.z = -11 - cameraExtra() + driveDistance;
       camera.lookAt(0, 0, 12 + driveDistance);
     }

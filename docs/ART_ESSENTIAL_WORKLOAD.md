@@ -100,6 +100,8 @@ Cảnh `scene.html` nay thử ambient cyan, nắng xiên ấm, fog xanh từ kho
 
 Một lượt palette tiếp theo làm màu tường/viền các nhà code-native ấm-cool rõ hơn, đồng thời tăng nắng cam trong scene preview. Pickup xăng/sửa, rào, toa tàu, cứu thương và hàng rong được tăng saturation ở các mảng nhận diện; rào có sọc cả hai mặt để đọc từ hai chiều. Không đổi vị trí, socket, footprint hay animation timing. Cần xem các màu này với sky/fog và HUD trên route thật trước khi coi là palette cuối.
 
+Rig `src/art/storm-lighting.ts` đóng gói sky gradient, môi trường cyan, nắng cam xiên, fill, fog xanh và cấu hình renderer ACES/VSM. `setAnchor(x,z)` cho ánh sáng bám camera/đoạn route khi chạy; `scene.html` đang dùng rig này. Hai dải bóng chéo minh họa vẫn nằm riêng ở preview, chưa có thuật toán đặt bóng theo nhà/đường động. Đây là gói để chat code thử tích hợp sau, chưa chứng minh art direction trong gameplay.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
