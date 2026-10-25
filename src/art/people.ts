@@ -15,7 +15,7 @@ export interface PersonArt {
   dispose: () => void;
 }
 const cast = {
-  driver: { height: 1.72, shoulder: .37, waist: .43, skin: '#b67f62', coat: '#4c98a4', pants: '#314750', helmet: '#e5d9ba', accessory: 'helmet' },
+  driver: { height: 1.72, shoulder: .32, waist: .40, skin: '#b67f62', coat: '#4c98a4', pants: '#314750', helmet: '#e5d9ba', accessory: 'helmet' },
   commuter: { height: 1.66, shoulder: .34, waist: .43, skin: '#d39d78', coat: '#c75d52', pants: '#48555c', helmet: '#aa7658', accessory: 'none' },
   student: { height: 1.54, shoulder: .33, waist: .37, skin: '#a86e55', coat: '#7b85b3', pants: '#38465d', helmet: '#293e54', accessory: 'backpack' },
   child: { height: 1.24, shoulder: .30, waist: .37, skin: '#c78d6b', coat: '#c9674f', pants: '#816e56', helmet: '#af654b', accessory: 'cap' },
@@ -183,15 +183,15 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   const arms: THREE.Group[] = [], elbows: THREE.Group[] = [], legs: THREE.Group[] = [], knees: THREE.Group[] = [];
   for (const side of [-1, 1]) {
     const arm = node(torso, `shoulder_${side}`, [side * shoulderWidth * .54, .47 * scale, 0]);
-    const shoulderCap = new THREE.Mesh(new THREE.SphereGeometry(.074 * scale,
+    const shoulderCap = new THREE.Mesh(new THREE.SphereGeometry(.061 * scale,
       lod === 'near' ? 12 : 8, lod === 'near' ? 9 : 6), coat);
     shoulderCap.name = `soft_shoulder_${side}`;
     shoulderCap.scale.set(.92, .70, .94);
-    shoulderCap.position.set(side * .016 * scale, -.023 * scale, 0);
+    shoulderCap.position.set(side * .012 * scale, -.033 * scale, 0);
     arm.add(shoulderCap);
     tailoredLimb(arm, `upper_arm_${side}`, scale,
-      [[0, .035], [.054, .034], [.077, -.018], [.087, -.085],
-        [.080, -.23], [.077, -.34], [.063, -.375], [0, -.375]], coat, lod)
+      [[0, .035], [.048, .034], [.068, -.018], [.081, -.085],
+        [.079, -.23], [.072, -.34], [.060, -.375], [0, -.375]], coat, lod)
       .position.x = side * .02 * scale;
     const elbow = node(arm, `elbow_${side}`, [side * .02 * scale, -.31 * scale, 0]);
     const elbowJoint = new THREE.Mesh(new THREE.SphereGeometry(.057 * scale, 10, 8), coat);
@@ -340,8 +340,8 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
       const sway = .10 + Math.sin(phase * Math.PI * 2) * .10;
       legs[0].rotation.x = sway; legs[1].rotation.x = -sway;
       arms[0].rotation.x = -sway * .75; arms[1].rotation.x = sway * .75;
-      arms[0].rotation.z = -.11; arms[1].rotation.z = .11;
-      elbows[0].rotation.z = .12; elbows[1].rotation.z = -.12;
+      arms[0].rotation.z = -.28; arms[1].rotation.z = .28;
+      elbows[0].rotation.z = .25; elbows[1].rotation.z = -.25;
     } else if (pose === 'walk') {
       const stride = Math.sin(t * Math.PI * 2);
       legs[0].rotation.x = stride * .48;
@@ -350,10 +350,10 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
       knees[1].rotation.x = Math.max(0, stride) * .48;
       arms[0].rotation.x = -stride * .34 - .14;
       arms[1].rotation.x = stride * .34 - .14;
-      arms[0].rotation.z = -.11; arms[1].rotation.z = .11;
+      arms[0].rotation.z = -.28; arms[1].rotation.z = .28;
       elbows[0].rotation.x = -.22;
       elbows[1].rotation.x = -.22;
-      elbows[0].rotation.z = .12; elbows[1].rotation.z = -.12;
+      elbows[0].rotation.z = .25; elbows[1].rotation.z = -.25;
       torso.rotation.z = stride * .035;
       head.rotation.z = -stride * .02;
     } else if (pose === 'hail') {

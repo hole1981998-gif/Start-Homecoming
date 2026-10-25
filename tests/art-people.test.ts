@@ -38,7 +38,7 @@ describe('essential people art', () => {
     person.setPose('recover', .5);
     expect(hip.getWorldPosition(new THREE.Vector3()).y).toBeGreaterThan(.33);
     person.setPose('stand');
-    expect(person.root.getObjectByName('shoulder_1')?.rotation.z).toBeCloseTo(.11);
+    expect(person.root.getObjectByName('shoulder_1')?.rotation.z).toBeCloseTo(.28);
     expect(hip.getWorldPosition(new THREE.Vector3()).y).toBe(standY);
     person.dispose();
   });
@@ -79,7 +79,7 @@ describe('essential people art', () => {
     const shoulder = driver.root.getObjectByName('shoulder_1')!
       .getWorldPosition(new THREE.Vector3());
     const pelvis = new THREE.Box3().setFromObject(driver.root.getObjectByName('pants_pelvis')!);
-    expect(shoulder.x).toBeLessThan(.22);
+    expect(shoulder.x).toBeLessThan(.19);
     expect(shoulder.y).toBeLessThan(1.35);
     expect(pelvis.getSize(new THREE.Vector3()).x).toBeGreaterThan(shoulder.x * 2);
     driver.dispose();

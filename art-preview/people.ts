@@ -1,6 +1,8 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createPersonArt, type EssentialPose, type PersonArchetype } from '../src/art/people';
 
+let adjustedDriver: THREE.Group | null = null;
 const views = (['rear', 'front'] as const).map(name => {
   const canvas = document.getElementById(name) as HTMLCanvasElement;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -26,17 +28,31 @@ const views = (['rear', 'front'] as const).map(name => {
   camera.position.set(name === 'rear' ? -.3 : 3.1, 2.0, name === 'rear' ? -5.3 : 4.7);
   camera.lookAt(0, .9, 0);
   let person = createPersonArt('driver'); scene.add(person.root);
+  let delivered: THREE.Group | null = null;
   return { canvas, renderer, scene, camera, setPerson(next: typeof person) {
     scene.remove(person.root); person.dispose(); person = next;
     person.root.traverse(object => { if (object instanceof THREE.Mesh) object.castShadow = true; });
     scene.add(person.root);
+  }, showAdjustedDriver(show: boolean) {
+    if (delivered) scene.remove(delivered);
+    delivered = show && adjustedDriver ? adjustedDriver.clone(true) : null;
+    if (delivered) {
+      delivered.traverse(object => { if (object instanceof THREE.Mesh) object.castShadow = true; });
+      scene.add(delivered);
+    }
+    person.root.visible = !delivered;
   }, get person() { return person; } };
 });
 function draw() {
   const archetype = (document.getElementById('person') as HTMLSelectElement).value as PersonArchetype;
   const pose = (document.getElementById('pose') as HTMLSelectElement).value as EssentialPose;
+  const showAdjusted = archetype === 'driver' && pose === 'stand' && !!adjustedDriver;
+  (document.getElementById('source-note') as HTMLElement).textContent = showAdjusted
+    ? 'Tài xế đứng: mesh Blender driver.adjusted'
+    : 'Pose/NPC: mesh procedural; chưa ghép asset Blender vào gameplay';
   for (const view of views) {
     view.setPerson(createPersonArt(archetype)); view.person.setPose(pose, .25);
+    view.showAdjustedDriver(showAdjusted);
     const { width, height } = view.canvas.getBoundingClientRect();
     view.renderer.setSize(width, height, false);
     view.camera.aspect = width / height; view.camera.updateProjectionMatrix();
@@ -46,3 +62,6 @@ function draw() {
 for (const id of ['person', 'pose']) document.getElementById(id)?.addEventListener('change', draw);
 new ResizeObserver(draw).observe(document.body);
 draw();
+new GLTFLoader().load(new URL('../assets/art/driver-adjusted-delivery.glb', import.meta.url).href,
+  gltf => { adjustedDriver = gltf.scene; draw(); }, undefined,
+  () => { (document.getElementById('source-note') as HTMLElement).textContent = 'Không tải được mesh Blender'; });
