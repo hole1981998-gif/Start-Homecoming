@@ -126,17 +126,21 @@ export function createOfficerArt(kind: 'police' | 'militia', lod: 'near' | 'far'
   const civilianStrap = root.getObjectByName('bag_strap');
   if (civilianBag) civilianBag.visible = false;
   if (civilianStrap) civilianStrap.visible = false;
-  const uniformColor = kind === 'police' ? '#7099b4' : '#98a478';
+  const uniformColor = kind === 'police' ? '#dfbb70' : '#98a478';
   root.traverse(obj => { if (obj instanceof THREE.Mesh &&
     (obj.name.startsWith('coat_') || obj.name.startsWith('rain_fold_') || obj.name.startsWith('upper_arm_') ||
       obj.name.startsWith('forearm_'))) (obj.material as THREE.MeshStandardMaterial).color.set(uniformColor);
   });
-  const cap = mat(kind === 'police' ? '#385d7b' : '#64734d');
+  if (kind === 'police') {
+    const trousers = root.getObjectByName('pants_pelvis') as THREE.Mesh;
+    (trousers.material as THREE.MeshStandardMaterial).color.set('#cfaa63');
+  }
+  const cap = mat(kind === 'police' ? '#ad8c4a' : '#64734d');
   box(person.sockets.head.parent!, kind === 'police' ? 'police_cap' : 'militia_wide_hat',
     kind === 'police' ? [.43, .08, .29] : [.58, .055, .47], [0, .07, .08], cap);
   if (kind === 'police') {
-    box(root.getObjectByName('torso_pivot')!, 'police_chest_band', [.34, .13, .027],
-      [0, .39, .18], mat('#e3bd72'));
+    box(root.getObjectByName('torso_pivot')!, 'police_chest_badge', [.11, .07, .027],
+      [.12, .44, .18], mat('#a44d43'));
   } else {
     box(root.getObjectByName('torso_pivot')!, 'militia_crossbody_strap', [.055, .62, .025],
       [.04, .31, .19], mat('#d6c087')).rotation.z = -.45;

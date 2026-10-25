@@ -46,4 +46,19 @@ describe('moving event art uses prototype contracts', () => {
     expect(vendor.root.getObjectByName('vendor_damage')?.visible).toBe(true);
     vendor.dispose();
   });
+  it('keeps the police shirt and full trousers in a bright warm uniform distinct from militia', () => {
+    const police = createOfficerArt('police');
+    const militia = createOfficerArt('militia');
+    const colorOf = (art: typeof police, name: string) =>
+      ((art.root.getObjectByName(name) as THREE.Mesh).material as THREE.MeshStandardMaterial).color;
+    const shirt = colorOf(police, 'coat_torso');
+    const trousers = colorOf(police, 'pants_pelvis');
+    const thigh = colorOf(police, 'thigh_1');
+    expect(shirt.r).toBeGreaterThan(shirt.b * 3);
+    expect(trousers.r).toBeGreaterThan(trousers.b * 3);
+    expect(thigh.equals(trousers)).toBe(true);
+    expect(shirt.equals(colorOf(militia, 'coat_torso'))).toBe(false);
+    expect(trousers.equals(colorOf(militia, 'pants_pelvis'))).toBe(false);
+    police.dispose(); militia.dispose();
+  });
 });
