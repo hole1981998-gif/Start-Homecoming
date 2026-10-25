@@ -10,6 +10,8 @@
 
 **Cảnh route sau nối đường/phố/đèn:** Browser fixture `handling-car4` ở seed 17 có cây hai bên; seed 14 có phố hai bên, bóng nhà lên tile đường, vùng xa hòa cyan và mưa nhẹ. Đây là bằng chứng mảng bóng vật lý có xuất hiện trong game, khác proxy của `scene.html`. Sau sửa continuity, seed 14 đi qua mốc vùng 95 m và 218 m không còn hở nền; fixture `junction` quan sát tại 707–793 m còn trống hành lang lái. Tự đánh giá tạm **tương phản sáng/tối 6/10, mood 6/10** ở các cảnh đó; nhà xa, road shadow và màu vẫn cần đối chiếu sketch của chủ dự án. Chưa chấm tiếp cận/hiệu năng và không nâng art gate vì thiếu kiểm hazard dưới bóng, các hướng cua, đủ năm biome và FPS/P95.
 
+**Vòng kiểm gameplay sau sửa:** Trình duyệt in-app, fixture `p61-train-left`, seed 17: giữ W, xe va tàu tại 67 m và màn kết ván hiện đúng; bấm `Chơi lại` trở về 0–2 m, 280 tiền, 7,1 L và điều khiển tiếp được. Đây là kiểm thất bại/restart có thao tác thật, không phải đánh giá nhịp độ hay công bằng của tàu.
+
 **Nguồn xem thực tế:** Vite local `/art-preview/scene.html` ở góc 9:16 và các trang `/art-preview/vehicle-gallery.html`, `/art-preview/people.html`, `/art-preview/world-gallery.html` ở near/far và nhiều góc. Đây là **Codex tự đánh giá từ preview**, không phải review độc lập, game build đã gắn asset hay playtest. Cảnh mẫu có car4, traffic car7/xe máy, khách vẫy, nước, ổ gà, đường, cụm nhà/cây. Chưa có HUD, mưa/VFX, thời gian chuyển động thật hoặc benchmark hiệu năng.
 
 | Tiêu chí trong `GAME_DESIGN.md` | Điểm sơ bộ | Quan sát / việc phải kiểm tiếp |
