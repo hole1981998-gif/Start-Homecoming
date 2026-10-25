@@ -4,9 +4,17 @@ import { createTwoWheelerArt } from './two-wheelers';
 import { createUtilityVehicleArt, type VehicleRole } from './utility-vehicles';
 import { createPersonArt, mountPersonOnSeat } from './people';
 import type { VehicleKind } from '../vehicles';
+import * as THREE from 'three';
 
 export type VehicleArt = ReturnType<typeof createCar4Art> | ReturnType<typeof createCar7Art> |
   ReturnType<typeof createTwoWheelerArt> | ReturnType<typeof createUtilityVehicleArt>;
+
+/** Distinct player identities against the cyan storm environment. One finish per family. */
+export const playerVehiclePaint: Record<VehicleKind, string> = {
+  motorcycle: '#22b9a1', motorbike: '#d55583', car4: '#e96b45',
+  car7: '#9373c5', tricycle: '#e0ad43', bus: '#568ed2',
+  truck: '#c57b4b', container: '#3a9a71',
+};
 
 /** One family master per kind; the traffic role reuses it without external passenger meshes. */
 export function createVehicleArt(kind: VehicleKind, role: VehicleRole = 'player',
@@ -25,6 +33,9 @@ export function createVehicleArt(kind: VehicleKind, role: VehicleRole = 'player'
   asset.root.name = `veh_${kind}_${role}_${lod}`;
   asset.root.userData.id = `veh_${kind}_${role}_A`;
   asset.root.userData.role = role;
-  if (role === 'traffic' && trafficColor) asset.setPaint(trafficColor);
+  const paintColor = role === 'player' ? playerVehiclePaint[kind] : trafficColor
+    ? new THREE.Color(trafficColor).offsetHSL(0, .13, .035).getStyle() : undefined;
+  if (paintColor) asset.setPaint(paintColor);
+  asset.root.userData.paintColor = paintColor;
   return asset;
 }

@@ -133,4 +133,24 @@ describe('essential roadside scenery', () => {
       art.dispose();
     }
   });
+  it('animates sea and rice surfaces without shifting the roadside bounds', () => {
+    for (const kind of ['sea', 'rice'] as const) {
+      const art = createSceneryCluster(kind, 1, 'near', 2);
+      const surface = art.root.getObjectByName(kind === 'sea' ? 'water_plane' : 'paddy_water_0') as THREE.Mesh;
+      const position = surface.geometry.getAttribute('position');
+      expect(position.count).toBeGreaterThan(200);
+      const before = Array.from(position.array);
+      const bounds = new THREE.Box3().setFromObject(art.root);
+      art.setVisualTime?.(2.5);
+      const animated = Array.from(position.array);
+      expect(animated).not.toEqual(before);
+      art.setVisualTime?.(5);
+      art.setVisualTime?.(2.5);
+      expect(Array.from(position.array)).toEqual(animated);
+      const afterBounds = new THREE.Box3().setFromObject(art.root);
+      expect(afterBounds.min.x).toBeCloseTo(bounds.min.x);
+      expect(afterBounds.max.x).toBeCloseTo(bounds.max.x);
+      art.dispose();
+    }
+  });
 });

@@ -3,7 +3,11 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { balance } from '../config';
 import type { LandscapeKind } from '../landscape';
 
-export interface SceneryArt { root: THREE.Group; dispose: () => void }
+export interface SceneryArt {
+  root: THREE.Group;
+  setVisualTime?: (elapsedSeconds: number) => void;
+  dispose: () => void;
+}
 const mat = (color: string) => new THREE.MeshStandardMaterial({
   color, roughness: .88, flatShading: true, side: THREE.DoubleSide,
 });
@@ -474,6 +478,8 @@ function tree(parent: THREE.Object3D, name: string, x: number, z: number,
 export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
   lod: 'near' | 'far' = 'near', variantSeed = 0): SceneryArt {
   const root = new THREE.Group(); root.name = `env_${kind}_${side}_${lod}`;
+  const waveSurfaces: { geometry: THREE.BufferGeometry; base: Float32Array;
+    amplitude: number; phase: number }[] = [];
   const verge = balance.laneWidth * balance.laneCount / 2 + 3.2;
   const x = (offset: number) => side * (verge + offset);
   const near = lod === 'near';
@@ -754,7 +760,16 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     let tuft = 0;
     for (let i = 0; i < 3; i++) {
       const z = -15 + i * 15;
-      box(root, `paddy_water_${i}`, [10.5, .03, 12.2], [x(7.1), -.08, z], water);
+      const paddyGeometry = new THREE.PlaneGeometry(10.5, 12.2,
+        near ? 16 : 8, near ? 20 : 8);
+      paddyGeometry.rotateX(-Math.PI / 2);
+      const paddy = new THREE.Mesh(paddyGeometry, water);
+      paddy.name = `paddy_water_${i}`;
+      paddy.position.set(x(7.1), -.055, z);
+      root.add(paddy);
+      if (near) waveSurfaces.push({ geometry: paddyGeometry,
+        base: Float32Array.from(paddyGeometry.getAttribute('position').array as Float32Array),
+        amplitude: .012, phase: i * 1.7 });
       for (const edgeZ of [-1, 1]) box(root, `bund_${i}_${edgeZ}`,
         [11.2, .25, .32], [x(7.1), .02, z + edgeZ * 6.3], soil);
       for (const edgeX of [-1, 1]) box(root, `side_bund_${i}_${edgeX}`,
@@ -782,7 +797,8 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     const foam = mat('#c4d8c0');
     box(root, 'seawall', [.38, .78, 43], [x(.7), .30, 3], shore);
     box(root, 'seawall_cap', [.55, .11, 43], [x(.7), .73, 3], shore);
-    const waterGeometry = new THREE.PlaneGeometry(18, 43, 8, 24);
+    const waterGeometry = new THREE.PlaneGeometry(18, 43,
+      near ? 22 : 10, near ? 54 : 26);
     waterGeometry.rotateX(-Math.PI / 2);
     const points = waterGeometry.getAttribute('position') as THREE.BufferAttribute;
     const colors: number[] = [];
@@ -801,6 +817,9 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     const waterSurface = new THREE.Mesh(waterGeometry, sea);
     waterSurface.name = 'water_plane'; waterSurface.position.set(x(10.1), -.145, 3);
     root.add(waterSurface);
+    waveSurfaces.push({ geometry: waterGeometry,
+      base: Float32Array.from(points.array as Float32Array),
+      amplitude: near ? .025 : .012, phase: side });
     for (const z of [-16, -7, 3, 12, 21]) {
       box(root, `water_edge_${z}`, [.11, .012, 3.8], [x(1.48), -.115, z], foam);
       box(root, `wall_vertical_seam_${z}`, [.026, .58, .035],
@@ -859,6 +878,21 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     roadsideSide: side, regionLengthM: 96, placementSource: 'roadsideRegions',
     collisionRole: 'decorative-only', noSpawnChange: true };
   if (!near) batchStaticMeshes(root, 'far_material_batch');
+  const setVisualTime = waveSurfaces.length ? (elapsedSeconds: number) => {
+    const t = Math.max(0, elapsedSeconds);
+    for (const surface of waveSurfaces) {
+      const attribute = surface.geometry.getAttribute('position') as THREE.BufferAttribute;
+      const positions = attribute.array as Float32Array;
+      for (let i = 0; i < positions.length; i += 3) {
+        const x = surface.base[i], z = surface.base[i + 2];
+        positions[i + 1] = surface.base[i + 1] + surface.amplitude *
+          (Math.sin(x * 1.25 + z * .72 + t * 1.8 + surface.phase) +
+            .46 * Math.sin(x * 2.4 - z * 1.33 - t * 1.15));
+      }
+      attribute.needsUpdate = true;
+      surface.geometry.computeVertexNormals();
+    }
+  } : undefined;
   const dispose = () => {
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
     root.traverse(obj => { if (obj instanceof THREE.Mesh) {
@@ -870,5 +904,5 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     });
     geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
   };
-  return { root, dispose };
+  return { root, setVisualTime, dispose };
 }

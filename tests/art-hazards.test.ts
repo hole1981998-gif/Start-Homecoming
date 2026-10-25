@@ -73,6 +73,25 @@ describe('essential hazard art', () => {
     expect(rimHeight(holeRim)).toBeGreaterThan(.025);
     water.dispose(); hole.dispose();
   });
+  it('uses soft square outlines and a subdivided water surface within the collider footprint', () => {
+    for (const kind of ['water', 'pothole'] as const) {
+      const art = createSurfaceHazardArt(kind, 3.2, 7);
+      const patch = art.root.getObjectByName('readable_footprint') as THREE.Mesh;
+      const position = patch.geometry.getAttribute('position');
+      let diagonalX = 0;
+      for (let i = 0; i < position.count; i++) {
+        const x = position.getX(i), z = position.getZ(i);
+        if (x > 0 && z > 0 && Math.abs(x / 1.6 - z / 3.5) < .06)
+          diagonalX = Math.max(diagonalX, x / 1.6);
+      }
+      expect(diagonalX).toBeGreaterThan(.78);
+      if (kind === 'water') {
+        const floor = art.root.getObjectByName('deep_water') as THREE.Mesh;
+        expect(floor.geometry.getAttribute('position').count / 3).toBeGreaterThan(300);
+      }
+      art.dispose();
+    }
+  });
   it('rejects invalid world footprints', () => {
     expect(() => createSurfaceHazardArt('water', 0, 2)).toThrow();
     expect(() => createSurfaceHazardArt('pothole', 2, Number.NaN)).toThrow();

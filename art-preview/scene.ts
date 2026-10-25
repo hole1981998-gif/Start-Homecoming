@@ -8,31 +8,32 @@ import { createRoadTileArt } from '../src/art/road-kit';
 import { createRainArt, createRainSplashArt } from '../src/art/weather';
 import { balance } from '../src/config';
 import { vehicles, type VehicleKind } from '../src/vehicles';
+import type { LandscapeKind } from '../src/landscape';
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.08;
+renderer.toneMappingExposure = .98;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.VSMShadowMap;
 const scene = new THREE.Scene();
 const sky = document.createElement('canvas'); sky.width = 512; sky.height = 256;
 const skyContext = sky.getContext('2d')!;
 const skyColor = skyContext.createLinearGradient(0, 0, 0, sky.height);
-skyColor.addColorStop(0, '#56828c');
-skyColor.addColorStop(.55, '#8eafb0');
-skyColor.addColorStop(1, '#d5c9a9');
+skyColor.addColorStop(0, '#4f7188');
+skyColor.addColorStop(.58, '#7fa8b1');
+skyColor.addColorStop(1, '#a9c6bf');
 skyContext.fillStyle = skyColor; skyContext.fillRect(0, 0, sky.width, sky.height);
 skyContext.filter = 'blur(11px)';
-skyContext.fillStyle = 'rgba(35,59,69,.43)';
+skyContext.fillStyle = 'rgba(43,87,104,.15)';
 for (const [x, y, width, height] of [[64, 48, 163, 35], [260, 74, 175, 34],
   [467, 44, 144, 30]] as const) {
   skyContext.beginPath(); skyContext.ellipse(x, y, width, height, -.12, 0, Math.PI * 2);
   skyContext.fill();
 }
-skyContext.fillStyle = 'rgba(234,213,172,.20)';
+skyContext.fillStyle = 'rgba(193,224,209,.10)';
 for (const [x, y, width, height] of [[108, 112, 145, 12], [367, 136, 199, 14]] as const) {
   skyContext.beginPath(); skyContext.ellipse(x, y, width, height, -.04, 0, Math.PI * 2);
   skyContext.fill();
@@ -46,33 +47,24 @@ skyEnvironment.mapping = THREE.EquirectangularReflectionMapping;
 skyEnvironment.needsUpdate = true;
 scene.environment = skyEnvironment;
 scene.environmentIntensity = .12;
-new THREE.TextureLoader().load(new URL('../assets/art/storm-sky-study.png', import.meta.url).href,
-  texture => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.mapping = THREE.UVMapping;
-    texture.repeat.set(.2, .52);
-    texture.offset.set(.50, .035);
-    scene.background = texture;
-    draw();
-  });
-scene.fog = new THREE.Fog('#9eada7', 104, 156);
-scene.add(new THREE.HemisphereLight('#fff0d2', '#45666b', 1.12));
-scene.add(new THREE.AmbientLight('#cde1d7', .16));
-const sun = new THREE.DirectionalLight('#ffe5bf', 2.08);
-sun.position.set(-12, 19, 10); sun.castShadow = true;
+scene.fog = new THREE.Fog('#8ab5bb', 36, 100);
+scene.add(new THREE.HemisphereLight('#bcebf0', '#335e6a', 1.23));
+scene.add(new THREE.AmbientLight('#86bfd0', .17));
+const sun = new THREE.DirectionalLight('#ffd399', 2.18);
+sun.position.set(19, 12, 20); sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -34; sun.shadow.camera.right = 34;
 sun.shadow.camera.top = 48; sun.shadow.camera.bottom = -32;
-sun.shadow.camera.near = 1; sun.shadow.camera.far = 85;
+sun.shadow.camera.near = 1; sun.shadow.camera.far = 105;
 sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8; scene.add(sun);
-const fill = new THREE.DirectionalLight('#a9d8d4', .42); fill.position.set(11, 8, -10); scene.add(fill);
-const sunBreak = new THREE.SpotLight('#ffdfaa', 2400, 65, Math.PI / 3, 1, 2);
+const fill = new THREE.DirectionalLight('#80c2d2', .38); fill.position.set(-11, 8, -10); scene.add(fill);
+const sunBreak = new THREE.SpotLight('#ffc17d', 1400, 65, Math.PI / 3, 1, 2);
 sunBreak.position.set(-10, 22, 19);
 sunBreak.target.position.set(0, 0, 24);
 scene.add(sunBreak, sunBreak.target);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),
   new THREE.MeshLambertMaterial({ color: '#719570' }));
-ground.rotation.x = -Math.PI / 2; ground.position.set(0, -.12, 17); ground.receiveShadow = true; scene.add(ground);
+ground.rotation.x = -Math.PI / 2; ground.position.set(0, -.24, 17); ground.receiveShadow = true; scene.add(ground);
 const shadowCanvas = document.createElement('canvas');
 shadowCanvas.width = 128; shadowCanvas.height = 128;
 const shadowContext = shadowCanvas.getContext('2d')!;
@@ -95,11 +87,28 @@ const shadowMap = new THREE.CanvasTexture(shadowCanvas);
 for (const [x, z, width, length] of [[-2, 36, 29, 21], [4, 77, 25, 16]] as const) {
   const cloudShadow = new THREE.Mesh(new THREE.PlaneGeometry(width, length),
     new THREE.MeshBasicMaterial({ color: '#26434b', alphaMap: shadowMap,
-      transparent: true, opacity: .34, depthWrite: false }));
+      transparent: true, opacity: .46, depthWrite: false }));
   cloudShadow.name = `cloud_shadow_${z}`;
   cloudShadow.rotation.x = -Math.PI / 2;
   cloudShadow.position.set(x, .027, z);
   scene.add(cloudShadow);
+}
+for (const [name, corners] of [
+  ['foreground', [[6.6, -4], [6.6, 1], [-6.4, -13], [-6.4, -18]]],
+  ['midroad', [[6.6, 27], [6.6, 31], [-6.4, 17], [-6.4, 13]]],
+] as const) {
+  const positions: number[] = [];
+  for (const i of [0, 1, 2, 0, 2, 3])
+    positions.push(corners[i][0], .029, corners[i][1]);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.computeVertexNormals();
+  const shade = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+    color: '#163a48', transparent: true, opacity: .43, depthWrite: false,
+    side: THREE.DoubleSide,
+  }));
+  shade.name = `long_shadow_${name}`;
+  scene.add(shade);
 }
 for (let z = -34; z <= 106; z += 4) {
   const tile = createRoadTileArt(z < -2 ? 'near' : 'far');
@@ -141,10 +150,11 @@ let nativeShop: THREE.Object3D | undefined;
 let nativeMidrise: THREE.Object3D | undefined;
 let nativeMarket: THREE.Object3D | undefined;
 let nativeSkyline: THREE.Object3D | undefined;
+const cityRoot = new THREE.Group(); scene.add(cityRoot);
 for (const [side, z, variantSeed] of [[-1, 17, 0], [1, 17, 1]] as const) {
   const art = createSceneryCluster('city', side, 'near', variantSeed);
   optimizeNearScenery(art.root);
-  art.root.position.z = z; scene.add(art.root);
+  art.root.position.z = z; cityRoot.add(art.root);
   if (side === -1) {
     nativeShop = art.root.getObjectByName('porch_house');
     nativeSkyline = art.root.getObjectByName('corner_shop');
@@ -155,8 +165,35 @@ for (const [side, z, variantSeed] of [[-1, 17, 0], [1, 17, 1]] as const) {
   }
   const nextDistrict = createSceneryCluster('city', side, 'far', variantSeed + 2);
   nextDistrict.root.position.z = z + 66;
-  scene.add(nextDistrict.root);
+  cityRoot.add(nextDistrict.root);
 }
+const biomeKind = document.getElementById('biomeKind') as HTMLSelectElement;
+const alternateBiome = new THREE.Group(); scene.add(alternateBiome);
+let alternateArts: ReturnType<typeof createSceneryCluster>[] = [];
+const importedCityBuildings: THREE.Object3D[] = [];
+biomeKind.addEventListener('change', () => {
+  const kind = biomeKind.value as LandscapeKind;
+  cityRoot.visible = kind === 'city';
+  for (const building of importedCityBuildings) building.visible = kind === 'city';
+  for (const art of alternateArts) { art.root.removeFromParent(); art.dispose(); }
+  alternateArts = [];
+  if (kind !== 'city') for (const [side, seed] of [[-1, 0], [1, 1]] as const) {
+    for (const [lod, z, seedOffset] of [['near', 17, 0], ['far', 83, 2]] as const) {
+      const art = createSceneryCluster(kind, side, lod, seed + seedOffset);
+      if (lod === 'near') optimizeNearScenery(art.root);
+      art.root.position.z = z;
+      art.root.traverse(object => {
+        if (object instanceof THREE.Mesh) {
+          object.castShadow = object.position.y > .05;
+          object.receiveShadow = true;
+        }
+      });
+      alternateBiome.add(art.root);
+      alternateArts.push(art);
+    }
+  }
+  draw();
+});
 scene.traverse(object => {
   if (object instanceof THREE.Mesh && object !== ground) {
     object.castShadow = object.position.y > .05;
@@ -220,6 +257,8 @@ new GLTFLoader().load(shopUrl, gltf => {
     }
   });
   scene.add(gltf.scene);
+  importedCityBuildings.push(gltf.scene);
+  gltf.scene.visible = biomeKind.value === 'city';
   draw();
 });
 const midriseUrl = new URL('../assets/art/roadside-midrise.glb', import.meta.url).href;
@@ -236,6 +275,8 @@ new GLTFLoader().load(midriseUrl, gltf => {
     }
   });
   scene.add(gltf.scene);
+  importedCityBuildings.push(gltf.scene);
+  gltf.scene.visible = biomeKind.value === 'city';
   draw();
 });
 const marketUrl = new URL('../assets/art/corner-market.glb', import.meta.url).href;
@@ -255,6 +296,8 @@ new GLTFLoader().load(marketUrl, gltf => {
     }
   });
   scene.add(gltf.scene);
+  importedCityBuildings.push(gltf.scene);
+  gltf.scene.visible = biomeKind.value === 'city';
   draw();
 });
 const skylineUrl = new URL('../assets/art/skyline-shophouse.glb', import.meta.url).href;
@@ -275,6 +318,8 @@ new GLTFLoader().load(skylineUrl, gltf => {
     }
   });
   scene.add(gltf.scene);
+  importedCityBuildings.push(gltf.scene);
+  gltf.scene.visible = biomeKind.value === 'city';
   draw();
 });
 function draw() {
@@ -323,6 +368,7 @@ function animateRain(timeMs: number) {
     rain.update(timeMs / 1000, 0, 25 + driveDistance);
     splashes.update(timeMs / 1000, 0, 25 + driveDistance);
     water.setVisualTime?.(timeMs / 1000);
+    for (const art of alternateArts) art.setVisualTime?.(timeMs / 1000);
     draw();
   }
   requestAnimationFrame(animateRain);

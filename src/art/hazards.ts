@@ -49,21 +49,22 @@ function waterNormalMap() {
   texture.needsUpdate = true;
   return texture;
 }
-function waterRadius(angle: number) {
-  return .98 - Math.sin(angle * 2) ** 2 * .04 +
-    Math.sin(angle * 3 + .4) * .02;
+function outlineRadius(kind: SurfaceHazardKind, angle: number) {
+  const exponent = kind === 'water' ? 4.7 : 4.1;
+  const square = (Math.abs(Math.cos(angle)) ** exponent +
+    Math.abs(Math.sin(angle)) ** exponent) ** (-1 / exponent);
+  const uneven = kind === 'water'
+    ? 1 + Math.sin(angle * 3 + .4) * .018 + Math.sin(angle * 7 - .6) * .012
+    : 1 + Math.sin(angle * 5 + .8) * .022;
+  return square * uneven;
 }
 function patch(parent: THREE.Object3D, name: string, width: number, length: number,
-  y: number, material: THREE.Material, irregularWater = false) {
-  const outline: [number, number][] = irregularWater
-    ? Array.from({ length: 24 }, (_, i) => {
-      const angle = i * Math.PI * 2 / 24;
-      const radius = .49 * waterRadius(angle);
-      return [Math.cos(angle) * radius, Math.sin(angle) * radius];
-    })
-    : [[-.48, -.08], [-.44, -.29], [-.28, -.46],
-      [.02, -.49], [.28, -.45], [.46, -.29], [.48, -.05], [.45, .23],
-      [.29, .46], [.07, .49], [-.23, .46], [-.44, .30]];
+  y: number, material: THREE.Material, kind: SurfaceHazardKind) {
+  const outline: [number, number][] = Array.from({ length: 32 }, (_, i) => {
+    const angle = i * Math.PI * 2 / 32;
+    const radius = .49 * outlineRadius(kind, angle);
+    return [Math.cos(angle) * radius, Math.sin(angle) * radius];
+  });
   const positions: number[] = [];
   for (let i = 0; i < outline.length; i++) {
     const a = outline[i], b = outline[(i + 1) % outline.length];
@@ -78,12 +79,11 @@ function patch(parent: THREE.Object3D, name: string, width: number, length: numb
 function bevelBasin(parent: THREE.Object3D, kind: SurfaceHazardKind, width: number, length: number,
   lod: 'near' | 'far', material: THREE.Material) {
   const positions: number[] = [];
-  const segments = lod === 'near' ? 24 : 14;
+  const segments = lod === 'near' ? 32 : 20;
   for (let i = 0; i < segments; i++) {
     const p = (index: number, radius: number, y: number): [number, number, number] => {
       const angle = index * Math.PI * 2 / segments;
-      const wobble = kind === 'water' ? waterRadius(angle) :
-        1 + Math.sin(index * 2.7) * .055;
+      const wobble = outlineRadius(kind, angle);
       return [Math.cos(angle) * width * radius * wobble, y,
         Math.sin(angle) * length * radius * wobble];
     };
@@ -103,18 +103,17 @@ function bevelBasin(parent: THREE.Object3D, kind: SurfaceHazardKind, width: numb
 }
 function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
   width: number, length: number, lod: 'near' | 'far', material: THREE.Material) {
-  const segments = lod === 'near' ? 24 : 14;
+  const segments = lod === 'near' ? 40 : 24;
   const positions: number[] = [], colors: number[] = [], uvs: number[] = [];
   const gradient = kind === 'water'
-    ? ['#366b73', '#478e90', '#88b5ac']
+    ? ['#276b7c', '#59a7ae', '#8ac8bc']
     : ['#202725', '#33342f', '#64584b'];
-  const rings = [0, .18, kind === 'water' ? .445 : .335];
+  const rings = kind === 'water' ? [0, .09, .18, .27, .36, .445] : [0, .18, .335];
   const vertex = (ring: number, index: number) => {
     const angle = index * Math.PI * 2 / segments;
-    const wobble = ring === 0 ? 1 : kind === 'water' ? waterRadius(angle) :
-      1 + Math.sin(index * 2.7) * .024;
+    const wobble = ring === 0 ? 1 : outlineRadius(kind, angle);
     const height = kind === 'water'
-      ? [.041, .039, .035][ring] + (ring === 0 ? 0 : Math.sin(angle * 3) * .004)
+      ? .047 - rings[ring] * .027 + (ring === 0 ? 0 : Math.sin(angle * 3) * .003)
       : [.022, .023, .025][ring] + (ring === 0 ? 0 : Math.sin(angle * 4) * .001);
     return [Math.cos(angle) * width * rings[ring] * wobble, height,
       Math.sin(angle) * length * rings[ring] * wobble] as const;
@@ -126,11 +125,20 @@ function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
     for (const p of [a, b, c]) uvs.push(p[0] / width + .5, p[2] / length + .5);
   };
   const shades = gradient.map(value => new THREE.Color(value));
+  const shade = (ring: number) => {
+    const fraction = ring / (rings.length - 1);
+    return fraction < .5 ? shades[0].clone().lerp(shades[1], fraction * 2) :
+      shades[1].clone().lerp(shades[2], (fraction - .5) * 2);
+  };
   for (let i = 0; i < segments; i++) {
     const next = (i + 1) % segments;
-    push(vertex(0, 0), vertex(1, next), vertex(1, i), shades[0], shades[1], shades[1]);
-    push(vertex(1, i), vertex(1, next), vertex(2, i), shades[1], shades[1], shades[2]);
-    push(vertex(2, i), vertex(1, next), vertex(2, next), shades[2], shades[1], shades[2]);
+    push(vertex(0, 0), vertex(1, next), vertex(1, i), shade(0), shade(1), shade(1));
+    for (let ring = 1; ring < rings.length - 1; ring++) {
+      push(vertex(ring, i), vertex(ring, next), vertex(ring + 1, i),
+        shade(ring), shade(ring), shade(ring + 1));
+      push(vertex(ring + 1, i), vertex(ring, next), vertex(ring + 1, next),
+        shade(ring + 1), shade(ring), shade(ring + 1));
+    }
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -182,7 +190,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   const glint = new THREE.MeshStandardMaterial({ color: '#a7c9bb', roughness: .32,
     transparent: true, opacity: .48, depthWrite: false, side: THREE.DoubleSide });
   const debris = material('#665f54');
-  patch(root, 'readable_footprint', width, length, .015, edge, kind === 'water');
+  patch(root, 'readable_footprint', width, length, .015, edge, kind);
   bevelBasin(root, kind, width, length, lod,
     material(kind === 'water' ? '#5a8a89' : '#48453e'));
   basinFloor(root, kind, width, length, lod, center);
@@ -244,7 +252,8 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
       for (let i = 0; i < attribute.count; i++) {
         const offset = i * 3;
         positions[offset + 1] = base[offset + 1] +
-          Math.sin(base[offset] * 5.7 + base[offset + 2] * 1.8 + t * 2.2) * .0035;
+          (Math.sin(base[offset] * 5.7 + base[offset + 2] * 1.8 + t * 2.2) +
+            Math.sin(base[offset] * 2.1 - base[offset + 2] * 4.6 - t * 1.5) * .55) * .008;
       }
       attribute.needsUpdate = true;
       floor.geometry.computeVertexNormals();

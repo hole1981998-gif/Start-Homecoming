@@ -92,6 +92,12 @@ Buýt near có thêm gân ngang, rãnh thoát mưa và cửa thoát hiểm thấ
 
 `scene.html` nay chọn được cả tám xe ở camera prototype hoặc camera chạy thử, có HUD minh họa cập nhật capacity/xăng/HP theo catalog. Camera lùi theo chiều dài xe và mặt đường mẫu kéo ra sau để container không lộ nền trống; đây chỉ là kiểm bố cục, không thay camera trong game. Khi thử từng loại, xe mở cho thấy tài xế mẫu còn quá to và che thân xe, đang chờ mẫu NPC Blender của chủ dự án. Car7 được thêm mép kính/cửa hậu, cụm đèn và cánh gió sau để mặt đuôi đọc rõ hơn từ camera chơi; footprint 2,08 × 4,8 m giữ nguyên. Vẫn cần chấm chất lượng trên gameplay thật.
 
+## Hướng sketch cyan-blue / nắng xiên (25/10)
+
+Sketch mới của chủ dự án đặt đích: môi trường cyan-blue mạnh đối trọng nắng cam-vàng, bóng dài lớn trên đường, sương xanh che xa; nước và ổ gà vuông bo nhẹ gần prototype, mặt nước gợn bằng mesh; xe và hazard có màu nổi trên nền, tám xe player có nhận diện màu riêng. Đây là **hướng art đang triển khai**, chưa là nghiệm thu hay shader/post-process trong game.
+
+Cảnh `scene.html` nay thử ambient cyan, nắng xiên ấm, fog xanh từ khoảng 36–100 m và dải bóng dài minh họa; chọn được năm biome bằng cùng camera chơi, với HUD mock. Nền preview đã hạ để không che nước biển/ruộng. `src/art/hazards.ts` chuyển nước/ổ gà sang superellipse mềm trong footprint cũ; nước near có nhiều vòng/cạnh hơn và gợn vertex theo thời gian. Biển/ruộng near trong `src/art/scenery.ts` có plane chia lưới và `setVisualTime`; không phát clock nội bộ. `src/art/vehicle-catalog.ts` cấp tám màu player riêng và tăng nhẹ saturation cho màu traffic được truyền vào. Chưa có family sông/hồ và chưa có material/lighting này ở `src/render.ts`; còn phải đo camera route, contrast cue và perf game thật.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
