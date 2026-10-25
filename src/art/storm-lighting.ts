@@ -41,14 +41,14 @@ export function createStormLighting(scene: THREE.Scene) {
   const environment = skyTexture.clone();
   environment.mapping = THREE.EquirectangularReflectionMapping;
   environment.needsUpdate = true;
-  const fog = new THREE.Fog('#80aeb5', 40, 105);
+  const fog = new THREE.Fog('#5da4ab', 43, 108);
   scene.background = skyTexture;
   scene.environment = environment;
-  scene.environmentIntensity = .08;
+  scene.environmentIntensity = .035;
   scene.fog = fog;
 
-  const hemisphere = new THREE.HemisphereLight('#a9dce8', '#255965', .88);
-  const ambient = new THREE.AmbientLight('#79adc0', .10);
+  const hemisphere = new THREE.HemisphereLight('#83b7c3', '#173d4d', .48);
+  const ambient = new THREE.AmbientLight('#608d9e', .065);
   const sun = new THREE.DirectionalLight('#ffb967', 4.1);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -56,9 +56,9 @@ export function createStormLighting(scene: THREE.Scene) {
   sun.shadow.camera.top = 48; sun.shadow.camera.bottom = -32;
   sun.shadow.camera.near = 1; sun.shadow.camera.far = 105;
   sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8;
-  const fill = new THREE.DirectionalLight('#73bfd0', .23);
+  const fill = new THREE.DirectionalLight('#64aebf', .085);
   const sunBreak = new THREE.SpotLight('#ffbe73', 1700, 65, Math.PI / 3, 1, 2);
-  const facadeSun = new THREE.SpotLight('#ffd393', 1050, 48, Math.PI / 3.4, .85, 2);
+  const facadeSun = new THREE.SpotLight('#ffd393', 400, 43, Math.PI / 4.2, .9, 2);
   scene.add(hemisphere, ambient, sun, sun.target, fill, fill.target,
     sunBreak, sunBreak.target, facadeSun, facadeSun.target);
   const setAnchor = (x: number, z: number) => {

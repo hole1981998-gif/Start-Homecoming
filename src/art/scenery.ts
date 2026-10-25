@@ -90,9 +90,9 @@ function house(parent: THREE.Object3D, name: string, x: number, z: number, width
   floors: 1 | 2, palette: 'warm' | 'cool' | 'ochre', near: boolean,
   use: 'home' | 'shop' = 'home') {
   const root = new THREE.Group(); root.name = name; root.position.set(x, 0, z); parent.add(root);
-  const wall = mat(palette === 'warm' ? '#e7b794' : palette === 'cool' ? '#89bcb8' : '#d9a073');
-  const trim = mat(palette === 'warm' ? '#a45f52' : palette === 'cool' ? '#40777c' : '#a75e45');
-  const roofMat = mat(palette === 'warm' ? '#b86551' : palette === 'cool' ? '#3f777e' : '#9c5148');
+  const wall = mat(palette === 'warm' ? '#ae9c8a' : palette === 'cool' ? '#829d99' : '#ae947c');
+  const trim = mat(palette === 'warm' ? '#745b56' : palette === 'cool' ? '#486c70' : '#786153');
+  const roofMat = mat(palette === 'warm' ? '#896658' : palette === 'cool' ? '#4d7076' : '#81635c');
   const glass = mat('#426b75'), wood = mat('#845e44'), flood = mat('#8a8977');
   const lit = mat('#f1c578'), shade = mat('#394e50'), frame = mat('#f0dfb8');
   const height = floors === 2 ? 5.8 : 3.25;
@@ -202,8 +202,8 @@ function midrise(parent: THREE.Object3D, x: number, z: number, near: boolean,
   palette: number) {
   const root = new THREE.Group(); root.name = 'midrise_apartments';
   root.position.set(x, 0, z); parent.add(root);
-  const wall = mat(['#e0ad8f', '#91bdb4', '#d7a39b'][palette]);
-  const trim = mat(['#965b52', '#4c7e79', '#91536b'][palette]);
+  const wall = mat(['#aa998d', '#849e99', '#a89896'][palette]);
+  const trim = mat(['#705c58', '#506f6c', '#755e68'][palette]);
   const glass = mat('#416b72'), shadow = mat('#384d50'), warm = mat('#e8bb74');
   box(root, 'midrise_main_mass', [5.7, 10.5, 5.0], [0, 5.25, 0], wall);
   box(root, 'midrise_stair_tower', [1.15, 11.55, 4.7], [-2.25, 5.78, -.12], trim);
@@ -249,9 +249,9 @@ function backlotBlock(parent: THREE.Object3D, x: number, z: number,
   root.position.set(x, 0, z); parent.add(root);
   const width = [6.3, 7.1, 5.7][style], depth = [5.8, 6.7, 6.2][style];
   const height = [7.1, 14.2, 9.3][style];
-  const wall = mat(['#d9af84', '#8ebdb0', '#db9f7f'][style]);
-  const sideWall = mat(['#b99571', '#70a99d', '#c68766'][style]);
-  const trim = mat(['#995d49', '#427f78', '#ab584b'][style]);
+  const wall = mat(['#a99b86', '#859d95', '#a99784'][style]);
+  const sideWall = mat(['#897e70', '#69837d', '#887565'][style]);
+  const trim = mat(['#765d54', '#4e706b', '#785b54'][style]);
   const shade = mat('#354e53'), frame = mat('#dfd5b6');
   box(root, 'backlot_main', [width, height, depth], [0, height / 2, 0], wall);
   box(root, 'backlot_shaded_wing', [.24, height, depth + .08],
@@ -331,8 +331,8 @@ function wideStorefront(parent: THREE.Object3D, x: number, z: number, near: bool
   palette: number) {
   const root = new THREE.Group(); root.name = 'wide_storefront';
   root.position.set(x, 0, z); parent.add(root);
-  const wall = mat(['#d6a27e', '#98c1ae', '#d9aa88'][palette]);
-  const trim = mat(['#ad5143', '#408783', '#a96a50'][palette]);
+  const wall = mat(['#ae9986', '#899f92', '#aa9a89'][palette]);
+  const trim = mat(['#805c53', '#54746f', '#7d6257'][palette]);
   const shadow = mat('#354b51'), glass = mat('#60959a'), warm = mat('#edc77f');
   box(root, 'store_wide_mass', [8.2, 3.35, 4.3], [0, 1.68, 0], wall);
   box(root, 'store_roof_band', [8.6, .27, 4.65], [0, 3.45, 0], trim);

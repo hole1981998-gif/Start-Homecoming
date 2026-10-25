@@ -18,8 +18,8 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 configureStormRenderer(renderer);
 const scene = new THREE.Scene();
 const lighting = createStormLighting(scene);
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),
-  new THREE.MeshLambertMaterial({ color: '#719570' }));
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, 220),
+  new THREE.MeshLambertMaterial({ color: '#657868' }));
 ground.rotation.x = -Math.PI / 2; ground.position.set(0, -.24, 17); ground.receiveShadow = true; scene.add(ground);
 const shadowCanvas = document.createElement('canvas');
 shadowCanvas.width = 128; shadowCanvas.height = 128;
@@ -54,7 +54,7 @@ for (const [z, skew, bandWidth] of [[-7.5, 8, 11], [24, 12, 5]] as const) {
   shade.root.position.z = z;
   scene.add(shade.root);
 }
-for (let z = -34; z <= 106; z += 4) {
+for (let z = -34; z <= 138; z += 4) {
   const tile = createRoadTileArt(z < -2 ? 'near' : 'far');
   tile.setWetness(.70);
   tile.root.position.z = z; scene.add(tile.root);
@@ -115,6 +115,26 @@ const biomeKind = document.getElementById('biomeKind') as HTMLSelectElement;
 const alternateBiome = new THREE.Group(); scene.add(alternateBiome);
 let alternateArts: ReturnType<typeof createSceneryCluster>[] = [];
 const importedCityBuildings: THREE.Object3D[] = [];
+function gradeImportedCity(root: THREE.Object3D): void {
+  const graded = new Map<THREE.Material, THREE.Material>();
+  const grade = (source: THREE.Material): THREE.Material => {
+    let material = graded.get(source);
+    if (!material) {
+      material = source.clone();
+      if (material instanceof THREE.MeshStandardMaterial) {
+        material.color.offsetHSL(0, -.10, -.09);
+        material.roughness = Math.max(material.roughness, .78);
+      }
+      graded.set(source, material);
+    }
+    return material;
+  };
+  root.traverse(object => {
+    if (!(object instanceof THREE.Mesh)) return;
+    object.material = Array.isArray(object.material)
+      ? object.material.map(grade) : grade(object.material);
+  });
+}
 biomeKind.addEventListener('change', () => {
   const kind = biomeKind.value as LandscapeKind;
   cityRoot.visible = kind === 'city';
@@ -193,6 +213,7 @@ vehicleKind.addEventListener('change', () => {
 });
 const shopUrl = new URL('../assets/art/roadside-shop.glb', import.meta.url).href;
 new GLTFLoader().load(shopUrl, gltf => {
+  gradeImportedCity(gltf.scene);
   nativeShop!.visible = false;
   gltf.scene.position.set(-8.48, 0, 20);
   gltf.scene.rotation.y = Math.PI / 2;
@@ -209,6 +230,7 @@ new GLTFLoader().load(shopUrl, gltf => {
 });
 const midriseUrl = new URL('../assets/art/roadside-midrise.glb', import.meta.url).href;
 new GLTFLoader().load(midriseUrl, gltf => {
+  gradeImportedCity(gltf.scene);
   if (!nativeMidrise) return;
   const placement = nativeMidrise.getWorldPosition(new THREE.Vector3());
   nativeMidrise.visible = false;
@@ -227,6 +249,7 @@ new GLTFLoader().load(midriseUrl, gltf => {
 });
 const marketUrl = new URL('../assets/art/corner-market.glb', import.meta.url).href;
 new GLTFLoader().load(marketUrl, gltf => {
+  gradeImportedCity(gltf.scene);
   if (!nativeMarket) return;
   const placement = nativeMarket.getWorldPosition(new THREE.Vector3());
   gltf.scene.position.copy(placement);
@@ -248,6 +271,7 @@ new GLTFLoader().load(marketUrl, gltf => {
 });
 const skylineUrl = new URL('../assets/art/skyline-shophouse.glb', import.meta.url).href;
 new GLTFLoader().load(skylineUrl, gltf => {
+  gradeImportedCity(gltf.scene);
   if (!nativeSkyline) return;
   const placement = nativeSkyline.getWorldPosition(new THREE.Vector3());
   gltf.scene.position.copy(placement);

@@ -20,7 +20,11 @@ describe('essential hazard art', () => {
       const colors = floor.geometry.getAttribute('color');
       expect(colors).toBeDefined();
       const red = Array.from({ length: colors.count }, (_, i) => colors.getX(i));
-      expect(Math.max(...red) - Math.min(...red)).toBeGreaterThan(.05);
+      const redRange = Math.max(...red) - Math.min(...red);
+      if (kind === 'water') {
+        expect(redRange).toBeGreaterThan(.015);
+        expect(redRange).toBeLessThan(.08);
+      } else expect(redRange).toBeGreaterThan(.05);
       expect(floor.geometry.getAttribute('normal')).toBeDefined();
       asset.dispose();
     }
@@ -69,6 +73,20 @@ describe('essential hazard art', () => {
     expect(new THREE.Box3().setFromObject(water.root).max.z).toBeCloseTo(bounds.max.z);
     water.dispose();
   });
+  it('uses distinct blue facets on near floodwater while keeping the far surface smooth', () => {
+    const near = createSurfaceHazardArt('water', 3.2, 7, 'near');
+    const far = createSurfaceHazardArt('water', 3.2, 7, 'far');
+    const colors = (art: typeof near) => (art.root.getObjectByName('deep_water') as THREE.Mesh)
+      .geometry.getAttribute('color');
+    const nearColor = colors(near), farColor = colors(far);
+    const sample = (attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, i: number) =>
+      [attribute.getX(i), attribute.getY(i), attribute.getZ(i)];
+    expect(sample(nearColor, 0)).toEqual(sample(nearColor, 1));
+    expect(sample(nearColor, 0)).toEqual(sample(nearColor, 2));
+    expect(sample(nearColor, 0)).not.toEqual(sample(nearColor, 3));
+    expect(sample(farColor, 0)).not.toEqual(sample(farColor, 1));
+    near.dispose(); far.dispose();
+  });
   it('keeps floodwater broad and almost flat while the pothole stays recessed', () => {
     const water = createSurfaceHazardArt('water', 3.2, 7);
     const hole = createSurfaceHazardArt('pothole', 2.3, 4);
@@ -100,7 +118,9 @@ describe('essential hazard art', () => {
       expect(diagonalX).toBeGreaterThan(.78);
       if (kind === 'water') {
         const floor = art.root.getObjectByName('deep_water') as THREE.Mesh;
-        expect(floor.geometry.getAttribute('position').count / 3).toBeGreaterThan(300);
+        const triangleCount = floor.geometry.getAttribute('position').count / 3;
+        expect(triangleCount).toBeGreaterThanOrEqual(100);
+        expect(triangleCount).toBeLessThanOrEqual(200);
       }
       art.dispose();
     }
