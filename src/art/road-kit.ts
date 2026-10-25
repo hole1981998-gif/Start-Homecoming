@@ -43,7 +43,7 @@ function disposeTree(root: THREE.Object3D) {
 export function createRoadTileArt(lod: 'near' | 'far' = 'near'): RoadArt {
   const width = balance.laneWidth * balance.laneCount;
   const root = new THREE.Group(); root.name = `road_tile_4m_${lod}`;
-  const asphalt = asphaltMaterial('#43565a', '#33494e');
+  const asphalt = asphaltMaterial('#5f665c', '#525b54');
   const edge = mat('#e0d7b3'), lane = mat('#c5d3c4');
   const dirt = mat('#92765d'), grass = mat('#67915e'), postMat = mat('#d6c7a4');
   box(root, 'asphalt_4m', [width, .07, 4], [0, -.035, 0], asphalt.material);

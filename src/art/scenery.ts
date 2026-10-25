@@ -792,17 +792,18 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     tree(root, 'field_edge_tree', x(2), 23, 4.6, near, 'palm');
   } else {
     const shore = mat('#b0a485'), seam = mat('#7d8c7f');
-    const sea = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: .34,
-      metalness: .04, clearcoat: .58, clearcoatRoughness: .19, side: THREE.DoubleSide });
+    const sea = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: .42,
+      metalness: .02, clearcoat: .44, clearcoatRoughness: .22,
+      flatShading: true, side: THREE.DoubleSide });
     const foam = mat('#c4d8c0');
     box(root, 'seawall', [.38, .78, 43], [x(.7), .30, 3], shore);
     box(root, 'seawall_cap', [.55, .11, 43], [x(.7), .73, 3], shore);
-    const waterGeometry = new THREE.PlaneGeometry(18, 43,
-      near ? 22 : 10, near ? 54 : 26);
+    let waterGeometry: THREE.BufferGeometry = new THREE.PlaneGeometry(18, 43,
+      near ? 14 : 7, near ? 32 : 15);
     waterGeometry.rotateX(-Math.PI / 2);
     const points = waterGeometry.getAttribute('position') as THREE.BufferAttribute;
     const colors: number[] = [];
-    const shallowColor = new THREE.Color('#79b5ae'), deepColor = new THREE.Color('#3d778b');
+    const shallowColor = new THREE.Color('#63c1e5'), deepColor = new THREE.Color('#1876c4');
     for (let i = 0; i < points.count; i++) {
       const px = points.getX(i), pz = points.getZ(i);
       const depth = side === 1 ? (px + 9) / 18 : (9 - px) / 18;
@@ -813,12 +814,30 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       colors.push(color.r, color.g, color.b);
     }
     waterGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const indexedWater = waterGeometry;
+    waterGeometry = indexedWater.toNonIndexed();
+    indexedWater.dispose();
+    const waterPoints = waterGeometry.getAttribute('position') as THREE.BufferAttribute;
+    const waterColors = waterGeometry.getAttribute('color') as THREE.BufferAttribute;
+    const facets = ['#176dc0', '#268bd5', '#3ba6df', '#147bc8', '#58b8e4']
+      .map(hex => new THREE.Color(hex));
+    for (let i = 0; i < waterPoints.count; i += 3) {
+      const px = (waterPoints.getX(i) + waterPoints.getX(i + 1) + waterPoints.getX(i + 2)) / 3;
+      const pz = (waterPoints.getZ(i) + waterPoints.getZ(i + 1) + waterPoints.getZ(i + 2)) / 3;
+      const seed = Math.abs(Math.sin(px * 17.31 + pz * 9.47 + i * .713) * 43758.5453);
+      const color = facets[Math.floor((seed % 1) * facets.length)].clone();
+      const depth = side === 1 ? (px + 9) / 18 : (9 - px) / 18;
+      color.lerp(shallowColor, Math.max(0, .45 - depth) * .8);
+      for (let corner = 0; corner < 3; corner++)
+        waterColors.setXYZ(i + corner, color.r, color.g, color.b);
+    }
+    waterColors.needsUpdate = true;
     waterGeometry.computeVertexNormals();
     const waterSurface = new THREE.Mesh(waterGeometry, sea);
     waterSurface.name = 'water_plane'; waterSurface.position.set(x(10.1), -.145, 3);
     root.add(waterSurface);
     waveSurfaces.push({ geometry: waterGeometry,
-      base: Float32Array.from(points.array as Float32Array),
+      base: Float32Array.from(waterPoints.array as Float32Array),
       amplitude: near ? .025 : .012, phase: side });
     for (const z of [-16, -7, 3, 12, 21]) {
       box(root, `water_edge_${z}`, [.11, .012, 3.8], [x(1.48), -.115, z], foam);

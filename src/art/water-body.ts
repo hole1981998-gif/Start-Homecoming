@@ -18,12 +18,12 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
     axes: '+Y up, +Z forward', collisionRole: 'decorative-only',
     placementSource: 'future art placement; no spawn change' };
   const vertices: number[] = [], colors: number[] = [], indices: number[] = [];
-  const edge = new THREE.Color('#8bc8b5');
-  const middle = new THREE.Color(kind === 'river' ? '#2a778f' : '#4a9fac');
+  const edge = new THREE.Color('#75cfe8');
+  const middle = new THREE.Color(kind === 'river' ? '#1a83c8' : '#258ed2');
   const color = new THREE.Color();
   if (kind === 'river') {
-    const columns = lod === 'near' ? 20 : 10;
-    const rows = lod === 'near' ? 52 : 24;
+    const columns = lod === 'near' ? 12 : 7;
+    const rows = lod === 'near' ? 32 : 14;
     for (let row = 0; row <= rows; row++) {
       const z = (row / rows - .5) * length;
       const bend = Math.sin(z * .17) * width * .045;
@@ -42,41 +42,49 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
       }
     }
   } else {
-    const segments = lod === 'near' ? 48 : 24;
-    const rings = lod === 'near' ? 12 : 6;
-    vertices.push(0, 0, 0);
-    colors.push(middle.r, middle.g, middle.b);
-    for (let ring = 1; ring <= rings; ring++) {
-      const r = ring / rings;
-      for (let segment = 0; segment < segments; segment++) {
-        const angle = segment * Math.PI * 2 / segments;
-        const uneven = 1 + Math.sin(angle * 3 + .8) * .035 +
-          Math.sin(angle * 7 - .3) * .025;
-        vertices.push(Math.cos(angle) * width * .43 * r * uneven, 0,
-          Math.sin(angle) * length * .43 * r * uneven);
-        color.copy(middle).lerp(edge, Math.max(0, r - .42) * 1.35);
-        color.multiplyScalar(.97 + .03 * Math.sin(
-          Math.cos(angle) * width * r * .38 + Math.sin(angle) * length * r * .16));
-        colors.push(color.r, color.g, color.b);
-        const next = (segment + 1) % segments;
-        if (ring === 1) indices.push(0, 1 + next, 1 + segment);
-        else {
-          const inner = 1 + (ring - 2) * segments + segment;
-          const outer = 1 + (ring - 1) * segments + segment;
-          const innerNext = 1 + (ring - 2) * segments + next;
-          const outerNext = 1 + (ring - 1) * segments + next;
-          indices.push(inner, innerNext, outer, outer, innerNext, outerNext);
-        }
+    const divisions = lod === 'near' ? 16 : 7;
+    for (let row = 0; row <= divisions; row++) for (let col = 0; col <= divisions; col++) {
+      const u = col / divisions * 2 - 1, v = row / divisions * 2 - 1;
+      const x = u * Math.sqrt(1 - v * v * .5);
+      const z = v * Math.sqrt(1 - u * u * .5);
+      const angle = Math.atan2(z, x);
+      const uneven = 1 + Math.sin(angle * 3 + .8) * .035 +
+        Math.sin(angle * 7 - .3) * .025;
+      vertices.push(x * width * .43 * uneven, 0, z * length * .43 * uneven);
+      color.copy(middle).lerp(edge, Math.max(0, Math.hypot(x, z) - .42) * 1.35);
+      colors.push(color.r, color.g, color.b);
+      if (row < divisions && col < divisions) {
+        const a = row * (divisions + 1) + col;
+        indices.push(a, a + divisions + 1, a + 1,
+          a + 1, a + divisions + 1, a + divisions + 2);
       }
     }
   }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  geometry.setIndex(indices);
+  const indexed = new THREE.BufferGeometry();
+  indexed.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  indexed.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  indexed.setIndex(indices);
+  // Independent triangle vertices let the broad colour planes read at gameplay distance.
+  const geometry = indexed.toNonIndexed();
+  indexed.dispose();
+  const faceColors = geometry.getAttribute('color') as THREE.BufferAttribute;
+  const positions = geometry.getAttribute('position') as THREE.BufferAttribute;
+  const facets = ['#166cbe', '#248fd8', '#39a5df', '#1683cb', '#54b9e7']
+    .map(hex => new THREE.Color(hex));
+  for (let i = 0; i < positions.count; i += 3) {
+    const x = (positions.getX(i) + positions.getX(i + 1) + positions.getX(i + 2)) / 3;
+    const z = (positions.getZ(i) + positions.getZ(i + 1) + positions.getZ(i + 2)) / 3;
+    const seed = Math.abs(Math.sin(x * 17.31 + z * 9.47 + i * .713) * 43758.5453);
+    const tint = facets[Math.floor((seed % 1) * facets.length)].clone();
+    const bank = kind === 'river' ? Math.abs(x / (width * .5)) :
+      Math.hypot(x / (width * .43), z / (length * .43));
+    tint.lerp(edge, Math.max(0, bank - .55) * .6);
+    for (let corner = 0; corner < 3; corner++) faceColors.setXYZ(i + corner, tint.r, tint.g, tint.b);
+  }
+  faceColors.needsUpdate = true;
   geometry.computeVertexNormals();
   const material = new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true,
-    roughness: .32, metalness: .04, clearcoat: .66, clearcoatRoughness: .18,
+    roughness: .42, metalness: .02, clearcoat: .44, clearcoatRoughness: .22,
     side: THREE.DoubleSide, flatShading: true });
   const surface = new THREE.Mesh(geometry, material);
   surface.name = `${kind}_water_surface`;
@@ -84,8 +92,8 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
   let shoreGeometry: THREE.BufferGeometry | undefined;
   let shoreMaterial: THREE.MeshStandardMaterial | undefined;
   if (kind === 'river') {
-    const columns = lod === 'near' ? 20 : 10;
-    const rows = lod === 'near' ? 52 : 24;
+    const columns = lod === 'near' ? 12 : 7;
+    const rows = lod === 'near' ? 32 : 14;
     const shorePositions: number[] = [];
     for (const edgeColumn of [0, columns]) for (let row = 0; row < rows; row++) {
       const point = (r: number, outward: number) => {
@@ -106,7 +114,7 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
     shore.name = 'river_grassy_banks';
     root.add(shore);
   } else {
-    const segments = lod === 'near' ? 48 : 24;
+    const segments = lod === 'near' ? 32 : 18;
     const shorePositions: number[] = [];
     for (let i = 0; i < segments; i++) {
       const point = (segment: number, radius: number) => {

@@ -41,7 +41,7 @@ export function createRoadShadowArt(width: number, skew: number, bandWidth: numb
   const smooth = (x: number) => x * x * (3 - 2 * x);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const u = x / (size - 1), v = y / (size - 1);
-    const edge = Math.min(v, 1 - v) / .20;
+    const edge = Math.min(v, 1 - v) / .10;
     const end = Math.min(u, 1 - u) / .10;
     const density = smooth(Math.min(1, Math.max(0, edge))) *
       smooth(Math.min(1, Math.max(0, end)));
@@ -53,8 +53,8 @@ export function createRoadShadowArt(width: number, skew: number, bandWidth: numb
   const alphaMap = new THREE.DataTexture(pixels, size, size, THREE.RGBAFormat);
   alphaMap.magFilter = alphaMap.minFilter = THREE.LinearFilter;
   alphaMap.needsUpdate = true;
-  const material = new THREE.MeshBasicMaterial({ color: '#163a48', alphaMap,
-    transparent: true, opacity: .49, depthWrite: false, side: THREE.DoubleSide });
+  const material = new THREE.MeshBasicMaterial({ color: '#0c4657', alphaMap,
+    transparent: true, opacity: .82, depthWrite: false, side: THREE.DoubleSide });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = 'feathered_long_shadow';
   root.add(mesh);

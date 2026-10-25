@@ -43,4 +43,20 @@ describe('decorative river and lake water', () => {
     expect(() => createOpenWaterArt('lake', 0, 4)).toThrow();
     expect(() => createOpenWaterArt('river', 4, Number.NaN)).toThrow();
   });
+  it('keeps each water triangle a readable flat colour plane', () => {
+    const art = createOpenWaterArt('river', 18, 40);
+    const geometry = (art.root.getObjectByName('river_water_surface') as THREE.Mesh).geometry;
+    const colors = geometry.getAttribute('color');
+    expect(geometry.index).toBeNull();
+    const distinct = new Set<string>();
+    for (let i = 0; i < colors.count; i += 3) {
+      const face = [colors.getX(i), colors.getY(i), colors.getZ(i)];
+      for (let corner = 1; corner < 3; corner++)
+        expect([colors.getX(i + corner), colors.getY(i + corner), colors.getZ(i + corner)])
+          .toEqual(face);
+      distinct.add(face.map(value => value.toFixed(3)).join(','));
+    }
+    expect(distinct.size).toBeGreaterThan(3);
+    art.dispose();
+  });
 });

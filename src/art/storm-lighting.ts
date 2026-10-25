@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export const stormExposure = .98;
+export const stormExposure = 1.12;
 
 export function configureStormRenderer(renderer: THREE.WebGLRenderer): void {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -41,37 +41,40 @@ export function createStormLighting(scene: THREE.Scene) {
   const environment = skyTexture.clone();
   environment.mapping = THREE.EquirectangularReflectionMapping;
   environment.needsUpdate = true;
-  const fog = new THREE.Fog('#8ab5bb', 36, 100);
+  const fog = new THREE.Fog('#80aeb5', 40, 105);
   scene.background = skyTexture;
   scene.environment = environment;
-  scene.environmentIntensity = .12;
+  scene.environmentIntensity = .08;
   scene.fog = fog;
 
-  const hemisphere = new THREE.HemisphereLight('#bcebf0', '#335e6a', 1.23);
-  const ambient = new THREE.AmbientLight('#86bfd0', .17);
-  const sun = new THREE.DirectionalLight('#ffbf76', 2.8);
+  const hemisphere = new THREE.HemisphereLight('#a9dce8', '#255965', .88);
+  const ambient = new THREE.AmbientLight('#79adc0', .10);
+  const sun = new THREE.DirectionalLight('#ffb967', 4.1);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.left = -34; sun.shadow.camera.right = 34;
   sun.shadow.camera.top = 48; sun.shadow.camera.bottom = -32;
   sun.shadow.camera.near = 1; sun.shadow.camera.far = 105;
   sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8;
-  const fill = new THREE.DirectionalLight('#80c2d2', .38);
-  const sunBreak = new THREE.SpotLight('#ffc17d', 1400, 65, Math.PI / 3, 1, 2);
+  const fill = new THREE.DirectionalLight('#73bfd0', .23);
+  const sunBreak = new THREE.SpotLight('#ffbe73', 1700, 65, Math.PI / 3, 1, 2);
+  const facadeSun = new THREE.SpotLight('#ffd393', 1050, 48, Math.PI / 3.4, .85, 2);
   scene.add(hemisphere, ambient, sun, sun.target, fill, fill.target,
-    sunBreak, sunBreak.target);
+    sunBreak, sunBreak.target, facadeSun, facadeSun.target);
   const setAnchor = (x: number, z: number) => {
-    sun.position.set(x + 19, 12, z + 20);
+    sun.position.set(x - 23, 16, z + 22);
     sun.target.position.set(x, 0, z);
     fill.position.set(x - 11, 8, z - 10);
     fill.target.position.set(x, 0, z);
     sunBreak.position.set(x - 10, 22, z + 19);
     sunBreak.target.position.set(x, 0, z + 24);
+    facadeSun.position.set(x + 1, 17, z + 11);
+    facadeSun.target.position.set(x + 8, 5, z + 24);
   };
   setAnchor(0, 0);
   const dispose = () => {
     scene.remove(hemisphere, ambient, sun, sun.target, fill, fill.target,
-      sunBreak, sunBreak.target);
+      sunBreak, sunBreak.target, facadeSun, facadeSun.target);
     skyTexture.dispose();
     environment.dispose();
     if (scene.background === skyTexture) scene.background = previous.background;

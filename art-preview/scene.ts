@@ -49,8 +49,8 @@ for (const [x, z, width, length] of [[-2, 36, 29, 21], [4, 77, 25, 16]] as const
   cloudShadow.position.set(x, .027, z);
   scene.add(cloudShadow);
 }
-for (const [z, bandWidth] of [[-8.5, 5], [22, 4]] as const) {
-  const shade = createRoadShadowArt(13.2, 14, bandWidth);
+for (const [z, skew, bandWidth] of [[-7.5, 8, 11], [24, 12, 5]] as const) {
+  const shade = createRoadShadowArt(13.2, skew, bandWidth);
   shade.root.position.z = z;
   scene.add(shade.root);
 }
