@@ -76,7 +76,7 @@ Các master xe, hazard, người và năm biome đều đã có source/preview. 
 
 Các phụ kiện nhỏ, skin sơn thêm, nội thất, anim phụ và trang trí không giúp sửa các điểm nghẽn trên trước; ưu tiên sau khi cảnh đại diện đạt chất lượng và chạy ổn.
 
-**Chuyển giao NPC để chủ dự án sửa (25/10):** 13 mẫu người hiện hành đã được xuất ra `assets/art/people-edit-source.blend`, mỗi mẫu một collection; `people-edit-source.glb` là snapshot từ mesh TypeScript. Tạm dừng nắn NPC trong nhánh art theo yêu cầu chủ dự án, chờ mẫu Blender được sửa rồi mới tiếp tục tích hợp/đánh giá nhân vật. Vì vậy ưu tiên trước mắt chuyển sang phố, môi trường, vật liệu/ánh sáng và ngoại thất xe/hazard. Nhà phố cao tầng `skyline-shophouse.blend`/`.glb` đã được dựng cho nhịp skyline; chỉ thử ở scene preview.
+**Chuyển giao NPC để chủ dự án sửa (25/10):** 13 mẫu người ban đầu đã được xuất ra `assets/art/people-edit-source.blend`, mỗi mẫu một collection; `people-edit-source.glb` là snapshot ban đầu từ mesh TypeScript. Chủ dự án sau đó tạo `driver.adjusted` và yêu cầu tiếp tục nắn NPC; kết quả mới được đóng gói riêng trong `people-polished.blend`, không ghi đè bản chủ dự án sửa. Nhà phố cao tầng `skyline-shophouse.blend`/`.glb` đã được dựng cho nhịp skyline; chỉ thử ở scene preview.
 
 Trong lượt tối ưu tiếp theo, `optimizeNearScenery(root)` gộp mesh tĩnh **bên trong từng root công trình/cây** trước khi đặt cluster, giữ tên/transform root cho placement hoặc thay GLB. Ở cùng camera trong `scene.html`, draw calls giảm 1.126 → 870–871 (khoảng 23%); tam giác được gửi lên GPU tăng 47.240 → khoảng 50.500 khi chuyển sang culling theo cụm và thử đặt tòa cao tầng vào mặt phố. Đây là một frame preview, chưa chứng minh FPS game. Cần đo frame P95, bộ nhớ và nhiều seed/biome trước khi bật trong gameplay.
 
@@ -112,7 +112,11 @@ Hai dải bóng chéo cứng của scene preview được thay bằng `src/art/r
 
 Car7 near được thêm ô kính mái tối, gioăng, gân dập và đầu ray mái; ở camera sau 9:16 mảng mái lớn nay có cấu trúc rõ thay một tấm sơn trống. Far LOD bỏ các chi tiết này, bảy seat/socket và footprint 2,08 × 4,8 m giữ nguyên. Đây là ngoại thất nguồn, chưa chỉnh nội thất hay camera game.
 
-Ba gác near có sàn ghép ba tấm gỗ, đường ghép cửa thùng, khóa giữa, bản lề và phản quang sau bên hông; thùng vẫn trống để không che bốn vị trí khách/hàng hiện có. Từ camera 9:16 cấu trúc sàn/cửa dễ đọc hơn nhưng mẫu tài xế vẫn quá lớn so với xe; chờ chủ dự án chỉnh NPC `.blend`, không tự đổi mount/footprint.
+Ba gác near có sàn ghép ba tấm gỗ, đường ghép cửa thùng, khóa giữa, bản lề và phản quang sau bên hông; thùng vẫn trống để không che bốn vị trí khách/hàng hiện có. Từ camera 9:16 cấu trúc sàn/cửa dễ đọc hơn; sau đó mẫu tài xế đã được nắn lại theo collection `driver.adjusted` của chủ dự án, không đổi mount/footprint.
+
+Sketch 25/10 mới dẫn lượt contrast: exposure 1,12, ambient/fill bớt phủ đều, nắng cam xiên và vệt sáng phụ lên mặt phố; nhựa đường sáng olive ở vùng nắng, dải bóng foreground chuyển teal đậm và rộng hơn. Đây vẫn là study ở `scene.html`, chưa có placement bóng theo vật thể hoặc renderer gameplay. Mặt sông, hồ và biển dùng tam giác non-indexed tô riêng từng mặt xanh lam/cyan như ảnh tham chiếu; hồ chuyển từ lưới tỏa tâm sang lưới oval để không tạo xoáy tâm. Nước hazard trên road vẫn riêng, giữ hình nông dễ nhận biết.
+
+Theo feedback tỉ lệ semi-chibi, `src/art/people.ts` nay hạ/nắn vai, làm thân bụng và hông nở, giảm đầu theo `driver.adjusted`, sửa vị trí mắt/mũi/miệng, tóc sau, mũ và chi tiết áo tài xế. `assets/art/people-proportions-pass.glb` chứa 13 mẫu đứng từ mã mới; `assets/art/people-polished.blend` có scene `PeoplePolished` để tiếp tục sửa. Scene `PeopleEdit` trong file mới vẫn giữ `driver.adjusted` tham chiếu của chủ dự án; file gốc `people-edit-source.blend` và `.blend1` không bị chép đè. Tỉ lệ phải tiếp tục kiểm trong gameplay và các pose với mọi xe; đây chưa là approval art cuối.
 
 ## Hợp đồng với prototype hiện hành
 

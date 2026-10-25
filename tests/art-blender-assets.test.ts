@@ -69,17 +69,19 @@ describe('editable Blender roadside exports', () => {
     expect(bounds.min.y).toBeGreaterThanOrEqual(0);
   });
   it('exports every editable person with distinct named parts', async () => {
-    const bytes = readFileSync(new URL('../assets/art/people-edit-source.glb', import.meta.url));
-    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    const gltf = await new GLTFLoader().parseAsync(buffer, '');
-    const roots = gltf.scene.getObjectByName('homecoming_people_edit_source')!.children;
-    expect(roots).toHaveLength(13);
-    for (const root of roots) {
-      expect(root.name).toMatch(/^chr_.+_root$/);
-      const partNames: string[] = [];
-      root.traverse(object => partNames.push(object.name));
-      for (const part of ['head', 'coat_torso', 'hip_pivot'])
-        expect(partNames.some(name => name === part || name.startsWith(`${part}_`))).toBe(true);
+    for (const filename of ['people-edit-source.glb', 'people-proportions-pass.glb']) {
+      const bytes = readFileSync(new URL(`../assets/art/${filename}`, import.meta.url));
+      const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      const gltf = await new GLTFLoader().parseAsync(buffer, '');
+      const roots = gltf.scene.getObjectByName('homecoming_people_edit_source')!.children;
+      expect(roots).toHaveLength(13);
+      for (const root of roots) {
+        expect(root.name).toMatch(/^chr_.+_root$/);
+        const partNames: string[] = [];
+        root.traverse(object => partNames.push(object.name));
+        for (const part of ['head', 'coat_torso', 'hip_pivot'])
+          expect(partNames.some(name => name === part || name.startsWith(`${part}_`))).toBe(true);
+      }
     }
   });
 });

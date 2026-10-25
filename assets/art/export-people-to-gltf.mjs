@@ -25,7 +25,7 @@ globalThis.FileReader = NodeFileReader;
 
 const source = resolve('src/art/people.ts');
 const temporary = resolve('src/art/.people-blender-export.mjs');
-const output = resolve('assets/art/people-edit-source.glb');
+const output = resolve(process.argv[2] ?? 'assets/art/people-edit-source.glb');
 const compiled = ts.transpileModule(await readFile(source, 'utf8'), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
 }).outputText;

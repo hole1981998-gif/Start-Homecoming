@@ -69,6 +69,21 @@ describe('essential people art', () => {
     expect(bike.root.position.toArray()).toEqual([0, 0, 0]);
     rider.dispose(); bike.dispose();
   });
+  it('keeps the adjusted driver head compact without shrinking the actor or its seat mount', () => {
+    const driver = createPersonArt('driver');
+    const head = new THREE.Box3().setFromObject(driver.root.getObjectByName('head')!);
+    const body = new THREE.Box3().setFromObject(driver.root);
+    expect(head.getSize(new THREE.Vector3()).x).toBeLessThan(.50);
+    expect(body.getSize(new THREE.Vector3()).y).toBeGreaterThan(1.8);
+    expect(driver.sockets.hip.getWorldPosition(new THREE.Vector3()).y).toBeCloseTo(.85);
+    const shoulder = driver.root.getObjectByName('shoulder_1')!
+      .getWorldPosition(new THREE.Vector3());
+    const pelvis = new THREE.Box3().setFromObject(driver.root.getObjectByName('pants_pelvis')!);
+    expect(shoulder.x).toBeLessThan(.22);
+    expect(shoulder.y).toBeLessThan(1.35);
+    expect(pelvis.getSize(new THREE.Vector3()).x).toBeGreaterThan(shoulder.x * 2);
+    driver.dispose();
+  });
   it('seats the senior hat on the head rather than leaving a visible air gap', () => {
     const person = createPersonArt('senior');
     const head = person.root.getObjectByName('head')!;

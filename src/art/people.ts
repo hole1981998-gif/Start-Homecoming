@@ -15,19 +15,19 @@ export interface PersonArt {
   dispose: () => void;
 }
 const cast = {
-  driver: { height: 1.72, shoulder: .46, waist: .33, skin: '#b67f62', coat: '#4c98a4', pants: '#314750', helmet: '#e5d9ba', accessory: 'helmet' },
-  commuter: { height: 1.66, shoulder: .40, waist: .34, skin: '#d39d78', coat: '#c75d52', pants: '#48555c', helmet: '#aa7658', accessory: 'none' },
-  student: { height: 1.54, shoulder: .38, waist: .29, skin: '#a86e55', coat: '#7b85b3', pants: '#38465d', helmet: '#293e54', accessory: 'backpack' },
-  child: { height: 1.24, shoulder: .34, waist: .29, skin: '#c78d6b', coat: '#c9674f', pants: '#816e56', helmet: '#af654b', accessory: 'cap' },
-  senior: { height: 1.56, shoulder: .40, waist: .36, skin: '#b98566', coat: '#d2cbb0', pants: '#344657', helmet: '#464844', accessory: 'hat' },
-  worker: { height: 1.76, shoulder: .52, waist: .43, skin: '#8f5b48', coat: '#c48c5f', pants: '#3b5553', helmet: '#5b4c3f', accessory: 'satchel' },
-  childRain: { height: 1.33, shoulder: .36, waist: .30, skin: '#b77959', coat: '#65a7a0', pants: '#45586c', helmet: '#e4bb65', accessory: 'poncho' },
-  teenHood: { height: 1.63, shoulder: .37, waist: .28, skin: '#c48d68', coat: '#b77d96', pants: '#394a55', helmet: '#855c75', accessory: 'bag' },
-  office: { height: 1.70, shoulder: .41, waist: .31, skin: '#9c6650', coat: '#d3a56d', pants: '#3f5864', helmet: '#5d8d91', accessory: 'bag' },
-  active: { height: 1.75, shoulder: .43, waist: .30, skin: '#b78160', coat: '#81a95e', pants: '#324c51', helmet: '#f0d183', accessory: 'helmet' },
-  parent: { height: 1.65, shoulder: .50, waist: .45, skin: '#d39c76', coat: '#ba7966', pants: '#52535f', helmet: '#855c48', accessory: 'satchel' },
-  caretaker: { height: 1.82, shoulder: .42, waist: .34, skin: '#a16f54', coat: '#6c91ab', pants: '#3e5460', helmet: '#d4c4a2', accessory: 'bag' },
-  elderPoncho: { height: 1.50, shoulder: .43, waist: .39, skin: '#b47e63', coat: '#9a8066', pants: '#424d54', helmet: '#d2bba0', accessory: 'poncho' },
+  driver: { height: 1.72, shoulder: .37, waist: .43, skin: '#b67f62', coat: '#4c98a4', pants: '#314750', helmet: '#e5d9ba', accessory: 'helmet' },
+  commuter: { height: 1.66, shoulder: .34, waist: .43, skin: '#d39d78', coat: '#c75d52', pants: '#48555c', helmet: '#aa7658', accessory: 'none' },
+  student: { height: 1.54, shoulder: .33, waist: .37, skin: '#a86e55', coat: '#7b85b3', pants: '#38465d', helmet: '#293e54', accessory: 'backpack' },
+  child: { height: 1.24, shoulder: .30, waist: .37, skin: '#c78d6b', coat: '#c9674f', pants: '#816e56', helmet: '#af654b', accessory: 'cap' },
+  senior: { height: 1.56, shoulder: .34, waist: .45, skin: '#b98566', coat: '#d2cbb0', pants: '#344657', helmet: '#464844', accessory: 'hat' },
+  worker: { height: 1.76, shoulder: .43, waist: .51, skin: '#8f5b48', coat: '#c48c5f', pants: '#3b5553', helmet: '#5b4c3f', accessory: 'satchel' },
+  childRain: { height: 1.33, shoulder: .31, waist: .38, skin: '#b77959', coat: '#65a7a0', pants: '#45586c', helmet: '#e4bb65', accessory: 'poncho' },
+  teenHood: { height: 1.63, shoulder: .32, waist: .37, skin: '#c48d68', coat: '#b77d96', pants: '#394a55', helmet: '#855c75', accessory: 'bag' },
+  office: { height: 1.70, shoulder: .35, waist: .40, skin: '#9c6650', coat: '#d3a56d', pants: '#3f5864', helmet: '#5d8d91', accessory: 'bag' },
+  active: { height: 1.75, shoulder: .37, waist: .40, skin: '#b78160', coat: '#81a95e', pants: '#324c51', helmet: '#f0d183', accessory: 'helmet' },
+  parent: { height: 1.65, shoulder: .41, waist: .53, skin: '#d39c76', coat: '#ba7966', pants: '#52535f', helmet: '#855c48', accessory: 'satchel' },
+  caretaker: { height: 1.82, shoulder: .36, waist: .43, skin: '#a16f54', coat: '#6c91ab', pants: '#3e5460', helmet: '#d4c4a2', accessory: 'bag' },
+  elderPoncho: { height: 1.50, shoulder: .36, waist: .48, skin: '#b47e63', coat: '#9a8066', pants: '#424d54', helmet: '#d2bba0', accessory: 'poncho' },
 } as const;
 function mat(color: string, roughness = .85, smooth = false) {
   return new THREE.MeshStandardMaterial({ color, roughness, flatShading: !smooth, side: THREE.DoubleSide });
@@ -56,25 +56,10 @@ function tailoredLimb(parent: THREE.Object3D, name: string, scale: number,
 }
 function sweptBackHair(parent: THREE.Object3D, headRadius: number,
   material: THREE.Material, lod: 'near' | 'far') {
-  const rings: ReadonlyArray<readonly [number, number, number]> = [
-    [.22, .13, .16], [.10, .26, .29], [-.07, .30, .35],
-    [-.25, .28, .36], [-.45, .21, .29], [-.51, .12, .18],
-  ];
-  const sides = lod === 'near' ? 12 : 7;
-  const vertices: number[] = [], indices: number[] = [];
-  for (const [y, width, depth] of rings) for (let j = 0; j <= sides; j++) {
-    const angle = -Math.PI / 2 + j * Math.PI / sides;
-    vertices.push(Math.sin(angle) * width * headRadius / .30,
-      y * headRadius / .30, -.035 - Math.cos(angle) * depth * headRadius / .30);
-  }
-  for (let i = 0; i < rings.length - 1; i++) for (let j = 0; j < sides; j++) {
-    const a = i * (sides + 1) + j, b = a + sides + 1;
-    indices.push(a, b, a + 1, a + 1, b, b + 1);
-  }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  geometry.setIndex(indices); geometry.computeVertexNormals();
-  const hair = new THREE.Mesh(geometry, material);
+  const hair = new THREE.Mesh(new THREE.CapsuleGeometry(headRadius * .82,
+    headRadius * .70, lod === 'near' ? 6 : 3, lod === 'near' ? 14 : 8), material);
+  hair.scale.z = .50;
+  hair.position.set(0, -headRadius * .32, -headRadius * .60);
   hair.name = 'back_hair'; parent.add(hair); return hair;
 }
 function node(parent: THREE.Object3D, name: string, pos: [number, number, number]) {
@@ -94,16 +79,16 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   const accessoryMat = mat(spec.helmet, .72, true);
   const torso = node(hips, 'torso_pivot', [0, 0, 0]);
   const shoulderWidth = spec.shoulder * scale, waistWidth = spec.waist * scale;
-  tapered(hips, 'pants_pelvis', waistWidth * .52, waistWidth * .46,
-    .14 * scale, [0, -.04 * scale, 0], pants, 14);
+  tapered(hips, 'pants_pelvis', waistWidth * .54, waistWidth * .52,
+    .155 * scale, [0, -.075 * scale, 0], pants, 14);
   const torsoProfile = [
     new THREE.Vector2(0, .015 * scale),
     new THREE.Vector2(waistWidth * .48, .015 * scale),
-    new THREE.Vector2(waistWidth * .56, .075 * scale),
-    new THREE.Vector2(waistWidth * .53, .22 * scale),
-    new THREE.Vector2(shoulderWidth * .52, .43 * scale),
-    new THREE.Vector2(shoulderWidth * .57, .51 * scale),
-    new THREE.Vector2(shoulderWidth * .43, .59 * scale),
+    new THREE.Vector2(waistWidth * .57, .075 * scale),
+    new THREE.Vector2(waistWidth * .60, .22 * scale),
+    new THREE.Vector2(waistWidth * .56, .33 * scale),
+    new THREE.Vector2(shoulderWidth * .55, .44 * scale),
+    new THREE.Vector2(shoulderWidth * .46, .54 * scale),
     new THREE.Vector2(.075 * scale, .64 * scale),
     new THREE.Vector2(0, .64 * scale),
   ];
@@ -117,11 +102,23 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
     box(torso, 'coat_placket', [.026 * scale, .28 * scale, .012],
       [0, .29 * scale, .204 * scale], light);
   }
+  if (archetype === 'driver' && lod === 'near') {
+    const trim = mat('#b7d7d2', .8, true);
+    const seam = mat('#367889', .86, true);
+    tapered(torso, 'jacket_collar', .100 * scale, .118 * scale,
+      .055 * scale, [0, .615 * scale, 0], trim, 16);
+    box(torso, 'jacket_front_seam', [.018 * scale, .39 * scale, .012],
+      [0, .31 * scale, .205 * scale], seam);
+    for (const side of [-1, 1]) {
+      box(torso, `jacket_pocket_${side}`, [.085 * scale, .015 * scale, .018],
+        [side * .11 * scale, .22 * scale, .196 * scale], trim);
+    }
+  }
   const neck = tapered(torso, 'neck', .075 * scale, .08 * scale, .12 * scale,
     [0, .64 * scale, 0], skin, 6);
   neck.userData.materialRole = 'skin';
-  const head = node(torso, 'head_pivot', [0, .63 * scale, 0]);
-  const headRadius = (archetype === 'driver' ? .33 : .36) * scale *
+  const head = node(torso, 'head_pivot', [0, .72 * scale, 0]);
+  const headRadius = (archetype === 'driver' ? .23 : .27) * scale *
     (archetype === 'child' || archetype === 'childRain' ? 1.07 : 1);
   const headMesh = new THREE.Mesh(new THREE.SphereGeometry(headRadius,
     lod === 'near' ? 16 : 10, lod === 'near' ? 12 : 8), skin);
@@ -151,11 +148,11 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   }
   const nose = new THREE.Mesh(new THREE.SphereGeometry(.038 * scale, 8, 6), skin);
   nose.name = 'nose'; nose.scale.set(.90, .72, 1.14);
-  nose.position.set(0, -.055 * scale, headRadius * .94); head.add(nose);
+  nose.position.set(0, -headRadius * .17, headRadius * .94); head.add(nose);
   for (const side of [-1, 1]) {
     const ear = new THREE.Mesh(new THREE.SphereGeometry(.054 * scale, 8, 6), skin);
     ear.name = `ear_${side}`; ear.scale.set(.70, 1, .68);
-    ear.position.set(side * headRadius * .95, -.045 * scale, 0); head.add(ear);
+    ear.position.set(side * headRadius * .95, -headRadius * .14, 0); head.add(ear);
     const eye = new THREE.Mesh(new THREE.SphereGeometry(.024 * scale, 8, 6),
       mat('#315986', .42, true));
     eye.name = `eye_${side}`;
@@ -163,19 +160,19 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
     head.add(eye);
     if (lod === 'near' && archetype !== 'driver') box(head, `eyebrow_${side}`,
       [.064 * scale, .014 * scale, .012],
-      [side * headRadius * .35, .075 * scale, headRadius * .91], hairMat);
+      [side * headRadius * .35, headRadius * .22, headRadius * .91], hairMat);
   }
   const mouth = new THREE.Mesh(new THREE.SphereGeometry(.022 * scale, 8, 6),
     mat('#a65e62', .8, true));
   mouth.name = 'mouth'; mouth.scale.set(1.6, .54, .55);
-  mouth.position.set(0, -.145 * scale, headRadius * .88); head.add(mouth);
+  mouth.position.set(0, -headRadius * .44, headRadius * .88); head.add(mouth);
   if (archetype === 'senior' && lod === 'near') {
     const moustache = mat('#8e948b', .80, true);
     for (const side of [-1, 1]) {
       const half = new THREE.Mesh(new THREE.SphereGeometry(.042 * scale, 9, 7), moustache);
       half.name = `silver_moustache_${side}`;
       half.scale.set(1.12, .38, .52);
-      half.position.set(side * .034 * scale, -.112 * scale, headRadius * .91);
+      half.position.set(side * .034 * scale, -headRadius * .34, headRadius * .91);
       half.rotation.z = side * .22;
       head.add(half);
     }
@@ -185,7 +182,13 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
 
   const arms: THREE.Group[] = [], elbows: THREE.Group[] = [], legs: THREE.Group[] = [], knees: THREE.Group[] = [];
   for (const side of [-1, 1]) {
-    const arm = node(torso, `shoulder_${side}`, [side * shoulderWidth * .54, .53 * scale, 0]);
+    const arm = node(torso, `shoulder_${side}`, [side * shoulderWidth * .54, .47 * scale, 0]);
+    const shoulderCap = new THREE.Mesh(new THREE.SphereGeometry(.074 * scale,
+      lod === 'near' ? 12 : 8, lod === 'near' ? 9 : 6), coat);
+    shoulderCap.name = `soft_shoulder_${side}`;
+    shoulderCap.scale.set(.92, .70, .94);
+    shoulderCap.position.set(side * .016 * scale, -.023 * scale, 0);
+    arm.add(shoulderCap);
     tailoredLimb(arm, `upper_arm_${side}`, scale,
       [[0, .035], [.054, .034], [.077, -.018], [.087, -.085],
         [.080, -.23], [.077, -.34], [.063, -.375], [0, -.375]], coat, lod)
@@ -224,6 +227,17 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
       headRadius * 1.22, .025 * scale, 16), accessoryMat);
     brim.name = 'helmet_brim'; brim.scale.z = 1.15;
     brim.position.y = .095 * scale; head.add(brim);
+    if (archetype === 'driver' && lod === 'near') {
+      const gasket = tapered(head, 'helmet_dark_band', headRadius * 1.09,
+        headRadius * 1.10, .025 * scale, [0, .115 * scale, 0], dark, 16);
+      gasket.scale.z = 1.07;
+      for (const side of [-1, 1]) {
+        const strap = box(head, `helmet_chin_strap_${side}`,
+          [.018 * scale, .15 * scale, .015],
+          [side * headRadius * .90, -.012 * scale, .06 * scale], dark);
+        strap.rotation.z = side * .15;
+      }
+    }
   } else if (spec.accessory === 'cap') {
     const crown = new THREE.Mesh(new THREE.SphereGeometry(headRadius * 1.04,
       16, 10, 0, Math.PI * 2, 0, Math.PI * .52), accessoryMat);
@@ -248,7 +262,7 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
       : new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), accessoryMat);
     if (spec.accessory !== 'backpack') {
       pack.name = 'carried_bag';
-      pack.scale.set(.16 * scale, .18 * scale, .095 * scale);
+      pack.scale.set(.12 * scale, .14 * scale, .073 * scale);
       pack.position.set(shoulderWidth * .63, -.055 * scale, -.08 * scale);
       torso.add(pack);
     }
