@@ -7,7 +7,7 @@ import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from '
 import { junction, pathPose } from './route';
 import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep';
 import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
-import { attachVehicleArtToPrototype } from './art/prototype-adapter';
+import { attachArticulatedContainerArt, attachVehicleArtToPrototype } from './art/prototype-adapter';
 import { createVehicleArt, type VehicleArt } from './art/vehicle-catalog';
 import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './art/hazards';
 import { createOfficerArt, createTrainArt, createVendorArt, type MovingArt } from './art/moving-events';
@@ -34,6 +34,8 @@ export class RoadRenderer {
   private closedFrame = new THREE.Group();
   private tractorFrame = new THREE.Group();
   private trailerFrame = new THREE.Group();
+  private tractorPlaceholder = new THREE.Group();
+  private trailerPlaceholder = new THREE.Group();
   private windowPassengers: THREE.Group[] = [];
   private tractorPassengers: THREE.Group[] = [];
   private rider!: THREE.Mesh;
@@ -126,6 +128,8 @@ export class RoadRenderer {
     this.scene.add(this.bike);
     this.bike.add(this.openFrame, this.tricycleFrame, this.closedFrame, this.tractorFrame);
     this.scene.add(this.trailerFrame);
+    this.tractorFrame.add(this.tractorPlaceholder);
+    this.trailerFrame.add(this.trailerPlaceholder);
     this.powerRing = new THREE.Mesh(new THREE.TorusGeometry(1.5, .06, 4, 20), new THREE.MeshBasicMaterial({ color: '#f7df85' }));
     this.powerRing.rotation.x = Math.PI / 2; this.powerRing.position.y = .15; this.bike.add(this.powerRing);
     const body = box(0.65, 0.42, 1.5, '#dbb55c', this.openFrame); body.position.y = 0.65;
@@ -133,17 +137,17 @@ export class RoadRenderer {
     const shell = box(1, .8, 2, '#d0ad68', this.closedFrame); shell.position.y = .75;
     const cabin = box(.82, .48, 1.05, '#7a9a9e', this.closedFrame); cabin.position.set(0, 1.36, -.12);
     this.windowPassengers = this.addWindowPassengers(this.closedFrame, 1, 2, balance.riderLimit, 1.24);
-    const tractorBase = box(1.65, .8, 4.1, '#d0ad68', this.tractorFrame); tractorBase.position.y = .8;
-    const tractorCab = box(1.55, 1.15, 2.5, '#d0ad68', this.tractorFrame); tractorCab.position.set(0, 1.55, -.65);
-    const tractorGlass = box(1.4, .55, .08, '#7a9a9e', this.tractorFrame); tractorGlass.position.set(0, 1.75, -1.94);
+    const tractorBase = box(1.65, .8, 4.1, '#d0ad68', this.tractorPlaceholder); tractorBase.position.y = .8;
+    const tractorCab = box(1.55, 1.15, 2.5, '#d0ad68', this.tractorPlaceholder); tractorCab.position.set(0, 1.55, -.65);
+    const tractorGlass = box(1.4, .55, .08, '#7a9a9e', this.tractorPlaceholder); tractorGlass.position.set(0, 1.75, -1.94);
     this.tractorPassengers = this.addWindowPassengers(this.tractorFrame, 1.55, 2.5, 1, 1.85);
     this.tractorPassengers[0].position.z = -.65;
     for (const side of [-1, 1]) for (const z of [-1.55, 1.35]) {
-      const wheel = box(.35, .63, .7, '#172126', this.tractorFrame); wheel.position.set(side * .89, .32, z);
+      const wheel = box(.35, .63, .7, '#172126', this.tractorPlaceholder); wheel.position.set(side * .89, .32, z);
     }
-    const trailerBox = box(1.8, 1.55, 9.4, '#a98d66', this.trailerFrame); trailerBox.position.y = 1.38;
+    const trailerBox = box(1.8, 1.55, 9.4, '#a98d66', this.trailerPlaceholder); trailerBox.position.y = 1.38;
     for (const side of [-1, 1]) for (const z of [2.8, 3.7]) {
-      const wheel = box(.35, .64, .7, '#172126', this.trailerFrame); wheel.position.set(side * 1.02, .32, z);
+      const wheel = box(.35, .64, .7, '#172126', this.trailerPlaceholder); wheel.position.set(side * 1.02, .32, z);
     }
     const fork = box(.48, .35, 1.25, '#dbb55c', this.tricycleFrame); fork.position.set(0, .66, -.68);
     const cargoBed = box(1.5, .17, 1.65, '#b38d59', this.tricycleFrame); cargoBed.position.set(0, .73, .62);
@@ -264,10 +268,12 @@ export class RoadRenderer {
     const tricycle = vehicle.kind === 'tricycle';
     const open = ['motorcycle', 'motorbike', 'tricycle'].includes(vehicle.kind);
     const articulated = this.forceMode && vehicle.kind === 'container';
-    const useSourceArt = vehicle.kind !== 'container';
+    const useSourceArt = true;
     if (useSourceArt && !this.playerArt.has(vehicle.kind)) {
       const art = createVehicleArt(vehicle.kind, 'player', 'near');
-      attachVehicleArtToPrototype(this.bike, art);
+      if (this.forceMode && vehicle.kind === 'container' && 'trailer' in art && art.trailer)
+        attachArticulatedContainerArt(this.tractorFrame, this.trailerFrame, art);
+      else attachVehicleArtToPrototype(this.bike, art);
       this.playerArt.set(vehicle.kind, art);
     }
     for (const [kind, art] of this.playerArt) art.root.visible = useSourceArt && kind === vehicle.kind;
@@ -281,6 +287,8 @@ export class RoadRenderer {
     this.closedFrame.visible = !useSourceArt && !open && !articulated;
     this.tractorFrame.visible = articulated;
     this.trailerFrame.visible = articulated;
+    this.tractorPlaceholder.visible = !useSourceArt;
+    this.trailerPlaceholder.visible = !useSourceArt;
     const scaleX = articulated ? 1 : tricycle ? 1 : vehicle.width / (open ? balance.vehicleWidth : 1);
     const scaleZ = articulated ? 1 : tricycle ? 1 : vehicle.length / (open ? balance.vehicleLength : 2);
     this.bike.scale.set(useSourceArt ? 1 : scaleX, 1, useSourceArt ? 1 : scaleZ);

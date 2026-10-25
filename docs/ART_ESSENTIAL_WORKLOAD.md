@@ -22,7 +22,7 @@ Ngày 24/10/2026. Đây là kế hoạch sản xuất rút gọn theo ưu tiên 
 | H2 — hazard chuyển động | Tàu hữu hạn, công an/dân phòng, hàng rong, cứu thương. Chỉ pose/part cần đọc hướng và trạng thái. | Animation phản ứng dài, clip phụ. | Source + preview + unit checks xong; chưa kiểm chuyển động trong game. |
 | R1 — đường | Mặt đường 4 m theo pathPose, mép/làn/bờ, giao lộ và rào nhánh thẳng hiện hành. | Drain/patch/biển nhỏ lặp lại; transition cảnh quan ở bản polish. | Đã nối tile đường theo route động; còn QA góc cua và hiệu năng. |
 | E1 — cảnh quan | Nhà thấp, cửa hàng mặt tiền rộng, chung cư nhỏ, công viên, cây/bụi, ruộng, đồi, ven biển; năm family đang có trong `landscape.ts`. | Hồ/sông riêng, mọi facade/prop/LOD biến thể trong guide đầy đủ, anim cây. | Đã nối placement năm family trong game, sửa nền phủ đủ 96 m và chuyển màu lề; còn QA nhiều seed/góc cua, mặt bên phẳng và nhịp phố cần tuning. |
-| I1 — nối và QA | Gắn asset, kiểm camera/collider/state/perf trong game; hoàn thiện các lỗi cản gameplay. | FX/SFX/shader/đèn production. | Bảy xe người chơi, tám master traffic, hazard/event/service, tile đường, năm biome và rig sáng/mưa nhẹ đã nối bước đầu; container player, khách/tài xế, placement trên cua, tối ưu hiệu năng và QA tổng thể còn chờ. |
+| I1 — nối và QA | Gắn asset, kiểm camera/collider/state/perf trong game; hoàn thiện các lỗi cản gameplay. | FX/SFX/shader/đèn production. | Tám xe người chơi (container tách đầu kéo/rơ-moóc ở bản force), tám master traffic, hazard/event/service, tile đường, năm biome và rig sáng/mưa nhẹ đã nối bước đầu; khách/tài xế, placement trên cua, tối ưu hiệu năng và QA tổng thể còn chờ. |
 
 ## VEH-03 car4 mẫu
 

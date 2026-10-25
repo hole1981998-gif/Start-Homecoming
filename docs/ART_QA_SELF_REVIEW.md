@@ -12,6 +12,8 @@
 
 **Vòng kiểm gameplay sau sửa:** Trình duyệt in-app, fixture `p61-train-left`, seed 17: giữ W, xe va tàu tại 67 m và màn kết ván hiện đúng; bấm `Chơi lại` trở về 0–2 m, 280 tiền, 7,1 L và điều khiển tiếp được. Đây là kiểm thất bại/restart có thao tác thật, không phải đánh giá nhịp độ hay công bằng của tàu.
 
+**Container player:** Trình duyệt in-app ở `/?scenario=force-tail-container&seed=17`: mesh container nguồn đã hiện từ camera 9:16, giữ D cho rơ-moóc đổi góc và lệch so với đầu kéo; HUD vẫn cập nhật và sau va xe ở khoảng 74 m còn 292/300 HP. Fixture `ver.force.html` cũ không kiểm được vì thiếu phần tử `junction-branches` mà `main.ts` cần; phép kiểm trên dùng trang chính `/`. Chưa đo cự ly đọc đầu kéo khi rơ-moóc che tầm nhìn, FPS/P95 hoặc bản noforce.
+
 **Nguồn xem thực tế:** Vite local `/art-preview/scene.html` ở góc 9:16 và các trang `/art-preview/vehicle-gallery.html`, `/art-preview/people.html`, `/art-preview/world-gallery.html` ở near/far và nhiều góc. Đây là **Codex tự đánh giá từ preview**, không phải review độc lập, game build đã gắn asset hay playtest. Cảnh mẫu có car4, traffic car7/xe máy, khách vẫy, nước, ổ gà, đường, cụm nhà/cây. Chưa có HUD, mưa/VFX, thời gian chuyển động thật hoặc benchmark hiệu năng.
 
 | Tiêu chí trong `GAME_DESIGN.md` | Điểm sơ bộ | Quan sát / việc phải kiểm tiếp |
