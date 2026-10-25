@@ -10,6 +10,15 @@ async function boundsOf(file: string) {
   return new THREE.Box3().setFromObject(gltf.scene);
 }
 
+function exportCounts(file: string) {
+  const bytes = readFileSync(new URL(`../assets/art/${file}`, import.meta.url));
+  const jsonLength = bytes.readUInt32LE(12);
+  const gltf = JSON.parse(bytes.subarray(20, 20 + jsonLength).toString()) as {
+    scenes?: unknown[]; meshes?: unknown[]; materials?: unknown[];
+  };
+  return { scenes: gltf.scenes?.length, meshes: gltf.meshes?.length, materials: gltf.materials?.length };
+}
+
 describe('editable Blender roadside exports', () => {
   it('keeps the three GLBs upright at their intended roadside scale', async () => {
     const shop = (await boundsOf('roadside-shop.glb')).getSize(new THREE.Vector3());
@@ -38,6 +47,15 @@ describe('editable Blender roadside exports', () => {
     expect(size.z).toBeGreaterThan(3.7);
     expect(size.z).toBeLessThan(3.9);
     expect(bounds.min.y).toBeGreaterThanOrEqual(0);
+  });
+  it('exports only each building scene after batching material groups', async () => {
+    for (const file of ['corner-market.glb', 'roadside-midrise.glb', 'skyline-shophouse.glb']) {
+      const counts = exportCounts(file);
+      expect(counts.scenes).toBe(1);
+      expect(counts.meshes).toBeGreaterThan(0);
+      expect(counts.meshes).toBeLessThanOrEqual(12);
+      expect(counts.materials).toBeLessThanOrEqual(12);
+    }
   });
   it('keeps the new five-level shophouse upright at city scale', async () => {
     const bounds = await boundsOf('skyline-shophouse.glb');

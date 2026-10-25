@@ -51,7 +51,7 @@ for obj in batches:
 bpy.context.view_layer.objects.active = batches[0]
 path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'skyline-shophouse.glb')
 bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', use_selection=True,
-                          export_yup=True)
+                          use_active_scene=True, export_yup=True)
 for obj in batches:
     bpy.data.objects.remove(obj, do_unlink=True)
 bpy.ops.object.select_all(action='DESELECT')

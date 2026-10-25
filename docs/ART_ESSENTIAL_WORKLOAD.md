@@ -102,6 +102,8 @@ Một lượt palette tiếp theo làm màu tường/viền các nhà code-nativ
 
 Rig `src/art/storm-lighting.ts` đóng gói sky gradient, môi trường cyan, nắng cam xiên, fill, fog xanh và cấu hình renderer ACES/VSM. `setAnchor(x,z)` cho ánh sáng bám camera/đoạn route khi chạy; `scene.html` đang dùng rig này. Hai dải bóng chéo minh họa vẫn nằm riêng ở preview, chưa có thuật toán đặt bóng theo nhà/đường động. Đây là gói để chat code thử tích hợp sau, chưa chứng minh art direction trong gameplay.
 
+Ba nhà Blender dùng trong scene phố (`skyline-shophouse`, `corner-market`, `roadside-midrise`) đã được chỉnh vật liệu ở source `.blend` và xuất lại `.glb`: tường ấm sâu hơn, viền đất nung rõ hơn, mái/ô kính xanh bão đậm hơn. Script `assets/art/export-roadside-buildings.py` gộp 12/10 nhóm vật liệu cho market/midrise và xoay riêng midrise từ trục Y của source sang trục đứng export; `export-skyline-shophouse.py` tiếp tục giữ 12 nhóm cho skyline. Chỉ đổi palette/GLB, không đổi footprint, placement, collision hay NPC. Browser gallery cho thấy cả ba nhà đúng trục; scene phố vẫn còn fog khiến dãy xa nhạt và bóng đường proxy, cần xử lý khi runtime tích hợp.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
