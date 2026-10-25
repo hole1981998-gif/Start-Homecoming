@@ -15,6 +15,7 @@ cd Start-Homecoming
 - `project-reference/original-design-pack/`: bản tài liệu ban đầu để tham khảo lịch sử; không ghi đè docs/ hiện tại bằng bộ này.
 - `project-reference/local-art-docs/`: snapshot tài liệu ART*.md từ checkout art/essential-asset-pack tại e9c9a9e; code và asset tương ứng không nằm trên branch tài liệu này. Đây không phải xác nhận đã tích hợp hay kiểm thử art.
 - `project-reference/VFX_CHAT_HANDOFF.md`: brief và giới hạn của chat VFX này.
+- `project-reference/sfx/`: bàn giao SFX và danh sách voiceline nháp mới nhất, lưu từ chat SFX; chưa có audio sản xuất.
 
 ## Trạng thái cần biết
 
@@ -22,7 +23,7 @@ Branch tài liệu được tạo từ origin/main f289612. Checkout làm việc
 
 Các đường dẫn tuyệt đối trong tài liệu là đường dẫn trên máy cũ. Trên máy mới hãy dùng vị trí clone tương ứng. Tài liệu lịch sử có thể mô tả revision cũ; kiểm tra revision trước khi áp dụng. Art guide mới ưu tiên khi mâu thuẫn ghi chú art cũ, không thay luật gameplay.
 
-Không có export hay cơ chế khôi phục chat tương tác đi kèm. Chỉ chat VFX hiện tại được tóm tắt; chưa thu thập các chat khác. Không kèm thông tin đăng nhập, cấu hình tài khoản hay toàn bộ thư mục .codex.
+Không có export hay cơ chế khôi phục chat tương tác đi kèm. Đã tóm tắt chat VFX và bổ sung nội dung cần thiết từ chat SFX; chưa thu thập toàn bộ các chat khác. Không kèm thông tin đăng nhập, cấu hình tài khoản hay toàn bộ thư mục .codex.
 
 ## Chạy dự án
 
