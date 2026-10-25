@@ -20,6 +20,7 @@ describe('car7 art handoff', () => {
     expect(Object.keys(art.seats)).toHaveLength(7);
     expect(art.root.getObjectByName('third_row_glass_-1')).toBeDefined();
     expect(art.root.getObjectByName('raised_roof')).toBeDefined();
+    expect(art.root.getObjectByName('panoramic_roof_glass')).toBeDefined();
     expect(art.wheels.frontLeft.userData.steerable).toBe(true);
     expect(art.wheels.rearLeft.userData.steerable).toBe(false);
     art.dispose();
@@ -27,6 +28,7 @@ describe('car7 art handoff', () => {
   it('offers a lighter far LOD', () => {
     const near = createCar7Art('near'), far = createCar7Art('far');
     expect(triangles(far.root)).toBeLessThan(triangles(near.root));
+    expect(far.root.getObjectByName('panoramic_roof_glass')).toBeUndefined();
     console.log('VEH-04 triangles near/far', triangles(near.root), triangles(far.root));
     near.dispose(); far.dispose();
   });

@@ -68,6 +68,17 @@ export function createCar7Art(lod: 'near' | 'far' = 'near'): Car7Art {
   box(body, 'raised_roof', [1.68, .11, 3.50], [0, 1.81, -.38], light);
   box(body, 'roof_rear_edge', [1.72, .12, .15], [0, 1.76, -2.18], dark);
   box(body, 'rear_roof_spoiler', [1.52, .07, .17], [0, 1.90, -2.18], light);
+  if (lod === 'near') {
+    box(body, 'panoramic_roof_gasket', [.86, .015, 1.24], [0, 1.877, .18], trim);
+    box(body, 'panoramic_roof_glass', [.74, .016, 1.12], [0, 1.888, .18], glassDeep);
+    box(body, 'roof_glass_crossbar', [.77, .019, .035], [0, 1.902, -.30], alloy);
+    for (const side of [-1, 1]) {
+      box(body, `roof_pressed_channel_${side}`, [.025, .018, 2.73],
+        [side * .52, 1.876, -.39], dark);
+      box(body, `rail_end_cap_${side}`, [.083, .072, .15],
+        [side * .70, 1.92, -1.81], alloy);
+    }
+  }
   panel(body, 'short_bonnet', [[-.83, 1.22, 1.50], [.83, 1.22, 1.50],
     [.76, 1.10, 2.26], [-.76, 1.10, 2.26]], light);
   box(body, 'front_nose', [1.77, .32, .16], [0, .80, 2.29], paint);
