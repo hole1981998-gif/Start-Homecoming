@@ -78,7 +78,8 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   const dark = mat('#28373d', .72, true), light = mat('#eadfc7');
   const accessoryMat = mat(spec.helmet, .72, true);
   const torso = node(hips, 'torso_pivot', [0, 0, 0]);
-  const shoulderWidth = spec.shoulder * scale, waistWidth = spec.waist * scale;
+  const waistWidth = spec.waist * scale;
+  const shoulderWidth = Math.min(spec.shoulder, spec.waist * .74) * scale;
   tapered(hips, 'pants_pelvis', waistWidth * .54, waistWidth * .52,
     .155 * scale, [0, -.075 * scale, 0], pants, 14);
   const torsoProfile = [

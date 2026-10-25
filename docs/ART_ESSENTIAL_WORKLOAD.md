@@ -118,6 +118,8 @@ Sketch 25/10 mới dẫn lượt contrast: exposure 1,12, ambient/fill bớt ph�
 
 Theo feedback tỉ lệ semi-chibi, `src/art/people.ts` nay hạ/nắn vai, làm thân bụng và hông nở, giảm đầu theo `driver.adjusted`, sửa vị trí mắt/mũi/miệng, tóc sau, mũ và chi tiết áo tài xế. `assets/art/people-proportions-pass.glb` chứa 13 mẫu đứng từ mã mới; bản này vẫn chỉ xấp xỉ shape chủ dự án nắn. `assets/art/people-polished.blend` có scene `PeoplePolished` với **tài xế copy trực tiếp từ `driver.adjusted`**, 12 NPC procedural còn lại; `assets/art/driver-adjusted-delivery.glb` chứa riêng tài xế đúng mesh Blender. Scene `PeopleEdit` trong file mới vẫn giữ `driver.adjusted` tham chiếu của chủ dự án; file gốc `people-edit-source.blend` và `.blend1` không bị chép đè. Tỉ lệ phải tiếp tục kiểm trong gameplay và các pose với mọi xe; đây chưa là approval art cuối.
 
+Sau khi tài xế preview đã dùng mesh Blender thật, 12 NPC procedural được giới hạn bề ngang vai theo eo/hông để giảm dáng vai bè; các mẫu worker, parent và senior đã xem lại ở góc sau/ba phần tư. `people-proportions-pass.glb` và scene `PeoplePolished` được xuất lại theo mã mới, vẫn giữ driver copy nguyên từ `driver.adjusted`. Form tay/chân và trang phục NPC còn cứng, chưa gọi là đạt ref; không thay chiều cao, hip socket, collider hay thời lượng pose.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.
