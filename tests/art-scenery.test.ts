@@ -89,6 +89,23 @@ describe('essential roadside scenery', () => {
       art.dispose();
     }
   });
+  it('gives seeded frontages uneven spacing without overlapping adjacent buildings', () => {
+    const names = ['narrow_two_storey', 'midrise_apartments', 'porch_house',
+      'wide_storefront', 'pocket_park', 'corner_shop'];
+    for (const seed of [1, 2, 3, 7]) {
+      const art = createSceneryCluster('city', 1, 'near', seed);
+      const buildings = names.map(name => art.root.getObjectByName(name)!)
+        .sort((a, b) => a.position.z - b.position.z);
+      const gaps = buildings.slice(1).map((building, i) => {
+        const before = new THREE.Box3().setFromObject(buildings[i]);
+        const after = new THREE.Box3().setFromObject(building);
+        return after.min.z - before.max.z;
+      });
+      expect(Math.min(...gaps)).toBeGreaterThan(.15);
+      expect(Math.max(...gaps) - Math.min(...gaps)).toBeGreaterThan(1.5);
+      art.dispose();
+    }
+  });
   it('keeps backlot facades detailed from the rear at both LODs', () => {
     for (const lod of ['near', 'far'] as const) {
       const art = createSceneryCluster('city', -1, lod, 2);

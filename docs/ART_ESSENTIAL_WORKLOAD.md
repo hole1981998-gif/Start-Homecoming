@@ -120,6 +120,8 @@ Theo feedback tỉ lệ semi-chibi, `src/art/people.ts` nay hạ/nắn vai, làm
 
 Sau khi tài xế preview đã dùng mesh Blender thật, 12 NPC procedural được giới hạn bề ngang vai theo eo/hông để giảm dáng vai bè; các mẫu worker, parent và senior đã xem lại ở góc sau/ba phần tư. `people-proportions-pass.glb` và scene `PeoplePolished` được xuất lại theo mã mới, vẫn giữ driver copy nguyên từ `driver.adjusted`. Form tay/chân và trang phục NPC còn cứng, chưa gọi là đạt ref; không thay chiều cao, hip socket, collider hay thời lượng pose.
 
+Phố seeded B/C nay phân bố sáu mặt tiền theo độ rộng thật của từng module cộng khoảng hở tối thiểu, rồi chia phần khoảng trống còn lại ngẫu nhiên có seed. Thứ tự nhà, màu, độ lùi và góc xoay vẫn biến thiên; district A giữ layout để không phá placement của các mẫu Blender trong cảnh. Vỉa hè/sân sau dài thêm để các mặt tiền cuối vẫn có nền. Kiểm `world-gallery.html` B/C và `scene.html` ở camera prototype thấy nhịp khoảng cách khác nhau, không thấy nhà chồng nhau hoặc lấn đường; các khối nhà code-native vẫn cần nâng chi tiết facade trước khi gọi phố đạt art direction.
+
 ## Hợp đồng với prototype hiện hành
 
 - Kích thước tám xe lấy từ `src/vehicles.ts`: 0,896×2; 0,96×2,2; 1,86×4,2; 2,08×4,8; 1,76×3,2; 2,72×10; 2,72×7; 2,88×15 m. `src/art` chỉ cấp mesh, pivot và socket; không cấp collider mới.

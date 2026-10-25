@@ -493,20 +493,31 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     const palettes = ['warm', 'cool', 'ochre'] as const;
     const pavement = mat('#a9a88b'), curb = mat('#e0c8a4'), wall = mat('#aa9473');
     const grass = mat('#6e9965');
-    box(root, 'sidewalk_base', [4.5, .10, 66], [x(1.2), -.08, 7], pavement);
-    box(root, 'sidewalk_curb', [.18, .22, 66], [x(-1.14), -.01, 7], curb);
-    box(root, 'backlot_courtyard', [12.6, .06, 68], [x(11.15), -.105, 7], mat('#8ea180'));
+    box(root, 'sidewalk_base', [4.5, .10, 74], [x(1.2), -.08, 7], pavement);
+    box(root, 'sidewalk_curb', [.18, .22, 74], [x(-1.14), -.01, 7], curb);
+    box(root, 'backlot_courtyard', [12.6, .06, 76], [x(11.15), -.105, 7], mat('#8ea180'));
     const slots = [-20, -10, 3, 13, 23, 34];
     const order = [0, 1, 2, 3, 4, 5];
     if (variantSeed !== 0) for (let i = order.length - 1; i > 0; i--) {
       const j = Math.floor(variation(i + 61) * (i + 1));
       [order[i], order[j]] = [order[j], order[i]];
     }
+    if (variantSeed !== 0) {
+      const frontage = [3.45, 5.7, 4.5, 8.6, 7.8, 3.85];
+      const minimumGaps = order.slice(1).map((module, i) =>
+        (frontage[order[i]] + frontage[module]) / 2 + 1.8);
+      const weights = minimumGaps.map((_, i) => .2 + variation(i + 113));
+      const extra = 60 - minimumGaps.reduce((sum, gap) => sum + gap, 0);
+      const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+      slots[0] = -23 + variation(109) * 2;
+      for (let i = 1; i < slots.length; i++)
+        slots[i] = slots[i - 1] + minimumGaps[i - 1] + extra * weights[i - 1] / totalWeight;
+    }
     for (let slot = 0; slot < slots.length; slot++) {
       const module = order[slot];
-      const z = slots[slot] + (variantSeed === 0 && module === 2 ? 0 : jitter(slot));
-      const setback = module === 2 && variantSeed === 0 ? 0 : variation(slot + 41) * 1.4;
-      const yaw = (variation(slot + 54) - .5) * .12;
+      const z = slots[slot] + (variantSeed === 0 && module !== 2 ? jitter(slot) : 0);
+      const setback = module === 2 && variantSeed === 0 ? 0 : variation(slot + 41) * 2.0;
+      const yaw = (variation(slot + 54) - .5) * .16;
       let building: THREE.Object3D | undefined;
       if (module === 0) building = house(root, 'narrow_two_storey', x(.55 + setback), z,
         3.45 + variation(slot + 72) * .65, 2, palettes[palette(slot)], near);
