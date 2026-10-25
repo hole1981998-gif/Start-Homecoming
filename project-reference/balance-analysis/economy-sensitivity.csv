@@ -1,0 +1,8 @@
+profile,variant,seeds,bought_by_90s,bought_by_180s,censored_180s,p10_seconds_among_buyers,median_seconds_among_buyers,p90_seconds_among_buyers
+Thận trọng,current,3000,0,2725,275,133.50,143.55,143.55
+Thận trọng,proposal,3000,2005,2659,341,85.55,85.55,174.00
+Trung bình (giả định),current,3000,55,2969,31,92.15,96.90,96.90
+Trung bình (giả định),proposal,3000,2352,2945,55,57.85,57.85,118.60
+Nhanh,current,3000,2850,3000,0,60.00,60.00,60.00
+Nhanh,proposal,3000,2979,3000,0,36.00,36.00,75.00
+

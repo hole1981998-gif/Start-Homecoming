@@ -1,0 +1,55 @@
+# Đường Về Nhà — Roadmap
+
+Roadmap là kế hoạch đề xuất, không phải báo cáo đã triển khai. Không có mốc thời gian cam kết. Mỗi feature dùng một branch và PR riêng theo AGENTS.md; milestone có thể gồm nhiều PR nhỏ. Tất cả số trong BALANCE_CONFIG.md cần playtest.
+
+| Mốc | Phạm vi | Điều kiện nghiệm thu |
+|---|---|---|
+| 0 — Nền dự án | Vite, TS strict, Three.js, lint/typecheck/test/build, config schema, CI | Clean checkout cài được theo lockfile; cả 4 check có kết quả thật; canvas 9:16 |
+| 1 — Lái xe | Low-poly bằng code, đường 3 lane, WASD liên tục, tự chạy tối thiểu, camera, pause/focus | Không khóa lane; không lùi; resize không méo; mở tab khác không làm chết xe |
+| 2 — Vòng sinh tồn | Xăng/HP riêng, coasting chung, chướng ngại cơ bản, score/money theo distance, HUD, restart | Điểm không tăng khi pause; hết tài nguyên kết ván đúng; restart không rò trạng thái |
+| 3 — Tuyến endless | Chunk/pooling, giao lộ Q/E và QTE, camera rẽ, difficulty theo distance, RNG seeded | Đi thẳng/rẽ/bỏ lỡ đều đúng; xe dài có lối khả thi; seed tái hiện được |
+| 4 — Người và xe | F đón khách, capacity có tài xế, quá tải, Tab cho xuống, đủ loại xe, kho 2 xe, tự thay | Mua xe thứ ba xử lý nguyên tử; đổi xe giữ khách; upgrade riêng không mất/nhân đôi |
+| 5 — Kinh tế ven đường | C shop, mua xe, nâng cấp xe hiện tại, xăng/sửa, R item, controlled loot | Hàng không reroll; tiền không âm; hủy giao dịch không mất tiền; tiếp tế khả thi |
+| 6 — Nguy hiểm đặc biệt | Công an/dân phòng, kẹt xe, xe chết máy, tai nạn, tàu, Space nitro | Tiền phạt cố định; thiếu tiền đúng chính sách; tàu không xuyên collider; thay xe không chết dây chuyền |
+| 7 — Kết ván đặc biệt | Chuỗi secret 4 bước, badge, kết quả và leaderboard local | Đúng chuỗi thì kết secret trước HP=0; sai thứ tự không kích hoạt; ghi điểm đúng một lần |
+| 8 — Hoàn thiện | Mưa/ánh sáng/âm thanh đề xuất, accessibility, performance, cân bằng, hướng dẫn | Chơi đủ vòng trên các trình duyệt mục tiêu; số FPS có máy và cách đo; không che cảnh báo |
+
+| 9 — Art review và tích hợp cuối | Chỉ sau prototype gameplay và chỉ khi chủ dự án đồng ý rõ: art director review mood mưa bão trầm màu nhưng vui tươi; tạo/hoàn thiện rồi ghép art | Có bảng điểm từng tiêu chí theo GAME_DESIGN.md; không tiêu chí nào dưới 6; điểm thấp đã sửa và chấm lại; được chủ dự án duyệt trước khi tạo/ghép art hoàn chỉnh |
+
+Trong mốc 0–8, dùng placeholder tối giản để giữ cảnh và UI rõ; không bắt đầu asset production-grade sớm. Có thể làm thay đổi placeholder phục vụ đọc gameplay mà không cần chờ art approval. Mốc 9 là một gate riêng; không tự xem việc yêu cầu làm prototype là đồng ý tạo hay tích hợp art hoàn chỉnh.
+
+Âm thanh placeholder và cue tối thiểu có thể làm trong prototype để kiểm tra nhịp độ/tín hiệu. Sản xuất nhạc và SFX hoàn chỉnh thực hiện cùng giai đoạn cuối sau khi chủ dự án đồng ý. Trước đó ưu tiên cue Web Audio đơn giản, volume controls và cue hình ảnh tương đương.
+
+Onboarding và polish tương tác được làm bằng thứ tự: input intro có thể bỏ qua → card cơ chế/chướng ngại lần đầu trong safe window → toast xác nhận cho item/skill/event với pool 3–4 câu mỗi nhóm → icon/SFX placeholder. Kiểm tra không che hazard/QTE và không spam. Minh họa art hoàn chỉnh, voice hoặc SFX production chỉ ở giai đoạn cuối sau khi được chủ dự án duyệt.
+
+Sau **mỗi vòng simulation/playtest**, ghi report rồi yêu cầu review theo hai vai: game designer đề xuất cân bằng dựa trên bằng chứng và hỏi ý kiến chủ dự án trước các thay đổi lớn; UI/UX designer đề xuất cải thiện luồng, độ rõ ràng và animation UI. Giai đoạn prototype giữ UI đơn giản, chỉ sửa những điểm gây khó hiểu/cản thao tác; animation polish để sau.
+
+Khi UI prototype đã chạy và Product Design sẵn có, dùng audit để kiểm tra onboarding/flow qua screenshot có dẫn chứng; gameplay feel, điều khiển và balance vẫn cần playtest trực tiếp.
+
+## Các PR gợi ý và phụ thuộc
+
+Khởi tạo công cụ → movement → tài nguyên/score → collision → road director/QTE → passenger → vehicle inventory/replacement → shop/upgrades → items/nitro → police → train/accident → secret → leaderboard → polish. Có thể dùng event giả trong test để phát triển system trước khi có model, nhưng không gọi đó là gameplay đã hoàn thành. Không tích hợp PR phụ thuộc trước khi base PR merge hoặc rebase lại từ main mới.
+
+## Quyết định cần xác nhận khi chơi thử
+
+1. Công an thiếu tiền: mặc định đề xuất mất nửa xăng xe dự phòng; dân phòng lấy tới 0.
+2. Secret yêu cầu giữ đúng xe 4 chỗ và đủ 3 khách; đổi xe/giảm khách reset.
+3. Tab/shop pause; S chỉ hãm, không lùi; hết xăng hết coast thử xe dự phòng.
+4. Tiền/nâng cấp chỉ trong ván; leaderboard MVP cục bộ; không có vũ khí MVP.
+
+Các mục trên đã có mặc định để triển khai prototype, không phải cớ dừng mọi công việc chờ xác nhận. Nếu thay đổi tác động lớn, cập nhật tài liệu và test trước PR.
+
+## Ma trận chơi thử tối thiểu trước bản phát hành
+
+- Xe nhỏ/ô tô/container: lái, phanh, rẽ cả hai phía, QTE bỏ lỡ, lane bị chặn.
+- Không có xe dự phòng/có xe hợp lệ/có xe hết xăng hoặc HP=0: hỏng, tịch thu, coast hết.
+- Đúng tải/quá tải; đổi từ xe nhiều chỗ xuống xe nhỏ; cho khách xuống và đón lại.
+- Đủ/thiếu tiền ở cả hai lực lượng; mua xe thứ ba rồi hủy; nâng cấp chỉ xe hiện tại.
+- Có/không nitro; nhảy thiếu đà, qua tàu an toàn, chạm tàu, đâm tai nạn thường.
+- Secret đủ chuỗi, sai thứ tự, reset giữa chuỗi và hai terminal event gần nhau.
+- Restart nhiều lần, mất focus, resize, UI bàn phím, save hỏng và bảng điểm trùng.
+- Nhiều seed ở đầu/giữa/cuối difficulty; ghi rõ đây là lấy mẫu, không khẳng định chứng minh mọi seed.
+
+## Definition of Done
+
+Implementation khớp phạm vi đã chốt; số tạm ở config; lint/typecheck/tests/build chạy và pass; manual gameplay liên quan có bằng chứng; lỗi còn lại và giới hạn được ghi trong PR; docs cập nhật; reviewer con người duyệt. Chưa đạt mục nào thì ghi rõ, không đánh dấu hoàn thành hoặc merge để né check.
