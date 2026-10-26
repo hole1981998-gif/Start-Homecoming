@@ -18,6 +18,10 @@ import { configureStormRenderer, createStormLighting, gameplayAccentLayer, grade
 import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
 import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
 import { passengerWindowPoses } from './art/passenger-windows';
+import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
+import { roadsideArchetype, roadsidePose } from './art/runtime-people';
+import { driverCrashPose, passengerCrashPose } from './art/timing';
+import { createRidingBlenderDriver } from './art/blender-driver';
 import type { VehicleKind } from './vehicles';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
@@ -30,6 +34,10 @@ export class RoadRenderer {
   private stormLighting: ReturnType<typeof createStormLighting>;
   private bike = new THREE.Group();
   private playerArt = new Map<VehicleKind, VehicleArt>();
+  private playerDrivers = new Map<VehicleKind, PersonArt>();
+  private openPassengerModels = new Map<VehicleKind, Map<string, PersonArt>>();
+  private playerBlenderDrivers = new Map<VehicleKind, THREE.Group>();
+  private driverTemplate: THREE.Group | null = null;
   private powerRing!: THREE.Mesh;
   private openFrame = new THREE.Group();
   private tricycleFrame = new THREE.Group();
@@ -44,8 +52,9 @@ export class RoadRenderer {
   private rider!: THREE.Mesh;
   private helmet!: THREE.Mesh;
   private fallenDriver = new THREE.Group();
+  private fallenDriverArt!: PersonArt;
   private bikePassengers: THREE.Group[] = [];
-  private fallenPassengers: THREE.Group[] = [];
+  private fallenPassengerModels = new Map<string, PersonArt>();
   private roadPieces: THREE.Group[] = [];
   private roadSurface!: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   private ground!: THREE.Mesh;
@@ -63,6 +72,7 @@ export class RoadRenderer {
   private entityMeshes = new Map<string, { kind: EntityKind; trafficKind?: TrafficKind; mesh: THREE.Group }>();
   private pools: Record<EntityKind, THREE.Group[]> = { wind: [], water: [], pothole: [], traffic: [], cargo: [], fuel: [], repair: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
   private trafficPools = new Map<TrafficKind, THREE.Group[]>();
+  private passengerPools = new Map<PersonArchetype, THREE.Group[]>();
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
   private observer: ResizeObserver;
   private host: HTMLElement;
@@ -74,6 +84,12 @@ export class RoadRenderer {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     configureStormRenderer(this.renderer);
     this.stormLighting = createStormLighting(this.scene);
+    new GLTFLoader().load(new URL('../assets/art/driver-adjusted-delivery.glb', import.meta.url).href,
+      gltf => {
+        if (this.disposed) return;
+        this.driverTemplate = gltf.scene;
+        for (const kind of this.playerDrivers.keys()) this.attachBlenderDriver(kind);
+      });
     if (this.forceMode) new GLTFLoader().load(
       new URL('../assets/art/roadside-midrise.glb', import.meta.url).href,
       gltf => {
@@ -197,14 +213,10 @@ export class RoadRenderer {
       const body = box(.45, .65, .4, color, onBike); body.position.y = .34;
       const head = box(.34, .34, .34, '#e6d8bd', onBike); head.position.y = .82;
       this.bikePassengers.push(onBike);
-      const fallen = new THREE.Group(); this.scene.add(fallen);
-      const fallenBody = box(.45, .65, .4, color, fallen); fallenBody.position.y = .34;
-      const fallenHead = box(.34, .34, .34, '#e6d8bd', fallen); fallenHead.position.y = .82;
-      this.fallenPassengers.push(fallen);
     }
     this.scene.add(this.fallenDriver);
-    const fallenBody = box(0.5, 0.75, 0.45, '#7dabb3', this.fallenDriver); fallenBody.position.y = .55;
-    const fallenHelmet = box(.4, .35, .4, '#e4d9c2', this.fallenDriver); fallenHelmet.position.y = 1.15;
+    this.fallenDriverArt = createPersonArt('driver');
+    this.fallenDriver.add(this.fallenDriverArt.root);
     const lamp = box(0.3, 0.16, 0.05, '#fff0ba', this.openFrame); lamp.position.set(0, 0.72, -0.77);
     this.observer = new ResizeObserver(() => {
       const { width, height } = host.getBoundingClientRect();
@@ -215,6 +227,11 @@ export class RoadRenderer {
   /** Small upper bodies lean beyond each side window; the driver is never included. */
   private addWindowPassengers(parent: THREE.Group, width: number, length: number, count: number, height: number): THREE.Group[] {
     const passengers: THREE.Group[] = [];
+    const torsoGeometry = new THREE.CylinderGeometry(.12, .16, .27, 5);
+    const headGeometry = new THREE.IcosahedronGeometry(.145, 1);
+    const coats = ['#9cb7a6', '#d59b79'].map(color =>
+      new THREE.MeshLambertMaterial({ color, flatShading: true }));
+    const skin = new THREE.MeshLambertMaterial({ color: '#e6d8bd', flatShading: true });
     for (let i = 0; i < count; i++) {
       const side = i % 2 ? 1 : -1;
       const row = Math.floor(i / 2);
@@ -223,15 +240,52 @@ export class RoadRenderer {
       const person = new THREE.Group(); parent.add(person);
       person.position.set(side * (width * .5 + .08), height, z);
       person.rotation.z = -side * .22;
-      const color = i % 2 ? '#d59b79' : '#9cb7a6';
-      const torso = this.makeBox(.23, .25, .22, color, person); torso.position.y = -.11;
-      const head = this.makeBox(.23, .23, .23, '#e6d8bd', person); head.position.y = .13;
+      const torso = new THREE.Mesh(torsoGeometry, coats[i % coats.length]);
+      torso.position.y = -.11; person.add(torso);
+      const head = new THREE.Mesh(headGeometry, skin);
+      head.position.y = .13; person.add(head);
       person.visible = false; passengers.push(person);
     }
     return passengers;
   }
-  private entityMesh(kind: EntityKind, trafficKind: TrafficKind = 'car4', width = 1, length = 1): THREE.Group {
-    const pool = kind === 'traffic' ? this.trafficPools.get(trafficKind) ?? [] : this.pools[kind];
+  private attachBlenderDriver(kind: VehicleKind): void {
+    if (!this.driverTemplate || this.playerBlenderDrivers.has(kind)) return;
+    const driver = this.playerDrivers.get(kind);
+    const seat = driver?.root.parent;
+    if (!driver || !seat) return;
+    try {
+      const model = createRidingBlenderDriver(this.driverTemplate);
+      seat.add(model);
+      model.position.copy(driver.root.position);
+      model.visible = driver.root.visible;
+      driver.root.visible = false;
+      this.playerBlenderDrivers.set(kind, model);
+    } catch { /* Keep the procedural driver if the delivered GLB has incompatible pivots. */ }
+  }
+  private syncOpenPassengers(kind: VehicleKind, art: VehicleArt, riderIds: string[]): number {
+    const seats = Array.isArray(art.seats) ? art.seats.slice(1) :
+      'passenger' in art.seats ? [art.seats.passenger] : [];
+    const visibleIds = riderIds.slice(0, seats.length);
+    let models = this.openPassengerModels.get(kind);
+    if (!models) { models = new Map(); this.openPassengerModels.set(kind, models); }
+    for (const [id, person] of models) if (!visibleIds.includes(id)) {
+      person.root.removeFromParent(); person.dispose(); models.delete(id);
+    }
+    visibleIds.forEach((id, index) => {
+      let person = models!.get(id);
+      if (!person) {
+        person = createPersonArt(roadsideArchetype(id), 'far');
+        models!.set(id, person);
+      }
+      mountPersonOnSeat(person, seats[index], kind === 'tricycle' ? 'seated' : 'riding');
+      person.root.visible = true;
+    });
+    return seats.length;
+  }
+  private entityMesh(kind: EntityKind, trafficKind: TrafficKind = 'car4', width = 1, length = 1,
+    passengerCast?: PersonArchetype): THREE.Group {
+    const pool = kind === 'traffic' ? this.trafficPools.get(trafficKind) ?? [] :
+      kind === 'passenger' && passengerCast ? this.passengerPools.get(passengerCast) ?? [] : this.pools[kind];
     const pooled = pool.pop(); if (pooled) return pooled;
     const g = new THREE.Group(), box = this.makeBox;
     const part = (w: number, h: number, d: number, color: string, x: number, y: number, z: number) => {
@@ -281,11 +335,11 @@ export class RoadRenderer {
       g.add(art.root);
       g.userData.trafficArt = art;
     } else if (kind === 'passenger') {
-      part(.38, .7, .28, '#e2c486', 0, .92, 0);
-      part(.38, .38, .38, '#e6dbc4', 0, 1.47, 0);
+      const person = createPersonArt(passengerCast ?? 'commuter', 'far');
+      g.add(person.root); g.userData.personArt = person;
+      g.userData.passengerCast = passengerCast ?? 'commuter';
       const marker = new THREE.Mesh(new THREE.OctahedronGeometry(.22), new THREE.MeshBasicMaterial({ color: '#8fd3a5' }));
       marker.position.y = 2; g.add(marker); g.userData.grabMarker = marker;
-      for (const x of [-.12, .12]) part(.13, .55, .16, '#344d5a', x, .3, 0);
     } else {
       const art = createPropHazardArt(kind === 'fuel' ? 'fuel' : 'repair');
       g.add(art.root); g.userData.hazardArt = art;
@@ -303,6 +357,13 @@ export class RoadRenderer {
     const useSourceArt = true;
     if (useSourceArt && !this.playerArt.has(vehicle.kind)) {
       const art = createVehicleArt(vehicle.kind, 'player', 'near');
+      if (open) {
+        const driver = createPersonArt('driver');
+        const seat = Array.isArray(art.seats) ? art.seats[0] : art.seats.driver;
+        mountPersonOnSeat(driver, seat, 'riding');
+        this.playerDrivers.set(vehicle.kind, driver);
+        this.attachBlenderDriver(vehicle.kind);
+      }
       if (this.forceMode && vehicle.kind === 'container' && 'trailer' in art && art.trailer)
         attachArticulatedContainerArt(this.tractorFrame, this.trailerFrame, art);
       else attachVehicleArtToPrototype(this.bike, art);
@@ -364,7 +425,14 @@ export class RoadRenderer {
     const lean = THREE.MathUtils.clamp(-(s.lateralVelocity * .035 + lateralAcceleration * .012) * vehicle.leanFactor,
       -.34, .34);
     this.bike.rotation.set(0, -bodyPose.heading - yaw, lean, 'YXZ');
-    this.rider.visible = !s.crash && open; this.helmet.visible = !s.crash && open;
+    this.rider.visible = !useSourceArt && !s.crash && open;
+    this.helmet.visible = !useSourceArt && !s.crash && open;
+    for (const [kind, driver] of this.playerDrivers) {
+      const visible = kind === vehicle.kind && !s.crash;
+      driver.root.visible = visible && !this.playerBlenderDrivers.has(kind);
+      const model = this.playerBlenderDrivers.get(kind);
+      if (model) model.visible = visible;
+    }
     const windowPoses = useSourceArt ? passengerWindowPoses(vehicle.kind, s.riderIds.length) : [];
     this.windowPassengers.forEach((person, i) => {
       person.visible = i < s.riderIds.length && (!useSourceArt || i < windowPoses.length);
@@ -385,14 +453,22 @@ export class RoadRenderer {
       person.visible = articulated && !s.crash && i < s.riderIds.length;
       if (useSourceArt) person.position.set(-1.20, 2.19, -.78);
     });
+    const modeledPassengers = useSourceArt && open ?
+      this.syncOpenPassengers(vehicle.kind, this.playerArt.get(vehicle.kind)!, s.riderIds) : 0;
     this.bikePassengers.forEach((person, i) => {
-      person.visible = !s.crash && open && i < s.riderIds.length;
+      person.visible = !s.crash && open && i < s.riderIds.length && (!useSourceArt || i >= modeledPassengers);
       person.position.set((i % 2 ? 1 : -1) * (.15 + Math.floor(i / 2) * .09),
         1.15 + Math.floor(i / 2) * .38, .65 + Math.floor(i / 2) * .32);
       person.rotation.z = (i % 2 ? -1 : 1) * .16;
     });
     this.fallenDriver.visible = !!s.crash;
-    this.fallenPassengers.forEach(person => { person.visible = false; });
+    if (s.crash) {
+      const crashPose = driverCrashPose(s.crash.elapsed);
+      this.fallenDriverArt.setPose(crashPose.pose, crashPose.phase);
+    }
+    if (!s.crash) for (const [id, person] of this.fallenPassengerModels) {
+      person.root.removeFromParent(); person.dispose(); this.fallenPassengerModels.delete(id);
+    }
     if (s.crash) {
       const { elapsed, side, originDistance, impactSpeed, returningRiderIds } = s.crash;
       const ejection = Math.min(1, elapsed / balance.driverFallSeconds);
@@ -407,18 +483,24 @@ export class RoadRenderer {
         fallenPose.z + Math.sin(fallenPose.heading) * driverX);
       this.fallenDriver.rotation.set(0, -fallenPose.heading, side * 1.25 * away, 'YXZ');
       // Lost passengers already exist as roadside entities; only animate those returning to the vehicle.
-      for (let i = 0; i < returningRiderIds.length && i < this.fallenPassengers.length; i++) {
-        const person = this.fallenPassengers[i];
-        person.visible = true;
+      for (let i = 0; i < returningRiderIds.length; i++) {
+        const id = returningRiderIds[i];
+        let person = this.fallenPassengerModels.get(id);
+        if (!person) {
+          person = createPersonArt(roadsideArchetype(id), 'far');
+          this.scene.add(person.root); this.fallenPassengerModels.set(id, person);
+        }
+        const timed = passengerCrashPose(elapsed);
+        person.setPose(timed.pose, timed.phase);
         const passengerReturn = returnProgress;
         const passengerDistance = THREE.MathUtils.lerp(ejectedDistance + .7 + i * .8, distance,
           passengerReturn);
         const pose = pathPose(passengerDistance, s.route, s.seed);
         const lateral = x + side * (1.3 + i * .45) * (1 - passengerReturn);
-        person.position.set(pose.x + Math.cos(pose.heading) * lateral, 0,
+        person.root.position.set(pose.x + Math.cos(pose.heading) * lateral, 0,
           pose.z + Math.sin(pose.heading) * lateral);
         const topple = 1 - passengerReturn;
-        person.rotation.set(0, -pose.heading, -side * .85 * Math.min(1, ejection) * topple, 'YXZ');
+        person.root.rotation.set(0, -pose.heading, -side * .85 * Math.min(1, ejection) * topple, 'YXZ');
       }
     }
     // Camera follows the centerline tangent, so Q/E visibly bends the road and the bike.
@@ -578,7 +660,9 @@ export class RoadRenderer {
       live.add(e.id);
       let entry = this.entityMeshes.get(e.id);
       if (!entry) { entry = { kind: e.kind, trafficKind: e.trafficKind,
-        mesh: this.entityMesh(e.kind, e.trafficKind, e.width, e.length) }; this.entityMeshes.set(e.id, entry); }
+        mesh: this.entityMesh(e.kind, e.trafficKind, e.width, e.length,
+          e.kind === 'passenger' ? roadsideArchetype(e.riderId ?? e.id) : undefined) };
+        this.entityMeshes.set(e.id, entry); }
       const entityPose = pathPose(e.distance, route, s.seed);
       const pose = passengerPose(e, s.activeSeconds);
       const entityX = e.x + (e.kind === 'shop' ? Math.sign(e.x) * 2.8 : 0);
@@ -616,7 +700,12 @@ export class RoadRenderer {
       if (e.kind === 'police' || e.kind === 'militia') {
         (entry.mesh.userData.movingArt as MovingArt).setState(e.stunned ? 'stunned' : 'normal');
       }
-      if (e.kind === 'passenger') (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
+      if (e.kind === 'passenger') {
+        (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
+        const person = entry.mesh.userData.personArt as PersonArt;
+        const visualPose = roadsidePose(e, s.activeSeconds);
+        person.setPose(visualPose.pose, visualPose.phase);
+      }
       const baseWidth = e.kind === 'wind' ? 9.6 : e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'wind' ? 65 : e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
       const sizedArt = e.kind === 'water' || e.kind === 'pothole' || e.kind === 'train' ||
@@ -633,6 +722,9 @@ export class RoadRenderer {
       } else if (entry.kind === 'traffic') {
         const kind = entry.trafficKind ?? 'car4';
         const pool = this.trafficPools.get(kind) ?? []; pool.push(entry.mesh); this.trafficPools.set(kind, pool);
+      } else if (entry.kind === 'passenger') {
+        const cast = entry.mesh.userData.passengerCast as PersonArchetype;
+        const pool = this.passengerPools.get(cast) ?? []; pool.push(entry.mesh); this.passengerPools.set(cast, pool);
       } else this.pools[entry.kind].push(entry.mesh);
       this.entityMeshes.delete(id);
     }
@@ -645,6 +737,10 @@ export class RoadRenderer {
     const p = pathPose(this.viewState.distance - z, this.viewState.route, this.viewState.seed);
     this.projected.set(p.x + Math.cos(p.heading) * x, y, p.z + Math.sin(p.heading) * x).project(this.camera);
     return { x: (this.projected.x + 1) * 50, y: (1 - this.projected.y) * 50 };
+  }
+  renderStats(): { drawCalls: number; triangles: number } {
+    return { drawCalls: this.renderer.info.render.calls,
+      triangles: this.renderer.info.render.triangles };
   }
   private refreshNearCityScenery(): void {
     // Visible lots created while the GLBs were loading fall back to native
@@ -666,6 +762,10 @@ export class RoadRenderer {
         (Array.isArray(object.material) ? object.material : [object.material])
           .forEach(material => material.dispose());
       } });
+    this.driverTemplate?.traverse(object => { if (object instanceof THREE.Mesh) {
+      object.geometry.dispose();
+      (Array.isArray(object.material) ? object.material : [object.material]).forEach(material => material.dispose());
+    } });
     for (const entry of this.entityMeshes.values()) if (entry.kind === 'water' || entry.kind === 'pothole') {
       this.scene.remove(entry.mesh);
       (entry.mesh.userData.hazardArt as HazardArt).dispose();
