@@ -1,5 +1,6 @@
 import { isSpecial, trainClosed } from './special-events';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { balance, movingBalance } from './config';
 import { jumpHeight, hasStar, hasBoost } from './items';
 import { activeVehicle, type Run } from './survival';
@@ -13,8 +14,8 @@ import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './a
 import { createOfficerArt, createTrainArt, createVendorArt, type MovingArt } from './art/moving-events';
 import { createAccidentArt, createShopArt } from './art/special-hazards';
 import { createRoadTileArt } from './art/road-kit';
-import { configureStormRenderer, createStormLighting, gameplayAccentLayer } from './art/storm-lighting';
-import { createBendSceneryStrip, createSceneryCluster, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
+import { configureStormRenderer, createStormLighting, gameplayAccentLayer, gradeStormCityBuilding } from './art/storm-lighting';
+import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMidrise, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
 import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
 import type { VehicleKind } from './vehicles';
 
@@ -49,6 +50,8 @@ export class RoadRenderer {
   private landscapeBands: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> | null = null;
   private landscapeMaterials: Record<LandscapeKind, THREE.MeshBasicMaterial> | null = null;
   private scenery = new Map<string, SceneryArt>();
+  private cityMidriseTemplate: THREE.Object3D | null = null;
+  private disposed = false;
   private rainSeed = NaN;
   private rain?: RainArt;
   private rainSplashes?: RainArt;
@@ -67,6 +70,18 @@ export class RoadRenderer {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     configureStormRenderer(this.renderer);
     this.stormLighting = createStormLighting(this.scene);
+    if (this.forceMode) new GLTFLoader().load(
+      new URL('../assets/art/roadside-midrise.glb', import.meta.url).href,
+      gltf => {
+        if (this.disposed) return;
+        gradeStormCityBuilding(gltf.scene);
+        this.cityMidriseTemplate = gltf.scene;
+        // Existing visible lots were built while the file loaded. Recreate
+        // only city near clusters on the next render tick.
+        for (const [key, art] of this.scenery) if (key.includes(':city:near:rigid')) {
+          this.scene.remove(art.root); art.dispose(); this.scenery.delete(key);
+        }
+      });
     this.stormLighting.sun.shadow.mapSize.set(1024, 1024);
     this.stormLighting.sun.shadow.blurSamples = 8;
     this.camera.layers.enable(gameplayAccentLayer);
@@ -462,6 +477,8 @@ export class RoadRenderer {
           const variantSeed = (s.seed ^ Math.imul(section, 0x9e3779b1) ^ (side < 0 ? 0x63c6 : 0x487d)) >>> 0;
           art = bend ? createBendSceneryStrip(kind, side, bendPoses!, lod) :
             createSceneryCluster(kind, (side * -1) as -1 | 1, lod, variantSeed, seaEdges);
+          if (!bend && kind === 'city' && lod === 'near' && this.cityMidriseTemplate)
+            mountBlenderCityMidrise(art, this.cityMidriseTemplate, (side * -1) as -1 | 1);
           if (lod === 'near') optimizeNearScenery(art.root);
           if (!bend) {
             art.root.position.set(pose.x, 0, pose.z);
@@ -593,11 +610,17 @@ export class RoadRenderer {
     return { x: (this.projected.x + 1) * 50, y: (1 - this.projected.y) * 50 };
   }
   dispose(): void {
+    this.disposed = true;
     this.observer.disconnect();
     this.stormLighting.dispose();
     for (const art of [this.rain, this.rainSplashes]) if (art) { this.scene.remove(art.root); art.dispose(); }
     for (const art of this.scenery.values()) { this.scene.remove(art.root); art.dispose(); }
     this.scenery.clear();
+    this.cityMidriseTemplate?.traverse(object => { if (object instanceof THREE.Mesh) {
+      object.geometry.dispose();
+      (Array.isArray(object.material) ? object.material : [object.material])
+        .forEach(material => material.dispose());
+    } });
     for (const entry of this.entityMeshes.values()) if (entry.kind === 'water' || entry.kind === 'pothole') {
       this.scene.remove(entry.mesh);
       (entry.mesh.userData.hazardArt as HazardArt).dispose();

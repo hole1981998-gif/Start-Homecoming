@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { balance } from '../src/config';
+import { createSceneryCluster, mountBlenderCityMidrise, optimizeNearScenery } from '../src/art/scenery';
 
 async function boundsOf(file: string) {
   const bytes = readFileSync(new URL(`../assets/art/${file}`, import.meta.url));
@@ -20,6 +22,27 @@ function exportCounts(file: string) {
 }
 
 describe('editable Blender roadside exports', () => {
+  it('places the cached midrise on seeded city lots without crossing the road', async () => {
+    const bytes = readFileSync(new URL('../assets/art/roadside-midrise.glb', import.meta.url));
+    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const template = (await new GLTFLoader().parseAsync(buffer, '')).scene;
+    const sourceMesh = template.getObjectByProperty('type', 'Mesh') as THREE.Mesh;
+    for (const seed of [0, 1, 2, 17]) for (const side of [-1, 1] as const) {
+      const art = createSceneryCluster('city', side, 'near', seed);
+      expect(mountBlenderCityMidrise(art, template, side)).toBe(true);
+      const imported = art.root.getObjectByName('blender_midrise')!;
+      expect(art.root.getObjectByName('midrise_apartments')).toBeUndefined();
+      const bounds = new THREE.Box3().setFromObject(imported);
+      const edge = balance.laneWidth * balance.laneCount / 2;
+      if (side > 0) expect(bounds.min.x).toBeGreaterThan(edge);
+      else expect(bounds.max.x).toBeLessThan(-edge);
+      const copyMesh = imported.getObjectByProperty('type', 'Mesh') as THREE.Mesh;
+      expect(copyMesh.geometry).not.toBe(sourceMesh.geometry);
+      optimizeNearScenery(art.root);
+      expect(new THREE.Box3().setFromObject(art.root).isEmpty()).toBe(false);
+      art.dispose();
+    }
+  });
   it('keeps the three GLBs upright at their intended roadside scale', async () => {
     const shop = (await boundsOf('roadside-shop.glb')).getSize(new THREE.Vector3());
     const midrise = (await boundsOf('roadside-midrise.glb')).getSize(new THREE.Vector3());

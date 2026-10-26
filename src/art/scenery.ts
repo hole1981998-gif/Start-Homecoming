@@ -153,6 +153,40 @@ export function optimizeNearScenery(root: THREE.Group): void {
     batchStaticMeshes(child, 'near_material_batch');
   root.userData.optimized = true;
 }
+/** Swap one code-native city lot for the existing Blender export before batching. */
+export function mountBlenderCityMidrise(art: SceneryArt, template: THREE.Object3D,
+  side: -1 | 1): boolean {
+  if (art.root.userData.id !== 'env_city_A' || art.root.userData.lod !== 'near' ||
+    art.root.userData.optimized) return false;
+  const original = art.root.getObjectByName('midrise_apartments');
+  if (!original?.parent) return false;
+  const imported = template.clone(true);
+  imported.name = 'blender_midrise';
+  imported.position.copy(original.position);
+  imported.rotation.copy(original.rotation);
+  imported.position.x += side * .9;
+  // Cluster disposal owns each copy. The cached GLB template remains intact.
+  imported.traverse(object => {
+    if (!(object instanceof THREE.Mesh)) return;
+    object.geometry = object.geometry.clone();
+    object.material = Array.isArray(object.material)
+      ? object.material.map(material => material.clone()) : object.material.clone();
+  });
+  imported.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(imported);
+  const roadEdge = balance.laneWidth * balance.laneCount / 2 + .25;
+  if (side > 0 && bounds.min.x < roadEdge) imported.position.x += roadEdge - bounds.min.x;
+  if (side < 0 && bounds.max.x > -roadEdge) imported.position.x -= bounds.max.x + roadEdge;
+  original.traverse(object => {
+    if (!(object instanceof THREE.Mesh)) return;
+    object.geometry.dispose();
+    (Array.isArray(object.material) ? object.material : [object.material])
+      .forEach(material => material.dispose());
+  });
+  original.parent.remove(original);
+  art.root.add(imported);
+  return true;
+}
 function taper(parent: THREE.Object3D, name: string, top: number, bottom: number,
   height: number, pos: [number, number, number], material: THREE.Material, sides = 6) {
   const mesh = new THREE.Mesh(new THREE.CylinderGeometry(top, bottom, height, sides), material);
