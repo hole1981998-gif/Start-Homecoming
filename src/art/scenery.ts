@@ -199,6 +199,10 @@ export function mountBlenderCityShop(art: SceneryArt, template: THREE.Object3D,
   side: -1 | 1): boolean {
   return mountBlenderCityLot(art, template, side, 'corner_shop', 'blender_shop', .75);
 }
+export function mountBlenderCityMarket(art: SceneryArt, template: THREE.Object3D,
+  side: -1 | 1): boolean {
+  return mountBlenderCityLot(art, template, side, 'wide_storefront', 'blender_market', 1.45);
+}
 function taper(parent: THREE.Object3D, name: string, top: number, bottom: number,
   height: number, pos: [number, number, number], material: THREE.Material, sides = 6) {
   const mesh = new THREE.Mesh(new THREE.CylinderGeometry(top, bottom, height, sides), material);
