@@ -26,6 +26,18 @@
 
 **Shop Blender ven đường:** `roadside-shop.glb` thay đúng một `corner_shop` trong mỗi cụm city near thẳng; các mặt tiền khác giữ hình riêng. Test bằng GLB thật với seed 0/3/17, hai bên đường và bounds ngoài làn. Browser in-app `handling-car4` seed 14 thấy cửa hàng có mái/hiên cạnh đường ở khoảng 40 m, không thấy che làn; diagnostic 360 frame khoảng 59,83 FPS, P95 16,8 ms, CPU render 6,24 ms và console không có lỗi. Phép đo chỉ trên máy hiện tại, chưa là đánh giá mỹ thuật của chủ dự án; market Blender chưa tích hợp vì file source đang được chủ dự án sửa.
 
+### Audit UI trong cảnh nước P8 — tự review 26/10/2026
+
+Nguồn: browser in-app, `/?scenario=p8-water&seed=17`, viewport 9:16 trong cửa sổ desktop; ảnh chụp mới ở `docs/evidence/art-qa-2026-10-26/`. Dùng quy trình Product Design audit để gắn nhận xét với từng ảnh. Preflight saved context của plugin không chạy được vì môi trường shell không có Python; dùng chính build/project và ảnh của lượt này. Đây là **Codex tự audit**, không phải người dùng duyệt art hay kiểm tiếp cận bằng công cụ chuyên biệt.
+
+1. [Màn bắt đầu](evidence/art-qa-2026-10-26/01-start.png) — **đọc được, còn dài**: nút “Bắt đầu lái” rõ, phần giải thích fixture DEV có chữ dày và nhỏ. Đây là fixture kiểm nước, không dùng ảnh này để kết luận onboarding bản chính.
+2. [HUD và cảnh báo ban đầu](evidence/art-qa-2026-10-26/02-driving.png) — **cần sửa và đã sửa**: xe, nước, ổ gà, traffic đọc được từ camera lái; cảnh báo gió sát dòng số người/tên xe bên phải. `RoadHud` nay đẩy cảnh báo ở hai mép xuống dưới vùng HUD; [ảnh sau sửa](evidence/art-qa-2026-10-26/05-cue-after.png) cho thấy khoảng trống rõ hơn, không đổi vị trí ngang chỉ làn.
+3. [Tiếp cận vùng nước ở 925 m](evidence/art-qa-2026-10-26/03-water-approach.png) — **khá rõ**: mảng nước xanh hai làn, mép và xe cản khác nhau; NPC giao thông sát xe nhưng chưa che xăng/HP. Ảnh tĩnh không chứng minh thời gian phản ứng hoặc hazard có công bằng ở tốc độ cao.
+4. [Tạm dừng ở 981 m](evidence/art-qa-2026-10-26/04-pause.png) — **rõ**: tiêu đề, tiếp tục, help, restart có thứ tự và tương phản; đã thao tác Esc thật. Ảnh không tự chứng minh tài nguyên đứng yên qua thời gian pause; hành vi này cần test simulation/UI riêng.
+5. [Help trước sửa](evidence/art-qa-2026-10-26/06-help.png) — **bị che**: nhãn phiên bản nằm trên chữ hướng dẫn vì z-index cao hơn modal; link về bản chính lộ bên phải panel. Hạ lớp nhãn/link phiên bản xuống dưới modal và đưa link về bản chính vào panel. [Ảnh sau sửa](evidence/art-qa-2026-10-26/08-help-link-after.png) không còn chữ bị nhãn phiên bản che; panel vẫn có thanh cuộn và đoạn giải thích dài. Ưu tiên sau: rút gọn/help thành các mục ngắn, kiểm tab/đọc màn hình và kích cỡ chữ trên điện thoại thật.
+
+**UI/typography: tự đánh giá 6/10** từ các ảnh trên, chưa chấm đạt art gate cuối. Game design: không đổi spawn/collider/timing; không có bằng chứng mới về công bằng hazard. UI/UX: hai lỗi che chữ được sửa; còn mật độ nội dung Help và nút phụ ở đáy cần kiểm trên màn nhỏ và với người dùng thật.
+
 **Nguồn xem thực tế:** Vite local `/art-preview/scene.html` ở góc 9:16 và các trang `/art-preview/vehicle-gallery.html`, `/art-preview/people.html`, `/art-preview/world-gallery.html` ở near/far và nhiều góc. Đây là **Codex tự đánh giá từ preview**, không phải review độc lập, game build đã gắn asset hay playtest. Cảnh mẫu có car4, traffic car7/xe máy, khách vẫy, nước, ổ gà, đường, cụm nhà/cây. Chưa có HUD, mưa/VFX, thời gian chuyển động thật hoặc benchmark hiệu năng.
 
 | Tiêu chí trong `GAME_DESIGN.md` | Điểm sơ bộ | Quan sát / việc phải kiểm tiếp |

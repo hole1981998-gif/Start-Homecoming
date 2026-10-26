@@ -30,9 +30,10 @@ footer{position:absolute;bottom:10px;left:14px;right:14px;display:flex;align-ite
 
 /* P5.1 functional cue: keep inventory/timers away from fuel/HP beneath the car. */
 #item-cue{top:23%;bottom:auto;left:12px;right:12px;margin:0;text-align:center;font-size:11px;line-height:1.4;text-shadow:0 1px 3px #172329}
-.version-badge, .version-link { position: absolute; z-index: 12; font: 600 12px/1.2 system-ui, sans-serif; color: #f1e8c9; background: #172329c9; padding: 6px 8px; border-radius: 6px; }
+.version-badge, .version-link { position: absolute; z-index: 2; font: 600 12px/1.2 system-ui, sans-serif; color: #f1e8c9; background: #172329c9; padding: 6px 8px; border-radius: 6px; }
 .version-badge { left: 8px; bottom: 54px; pointer-events: none; }
 .version-link { right: 8px; bottom: 54px; text-decoration: none; }
 .version-link:focus-visible { outline: 2px solid #f5d786; }
 .modal-version-link { display: block; margin-top: 14px; color: #f1e8c9; font-size: 12px; text-align: center; }
 .modal-version-link:focus-visible { outline: 2px solid #f5d786; }
+.test-home-link{display:block;margin-top:12px;text-align:center;color:#d9c99a;font-size:11px}

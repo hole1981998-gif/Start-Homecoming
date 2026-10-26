@@ -40,7 +40,10 @@ export class RoadHud {
     if (s.phase === 'running' && !s.crash) for (const e of [hazard, supply]) {
       if (!e) continue;
       const p = projection.project(e.x, 1.1, -(e.distance - s.distance));
-      const x = clamp(p.x, 9, 91), y = clamp(p.y, 24, 61);
+      const x = clamp(p.x, 9, 91);
+      // Speed and occupants occupy the upper corners of the narrow 9:16 HUD.
+      // Keep edge warnings beneath those labels without shifting their lane.
+      const y = clamp(p.y, x < 30 || x > 70 ? 32 : 24, 61);
       // Preserve the imminent warning when markers coincide; the item mesh stays visible.
       if (supplyKind(e.kind) && hazardPosition && Math.abs(x - hazardPosition.x) < 11 && Math.abs(y - hazardPosition.y) < 9) continue;
       if (!supplyKind(e.kind)) hazardPosition = { x, y };

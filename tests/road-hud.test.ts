@@ -19,12 +19,22 @@ it('spatial warnings choose imminent objects, preserve hazard priority and never
   hud.update(run, projection, true);
   const water = document.querySelector<HTMLElement>('[data-kind="water"]')!;
   expect(water.hidden).toBe(false); expect(water.getAttribute('aria-label')).toContain('phải · 35 m');
-  expect(water.style.left).toBe('91%'); expect(water.style.top).toBe('24%');
+  expect(water.style.left).toBe('91%'); expect(water.style.top).toBe('32%');
   expect(document.querySelector<HTMLElement>('[data-kind="fuel"]')!.hidden).toBe(true);
   expect(document.querySelector<HTMLElement>('[data-kind="pothole"]')!.hidden).toBe(true);
   expect(run).toEqual(snapshot);
   hud.update({ ...run, phase: 'paused' }, projection, false);
   expect(water.hidden).toBe(true);
+});
+it('keeps corner warnings below top HUD labels while preserving lane position', () => {
+  const hud = setup();
+  const run: Run = { ...initialRun(), phase: 'running',
+    world: { ...initialRun().world, entities: [entity('wind', 'crosswind', 15, 3.2)] } };
+  hud.update(run, { project: () => ({ x: 82, y: 18 }) }, true);
+  const cue = document.querySelector<HTMLElement>('[data-kind="wind"]')!;
+  expect(cue.hidden).toBe(false);
+  expect(cue.style.left).toBe('82%');
+  expect(cue.style.top).toBe('32%');
 });
 it('disabling flavor keeps numeric consequences; expired/restarted feedback clears; coast stays readable', () => {
   const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
