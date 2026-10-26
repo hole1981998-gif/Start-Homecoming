@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { balance } from '../src/config';
-import { createSceneryCluster, mountBlenderCityMidrise, optimizeNearScenery } from '../src/art/scenery';
+import { createSceneryCluster, mountBlenderCityMidrise, mountBlenderCitySkyline, optimizeNearScenery } from '../src/art/scenery';
 
 async function boundsOf(file: string) {
   const bytes = readFileSync(new URL(`../assets/art/${file}`, import.meta.url));
@@ -40,6 +40,22 @@ describe('editable Blender roadside exports', () => {
       expect(copyMesh.geometry).not.toBe(sourceMesh.geometry);
       optimizeNearScenery(art.root);
       expect(new THREE.Box3().setFromObject(art.root).isEmpty()).toBe(false);
+      art.dispose();
+    }
+  });
+  it('keeps the tall Blender skyline behind both sides of the road', async () => {
+    const bytes = readFileSync(new URL('../assets/art/skyline-shophouse.glb', import.meta.url));
+    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const template = (await new GLTFLoader().parseAsync(buffer, '')).scene;
+    for (const seed of [0, 2, 17]) for (const side of [-1, 1] as const) {
+      const art = createSceneryCluster('city', side, 'near', seed);
+      expect(mountBlenderCitySkyline(art, template, side)).toBe(true);
+      const skyline = art.root.getObjectByName('blender_skyline')!;
+      const bounds = new THREE.Box3().setFromObject(skyline);
+      expect(bounds.max.y).toBeGreaterThan(19);
+      const edge = balance.laneWidth * balance.laneCount / 2;
+      if (side > 0) expect(bounds.min.x).toBeGreaterThan(edge);
+      else expect(bounds.max.x).toBeLessThan(-edge);
       art.dispose();
     }
   });

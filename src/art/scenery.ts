@@ -153,18 +153,18 @@ export function optimizeNearScenery(root: THREE.Group): void {
     batchStaticMeshes(child, 'near_material_batch');
   root.userData.optimized = true;
 }
-/** Swap one code-native city lot for the existing Blender export before batching. */
-export function mountBlenderCityMidrise(art: SceneryArt, template: THREE.Object3D,
-  side: -1 | 1): boolean {
+/** Swap one code-native city lot for a Blender export before batching. */
+function mountBlenderCityLot(art: SceneryArt, template: THREE.Object3D,
+  side: -1 | 1, originalName: string, importedName: string, setback: number): boolean {
   if (art.root.userData.id !== 'env_city_A' || art.root.userData.lod !== 'near' ||
     art.root.userData.optimized) return false;
-  const original = art.root.getObjectByName('midrise_apartments');
+  const original = art.root.getObjectByName(originalName);
   if (!original?.parent) return false;
   const imported = template.clone(true);
-  imported.name = 'blender_midrise';
+  imported.name = importedName;
   imported.position.copy(original.position);
   imported.rotation.copy(original.rotation);
-  imported.position.x += side * .9;
+  imported.position.x += side * setback;
   // Cluster disposal owns each copy. The cached GLB template remains intact.
   imported.traverse(object => {
     if (!(object instanceof THREE.Mesh)) return;
@@ -186,6 +186,14 @@ export function mountBlenderCityMidrise(art: SceneryArt, template: THREE.Object3
   original.parent.remove(original);
   art.root.add(imported);
   return true;
+}
+export function mountBlenderCityMidrise(art: SceneryArt, template: THREE.Object3D,
+  side: -1 | 1): boolean {
+  return mountBlenderCityLot(art, template, side, 'midrise_apartments', 'blender_midrise', .9);
+}
+export function mountBlenderCitySkyline(art: SceneryArt, template: THREE.Object3D,
+  side: -1 | 1): boolean {
+  return mountBlenderCityLot(art, template, side, 'backlot_1', 'blender_skyline', 1.5);
 }
 function taper(parent: THREE.Object3D, name: string, top: number, bottom: number,
   height: number, pos: [number, number, number], material: THREE.Material, sides = 6) {
