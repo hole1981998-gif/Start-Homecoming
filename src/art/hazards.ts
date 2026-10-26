@@ -185,7 +185,7 @@ function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
     const wobble = ring === 0 ? 1 : outlineRadius(kind, angle);
     const height = kind === 'water'
       ? .047 - rings[ring] * .027 + (ring === 0 ? 0 : Math.sin(angle * 3) * .003)
-      : [.022, .023, .025][ring] + (ring === 0 ? 0 : Math.sin(angle * 4) * .001);
+      : [.037, .038, .040][ring] + (ring === 0 ? 0 : Math.sin(angle * 4) * .001);
     return [Math.cos(angle) * width * rings[ring] * wobble, height,
       Math.sin(angle) * length * rings[ring] * wobble] as const;
   };
@@ -262,7 +262,9 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   const glint = new THREE.MeshStandardMaterial({ color: '#a4e1e5', roughness: .32,
     transparent: true, opacity: .48, depthWrite: false, side: THREE.DoubleSide });
   const debris = material('#665f54');
-  patch(root, 'readable_footprint', width, length, .015, edge, kind);
+  // Potholes may span all three lanes. Their footprint must sit above the
+  // road dash top (.025 m) so the painted line cannot show through the basin.
+  patch(root, 'readable_footprint', width, length, kind === 'pothole' ? .030 : .015, edge, kind);
   bevelBasin(root, kind, width, length, lod, kind === 'water'
     ? material('#6d9fa6')
     : new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,

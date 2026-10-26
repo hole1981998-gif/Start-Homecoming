@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { hazardSizes } from '../src/config';
 import { createPropHazardArt, createSurfaceHazardArt, type PropHazardKind } from '../src/art/hazards';
+import { createRoadTileArt } from '../src/art/road-kit';
 
 describe('essential hazard art', () => {
   it('matches all live water and pothole footprints without altering simulation dimensions', () => {
@@ -103,6 +104,19 @@ describe('essential hazard art', () => {
     expect(wallColor).toBeDefined();
     expect(wallColor.getX(0) - wallColor.getX(1)).toBeGreaterThan(.10);
     water.dispose(); hole.dispose();
+  });
+  it('covers lane dashes beneath a pothole spanning three lanes', () => {
+    const road = createRoadTileArt();
+    const hole = createSurfaceHazardArt('pothole', 9.6, 6);
+    const dash = road.root.getObjectByName('lane_dash_1')!;
+    const patch = hole.root.getObjectByName('readable_footprint')!;
+    const floor = hole.root.getObjectByName('pothole_depth')!;
+    const dashTop = new THREE.Box3().setFromObject(dash).max.y;
+    const patchHeight = new THREE.Box3().setFromObject(patch).min.y;
+    const floorHeight = new THREE.Box3().setFromObject(floor).min.y;
+    expect(patchHeight).toBeGreaterThan(dashTop);
+    expect(floorHeight).toBeGreaterThan(patchHeight);
+    hole.dispose(); road.dispose();
   });
   it('uses soft square outlines and a subdivided water surface within the collider footprint', () => {
     for (const kind of ['water', 'pothole'] as const) {
