@@ -313,7 +313,8 @@ function frame(now: number): void {
       const sorted = [...frameTimes].sort((a, b) => a - b);
       canvas.dataset.performance = JSON.stringify({ frames: measuredFrames, window: sorted.length,
         fps: 1000 / (frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length), frameP95Ms: sorted[Math.floor(sorted.length * .95)],
-        meanRenderCpuMs: renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length });
+        meanRenderCpuMs: renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length,
+        ...graphics.renderStats() });
     }
   }
   updateHud(); animation = requestAnimationFrame(frame);
