@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 
+export const roadShadowColor = '#102a30';
+export const roadShadowOpacity = .82;
+
 export interface RoadShadowArt {
   root: THREE.Group;
   dispose: () => void;
@@ -53,8 +56,8 @@ export function createRoadShadowArt(width: number, skew: number, bandWidth: numb
   const alphaMap = new THREE.DataTexture(pixels, size, size, THREE.RGBAFormat);
   alphaMap.magFilter = alphaMap.minFilter = THREE.LinearFilter;
   alphaMap.needsUpdate = true;
-  const material = new THREE.MeshBasicMaterial({ color: '#0c4657', alphaMap,
-    transparent: true, opacity: .82, depthWrite: false, side: THREE.DoubleSide });
+  const material = new THREE.MeshBasicMaterial({ color: roadShadowColor, alphaMap,
+    transparent: true, opacity: roadShadowOpacity, depthWrite: false, side: THREE.DoubleSide });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = 'feathered_long_shadow';
   root.add(mesh);

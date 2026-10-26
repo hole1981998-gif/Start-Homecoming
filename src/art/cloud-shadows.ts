@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { pathPose, type RouteState } from '../route';
+import { roadShadowColor, roadShadowOpacity } from './road-shadows';
 
 const cellMetres = 58;
 const visiblePatches = 5;
@@ -13,11 +14,12 @@ function hash(value: number): number {
 /** Visual placement uses its own hash and never advances the gameplay RNG. */
 export function cloudShadowPlacement(seed: number, cell: number) {
   const value = hash(seed ^ Math.imul(cell, 0x9e3779b1) ^ 0x4ba0735d);
+  const sizeClass = (value >>> 20) & 3;
   return {
     distance: cell * cellMetres + 18 + (value & 15),
     lateral: ((value >>> 8) % 2001) / 100 - 10,
-    width: 27 + ((value >>> 20) & 15),
-    length: 25 + ((value >>> 16) & 15),
+    width: [19, 28, 40, 53][sizeClass] + ((value >>> 16) & 3),
+    length: [18, 26, 35, 44][sizeClass] + ((value >>> 24) & 3),
     yaw: (((value >>> 24) & 31) - 15) * .018,
   };
 }
@@ -61,7 +63,7 @@ export function createCloudShadowArt(): CloudShadowArt {
   const geometry = new THREE.PlaneGeometry(1, 1);
   geometry.rotateX(-Math.PI / 2);
   const material = new THREE.MeshBasicMaterial({
-    color: '#203c4c', alphaMap: texture, opacity: .46,
+    color: roadShadowColor, alphaMap: texture, opacity: roadShadowOpacity,
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
   });
   const patches = Array.from({ length: visiblePatches }, (_, index) => {

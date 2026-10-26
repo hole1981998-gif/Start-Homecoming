@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { createCloudShadowArt, cloudShadowPlacement } from '../src/art/cloud-shadows';
+import { createRoadShadowArt } from '../src/art/road-shadows';
 import { createSceneryCluster } from '../src/art/scenery';
 import { landscapeColors } from '../src/landscape';
 import { initialRoute, pathPose } from '../src/route';
@@ -40,8 +41,8 @@ describe('landscape ground and cloud shade', () => {
     art.update(17, 825, route);
     patches.forEach((patch, i) => {
       expect(patch.position.equals(firstPositions[i])).toBe(true);
-      expect(patch.scale.x).toBeGreaterThanOrEqual(27);
-      expect(patch.scale.z).toBeGreaterThanOrEqual(25);
+      expect(patch.scale.x).toBeGreaterThanOrEqual(19);
+      expect(patch.scale.z).toBeGreaterThanOrEqual(18);
       expect(patch.userData.collider).toBeUndefined();
     });
     const firstCell = Math.floor((825 - 24) / 58);
@@ -54,6 +55,21 @@ describe('landscape ground and cloud shade', () => {
     art.dispose();
   });
 
+  it('has visibly small and large footprints while matching the ordinary road shadow tone', () => {
+    const sizes = Array.from({ length: 48 }, (_, cell) => cloudShadowPlacement(14, cell));
+    expect(Math.min(...sizes.map(size => size.width))).toBeLessThan(25);
+    expect(Math.max(...sizes.map(size => size.width))).toBeGreaterThan(50);
+    expect(Math.min(...sizes.map(size => size.length))).toBeLessThan(25);
+    expect(Math.max(...sizes.map(size => size.length))).toBeGreaterThan(45);
+    const cloud = createCloudShadowArt();
+    const road = createRoadShadowArt(20, 4, 10);
+    const cloudMaterial = (cloud.root.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial;
+    const roadMaterial = (road.root.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial;
+    expect(cloudMaterial.color.equals(roadMaterial.color)).toBe(true);
+    expect(cloudMaterial.opacity).toBe(roadMaterial.opacity);
+    cloud.dispose(); road.dispose();
+  });
+
   it('feathers cloud edges so road markings remain readable', () => {
     const art = createCloudShadowArt();
     const material = (art.root.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial;
@@ -63,8 +79,8 @@ describe('landscape ground and cloud shade', () => {
     expect(green(48, 48)).toBeGreaterThan(200);
     expect(green(0, 0)).toBe(0);
     expect(green(3, 48)).toBeLessThan(green(32, 48));
-    expect(material.opacity).toBeGreaterThan(.4);
-    expect(material.opacity).toBeLessThan(.55);
+    expect(material.opacity).toBeGreaterThan(.75);
+    expect(material.opacity).toBeLessThan(.9);
     expect(material.depthWrite).toBe(false);
     art.dispose();
   });
