@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { balance } from '../src/config';
-import { createSceneryCluster, mountBlenderCityMidrise, mountBlenderCitySkyline, optimizeNearScenery } from '../src/art/scenery';
+import { createSceneryCluster, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, optimizeNearScenery } from '../src/art/scenery';
 
 async function boundsOf(file: string) {
   const bytes = readFileSync(new URL(`../assets/art/${file}`, import.meta.url));
@@ -56,6 +56,22 @@ describe('editable Blender roadside exports', () => {
       const edge = balance.laneWidth * balance.laneCount / 2;
       if (side > 0) expect(bounds.min.x).toBeGreaterThan(edge);
       else expect(bounds.max.x).toBeLessThan(-edge);
+      art.dispose();
+    }
+  });
+  it('places the Blender roadside shop outside the lane edge in seeded districts', async () => {
+    const bytes = readFileSync(new URL('../assets/art/roadside-shop.glb', import.meta.url));
+    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const template = (await new GLTFLoader().parseAsync(buffer, '')).scene;
+    for (const seed of [0, 3, 17]) for (const side of [-1, 1] as const) {
+      const art = createSceneryCluster('city', side, 'near', seed);
+      expect(mountBlenderCityShop(art, template, side)).toBe(true);
+      const shop = art.root.getObjectByName('blender_shop')!;
+      const bounds = new THREE.Box3().setFromObject(shop);
+      const edge = balance.laneWidth * balance.laneCount / 2;
+      if (side > 0) expect(bounds.min.x).toBeGreaterThan(edge);
+      else expect(bounds.max.x).toBeLessThan(-edge);
+      expect(art.root.getObjectByName('corner_shop')).toBeUndefined();
       art.dispose();
     }
   });

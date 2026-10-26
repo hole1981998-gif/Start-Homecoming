@@ -24,6 +24,8 @@
 
 **Skyline Blender ở backlot:** `skyline-shophouse.glb` thay một backlot mỗi phía ở `city` near, giữ vị trí theo seed và giới hạn mép gần khỏi đường như midrise. Test dùng GLB thật với seed 0/2/17 và hai phía; bounds cao trên 19 m, chân nhà ngoài hành lang lái. Browser in-app `handling-car4` seed 14: khối nhà cao có ban công ở phía sau dãy phố, không thấy che làn trong ảnh ở ~38 m; cửa sổ 360 frame khoảng 59,83 FPS, P95 16,8 ms, CPU render trung bình 6,19 ms, console không có lỗi. Đây là tự kiểm tại một máy và một seed, chưa xác nhận hiệu năng thiết bị đích hoặc chất lượng ánh sáng từ nhiều góc cua; điểm art gate chưa đổi.
 
+**Shop Blender ven đường:** `roadside-shop.glb` thay đúng một `corner_shop` trong mỗi cụm city near thẳng; các mặt tiền khác giữ hình riêng. Test bằng GLB thật với seed 0/3/17, hai bên đường và bounds ngoài làn. Browser in-app `handling-car4` seed 14 thấy cửa hàng có mái/hiên cạnh đường ở khoảng 40 m, không thấy che làn; diagnostic 360 frame khoảng 59,83 FPS, P95 16,8 ms, CPU render 6,24 ms và console không có lỗi. Phép đo chỉ trên máy hiện tại, chưa là đánh giá mỹ thuật của chủ dự án; market Blender chưa tích hợp vì file source đang được chủ dự án sửa.
+
 **Nguồn xem thực tế:** Vite local `/art-preview/scene.html` ở góc 9:16 và các trang `/art-preview/vehicle-gallery.html`, `/art-preview/people.html`, `/art-preview/world-gallery.html` ở near/far và nhiều góc. Đây là **Codex tự đánh giá từ preview**, không phải review độc lập, game build đã gắn asset hay playtest. Cảnh mẫu có car4, traffic car7/xe máy, khách vẫy, nước, ổ gà, đường, cụm nhà/cây. Chưa có HUD, mưa/VFX, thời gian chuyển động thật hoặc benchmark hiệu năng.
 
 | Tiêu chí trong `GAME_DESIGN.md` | Điểm sơ bộ | Quan sát / việc phải kiểm tiếp |
