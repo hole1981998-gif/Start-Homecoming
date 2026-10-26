@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 export const stormExposure = .99;
 export const gameplayAccentLayer = 1;
+const facadeKeyDirection = new THREE.Vector3(-23, 16, 22).normalize();
 const glbFacadeTargets: Readonly<Record<string, string>> = {
   // The GLB base colors are linear; the earlier HSL pass still left these
   // large planes near #c0b5a0 after sRGB output, brighter than native walls.
@@ -37,6 +38,7 @@ export function gradeStormCityBuilding(root: THREE.Object3D): void {
         // Named GLB facades form the city's quiet midground. Preserve the
         // warmer shop, foliage and roof accents that give the storm life.
         const facade = /plaster|columns|paving|stone|concrete/i.test(material.name);
+        material.userData.stormFacadePlane = /plaster|columns|concrete|pale_metal/i.test(material.name);
         material.color.offsetHSL(0, facade ? -.16 : -.08, facade ? -.16 : -.07);
         if (facade && /cream|ochre|warm.plaster/i.test(material.name)) {
           // Imported cream walls are large and still blow out beneath the key.
@@ -58,6 +60,45 @@ export function gradeStormCityBuilding(root: THREE.Object3D): void {
       ? object.material.map(grade) : grade(object.material);
   });
   root.userData.stormCityGraded = true;
+}
+
+/** Bake cool ambient on imported wall faces after roadside placement, without moving the road's key light. */
+export function shadePlacedStormCityFacades(root: THREE.Object3D): number {
+  root.updateMatrixWorld(true);
+  let shadedMeshes = 0;
+  const normal = new THREE.Vector3();
+  const normalMatrix = new THREE.Matrix3();
+  root.traverse(object => {
+    if (!(object instanceof THREE.Mesh) || !(object.material instanceof THREE.MeshStandardMaterial) ||
+      !object.material.userData.stormFacadePlane || object.geometry.userData.stormAmbientShaded) return;
+    const normals = object.geometry.getAttribute('normal');
+    if (!normals || object.geometry.getAttribute('color')) return;
+    // Mounting already clones a placed lot. Only standalone synthetic clones
+    // need isolation here; avoid orphaning the lot's previous GPU resources.
+    if (!object.userData.stormPlacedOwned) {
+      object.geometry = object.geometry.clone();
+      object.material = object.material.clone();
+    }
+    // BufferGeometry.clone() keeps userData by reference in this Three version.
+    object.geometry.userData = { ...object.geometry.userData };
+    normalMatrix.getNormalMatrix(object.matrixWorld);
+    const colors = new Uint8Array(normals.count * 3);
+    for (let i = 0; i < normals.count; i++) {
+      normal.fromBufferAttribute(normals, i).applyMatrix3(normalMatrix).normalize();
+      const wall = THREE.MathUtils.smoothstep(1 - Math.abs(normal.y), .15, .7);
+      const sun = THREE.MathUtils.clamp(normal.dot(facadeKeyDirection), 0, 1);
+      const shade = wall * (.24 + .22 * (1 - sun));
+      colors[i * 3] = Math.round(255 * (1 - shade * 1.12));
+      colors[i * 3 + 1] = Math.round(255 * (1 - shade * .92));
+      colors[i * 3 + 2] = Math.round(255 * (1 - shade * .72));
+    }
+    object.geometry.setAttribute('color', new THREE.Uint8BufferAttribute(colors, 3, true));
+    object.geometry.userData.stormAmbientShaded = true;
+    object.material.vertexColors = true;
+    object.material.needsUpdate = true;
+    shadedMeshes++;
+  });
+  return shadedMeshes;
 }
 
 /** Reusable art lighting study. Runtime owns shadow-map quality and updates the anchor from pathPose. */

@@ -14,7 +14,7 @@ import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './a
 import { createOfficerArt, createTrainArt, createVendorArt, type MovingArt } from './art/moving-events';
 import { createAccidentArt, createShopArt } from './art/special-hazards';
 import { createRoadTileArt } from './art/road-kit';
-import { configureStormRenderer, createStormLighting, gameplayAccentLayer, gradeStormCityBuilding } from './art/storm-lighting';
+import { configureStormRenderer, createStormLighting, gameplayAccentLayer, gradeStormCityBuilding, shadePlacedStormCityFacades } from './art/storm-lighting';
 import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMarket, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, mountBlenderCoastalBoat, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
 import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
 import { createCloudShadowArt, type CloudShadowArt } from './art/cloud-shadows';
@@ -650,11 +650,12 @@ export class RoadRenderer {
           }
           if (!bend && kind === 'sea' && lod === 'near' && this.coastalBoatTemplate)
             mountBlenderCoastalBoat(art, this.coastalBoatTemplate, (side * -1) as -1 | 1);
-          if (lod === 'near') optimizeNearScenery(art.root);
           if (!bend) {
             art.root.position.set(pose.x, 0, pose.z);
             art.root.rotation.y = Math.PI - pose.heading;
           }
+          if (!bend && kind === 'city' && lod === 'near') shadePlacedStormCityFacades(art.root);
+          if (lod === 'near') optimizeNearScenery(art.root);
           art.root.traverse(object => { if (object instanceof THREE.Mesh) {
             object.receiveShadow = true;
             object.castShadow = lod === 'near' &&

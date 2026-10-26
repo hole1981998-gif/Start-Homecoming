@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { balance } from '../src/config';
 import { createSceneryCluster, mountBlenderCityMarket, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, mountBlenderCoastalBoat, optimizeNearScenery } from '../src/art/scenery';
+import { gradeStormCityBuilding, shadePlacedStormCityFacades } from '../src/art/storm-lighting';
 
 async function boundsOf(file: string) {
   const bytes = readFileSync(new URL(`../assets/art/${file}`, import.meta.url));
@@ -22,6 +23,40 @@ function exportCounts(file: string) {
 }
 
 describe('editable Blender roadside exports', () => {
+  it('keeps placed GLB facade shading through near-scene batching without tinting shop accents', async () => {
+    const bytes = readFileSync(new URL('../assets/art/roadside-midrise.glb', import.meta.url));
+    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const template = (await new GLTFLoader().parseAsync(buffer, '')).scene;
+    gradeStormCityBuilding(template);
+    const art = createSceneryCluster('city', 1, 'near', 17);
+    expect(mountBlenderCityMidrise(art, template, 1)).toBe(true);
+    art.root.rotation.y = Math.PI;
+    expect(shadePlacedStormCityFacades(art.root)).toBeGreaterThan(0);
+    optimizeNearScenery(art.root);
+    let shaded = 0;
+    let shopAccent = 0;
+    art.root.traverse(object => {
+      if (!(object instanceof THREE.Mesh) || !(object.material instanceof THREE.MeshStandardMaterial)) return;
+      if (object.material.vertexColors) {
+        expect(object.geometry.getAttribute('color')).toBeDefined();
+        shaded++;
+      }
+      if (/shop amber/i.test(object.material.name)) {
+        expect(object.material.vertexColors).toBe(false);
+        expect(object.geometry.getAttribute('color')).toBeUndefined();
+        shopAccent++;
+      }
+    });
+    expect(shaded).toBeGreaterThan(0);
+    expect(shopAccent).toBeGreaterThan(0);
+    art.dispose();
+    template.traverse(object => {
+      if (object instanceof THREE.Mesh) {
+        expect(object.geometry.getAttribute('color')).toBeUndefined();
+        expect((object.material as THREE.MeshStandardMaterial).vertexColors).toBe(false);
+      }
+    });
+  });
   it('places the cached midrise on seeded city lots without crossing the road', async () => {
     const bytes = readFileSync(new URL('../assets/art/roadside-midrise.glb', import.meta.url));
     const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);

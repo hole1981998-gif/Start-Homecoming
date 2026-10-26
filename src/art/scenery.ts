@@ -111,7 +111,8 @@ function batchStaticMeshes(root: THREE.Group, prefix = 'material_batch') {
       object.material.map || object.material.transparent) return;
     const material = object.material;
     const key = [material.color.getHexString(), material.roughness, material.metalness,
-      material.flatShading, material.side].join('_');
+      material.flatShading, material.side, material.vertexColors,
+      !!object.geometry.getAttribute('color'), !!material.userData.stormFacadePlane].join('_');
     let bucket = buckets.get(key);
     if (!bucket) {
       bucket = { material, meshes: [], geometries: [] };
@@ -178,6 +179,7 @@ function mountBlenderCityLot(art: SceneryArt, template: THREE.Object3D,
     object.geometry = object.geometry.clone();
     object.material = Array.isArray(object.material)
       ? object.material.map(material => material.clone()) : object.material.clone();
+    object.userData.stormPlacedOwned = true;
   });
   imported.updateMatrixWorld(true);
   const bounds = new THREE.Box3().setFromObject(imported);

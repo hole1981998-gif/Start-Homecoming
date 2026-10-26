@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { gameplayAccentLayer, gradeStormCityBuilding, markGameplayAccentTarget } from '../src/art/storm-lighting';
+import { gameplayAccentLayer, gradeStormCityBuilding, markGameplayAccentTarget,
+  shadePlacedStormCityFacades } from '../src/art/storm-lighting';
 import { createVehicleArt } from '../src/art/vehicle-catalog';
 import { createPersonArt } from '../src/art/people';
 import { createPropHazardArt, createSurfaceHazardArt } from '../src/art/hazards';
@@ -84,6 +85,32 @@ describe('storm city material handoff', () => {
     expect((meshes[0].material as THREE.MeshStandardMaterial).color.r).toBeLessThan(ivory.color.r * .65);
     meshes.forEach(mesh => { mesh.geometry.dispose(); (mesh.material as THREE.Material).dispose(); });
     ivory.dispose(); metal.dispose(); amber.dispose();
+  });
+  it('bakes each placed facade facing without modifying the shared GLB template', () => {
+    const source = new THREE.Group();
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 1),
+      new THREE.MeshStandardMaterial({ name: 'sunlit cream plaster' }));
+    source.add(wall);
+    gradeStormCityBuilding(source);
+    const placedA = source.clone(true), placedB = source.clone(true);
+    placedB.rotation.y = Math.PI;
+    expect(shadePlacedStormCityFacades(placedA)).toBe(1);
+    expect(shadePlacedStormCityFacades(placedB)).toBe(1);
+    expect(shadePlacedStormCityFacades(placedA)).toBe(0);
+    const a = placedA.children[0] as THREE.Mesh, b = placedB.children[0] as THREE.Mesh;
+    expect(a.geometry).not.toBe(wall.geometry);
+    expect(a.geometry).not.toBe(b.geometry);
+    expect(a.material).not.toBe(wall.material);
+    expect(wall.geometry.getAttribute('color')).toBeUndefined();
+    expect((wall.material as THREE.MeshStandardMaterial).vertexColors).toBe(false);
+    const frontIndex = Array.from({ length: wall.geometry.getAttribute('normal').count }, (_, i) => i)
+      .find(i => wall.geometry.getAttribute('normal').getZ(i) > .9)!;
+    const frontA = a.geometry.getAttribute('color').getX(frontIndex);
+    const frontB = b.geometry.getAttribute('color').getX(frontIndex);
+    expect(frontA).not.toBe(frontB);
+    for (const mesh of [a, b, wall]) {
+      mesh.geometry.dispose(); (mesh.material as THREE.Material).dispose();
+    }
   });
 });
 
