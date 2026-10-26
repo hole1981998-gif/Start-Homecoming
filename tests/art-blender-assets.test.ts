@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { balance } from '../src/config';
-import { createSceneryCluster, mountBlenderCityMarket, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, optimizeNearScenery } from '../src/art/scenery';
+import { createSceneryCluster, mountBlenderCityMarket, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, mountBlenderCoastalBoat, optimizeNearScenery } from '../src/art/scenery';
 
 async function boundsOf(file: string) {
   const bytes = readFileSync(new URL(`../assets/art/${file}`, import.meta.url));
@@ -125,6 +125,33 @@ describe('editable Blender roadside exports', () => {
     expect(size.z).toBeGreaterThan(3.7);
     expect(size.z).toBeLessThan(3.9);
     expect(bounds.min.y).toBeGreaterThanOrEqual(0);
+  });
+  it('mounts the cached skiff in the sea outside road and pier, only at near LOD', async () => {
+    const bytes = readFileSync(new URL('../assets/art/coastal-fishing-boat.glb', import.meta.url));
+    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const template = (await new GLTFLoader().parseAsync(buffer, '')).scene;
+    for (const side of [-1, 1] as const) for (const seed of [0, 17]) {
+      const art = createSceneryCluster('sea', side, 'near', seed);
+      expect(mountBlenderCoastalBoat(art, template, side)).toBe(true);
+      const boat = art.root.getObjectByName('blender_coastal_boat')!;
+      const pier = art.root.getObjectByName('harbor_jetty')!;
+      const boatBounds = new THREE.Box3().setFromObject(boat);
+      const roadEdge = balance.laneWidth * balance.laneCount / 2;
+      if (side > 0) expect(boatBounds.min.x).toBeGreaterThan(roadEdge);
+      else expect(boatBounds.max.x).toBeLessThan(-roadEdge);
+      expect(boatBounds.intersectsBox(new THREE.Box3().setFromObject(pier))).toBe(false);
+      for (const name of ['seawall', 'seawall_cap'])
+        expect(boatBounds.intersectsBox(new THREE.Box3().setFromObject(
+          art.root.getObjectByName(name)!))).toBe(false);
+      optimizeNearScenery(art.root);
+      art.dispose();
+    }
+    const far = createSceneryCluster('sea', 1, 'far', 0);
+    expect(mountBlenderCoastalBoat(far, template, 1)).toBe(false);
+    far.dispose();
+    const city = createSceneryCluster('city', 1, 'near', 0);
+    expect(mountBlenderCoastalBoat(city, template, 1)).toBe(false);
+    city.dispose();
   });
   it('exports only each building scene after batching material groups', async () => {
     for (const file of ['corner-market.glb', 'roadside-midrise.glb', 'skyline-shophouse.glb']) {

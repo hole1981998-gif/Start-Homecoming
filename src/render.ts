@@ -15,7 +15,7 @@ import { createOfficerArt, createTrainArt, createVendorArt, type MovingArt } fro
 import { createAccidentArt, createShopArt } from './art/special-hazards';
 import { createRoadTileArt } from './art/road-kit';
 import { configureStormRenderer, createStormLighting, gameplayAccentLayer, gradeStormCityBuilding } from './art/storm-lighting';
-import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMarket, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
+import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMarket, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, mountBlenderCoastalBoat, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
 import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
 import { passengerWindowPoses } from './art/passenger-windows';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
@@ -65,6 +65,7 @@ export class RoadRenderer {
   private citySkylineTemplate: THREE.Object3D | null = null;
   private cityShopTemplate: THREE.Object3D | null = null;
   private cityMarketTemplate: THREE.Object3D | null = null;
+  private coastalBoatTemplate: THREE.Object3D | null = null;
   private disposed = false;
   private rainSeed = NaN;
   private rain?: RainArt;
@@ -122,6 +123,13 @@ export class RoadRenderer {
         gradeStormCityBuilding(gltf.scene);
         this.cityMarketTemplate = gltf.scene;
         this.refreshNearCityScenery();
+      });
+    if (this.forceMode) new GLTFLoader().load(
+      new URL('../assets/art/coastal-fishing-boat.glb', import.meta.url).href,
+      gltf => {
+        if (this.disposed) return;
+        this.coastalBoatTemplate = gltf.scene;
+        this.refreshNearSeaScenery();
       });
     this.stormLighting.sun.shadow.mapSize.set(1024, 1024);
     this.stormLighting.sun.shadow.blurSamples = 8;
@@ -609,6 +617,8 @@ export class RoadRenderer {
             if (this.cityMarketTemplate)
               mountBlenderCityMarket(art, this.cityMarketTemplate, localSide);
           }
+          if (!bend && kind === 'sea' && lod === 'near' && this.coastalBoatTemplate)
+            mountBlenderCoastalBoat(art, this.coastalBoatTemplate, (side * -1) as -1 | 1);
           if (lod === 'near') optimizeNearScenery(art.root);
           if (!bend) {
             art.root.position.set(pose.x, 0, pose.z);
@@ -760,6 +770,11 @@ export class RoadRenderer {
       this.scene.remove(art.root); art.dispose(); this.scenery.delete(key);
     }
   }
+  private refreshNearSeaScenery(): void {
+    for (const [key, art] of this.scenery) if (key.includes(':sea:near:rigid')) {
+      this.scene.remove(art.root); art.dispose(); this.scenery.delete(key);
+    }
+  }
   dispose(): void {
     this.disposed = true;
     this.observer.disconnect();
@@ -768,7 +783,7 @@ export class RoadRenderer {
     for (const art of this.scenery.values()) { this.scene.remove(art.root); art.dispose(); }
     this.scenery.clear();
     for (const template of [this.cityMidriseTemplate, this.citySkylineTemplate,
-      this.cityShopTemplate, this.cityMarketTemplate])
+      this.cityShopTemplate, this.cityMarketTemplate, this.coastalBoatTemplate])
       template?.traverse(object => { if (object instanceof THREE.Mesh) {
         object.geometry.dispose();
         (Array.isArray(object.material) ? object.material : [object.material])
