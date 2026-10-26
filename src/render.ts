@@ -584,7 +584,8 @@ export class RoadRenderer {
     const firstRegion = Math.floor((distance - 40) / LANDSCAPE_REGION_METRES);
     const lastRegion = Math.floor((distance + 170) / LANDSCAPE_REGION_METRES);
     const turns = s.route.history.map(turn => turn.distance);
-    if (s.route.choice) turns.push(junction(s.seed, s.route.index).distance);
+    // The cross street exists while Q/E is pending, so reserve its apron then too.
+    turns.push(junction(s.seed, s.route.index).distance);
     for (let section = firstRegion; section <= lastRegion; section++) {
       const center = (section + .5) * LANDSCAPE_REGION_METRES;
       const bend = scenerySectionCrossesTurn(section, turns);
@@ -599,12 +600,14 @@ export class RoadRenderer {
         const next = roadsideRegions(s.seed, center + LANDSCAPE_REGION_METRES);
         const seaEdges = { start: (side < 0 ? previous.left : previous.right) !== kind,
           end: (side < 0 ? next.left : next.right) !== kind };
-        const key = `${s.seed}:${section}:${side}:${kind}:${lod}:${bend ? 'bend' : 'rigid'}`;
+        const key = `${s.seed}:${section}:${side}:${kind}:${lod}:${bend ?
+          `bend:${s.route.choice ?? 'pending'}:${s.route.history.length}` : 'rigid'}`;
         visibleScenery.add(key);
         let art = this.scenery.get(key);
         if (!art) {
           const variantSeed = (s.seed ^ Math.imul(section, 0x9e3779b1) ^ (side < 0 ? 0x63c6 : 0x487d)) >>> 0;
-          art = bend ? createBendSceneryStrip(kind, side, bendPoses!, lod) :
+          art = bend ? createBendSceneryStrip(kind, side, bendPoses!, lod,
+            section * LANDSCAPE_REGION_METRES, turns) :
             createSceneryCluster(kind, (side * -1) as -1 | 1, lod, variantSeed, seaEdges);
           if (!bend && kind === 'city' && lod === 'near') {
             const localSide = (side * -1) as -1 | 1;

@@ -12,6 +12,31 @@ describe('essential roadside scenery', () => {
     expect(scenerySectionCrossesTurn(7, [800])).toBe(false);
     expect(scenerySectionCrossesTurn(9, [800])).toBe(false);
   });
+  it('leaves the cross street clear before selection and after either turn', () => {
+    for (const turn of [null, 'left', 'right'] as const) {
+      const route = turn ? { ...initialRoute(), history: [{ distance: 800, turn }] } : initialRoute();
+      const samples = Array.from({ length: 24 }, (_, i) => pathPose(770 + i * 4, route, 14));
+      for (const side of [-1, 1] as const) {
+        const art = createBendSceneryStrip('city', side, samples, 'near', 768, [800]);
+        art.root.updateMatrixWorld(true);
+        expect(art.root.getObjectByName('bend_ground_2')).toBeDefined();
+        expect(art.root.getObjectByName('bend_ground_8')).toBeUndefined();
+        expect(art.root.getObjectByName('bend_ground_14')).toBeDefined();
+        // The cross street is 90 m wide and 9.6 m deep, centred 10.2 m
+        // beyond the junction's 8 m lead-in.
+        const crossing = pathPose(792, route, 14);
+        art.root.traverse(object => {
+          if (!(object instanceof THREE.Mesh)) return;
+          const bounds = new THREE.Box3().setFromObject(object, true);
+          const crossesX = bounds.min.x < crossing.x + 45 && bounds.max.x > crossing.x - 45;
+          const crossesZ = bounds.min.z < crossing.z - 10.2 + 4.8 &&
+            bounds.max.z > crossing.z - 10.2 - 4.8;
+          expect(crossesX && crossesZ, object.name).toBe(false);
+        });
+        art.dispose();
+      }
+    }
+  });
   it('follows either bend with continuous ground outside the driving corridor', () => {
     const halfRoad = balance.laneWidth * balance.laneCount / 2;
     for (const turn of ['left', 'right'] as const) {
