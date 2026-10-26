@@ -2,11 +2,11 @@
 export const LANDSCAPE_REGION_METRES = 96;
 
 export const landscapeColors = {
-  city: '#6a767d',
-  sea: '#477184',
-  trees: '#446b55',
-  cliffs: '#856d5d',
-  rice: '#92945f',
+  city: '#989d89',
+  sea: '#6196a2',
+  trees: '#759b65',
+  cliffs: '#8f775d',
+  rice: '#819063',
 } as const;
 
 export type LandscapeKind = keyof typeof landscapeColors;

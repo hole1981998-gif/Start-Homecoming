@@ -92,8 +92,14 @@ describe('essential roadside scenery', () => {
           return count;
         };
         const originalCount = meshCount();
+        const groundMaterial = (art.root.getObjectByName('bend_ground_0') as THREE.Mesh).material;
         optimizeNearScenery(art.root);
-        expect(meshCount()).toBeLessThan(originalCount);
+        expect(meshCount()).toBeLessThan(originalCount / 2);
+        let groundDrawables = 0;
+        art.root.traverse(object => {
+          if (object instanceof THREE.Mesh && object.material === groundMaterial) groundDrawables++;
+        });
+        expect(groundDrawables).toBe(1);
         const after = new THREE.Box3().setFromObject(art.root, true);
         expect(after.min.distanceTo(before.min)).toBeLessThan(.001);
         expect(after.max.distanceTo(before.max)).toBeLessThan(.001);

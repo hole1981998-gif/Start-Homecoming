@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { balance } from '../config';
-import { LANDSCAPE_REGION_METRES, roadsidePoint, type LandscapeKind } from '../landscape';
+import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, type LandscapeKind } from '../landscape';
 
 export interface SceneryArt {
   root: THREE.Group;
@@ -19,11 +19,7 @@ export function createBendSceneryStrip(kind: LandscapeKind, side: -1 | 1,
   samples: readonly { x: number; z: number; heading: number }[], lod: 'near' | 'far',
   sectionStart = 0, junctionDistances: readonly number[] = []): SceneryArt {
   const root = new THREE.Group(); root.name = `env_bend_${kind}_${side}_${lod}`;
-  const groundColors: Record<LandscapeKind, string> = {
-    city: '#9c9b89', trees: '#698c63', cliffs: '#927960',
-    rice: '#908569', sea: '#61969e',
-  };
-  const ground = mat(groundColors[kind]);
+  const ground = mat(landscapeColors[kind]);
   const trim = mat(kind === 'sea' ? '#b0a485' : kind === 'city' ? '#d2bc9c' : '#786f5d');
   const leaf = mat('#62875b');
   const pieceLength = LANDSCAPE_REGION_METRES / samples.length + .2;
@@ -37,7 +33,7 @@ export function createBendSceneryStrip(kind: LandscapeKind, side: -1 | 1,
     segment.position.set(px, 0, pz);
     segment.rotation.y = -pose.heading;
     root.add(segment);
-    box(segment, `bend_ground_${i}`, [6.1, .045, pieceLength], [0, -.105, 0], ground);
+    box(segment, `bend_ground_${i}`, [6.1, .045, pieceLength], [0, -.065, 0], ground);
     if (kind === 'city' || kind === 'sea')
       box(segment, `bend_edge_${i}`, [.30, kind === 'city' ? .17 : .52, pieceLength],
         [-side * 2.92, kind === 'city' ? -.02 : .17, 0], trim);
@@ -154,8 +150,14 @@ function batchStaticMeshes(root: THREE.Group, prefix = 'material_batch') {
 /** Merge static detail per top-level prop, preserving building/tree roots for placement. Call before placing the cluster. */
 export function optimizeNearScenery(root: THREE.Group): void {
   if (root.userData.lod !== 'near' || root.userData.optimized) return;
-  for (const child of root.children) if (child instanceof THREE.Group)
-    batchStaticMeshes(child, 'near_material_batch');
+  if (String(root.userData.id).startsWith('env_bend_')) {
+    // Bend pieces never move independently. Baking their transforms together
+    // keeps the curved silhouette while removing a draw call per short strip.
+    batchStaticMeshes(root, 'bend_material_batch');
+  } else {
+    for (const child of root.children) if (child instanceof THREE.Group)
+      batchStaticMeshes(child, 'near_material_batch');
+  }
   root.userData.optimized = true;
 }
 /** Swap one code-native city lot for a Blender export before batching. */
@@ -765,7 +767,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
         [.11, .018, .35], [x(-1.18), .105, z], mat('#67716b'));
     }
   } else if (kind === 'trees') {
-    const grass = mat('#759b65'), soil = mat('#926c4e');
+    const grass = mat(landscapeColors.trees), soil = mat('#926c4e');
     box(root, 'green_verge', [6.3, .07, 96], [x(2.0), -.10, 0], grass);
     for (const z of [-10, 3, 17]) taper(root, `tree_soil_ring_${z}`,
       .78, .90, .075, [x(z === 3 ? 3.3 : 1.7), -.055, z], soil, 9);
@@ -802,7 +804,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     }
     root.add(grassTufts);
   } else if (kind === 'cliffs') {
-    const toe = mat('#8f775d');
+    const toe = mat(landscapeColors.cliffs);
     const face = new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
       roughness: .94, flatShading: true, side: THREE.DoubleSide });
     const upper = mat('#c19b75');
@@ -907,8 +909,8 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       tree(ledge, `cliff_rim_tree_${z}`, x(8.1), z, z < 0 ? 3.6 : 3.1, true, 'rain');
     }
   } else if (kind === 'rice') {
-    const soil = mat('#8d7853'), paddy = mat('#8dbb61');
-    box(root, 'field_soil_continuity', [15.8, .045, 96], [x(7.1), -.13, 0], soil);
+    const soil = mat(landscapeColors.rice), paddy = mat('#8dbb61');
+    box(root, 'field_soil_continuity', [15.8, .045, 96], [x(7.1), -.065, 0], soil);
     const water = new THREE.MeshStandardMaterial({ color: '#759b99', roughness: .38,
       metalness: .04, side: THREE.DoubleSide });
     const rowCount = near ? 7 : 4, columnCount = near ? 8 : 5;
@@ -938,7 +940,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       paddyGeometry.rotateX(-Math.PI / 2);
       const paddy = new THREE.Mesh(paddyGeometry, water);
       paddy.name = `paddy_water_${i}`;
-      paddy.position.set(x(7.1), -.055, z);
+      paddy.position.set(x(7.1), -.025, z);
       root.add(paddy);
       if (near) waveSurfaces.push({ geometry: paddyGeometry,
         base: Float32Array.from(paddyGeometry.getAttribute('position').array as Float32Array),
@@ -958,7 +960,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       }
     }
     root.add(sprouts);
-    box(root, 'field_edge_irrigation', [.7, .035, 96], [x(.25), -.08, 0], water);
+    box(root, 'field_edge_irrigation', [.7, .035, 96], [x(.25), -.025, 0], water);
     box(root, 'irrigation_footbridge', [1.43, .09, .56], [x(.25), .015, 8], soil);
     for (const z of [-11, 4, 20]) box(root, `ditch_reed_patch_${z}`,
       [.22, .34, .34], [x(.15), .12, z], paddy);
@@ -1017,13 +1019,13 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     waterColors.needsUpdate = true;
     waterGeometry.computeVertexNormals();
     const waterSurface = new THREE.Mesh(waterGeometry, sea);
-    waterSurface.name = 'water_plane'; waterSurface.position.set(x(10.1), -.145, 0);
+    waterSurface.name = 'water_plane'; waterSurface.position.set(x(10.1), -.035, 0);
     root.add(waterSurface);
     waveSurfaces.push({ geometry: waterGeometry,
       base: Float32Array.from(waterPoints.array as Float32Array),
       amplitude: near ? .025 : .012, phase: side });
     for (const z of [-16, -7, 3, 12, 21]) {
-      box(root, `water_edge_${z}`, [.11, .012, 3.8], [x(1.48), -.115, z], foam);
+      box(root, `water_edge_${z}`, [.11, .012, 3.8], [x(1.48), .005, z], foam);
       box(root, `wall_vertical_seam_${z}`, [.026, .58, .035],
         [x(.7) - side * .20, .30, z + 3.1], seam);
     }
@@ -1034,7 +1036,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     for (let i = 0; i < ripples.count; i++) {
       const z = -18 + i * (39 / ripples.count) + Math.sin(i * 7.1) * .8;
       const offset = 2.3 + ((i * 11) % 15) * 1.03;
-      wave.position.set(x(offset), -.098, z);
+      wave.position.set(x(offset), .015, z);
       wave.rotation.set(0, (i % 5 - 2) * .07, 0);
       wave.scale.set(.75 + i % 4 * .35, 1, 1);
       wave.updateMatrix(); ripples.setMatrixAt(i, wave.matrix);

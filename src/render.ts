@@ -17,6 +17,7 @@ import { createRoadTileArt } from './art/road-kit';
 import { configureStormRenderer, createStormLighting, gameplayAccentLayer, gradeStormCityBuilding } from './art/storm-lighting';
 import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMarket, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, mountBlenderCoastalBoat, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
 import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
+import { createCloudShadowArt, type CloudShadowArt } from './art/cloud-shadows';
 import { passengerWindowPoses } from './art/passenger-windows';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
 import { roadsideArchetype, roadsidePose } from './art/runtime-people';
@@ -25,7 +26,7 @@ import { createRidingBlenderDriver, type AnimatedBlenderDriver } from './art/ble
 import type { VehicleKind } from './vehicles';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
-  landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] }
+  landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial>[] }
 
 export class RoadRenderer {
   private renderer: THREE.WebGLRenderer;
@@ -60,8 +61,9 @@ export class RoadRenderer {
   private roadPieces: THREE.Group[] = [];
   private roadSurface!: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   private ground!: THREE.Mesh;
-  private landscapeBands: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> | null = null;
-  private landscapeMaterials: Record<LandscapeKind, THREE.MeshBasicMaterial> | null = null;
+  private landscapeBands: THREE.Mesh<THREE.BufferGeometry, THREE.MeshLambertMaterial> | null = null;
+  private landscapeMaterials: Record<LandscapeKind, THREE.MeshLambertMaterial> | null = null;
+  private cloudShadows: CloudShadowArt | null = null;
   private scenery = new Map<string, SceneryArt>();
   private cityMidriseTemplate: THREE.Object3D | null = null;
   private citySkylineTemplate: THREE.Object3D | null = null;
@@ -144,14 +146,17 @@ export class RoadRenderer {
     this.ground = box(600, 0.1, 600, '#425951'); this.ground.position.y = -.15;
     if (this.forceMode) {
       this.landscapeMaterials = Object.fromEntries(Object.entries(landscapeColors).map(([kind, color]) =>
-        [kind, new THREE.MeshBasicMaterial({ color })])) as Record<keyof typeof landscapeColors, THREE.MeshBasicMaterial>;
+        [kind, new THREE.MeshLambertMaterial({ color })])) as Record<keyof typeof landscapeColors, THREE.MeshLambertMaterial>;
       // Flat color shoulders follow the centerline; the road covers their shared seam.
       const bandGeometry = new THREE.BufferGeometry();
       const bandValues = 52 * 2 * 6 * 3;
       bandGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(bandValues), 3));
       bandGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(bandValues), 3));
-      this.landscapeBands = new THREE.Mesh(bandGeometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+      this.landscapeBands = new THREE.Mesh(bandGeometry, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+      this.landscapeBands.receiveShadow = true;
       this.scene.add(this.landscapeBands);
+      this.cloudShadows = createCloudShadowArt();
+      this.scene.add(this.cloudShadows.root);
     }
     const roadGeometry = new THREE.BufferGeometry();
     roadGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(53 * 2 * 3), 3));
@@ -177,13 +182,14 @@ export class RoadRenderer {
         const edge = box(.12, .025, 150, '#d3d4bc', straightStub); edge.position.set(side * 4.9, -.035, -95);
         const stripe = box(.09, .025, 150, '#9caeae', straightStub); stripe.position.set(side * balance.laneWidth / 2, -.035, -95);
       }
-      const landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] = [];
+      const landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial>[] = [];
       if (this.landscapeMaterials) {
         const shoulderGeometry = new THREE.PlaneGeometry(30, 1);
         for (let i = 0; i < 8; i++) {
           const shoulder = new THREE.Mesh(shoulderGeometry, this.landscapeMaterials.city);
           shoulder.rotation.x = -Math.PI / 2;
           shoulder.position.y = -.09;
+          shoulder.receiveShadow = true;
           straightStub.add(shoulder);
           landscapeStub.push(shoulder);
         }
@@ -412,6 +418,7 @@ export class RoadRenderer {
     const x = THREE.MathUtils.lerp(previous.x, s.x, alpha);
     const distance = THREE.MathUtils.lerp(previous.distance, s.distance, alpha);
     const playerPose = pathPose(distance, s.route, s.seed);
+    this.cloudShadows?.update(s.seed, distance, s.route);
     const playerX = playerPose.x + Math.cos(playerPose.heading) * x;
     const playerZ = playerPose.z + Math.sin(playerPose.heading) * x;
     this.stormLighting.setAnchor(playerX, playerZ);
@@ -577,6 +584,7 @@ export class RoadRenderer {
       }
       positions.needsUpdate = true;
       colors.needsUpdate = true;
+      this.landscapeBands.geometry.computeVertexNormals();
       this.landscapeBands.geometry.computeBoundingSphere();
     }
     for (let i = 0; i < this.roadPieces.length; i++) {
@@ -637,7 +645,7 @@ export class RoadRenderer {
           }
           art.root.traverse(object => { if (object instanceof THREE.Mesh) {
             object.receiveShadow = true;
-            object.castShadow = lod === 'near' && kind === 'city' &&
+            object.castShadow = lod === 'near' &&
               new THREE.Box3().setFromObject(object).max.y > 1.6;
           } });
           this.scene.add(art.root);
@@ -799,6 +807,7 @@ export class RoadRenderer {
     this.disposed = true;
     this.observer.disconnect();
     this.stormLighting.dispose();
+    if (this.cloudShadows) { this.scene.remove(this.cloudShadows.root); this.cloudShadows.dispose(); }
     for (const art of [this.rain, this.rainSplashes]) if (art) { this.scene.remove(art.root); art.dispose(); }
     for (const art of this.scenery.values()) { this.scene.remove(art.root); art.dispose(); }
     this.scenery.clear();
