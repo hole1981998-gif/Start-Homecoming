@@ -16,7 +16,8 @@ export function scenerySectionCrossesTurn(section: number, turnDistances: readon
 
 /** Short roadside pieces follow the actual curved path where a rigid cluster would cross it. */
 export function createBendSceneryStrip(kind: LandscapeKind, side: -1 | 1,
-  samples: readonly { x: number; z: number; heading: number }[], lod: 'near' | 'far'): SceneryArt {
+  samples: readonly { x: number; z: number; heading: number }[], lod: 'near' | 'far',
+  sectionStart = 0, junctionDistances: readonly number[] = []): SceneryArt {
   const root = new THREE.Group(); root.name = `env_bend_${kind}_${side}_${lod}`;
   const groundColors: Record<LandscapeKind, string> = {
     city: '#9c9b89', trees: '#698c63', cliffs: '#927960',
@@ -27,6 +28,10 @@ export function createBendSceneryStrip(kind: LandscapeKind, side: -1 | 1,
   const leaf = mat('#62875b');
   const pieceLength = LANDSCAPE_REGION_METRES / samples.length + .2;
   for (const [i, pose] of samples.entries()) {
+    const sampleDistance = sectionStart + (i + .5) * LANDSCAPE_REGION_METRES / samples.length;
+    // The 90 m cross street remains visible before a turn is selected. Its
+    // entrance and the old straight spur need a clear apron on either side.
+    if (junctionDistances.some(distance => Math.abs(sampleDistance - distance) < 20)) continue;
     const segment = new THREE.Group(); segment.name = `bend_piece_${i}`;
     const [px, pz] = roadsidePoint(pose, side, 9.3);
     segment.position.set(px, 0, pz);
