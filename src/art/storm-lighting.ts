@@ -9,6 +9,11 @@ const glbFacadeTargets: Readonly<Record<string, string>> = {
   'midrise ivory columns': '#7d8b8c',
   'sunlit cream plaster': '#89948e',
   pale_metal: '#899392',
+  // Large sun-facing wall planes on the right row stayed peach after the
+  // directional grade. Keep awnings, lit windows and shop interiors warm.
+  skyline_warm_plaster: '#818984',
+  'warm ochre plaster': '#858a80',
+  cream_plaster: '#84908a',
 };
 
 /** Keep layer 0 visible; render cameras also enable layer 1 to collect the accent light. */
@@ -154,7 +159,7 @@ export function createStormLighting(scene: THREE.Scene) {
   sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8;
   const fill = new THREE.DirectionalLight('#5babc8', .20);
   const sunBreak = new THREE.SpotLight('#fff0da', 1050, 65, Math.PI / 3, 1, 2);
-  const facadeSun = new THREE.SpotLight('#e6ece6', 140, 43, Math.PI / 4.2, .9, 2);
+  const facadeSun = new THREE.SpotLight('#e6ece6', 100, 43, Math.PI / 4.2, .9, 2);
   const gameplayAccent = new THREE.DirectionalLight('#d6edf0', .72);
   gameplayAccent.layers.set(gameplayAccentLayer);
   scene.add(hemisphere, ambient, sun, sun.target, fill, fill.target,
