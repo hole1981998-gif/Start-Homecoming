@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export const stormExposure = 1.12;
+export const stormExposure = 1.05;
 export const gameplayAccentLayer = 1;
 
 /** Keep layer 0 visible; render cameras also enable layer 1 to collect the accent light. */
@@ -50,11 +50,11 @@ export function createStormLighting(scene: THREE.Scene) {
   sky.width = 512; sky.height = 256;
   const context = sky.getContext('2d')!;
   const gradient = context.createLinearGradient(0, 0, 0, sky.height);
-  gradient.addColorStop(0, '#425f74');
-  gradient.addColorStop(.18, '#5da4ab');
-  gradient.addColorStop(.35, '#5da4ab');
-  gradient.addColorStop(.62, '#87b7b8');
-  gradient.addColorStop(1, '#a9c6bf');
+  gradient.addColorStop(0, '#344a5b');
+  gradient.addColorStop(.18, '#557a84');
+  gradient.addColorStop(.35, '#608b91');
+  gradient.addColorStop(.62, '#83a4a5');
+  gradient.addColorStop(1, '#a3b9b2');
   context.fillStyle = gradient;
   context.fillRect(0, 0, sky.width, sky.height);
   context.filter = 'blur(11px)';
@@ -75,15 +75,15 @@ export function createStormLighting(scene: THREE.Scene) {
   const environment = skyTexture.clone();
   environment.mapping = THREE.EquirectangularReflectionMapping;
   environment.needsUpdate = true;
-  const fog = new THREE.Fog('#5da4ab', 43, 108);
+  const fog = new THREE.Fog('#688d94', 43, 108);
   scene.background = skyTexture;
   scene.environment = environment;
   scene.environmentIntensity = .035;
   scene.fog = fog;
 
-  const hemisphere = new THREE.HemisphereLight('#83b7c3', '#245c75', .50);
-  const ambient = new THREE.AmbientLight('#5a9fb4', .08);
-  const sun = new THREE.DirectionalLight('#ffe2c5', 3.65);
+  const hemisphere = new THREE.HemisphereLight('#7da5b4', '#2a5267', .46);
+  const ambient = new THREE.AmbientLight('#5a91a3', .07);
+  const sun = new THREE.DirectionalLight('#ffe2c5', 3.08);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.left = -34; sun.shadow.camera.right = 34;
@@ -91,8 +91,8 @@ export function createStormLighting(scene: THREE.Scene) {
   sun.shadow.camera.near = 1; sun.shadow.camera.far = 105;
   sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8;
   const fill = new THREE.DirectionalLight('#55aaca', .13);
-  const sunBreak = new THREE.SpotLight('#ffe0be', 1320, 65, Math.PI / 3, 1, 2);
-  const facadeSun = new THREE.SpotLight('#ffe6cd', 320, 43, Math.PI / 4.2, .9, 2);
+  const sunBreak = new THREE.SpotLight('#ffe0be', 1120, 65, Math.PI / 3, 1, 2);
+  const facadeSun = new THREE.SpotLight('#ffe6cd', 275, 43, Math.PI / 4.2, .9, 2);
   const gameplayAccent = new THREE.DirectionalLight('#d6edf0', .72);
   gameplayAccent.layers.set(gameplayAccentLayer);
   scene.add(hemisphere, ambient, sun, sun.target, fill, fill.target,
