@@ -1,6 +1,8 @@
 import * as THREE from 'three';
+import type { TimedPose } from './timing';
 
 export type AnimatedBlenderDriver = THREE.Group & { setVisualTime: (activeSeconds: number) => void };
+export type CrashBlenderDriver = THREE.Group & { setTimedPose: (pose: TimedPose) => void };
 
 /** Reuse the editable driver delivery in the live vehicle seat, with no animation clock. */
 export function createRidingBlenderDriver(template: THREE.Group): AnimatedBlenderDriver {
@@ -42,4 +44,54 @@ export function createRidingBlenderDriver(template: THREE.Group): AnimatedBlende
   driver.traverse(node => { if (node instanceof THREE.Mesh) node.castShadow = true; });
   driver.name = 'player_blender_driver';
   return animated;
+}
+
+/** Use the same edited mesh after a crash; simulation owns travel and pose timing. */
+export function createCrashBlenderDriver(template: THREE.Group): CrashBlenderDriver {
+  const driver = template.clone(true) as CrashBlenderDriver;
+  const nodes: THREE.Object3D[] = [];
+  driver.traverse(node => nodes.push(node));
+  const find = (prefix: string) => nodes.find(node => node.name.startsWith(prefix));
+  const pair = (prefix: string) => nodes.filter(node => node.name.startsWith(prefix))
+    .sort((a, b) => a.position.x - b.position.x);
+  const hips = find('hip_pivot'), torso = find('torso_pivot');
+  const legs = pair('hip_leg_'), arms = pair('shoulder_');
+  const knees = legs.map(leg => leg.children.find(node => node.name.startsWith('knee_')));
+  const elbows = arms.map(arm => arm.children.find(node => node.name.startsWith('elbow_')));
+  if (!hips || !torso || legs.length !== 2 || arms.length !== 2 ||
+    knees.some(node => !node) || elbows.some(node => !node))
+    throw new Error('Driver GLB is missing crash pose pivots');
+  const pivots = [torso, ...legs, ...knees, ...arms, ...elbows] as THREE.Object3D[];
+  const rest = new Map(pivots.map(node => [node, node.quaternion.clone()]));
+  const hipRestY = hips.position.y;
+  const poseRotation = new THREE.Quaternion();
+  const rotate = (node: THREE.Object3D, x = 0, z = 0) => {
+    poseRotation.setFromEuler(new THREE.Euler(x, 0, z, 'XYZ'));
+    node.quaternion.copy(rest.get(node)!).premultiply(poseRotation);
+  };
+  driver.setTimedPose = ({ pose, phase }) => {
+    const t = THREE.MathUtils.clamp(phase, 0, 1);
+    hips.position.y = hipRestY;
+    pivots.forEach(node => node.quaternion.copy(rest.get(node)!));
+    if (pose === 'ejected') {
+      rotate(torso, -.25 - .36 * t, .10 + .20 * t);
+      rotate(arms[0], 0, -.5 - .6 * t);
+      rotate(arms[1], 0, .5 + .5 * t);
+      rotate(legs[0], -.16 - .19 * t);
+      rotate(legs[1], .19 + .23 * t);
+    } else if (pose === 'grounded' || pose === 'recover') {
+      const recovery = pose === 'recover' ? t : 0;
+      hips.position.y = THREE.MathUtils.lerp(.33, hipRestY, recovery);
+      rotate(torso, -1.25 * (1 - recovery));
+      arms.forEach(arm => rotate(arm, -1.12 * (1 - recovery)));
+      if (pose === 'grounded') {
+        rotate(legs[0], 0, -.32);
+        rotate(legs[1], 0, .30);
+      } else knees.forEach(knee => rotate(knee!, .52 * (1 - recovery)));
+    }
+  };
+  driver.setTimedPose({ pose: 'stand', phase: 0 });
+  driver.traverse(node => { if (node instanceof THREE.Mesh) node.castShadow = true; });
+  driver.name = 'fallen_blender_driver';
+  return driver;
 }

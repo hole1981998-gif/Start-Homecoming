@@ -23,7 +23,8 @@ import { createWindStreakArt, type WindStreakArt } from './art/wind-streaks';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
 import { roadsideArchetype, roadsidePose } from './art/runtime-people';
 import { driverCrashPose, passengerCrashPose } from './art/timing';
-import { createRidingBlenderDriver, type AnimatedBlenderDriver } from './art/blender-driver';
+import { createCrashBlenderDriver, createRidingBlenderDriver, type AnimatedBlenderDriver,
+  type CrashBlenderDriver } from './art/blender-driver';
 import type { VehicleKind } from './vehicles';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
@@ -57,6 +58,7 @@ export class RoadRenderer {
   private helmet!: THREE.Mesh;
   private fallenDriver = new THREE.Group();
   private fallenDriverArt!: PersonArt;
+  private fallenBlenderDriver: CrashBlenderDriver | null = null;
   private bikePassengers: THREE.Group[] = [];
   private fallenPassengerModels = new Map<string, PersonArt>();
   private roadPieces: THREE.Group[] = [];
@@ -96,6 +98,11 @@ export class RoadRenderer {
         if (this.disposed) return;
         this.driverTemplate = gltf.scene;
         for (const kind of this.playerDrivers.keys()) this.attachBlenderDriver(kind);
+        try {
+          this.fallenBlenderDriver = createCrashBlenderDriver(gltf.scene);
+          this.fallenDriver.add(this.fallenBlenderDriver);
+          this.fallenDriverArt.root.visible = false;
+        } catch { /* Keep the procedural crash driver if pose pivots are unavailable. */ }
       });
     if (this.forceMode) new GLTFLoader().load(
       new URL('../assets/art/roadside-midrise.glb', import.meta.url).href,
@@ -500,7 +507,8 @@ export class RoadRenderer {
     this.fallenDriver.visible = !!s.crash;
     if (s.crash) {
       const crashPose = driverCrashPose(s.crash.elapsed);
-      this.fallenDriverArt.setPose(crashPose.pose, crashPose.phase);
+      if (this.fallenBlenderDriver) this.fallenBlenderDriver.setTimedPose(crashPose);
+      else this.fallenDriverArt.setPose(crashPose.pose, crashPose.phase);
     }
     if (!s.crash) for (const [id, person] of this.fallenPassengerModels) {
       person.root.removeFromParent(); person.dispose(); this.fallenPassengerModels.delete(id);
