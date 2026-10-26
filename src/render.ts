@@ -19,6 +19,7 @@ import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMarket, m
 import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
 import { createCloudShadowArt, type CloudShadowArt } from './art/cloud-shadows';
 import { passengerWindowPoses } from './art/passenger-windows';
+import { createWindStreakArt, type WindStreakArt } from './art/wind-streaks';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
 import { roadsideArchetype, roadsidePose } from './art/runtime-people';
 import { driverCrashPose, passengerCrashPose } from './art/timing';
@@ -340,7 +341,10 @@ export class RoadRenderer {
     } else if (kind === 'shop') {
       const art = createShopArt('far'); g.add(art.root);
     }
-    else if (kind === 'wind') { part(9.6, .025, 65, '#809c91', 0, .02, 0); }
+    else if (kind === 'wind') {
+      const art = createWindStreakArt(width, length);
+      g.add(art.root); g.userData.windArt = art;
+    }
     else if (kind === 'water' || kind === 'pothole') {
       const art = createSurfaceHazardArt(kind, width, length, 'near');
       g.add(art.root); g.userData.hazardArt = art;
@@ -716,6 +720,8 @@ export class RoadRenderer {
         entry.mesh.rotation.z = (e.cargoVelocityX ?? 0) * s.activeSeconds * 1.5;
       }
       if (e.kind === 'water') (entry.mesh.userData.hazardArt as HazardArt).setVisualTime?.(s.activeSeconds);
+      if (e.kind === 'wind') (entry.mesh.userData.windArt as WindStreakArt)
+        .setVisualTime(visualTime, e.lateralPush ?? 1);
       if (e.kind === 'jam') {
         const vendor = e.crossingRole === 'vendor' || e.width === movingBalance.vendorWidth;
         (entry.mesh.userData.barrierArt as HazardArt).root.visible = !vendor;
@@ -757,7 +763,7 @@ export class RoadRenderer {
       }
       const baseWidth = e.kind === 'wind' ? 9.6 : e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'wind' ? 65 : e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
-      const sizedArt = e.kind === 'water' || e.kind === 'pothole' || e.kind === 'train' ||
+      const sizedArt = e.kind === 'wind' || e.kind === 'water' || e.kind === 'pothole' || e.kind === 'train' ||
         e.kind === 'police' || e.kind === 'militia' || e.kind === 'accident' ||
         e.kind === 'jam';
       entry.mesh.scale.set(e.kind === 'traffic' || e.kind === 'shop' || sizedArt ? 1 : e.width / baseWidth, 1,
