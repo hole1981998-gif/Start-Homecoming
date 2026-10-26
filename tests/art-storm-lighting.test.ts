@@ -64,6 +64,27 @@ describe('storm city material handoff', () => {
     wall.geometry.dispose(); shop.geometry.dispose(); plaster.dispose(); interior.dispose();
     (wall.material as THREE.Material).dispose(); (shop.material as THREE.Material).dispose();
   });
+  it('keeps the actual midrise ivory and market metal below warm gameplay accents', () => {
+    const ivory = new THREE.MeshStandardMaterial({ name: 'midrise ivory columns' });
+    ivory.color.fromArray([.75, .63, .44]);
+    const metal = new THREE.MeshStandardMaterial({ name: 'pale_metal' });
+    metal.color.fromArray([.56, .56, .48]);
+    const amber = new THREE.MeshStandardMaterial({ name: 'midrise shop amber' });
+    amber.color.fromArray([.98, .71, .33]);
+    const root = new THREE.Group();
+    const meshes = [ivory, metal, amber].map(material => new THREE.Mesh(new THREE.BoxGeometry(), material));
+    root.add(...meshes);
+    gradeStormCityBuilding(root);
+    const brightness = (mesh: THREE.Mesh) => {
+      const color = (mesh.material as THREE.MeshStandardMaterial).color;
+      return color.r * .2126 + color.g * .7152 + color.b * .0722;
+    };
+    expect(brightness(meshes[0])).toBeLessThan(brightness(meshes[2]));
+    expect(brightness(meshes[1])).toBeLessThan(brightness(meshes[2]));
+    expect((meshes[0].material as THREE.MeshStandardMaterial).color.r).toBeLessThan(ivory.color.r * .65);
+    meshes.forEach(mesh => { mesh.geometry.dispose(); (mesh.material as THREE.Material).dispose(); });
+    ivory.dispose(); metal.dispose(); amber.dispose();
+  });
 });
 
 describe('gameplay accent selection', () => {

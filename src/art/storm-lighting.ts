@@ -2,6 +2,13 @@ import * as THREE from 'three';
 
 export const stormExposure = .99;
 export const gameplayAccentLayer = 1;
+const glbFacadeTargets: Readonly<Record<string, string>> = {
+  // The GLB base colors are linear; the earlier HSL pass still left these
+  // large planes near #c0b5a0 after sRGB output, brighter than native walls.
+  'midrise ivory columns': '#7d8b8c',
+  'sunlit cream plaster': '#89948e',
+  pale_metal: '#899392',
+};
 
 /** Keep layer 0 visible; render cameras also enable layer 1 to collect the accent light. */
 export function markGameplayAccentTarget(root: THREE.Object3D): void {
@@ -37,6 +44,8 @@ export function gradeStormCityBuilding(root: THREE.Object3D): void {
           material.color.lerp(new THREE.Color('#789196'), .27);
           material.color.offsetHSL(0, -.05, -.07);
         }
+        const target = glbFacadeTargets[material.name];
+        if (target) material.color.set(target);
         material.roughness = Math.max(material.roughness, .78);
       }
       graded.set(source, material);
@@ -59,11 +68,13 @@ export function createStormLighting(scene: THREE.Scene) {
   sky.width = 512; sky.height = 256;
   const context = sky.getContext('2d')!;
   const gradient = context.createLinearGradient(0, 0, 0, sky.height);
+  const horizonColor = '#6b9094';
   gradient.addColorStop(0, '#344a5b');
-  gradient.addColorStop(.10, '#668a93');
-  gradient.addColorStop(.20, '#70989b');
-  gradient.addColorStop(.42, '#70989b');
-  gradient.addColorStop(.62, '#83a4a5');
+  gradient.addColorStop(.10, '#5f818d');
+  gradient.addColorStop(.20, horizonColor);
+  gradient.addColorStop(.42, horizonColor);
+  gradient.addColorStop(.58, horizonColor);
+  gradient.addColorStop(.75, '#83a4a5');
   gradient.addColorStop(1, '#a3b9b2');
   context.fillStyle = gradient;
   context.fillRect(0, 0, sky.width, sky.height);
@@ -85,7 +96,7 @@ export function createStormLighting(scene: THREE.Scene) {
   const environment = skyTexture.clone();
   environment.mapping = THREE.EquirectangularReflectionMapping;
   environment.needsUpdate = true;
-  const fog = new THREE.Fog('#70989b', 43, 108);
+  const fog = new THREE.Fog(horizonColor, 48, 125);
   scene.background = skyTexture;
   scene.environment = environment;
   scene.environmentIntensity = .035;
