@@ -462,8 +462,8 @@ export class RoadRenderer {
           const variantSeed = (s.seed ^ Math.imul(section, 0x9e3779b1) ^ (side < 0 ? 0x63c6 : 0x487d)) >>> 0;
           art = bend ? createBendSceneryStrip(kind, side, bendPoses!, lod) :
             createSceneryCluster(kind, (side * -1) as -1 | 1, lod, variantSeed, seaEdges);
+          if (lod === 'near') optimizeNearScenery(art.root);
           if (!bend) {
-            if (lod === 'near') optimizeNearScenery(art.root);
             art.root.position.set(pose.x, 0, pose.z);
             art.root.rotation.y = Math.PI - pose.heading;
           }

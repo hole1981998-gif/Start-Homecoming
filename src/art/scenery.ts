@@ -38,8 +38,24 @@ export function createBendSceneryStrip(kind: LandscapeKind, side: -1 | 1,
         [-side * 2.92, kind === 'city' ? -.02 : .17, 0], trim);
     if (i % (lod === 'near' ? 6 : 8) !== 2) continue;
     const outward = side * 4.0;
-    if (kind === 'trees' || kind === 'city') {
-      const trunk = mat(kind === 'city' ? '#776e5d' : '#735f49');
+    if (kind === 'city') {
+      // Each 4 m piece follows the path; the frontage is much farther out than
+      // the road edge, so buildings can return to turns without blocking them.
+      const lot = new THREE.Group();
+      lot.name = `bend_city_lot_${i}`;
+      lot.position.x = side * 5.45;
+      segment.add(lot);
+      const module = Math.floor(i / (lod === 'near' ? 6 : 8)) % 3;
+      // The bend already has many independently rotated pieces. Keep the main
+      // silhouettes but omit tiny facade parts that multiply draw calls here.
+      const building = module === 0
+        ? house(lot, 'bend_corner_shop', 0, 0, 3.85, 2, 'warm', false, 'shop')
+        : module === 1
+          ? midrise(lot, 0, 0, false, 1)
+          : pocketPark(lot, 0, 0, false, side);
+      building.rotation.y = -side * Math.PI / 2;
+    } else if (kind === 'trees') {
+      const trunk = mat('#735f49');
       box(segment, `bend_tree_trunk_${i}`, [.28, 1.55, .28], [outward, .76, 0], trunk);
       const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 1), leaf);
       crown.name = `bend_tree_crown_${i}`;

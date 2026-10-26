@@ -35,6 +35,47 @@ describe('essential roadside scenery', () => {
       }
     }
   });
+  it('keeps city frontages on both turns without obscuring the driving corridor', () => {
+    const halfRoad = balance.laneWidth * balance.laneCount / 2;
+    for (const turn of ['left', 'right'] as const) {
+      const route = { ...initialRoute(), history: [{ distance: 800, turn }] };
+      const road = Array.from({ length: 105 }, (_, i) => pathPose(764 + i, route, 14));
+      for (const side of [-1, 1] as const) {
+        const samples = Array.from({ length: 24 }, (_, i) =>
+          pathPose(770 + i * 4, route, 14));
+        const art = createBendSceneryStrip('city', side, samples, 'near');
+        art.root.updateMatrixWorld(true);
+        expect(art.root.getObjectByName('bend_corner_shop')).toBeDefined();
+        expect(art.root.getObjectByName('midrise_apartments')).toBeDefined();
+        expect(art.root.getObjectByName('pocket_park')).toBeDefined();
+        art.root.traverse(object => {
+          if (!(object instanceof THREE.Mesh)) return;
+          const bounds = object.geometry.boundingBox ??
+            (object.geometry.computeBoundingBox(), object.geometry.boundingBox!);
+          for (const x of [bounds.min.x, bounds.max.x])
+            for (const z of [bounds.min.z, bounds.max.z]) {
+              const point = object.localToWorld(new THREE.Vector3(x, 0, z));
+              const clearance = Math.min(...road.map(pose =>
+                Math.hypot(point.x - pose.x, point.z - pose.z)));
+              expect(clearance).toBeGreaterThan(halfRoad);
+            }
+        });
+        const before = new THREE.Box3().setFromObject(art.root, true);
+        const meshCount = () => {
+          let count = 0;
+          art.root.traverse(object => { if (object instanceof THREE.Mesh) count++; });
+          return count;
+        };
+        const originalCount = meshCount();
+        optimizeNearScenery(art.root);
+        expect(meshCount()).toBeLessThan(originalCount);
+        const after = new THREE.Box3().setFromObject(art.root, true);
+        expect(after.min.distanceTo(before.min)).toBeLessThan(.001);
+        expect(after.max.distanceTo(before.max)).toBeLessThan(.001);
+        art.dispose();
+      }
+    }
+  });
   it('covers each 96 m section with continuous roadside ground', () => {
     const groundName: Record<LandscapeKind, string> = {
       city: 'sidewalk_base', trees: 'green_verge', cliffs: 'cliff_toe',
