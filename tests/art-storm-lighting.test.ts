@@ -92,12 +92,14 @@ describe('storm city material handoff', () => {
       new THREE.MeshStandardMaterial({ name: 'sunlit cream plaster' }));
     source.add(wall);
     gradeStormCityBuilding(source);
-    const placedA = source.clone(true), placedB = source.clone(true);
+    const placedA = source.clone(true), placedB = source.clone(true), placedC = source.clone(true);
     placedB.rotation.y = Math.PI;
     expect(shadePlacedStormCityFacades(placedA)).toBe(1);
     expect(shadePlacedStormCityFacades(placedB)).toBe(1);
+    expect(shadePlacedStormCityFacades(placedC, true)).toBe(1);
     expect(shadePlacedStormCityFacades(placedA)).toBe(0);
     const a = placedA.children[0] as THREE.Mesh, b = placedB.children[0] as THREE.Mesh;
+    const c = placedC.children[0] as THREE.Mesh;
     expect(a.geometry).not.toBe(wall.geometry);
     expect(a.geometry).not.toBe(b.geometry);
     expect(a.material).not.toBe(wall.material);
@@ -107,8 +109,10 @@ describe('storm city material handoff', () => {
       .find(i => wall.geometry.getAttribute('normal').getZ(i) > .9)!;
     const frontA = a.geometry.getAttribute('color').getX(frontIndex);
     const frontB = b.geometry.getAttribute('color').getX(frontIndex);
+    const frontC = c.geometry.getAttribute('color').getX(frontIndex);
     expect(frontA).not.toBe(frontB);
-    for (const mesh of [a, b, wall]) {
+    expect(frontC).toBeLessThan(frontA);
+    for (const mesh of [a, b, c, wall]) {
       mesh.geometry.dispose(); (mesh.material as THREE.Material).dispose();
     }
   });

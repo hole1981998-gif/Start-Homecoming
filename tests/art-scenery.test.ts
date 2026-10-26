@@ -4,8 +4,26 @@ import { balance } from '../src/config';
 import { landscapeColors, type LandscapeKind } from '../src/landscape';
 import { initialRoute, pathPose } from '../src/route';
 import { createBendSceneryStrip, createSceneryCluster, optimizeNearScenery, scenerySectionCrossesTurn } from '../src/art/scenery';
+import { shadePlacedStormCityFacades } from '../src/art/storm-lighting';
 
 describe('essential roadside scenery', () => {
+  it('shades broad code-native walls on the sunny roadside while leaving shop trim and opposite row alone', () => {
+    const right = createSceneryCluster('city', -1, 'near', 14);
+    const left = createSceneryCluster('city', 1, 'near', 14);
+    right.root.rotation.y = Math.PI;
+    left.root.rotation.y = Math.PI;
+    const rightWall = right.root.getObjectByName('plaster') as THREE.Mesh;
+    const leftWall = left.root.getObjectByName('plaster') as THREE.Mesh;
+    const trim = right.root.getObjectByName('plinth') as THREE.Mesh;
+    expect(rightWall).toBeDefined();
+    expect(trim).toBeDefined();
+    expect(shadePlacedStormCityFacades(right.root, true)).toBeGreaterThan(0);
+    expect(shadePlacedStormCityFacades(left.root, false)).toBe(0);
+    expect(rightWall.geometry.getAttribute('color')).toBeDefined();
+    expect(leftWall.geometry.getAttribute('color')).toBeUndefined();
+    expect(trim.geometry.getAttribute('color')).toBeUndefined();
+    right.dispose(); left.dispose();
+  });
   it('keeps rigid 96 m clusters off a chosen turn while retaining straight sections', () => {
     expect(scenerySectionCrossesTurn(8, [])).toBe(false);
     expect(scenerySectionCrossesTurn(8, [800])).toBe(true);

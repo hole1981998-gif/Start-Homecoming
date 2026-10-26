@@ -68,7 +68,7 @@ export function gradeStormCityBuilding(root: THREE.Object3D): void {
 }
 
 /** Bake cool ambient on imported wall faces after roadside placement, without moving the road's key light. */
-export function shadePlacedStormCityFacades(root: THREE.Object3D): number {
+export function shadePlacedStormCityFacades(root: THREE.Object3D, sunFacingRoadside = false): number {
   root.updateMatrixWorld(true);
   let shadedMeshes = 0;
   const normal = new THREE.Vector3();
@@ -76,6 +76,7 @@ export function shadePlacedStormCityFacades(root: THREE.Object3D): number {
   root.traverse(object => {
     if (!(object instanceof THREE.Mesh) || !(object.material instanceof THREE.MeshStandardMaterial) ||
       !object.material.userData.stormFacadePlane || object.geometry.userData.stormAmbientShaded) return;
+    if (object.material.userData.stormCodeFacade && !sunFacingRoadside) return;
     const normals = object.geometry.getAttribute('normal');
     if (!normals || object.geometry.getAttribute('color')) return;
     // Mounting already clones a placed lot. Only standalone synthetic clones
@@ -92,7 +93,10 @@ export function shadePlacedStormCityFacades(root: THREE.Object3D): number {
       normal.fromBufferAttribute(normals, i).applyMatrix3(normalMatrix).normalize();
       const wall = THREE.MathUtils.smoothstep(1 - Math.abs(normal.y), .15, .7);
       const sun = THREE.MathUtils.clamp(normal.dot(facadeKeyDirection), 0, 1);
-      const shade = wall * (.24 + .22 * (1 - sun));
+      // The road-facing row receives both the strong key and facade fill.
+      // Shape those broad walls with a cool cloud-side mask; leave roof and
+      // warm shop accents to their normal lighting response.
+      const shade = wall * (.24 + .22 * (1 - sun) + (sunFacingRoadside ? .16 * sun : 0));
       colors[i * 3] = Math.round(255 * (1 - shade * 1.12));
       colors[i * 3 + 1] = Math.round(255 * (1 - shade * .92));
       colors[i * 3 + 2] = Math.round(255 * (1 - shade * .72));

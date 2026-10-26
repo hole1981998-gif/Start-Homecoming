@@ -654,7 +654,8 @@ export class RoadRenderer {
             art.root.position.set(pose.x, 0, pose.z);
             art.root.rotation.y = Math.PI - pose.heading;
           }
-          if (!bend && kind === 'city' && lod === 'near') shadePlacedStormCityFacades(art.root);
+          if (!bend && kind === 'city' && lod === 'near')
+            shadePlacedStormCityFacades(art.root, side > 0);
           if (lod === 'near') optimizeNearScenery(art.root);
           art.root.traverse(object => { if (object instanceof THREE.Mesh) {
             object.receiveShadow = true;
