@@ -150,8 +150,14 @@ function batchStaticMeshes(root: THREE.Group, prefix = 'material_batch') {
 /** Merge static detail per top-level prop, preserving building/tree roots for placement. Call before placing the cluster. */
 export function optimizeNearScenery(root: THREE.Group): void {
   if (root.userData.lod !== 'near' || root.userData.optimized) return;
-  for (const child of root.children) if (child instanceof THREE.Group)
-    batchStaticMeshes(child, 'near_material_batch');
+  if (String(root.userData.id).startsWith('env_bend_')) {
+    // Bend pieces never move independently. Baking their transforms together
+    // keeps the curved silhouette while removing a draw call per short strip.
+    batchStaticMeshes(root, 'bend_material_batch');
+  } else {
+    for (const child of root.children) if (child instanceof THREE.Group)
+      batchStaticMeshes(child, 'near_material_batch');
+  }
   root.userData.optimized = true;
 }
 /** Swap one code-native city lot for a Blender export before batching. */
