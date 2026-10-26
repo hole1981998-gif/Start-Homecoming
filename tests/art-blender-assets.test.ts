@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { balance } from '../src/config';
-import { createSceneryCluster, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, optimizeNearScenery } from '../src/art/scenery';
+import { createSceneryCluster, mountBlenderCityMarket, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, optimizeNearScenery } from '../src/art/scenery';
 
 async function boundsOf(file: string) {
   const bytes = readFileSync(new URL(`../assets/art/${file}`, import.meta.url));
@@ -72,6 +72,29 @@ describe('editable Blender roadside exports', () => {
       if (side > 0) expect(bounds.min.x).toBeGreaterThan(edge);
       else expect(bounds.max.x).toBeLessThan(-edge);
       expect(art.root.getObjectByName('corner_shop')).toBeUndefined();
+      art.dispose();
+    }
+  });
+  it('replaces the wide storefront with the market outside both road edges', async () => {
+    const bytes = readFileSync(new URL('../assets/art/corner-market.glb', import.meta.url));
+    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const template = (await new GLTFLoader().parseAsync(buffer, '')).scene;
+    for (const seed of [0, 1, 2, 17]) for (const side of [-1, 1] as const) {
+      const art = createSceneryCluster('city', side, 'near', seed);
+      expect(mountBlenderCityMarket(art, template, side)).toBe(true);
+      expect(art.root.getObjectByName('wide_storefront')).toBeUndefined();
+      const market = art.root.getObjectByName('blender_market')!;
+      const bounds = new THREE.Box3().setFromObject(market);
+      const edge = balance.laneWidth * balance.laneCount / 2;
+      if (side > 0) expect(bounds.min.x).toBeGreaterThan(edge);
+      else expect(bounds.max.x).toBeLessThan(-edge);
+      expect(bounds.getSize(new THREE.Vector3()).z).toBeGreaterThan(9.4);
+      for (const name of ['narrow_two_storey', 'midrise_apartments', 'porch_house',
+        'corner_shop']) {
+        const neighbour = art.root.getObjectByName(name);
+        if (neighbour) expect(bounds.intersectsBox(new THREE.Box3().setFromObject(neighbour))).toBe(false);
+      }
+      optimizeNearScenery(art.root);
       art.dispose();
     }
   });
