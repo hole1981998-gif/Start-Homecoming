@@ -325,6 +325,7 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   };
   function setPose(pose: EssentialPose, phase = 0) {
     const t = Math.max(0, Math.min(1, phase));
+    const breath = Math.sin(phase * Math.PI * 2);
     hips.position.y = hipHeight;
     hips.rotation.set(0, 0, 0);
     torso.position.y = 0;
@@ -332,13 +333,19 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
     head.rotation.set(0, 0, 0);
     for (const part of [...arms, ...elbows, ...legs, ...knees]) part.rotation.set(0, 0, 0);
     if (pose === 'seated' || pose === 'riding') {
-      if (pose === 'seated') torso.position.y = -.19 * scale;
+      torso.position.y = (pose === 'seated' ? -.19 : 0) * scale + breath * .012 * scale;
+      torso.rotation.z = breath * .025;
+      head.rotation.y = Math.sin(phase * Math.PI * 2 + .8) * .055;
       for (let i = 0; i < 2; i++) { legs[i].rotation.x = pose === 'riding' ? -.77 : -1.25;
         knees[i].rotation.x = pose === 'riding' ? 1.0 : 1.33; }
       if (pose === 'riding') { torso.rotation.x = .22; arms[0].rotation.x = -.92; arms[1].rotation.x = -.92;
-        elbows[0].rotation.x = -.35; elbows[1].rotation.x = -.35; }
+        elbows[0].rotation.x = -.35 + breath * .035;
+        elbows[1].rotation.x = -.35 - breath * .035; }
     } else if (pose === 'stand') {
       const sway = .10 + Math.sin(phase * Math.PI * 2) * .10;
+      torso.position.y = breath * .012 * scale;
+      torso.rotation.z = breath * .025;
+      head.rotation.y = Math.sin(phase * Math.PI * 2 + .8) * .06;
       legs[0].rotation.x = sway; legs[1].rotation.x = -sway;
       arms[0].rotation.x = -sway * .75; arms[1].rotation.x = sway * .75;
       arms[0].rotation.z = -.28; arms[1].rotation.z = .28;
@@ -358,6 +365,8 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
       torso.rotation.z = stride * .035;
       head.rotation.z = -stride * .02;
     } else if (pose === 'hail') {
+      torso.position.y = breath * .012 * scale;
+      torso.rotation.z = breath * .02;
       arms[1].rotation.z = 2.35 + Math.sin(phase * Math.PI * 2) * .15;
       elbows[1].rotation.z = -.33;
       head.rotation.y = -.15;

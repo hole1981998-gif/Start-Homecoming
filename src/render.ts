@@ -21,7 +21,7 @@ import { passengerWindowPoses } from './art/passenger-windows';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
 import { roadsideArchetype, roadsidePose } from './art/runtime-people';
 import { driverCrashPose, passengerCrashPose } from './art/timing';
-import { createRidingBlenderDriver } from './art/blender-driver';
+import { createRidingBlenderDriver, type AnimatedBlenderDriver } from './art/blender-driver';
 import type { VehicleKind } from './vehicles';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
@@ -36,7 +36,9 @@ export class RoadRenderer {
   private playerArt = new Map<VehicleKind, VehicleArt>();
   private playerDrivers = new Map<VehicleKind, PersonArt>();
   private openPassengerModels = new Map<VehicleKind, Map<string, PersonArt>>();
-  private playerBlenderDrivers = new Map<VehicleKind, THREE.Group>();
+  private playerBlenderDrivers = new Map<VehicleKind, AnimatedBlenderDriver>();
+  private reduceMotion = typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   private driverTemplate: THREE.Group | null = null;
   private powerRing!: THREE.Mesh;
   private openFrame = new THREE.Group();
@@ -260,6 +262,7 @@ export class RoadRenderer {
       const torso = new THREE.Mesh(torsoGeometry, coats[i % coats.length]);
       torso.position.y = -.11; person.add(torso);
       const head = new THREE.Mesh(headGeometry, skin);
+      head.name = 'window_head';
       head.position.y = .13; person.add(head);
       person.visible = false; passengers.push(person);
     }
@@ -279,7 +282,7 @@ export class RoadRenderer {
       this.playerBlenderDrivers.set(kind, model);
     } catch { /* Keep the procedural driver if the delivered GLB has incompatible pivots. */ }
   }
-  private syncOpenPassengers(kind: VehicleKind, art: VehicleArt, riderIds: string[]): number {
+  private syncOpenPassengers(kind: VehicleKind, art: VehicleArt, riderIds: string[], visualTime: number): number {
     const seats = Array.isArray(art.seats) ? art.seats.slice(1) :
       'passenger' in art.seats ? [art.seats.passenger] : [];
     const visibleIds = riderIds.slice(0, seats.length);
@@ -295,6 +298,7 @@ export class RoadRenderer {
         models!.set(id, person);
       }
       mountPersonOnSeat(person, seats[index], kind === 'tricycle' ? 'seated' : 'riding');
+      person.setPose(kind === 'tricycle' ? 'seated' : 'riding', visualTime * .4 % 1);
       person.root.visible = true;
     });
     return seats.length;
@@ -365,6 +369,7 @@ export class RoadRenderer {
   }
   draw(s: Run, previous: Run, alpha: number): void {
     this.viewState = s;
+    const visualTime = this.reduceMotion ? 0 : s.activeSeconds;
     const vehicle = activeVehicle(s);
     this.powerRing.visible = hasStar(s) || hasBoost(s);
     (this.powerRing.material as THREE.MeshBasicMaterial).color.set(hasStar(s) ? '#f7df85' : '#86d6ec');
@@ -447,8 +452,9 @@ export class RoadRenderer {
     for (const [kind, driver] of this.playerDrivers) {
       const visible = kind === vehicle.kind && !s.crash;
       driver.root.visible = visible && !this.playerBlenderDrivers.has(kind);
+      if (visible) driver.setPose('riding', visualTime * .4 % 1);
       const model = this.playerBlenderDrivers.get(kind);
-      if (model) model.visible = visible;
+      if (model) { model.visible = visible; if (visible) model.setVisualTime(visualTime); }
     }
     const windowPoses = useSourceArt ? passengerWindowPoses(vehicle.kind, s.riderIds.length) : [];
     this.windowPassengers.forEach((person, i) => {
@@ -456,7 +462,7 @@ export class RoadRenderer {
       if (useSourceArt && windowPoses[i]) {
         const pose = windowPoses[i];
         person.position.set(pose.x, pose.y, pose.z);
-        person.rotation.z = -Math.sign(pose.x) * .22;
+        person.rotation.z = -Math.sign(pose.x) * .22 + Math.sin(visualTime * 2.2 + i) * .025;
         person.scale.setScalar(1);
       } else {
         // Prototype bodies stretch for large vehicles; the people do not.
@@ -465,18 +471,20 @@ export class RoadRenderer {
         person.position.z = vehicle.kind === 'truck' || vehicle.kind === 'container' ? -.36 + Math.floor(i / 2) * .18 :
           rows <= 1 ? 0 : -.58 + Math.floor(i / 2) * 1.16 / (rows - 1);
       }
+      person.getObjectByName('window_head')!.rotation.y = Math.sin(visualTime * 1.6 + i) * .08;
     });
     this.tractorPassengers.forEach((person, i) => {
       person.visible = articulated && !s.crash && i < s.riderIds.length;
       if (useSourceArt) person.position.set(-1.20, 2.19, -.78);
+      person.rotation.z = Math.sin(visualTime * 2.2 + i) * .025;
     });
     const modeledPassengers = useSourceArt && open ?
-      this.syncOpenPassengers(vehicle.kind, this.playerArt.get(vehicle.kind)!, s.riderIds) : 0;
+      this.syncOpenPassengers(vehicle.kind, this.playerArt.get(vehicle.kind)!, s.riderIds, visualTime) : 0;
     this.bikePassengers.forEach((person, i) => {
       person.visible = !s.crash && open && i < s.riderIds.length && (!useSourceArt || i >= modeledPassengers);
       person.position.set((i % 2 ? 1 : -1) * (.15 + Math.floor(i / 2) * .09),
         1.15 + Math.floor(i / 2) * .38, .65 + Math.floor(i / 2) * .32);
-      person.rotation.z = (i % 2 ? -1 : 1) * .16;
+      person.rotation.z = (i % 2 ? -1 : 1) * .16 + Math.sin(visualTime * 2.2 + i) * .025;
     });
     this.fallenDriver.visible = !!s.crash;
     if (s.crash) {
@@ -703,7 +711,12 @@ export class RoadRenderer {
       if (e.kind === 'jam') {
         const vendor = e.crossingRole === 'vendor' || e.width === movingBalance.vendorWidth;
         (entry.mesh.userData.barrierArt as HazardArt).root.visible = !vendor;
-        (entry.mesh.userData.vendorArt as MovingArt).root.visible = vendor;
+        const vendorArt = entry.mesh.userData.vendorArt as MovingArt;
+        vendorArt.root.visible = vendor;
+        if (vendor) {
+          vendorArt.setState(e.stunned ? 'stunned' : 'normal');
+          vendorArt.setVisualTime?.(visualTime, !!e.crossMotion);
+        }
       }
       if (e.kind === 'shop') entry.mesh.rotation.y += e.x > 0 ? -Math.PI / 2 : Math.PI / 2;
       if (e.kind === 'traffic') {
@@ -722,13 +735,17 @@ export class RoadRenderer {
         (entry.mesh.userData.movingArt as MovingArt).root.scale.x = (e.crossMotion?.velocity ?? 1) < 0 ? -1 : 1;
       }
       if (e.kind === 'police' || e.kind === 'militia') {
-        (entry.mesh.userData.movingArt as MovingArt).setState(e.stunned ? 'stunned' : 'normal');
+        const movingArt = entry.mesh.userData.movingArt as MovingArt;
+        movingArt.setState(e.stunned ? 'stunned' : 'normal');
+        movingArt.setVisualTime?.(visualTime, !!e.crossMotion);
       }
       if (e.kind === 'passenger') {
         (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
         const person = entry.mesh.userData.personArt as PersonArt;
         const visualPose = roadsidePose(e, s.activeSeconds);
-        person.setPose(visualPose.pose, visualPose.phase);
+        person.setPose(visualPose.pose, this.reduceMotion &&
+          (visualPose.pose === 'stand' || visualPose.pose === 'walk' || visualPose.pose === 'hail') ?
+          0 : visualPose.phase);
       }
       const baseWidth = e.kind === 'wind' ? 9.6 : e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'wind' ? 65 : e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;

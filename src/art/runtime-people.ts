@@ -20,7 +20,9 @@ export function roadsidePose(entity: Entity, activeSeconds: number): TimedPose {
     if (motion.crashRecovery) return passengerCrashPose(elapsed);
     if (elapsed < balance.passengerKickSeconds) return passengerCrashPose(elapsed);
   }
-  if (motion?.idle || !motion) return { pose: 'stand', phase: 0 };
+  if (motion?.idle || !motion) return {
+    pose: entity.pickupable === false ? 'stand' : 'hail', phase: activeSeconds * .35 % 1,
+  };
   const elapsed = Math.max(0, activeSeconds - motion.startedAt);
   return { pose: 'walk', phase: elapsed * .8 % 1 };
 }

@@ -59,6 +59,25 @@ describe('essential people art', () => {
     person.dispose();
   });
 
+  it('animates breathing in place for seated, riding and standing people', () => {
+    const person = createPersonArt('commuter');
+    const torso = person.root.getObjectByName('torso_pivot')!;
+    for (const pose of ['seated', 'riding', 'stand'] as const) {
+      person.setPose(pose, 0);
+      const rest = torso.position.y;
+      person.setPose(pose, .25);
+      expect(torso.position.y).toBeGreaterThan(rest);
+      person.setPose(pose, 0);
+      expect(torso.position.y).toBeCloseTo(rest);
+      expect(person.root.position.toArray()).toEqual([0, 0, 0]);
+    }
+    person.setPose('hail', .25);
+    const raisedArm = person.root.getObjectByName('shoulder_1')!.rotation.z;
+    person.setPose('hail', .75);
+    expect(person.root.getObjectByName('shoulder_1')!.rotation.z).toBeLessThan(raisedArm);
+    person.dispose();
+  });
+
   it('mounts a rider at the vehicle hip socket while preserving the vehicle root', () => {
     const bike = createTwoWheelerArt('motorcycle');
     const rider = createPersonArt('driver');
