@@ -203,6 +203,26 @@ export function mountBlenderCityMarket(art: SceneryArt, template: THREE.Object3D
   side: -1 | 1): boolean {
   return mountBlenderCityLot(art, template, side, 'wide_storefront', 'blender_market', 1.45);
 }
+/** Add the decorative skiff offshore, never in a bend or traffic lane. */
+export function mountBlenderCoastalBoat(art: SceneryArt, template: THREE.Object3D,
+  side: -1 | 1): boolean {
+  if (art.root.userData.id !== 'env_sea_A' || art.root.userData.lod !== 'near' ||
+    art.root.userData.optimized || !art.root.getObjectByName('harbor_jetty')) return false;
+  const boat = template.clone(true);
+  boat.name = 'blender_coastal_boat';
+  boat.position.set(side * 10.5, -.20, side < 0 ? 25 : 13);
+  boat.rotation.y = side * -.3;
+  boat.traverse(object => {
+    if (!(object instanceof THREE.Mesh)) return;
+    object.geometry = object.geometry.clone();
+    object.material = Array.isArray(object.material)
+      ? object.material.map(material => material.clone()) : object.material.clone();
+    object.castShadow = true;
+    object.receiveShadow = true;
+  });
+  art.root.add(boat);
+  return true;
+}
 function taper(parent: THREE.Object3D, name: string, top: number, bottom: number,
   height: number, pos: [number, number, number], material: THREE.Material, sides = 6) {
   const mesh = new THREE.Mesh(new THREE.CylinderGeometry(top, bottom, height, sides), material);
