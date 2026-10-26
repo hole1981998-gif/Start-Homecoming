@@ -14,6 +14,7 @@ import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './a
 import { createOfficerArt, createTrainArt, createVendorArt, type MovingArt } from './art/moving-events';
 import { createAccidentArt, createShopArt } from './art/special-hazards';
 import { createRoadTileArt } from './art/road-kit';
+import { createJunctionAsphaltMaterial, createJunctionTurnArt, type JunctionTurnArt } from './art/junction-turn';
 import { configureStormRenderer, createStormLighting, gameplayAccentLayer, gradeStormCityBuilding, shadePlacedStormCityFacades } from './art/storm-lighting';
 import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMarket, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, mountBlenderCoastalBoat, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
 import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
@@ -28,6 +29,7 @@ import { createCrashBlenderDriver, createRidingBlenderDriver, type AnimatedBlend
 import type { VehicleKind } from './vehicles';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
+  turnRoad: JunctionTurnArt;
   landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial>[] }
 
 export class RoadRenderer {
@@ -183,12 +185,20 @@ export class RoadRenderer {
     for (let i = 0; i < 2; i++) {
       const group = new THREE.Group(), straightStub = new THREE.Group();
       this.scene.add(group); group.add(straightStub);
-      // The cross street meets the outgoing road at the end of the quarter turn.
-      const crossStreet = box(90, .07, 9.6, '#33454b', group); crossStreet.position.set(0, -.055, -10.2);
-      const oldRoad = box(9.6, .04, 190, '#303e46', straightStub); oldRoad.position.set(0, -.08, -95);
+      // Continuous asphalt follows the chosen quarter turn and joins the cross street.
+      const turnRoad = createJunctionTurnArt(); group.add(turnRoad.root);
+      const oldRoad = new THREE.Mesh(new THREE.BoxGeometry(9.6, .04, 190),
+        createJunctionAsphaltMaterial());
+      oldRoad.position.set(0, -.08, -95);
+      oldRoad.receiveShadow = true;
+      straightStub.add(oldRoad);
+      const oldEdgeMaterial = new THREE.MeshStandardMaterial({ color: '#e0d7b3', roughness: 1 });
+      const oldLaneMaterial = new THREE.MeshStandardMaterial({ color: '#c5d3c4', roughness: 1 });
       for (const side of [-1, 1]) {
-        const edge = box(.12, .025, 150, '#d3d4bc', straightStub); edge.position.set(side * 4.9, -.035, -95);
-        const stripe = box(.09, .025, 150, '#9caeae', straightStub); stripe.position.set(side * balance.laneWidth / 2, -.035, -95);
+        const edge = new THREE.Mesh(new THREE.BoxGeometry(.12, .025, 150), oldEdgeMaterial);
+        edge.position.set(side * 4.9, -.035, -95); straightStub.add(edge);
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(.09, .025, 150), oldLaneMaterial);
+        stripe.position.set(side * balance.laneWidth / 2, -.035, -95); straightStub.add(stripe);
       }
       const landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial>[] = [];
       if (this.landscapeMaterials) {
@@ -203,7 +213,7 @@ export class RoadRenderer {
         }
       }
       const barrier = box(9.2, .7, .35, '#d39468', group); barrier.position.set(0, .36, -12);
-      this.crossings.push({ group, straightStub, barrier, landscapeStub });
+      this.crossings.push({ group, straightStub, barrier, turnRoad, landscapeStub });
     }
     this.scene.add(this.bike);
     this.bike.add(this.openFrame, this.tricycleFrame, this.closedFrame,
@@ -685,6 +695,8 @@ export class RoadRenderer {
       const crossingPose = pathPose(cross.distance - 8, s.route, s.seed);
       view.group.position.set(crossingPose.x, 0, crossingPose.z);
       view.group.rotation.y = -crossingPose.heading;
+      view.turnRoad.setTurn(index === s.route.index ? s.route.choice :
+        s.route.history.find(turn => turn.distance === cross.distance)?.turn ?? null);
       view.barrier.visible = cross.blockedStraight;
       view.straightStub.visible = index === s.route.index ? s.route.choice !== null :
         s.route.history.some(turn => turn.distance === cross.distance);
