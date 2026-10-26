@@ -26,3 +26,14 @@ export function roadsidePose(entity: Entity, activeSeconds: number): TimedPose {
   const elapsed = Math.max(0, activeSeconds - motion.startedAt);
   return { pose: 'walk', phase: elapsed * .8 % 1 };
 }
+
+/** Local yaw toward the tangent of the simulation's circular wander path. */
+export function roadsideWalkingYaw(entity: Entity, activeSeconds: number): number {
+  const motion = entity.passengerMotion;
+  if (!motion || roadsidePose(entity, activeSeconds).pose !== 'walk') return 0;
+  const elapsed = Math.max(0, activeSeconds - motion.startedAt);
+  const radius = balance.passengerWanderRadius / 2;
+  const angle = elapsed * balance.passengerWanderSpeed / radius + motion.phase;
+  // Entity distance grows down the road, whereas local +Z points toward the camera.
+  return angle + Math.PI;
+}

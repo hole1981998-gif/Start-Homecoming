@@ -20,7 +20,7 @@ import { createRainArt, createRainSplashArt, type RainArt } from './art/weather'
 import { createCloudShadowArt, type CloudShadowArt } from './art/cloud-shadows';
 import { passengerWindowPoses } from './art/passenger-windows';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
-import { roadsideArchetype, roadsidePose } from './art/runtime-people';
+import { roadsideArchetype, roadsidePose, roadsideWalkingYaw } from './art/runtime-people';
 import { driverCrashPose, passengerCrashPose } from './art/timing';
 import { createCrashBlenderDriver, createRidingBlenderDriver, type AnimatedBlenderDriver,
   type CrashBlenderDriver } from './art/blender-driver';
@@ -756,6 +756,7 @@ export class RoadRenderer {
         movingArt.setVisualTime?.(visualTime, !!e.crossMotion);
       }
       if (e.kind === 'passenger') {
+        entry.mesh.rotation.y += roadsideWalkingYaw(e, s.activeSeconds);
         (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
         const person = entry.mesh.userData.personArt as PersonArt;
         const visualPose = roadsidePose(e, s.activeSeconds);

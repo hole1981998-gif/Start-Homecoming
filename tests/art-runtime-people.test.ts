@@ -4,9 +4,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { balance } from '../src/config';
 import { createCrashBlenderDriver, createRidingBlenderDriver } from '../src/art/blender-driver';
-import { roadsideArchetype, roadsidePose } from '../src/art/runtime-people';
+import { roadsideArchetype, roadsidePose, roadsideWalkingYaw } from '../src/art/runtime-people';
 import { driverCrashPose } from '../src/art/timing';
-import { entity, passengerMotion } from '../src/world';
+import { advancePassengers, entity, passengerMotion } from '../src/world';
 
 describe('runtime people visuals', () => {
   it('casts the same rider consistently without consuming gameplay RNG', () => {
@@ -29,6 +29,23 @@ describe('runtime people visuals', () => {
     expect(roadsidePose(person, 30).phase).not.toBe(roadsidePose(person, 31).phase);
     person.pickupable = false;
     expect(roadsidePose(person, 30).pose).toBe('stand');
+  });
+
+  it('faces a walking passenger along its actual seeded wander path', () => {
+    const person = entity('passenger', 'walker', 40, -5);
+    person.passengerMotion = { ...passengerMotion(person, 0), idle: false };
+    const at = 2.4, step = .001;
+    advancePassengers([person], at);
+    const x = person.x, distance = person.distance;
+    const yaw = roadsideWalkingYaw(person, at);
+    advancePassengers([person], at + step);
+    const motionX = person.x - x, motionZ = -(person.distance - distance);
+    const magnitude = Math.hypot(motionX, motionZ);
+    expect((Math.sin(yaw) * motionX + Math.cos(yaw) * motionZ) / magnitude)
+      .toBeGreaterThan(.999);
+    expect(roadsideWalkingYaw(person, at)).toBe(yaw);
+    person.passengerMotion.idle = true;
+    expect(roadsideWalkingYaw(person, at)).toBe(0);
   });
 
   it('uses crash pose timing from simulation and returns to standing', () => {
