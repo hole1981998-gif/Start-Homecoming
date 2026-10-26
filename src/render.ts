@@ -17,6 +17,7 @@ import { createRoadTileArt } from './art/road-kit';
 import { configureStormRenderer, createStormLighting, gameplayAccentLayer, gradeStormCityBuilding } from './art/storm-lighting';
 import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
 import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
+import { passengerWindowPoses } from './art/passenger-windows';
 import type { VehicleKind } from './vehicles';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
@@ -33,6 +34,7 @@ export class RoadRenderer {
   private openFrame = new THREE.Group();
   private tricycleFrame = new THREE.Group();
   private closedFrame = new THREE.Group();
+  private windowPassengerFrame = new THREE.Group();
   private tractorFrame = new THREE.Group();
   private trailerFrame = new THREE.Group();
   private tractorPlaceholder = new THREE.Group();
@@ -155,7 +157,8 @@ export class RoadRenderer {
       this.crossings.push({ group, straightStub, barrier, landscapeStub });
     }
     this.scene.add(this.bike);
-    this.bike.add(this.openFrame, this.tricycleFrame, this.closedFrame, this.tractorFrame);
+    this.bike.add(this.openFrame, this.tricycleFrame, this.closedFrame,
+      this.windowPassengerFrame, this.tractorFrame);
     this.scene.add(this.trailerFrame);
     this.tractorFrame.add(this.tractorPlaceholder);
     this.trailerFrame.add(this.trailerPlaceholder);
@@ -165,7 +168,7 @@ export class RoadRenderer {
     for (const z of [-0.68, 0.68]) { const wheel = box(0.22, 0.48, 0.46, '#172126', this.openFrame); wheel.position.set(0, 0.25, z); }
     const shell = box(1, .8, 2, '#d0ad68', this.closedFrame); shell.position.y = .75;
     const cabin = box(.82, .48, 1.05, '#7a9a9e', this.closedFrame); cabin.position.set(0, 1.36, -.12);
-    this.windowPassengers = this.addWindowPassengers(this.closedFrame, 1, 2, balance.riderLimit, 1.24);
+    this.windowPassengers = this.addWindowPassengers(this.windowPassengerFrame, 1, 2, balance.riderLimit, 1.24);
     const tractorBase = box(1.65, .8, 4.1, '#d0ad68', this.tractorPlaceholder); tractorBase.position.y = .8;
     const tractorCab = box(1.55, 1.15, 2.5, '#d0ad68', this.tractorPlaceholder); tractorCab.position.set(0, 1.55, -.65);
     const tractorGlass = box(1.4, .55, .08, '#7a9a9e', this.tractorPlaceholder); tractorGlass.position.set(0, 1.75, -1.94);
@@ -221,8 +224,8 @@ export class RoadRenderer {
       person.position.set(side * (width * .5 + .08), height, z);
       person.rotation.z = -side * .22;
       const color = i % 2 ? '#d59b79' : '#9cb7a6';
-      const torso = this.makeBox(.3, .32, .28, color, person); torso.position.y = -.12;
-      const head = this.makeBox(.3, .3, .3, '#e6d8bd', person); head.position.y = .17;
+      const torso = this.makeBox(.23, .25, .22, color, person); torso.position.y = -.11;
+      const head = this.makeBox(.23, .23, .23, '#e6d8bd', person); head.position.y = .13;
       person.visible = false; passengers.push(person);
     }
     return passengers;
@@ -314,6 +317,8 @@ export class RoadRenderer {
     this.openFrame.visible = !useSourceArt && open && !tricycle;
     this.tricycleFrame.visible = !useSourceArt && tricycle;
     this.closedFrame.visible = !useSourceArt && !open && !articulated;
+    this.windowPassengerFrame.visible = !s.crash && !open && !articulated;
+    this.windowPassengerFrame.rotation.y = useSourceArt ? Math.PI : 0;
     this.tractorFrame.visible = articulated;
     this.trailerFrame.visible = articulated;
     this.tractorPlaceholder.visible = !useSourceArt;
@@ -360,15 +365,26 @@ export class RoadRenderer {
       -.34, .34);
     this.bike.rotation.set(0, -bodyPose.heading - yaw, lean, 'YXZ');
     this.rider.visible = !s.crash && open; this.helmet.visible = !s.crash && open;
+    const windowPoses = useSourceArt ? passengerWindowPoses(vehicle.kind, s.riderIds.length) : [];
     this.windowPassengers.forEach((person, i) => {
-      person.visible = !s.crash && !open && !articulated && i < s.riderIds.length;
-      // Vehicle footprint stretches for bus/container; people keep human-sized proportions.
-      person.scale.set(1 / scaleX, 1, 1 / scaleZ);
-      const rows = Math.ceil(s.riderIds.length / 2);
-      person.position.z = vehicle.kind === 'truck' || vehicle.kind === 'container' ? -.36 + Math.floor(i / 2) * .18 :
-        rows <= 1 ? 0 : -.58 + Math.floor(i / 2) * 1.16 / (rows - 1);
+      person.visible = i < s.riderIds.length && (!useSourceArt || i < windowPoses.length);
+      if (useSourceArt && windowPoses[i]) {
+        const pose = windowPoses[i];
+        person.position.set(pose.x, pose.y, pose.z);
+        person.rotation.z = -Math.sign(pose.x) * .22;
+        person.scale.setScalar(1);
+      } else {
+        // Prototype bodies stretch for large vehicles; the people do not.
+        person.scale.set(1 / scaleX, 1, 1 / scaleZ);
+        const rows = Math.ceil(s.riderIds.length / 2);
+        person.position.z = vehicle.kind === 'truck' || vehicle.kind === 'container' ? -.36 + Math.floor(i / 2) * .18 :
+          rows <= 1 ? 0 : -.58 + Math.floor(i / 2) * 1.16 / (rows - 1);
+      }
     });
-    this.tractorPassengers.forEach((person, i) => { person.visible = articulated && !s.crash && i < s.riderIds.length; });
+    this.tractorPassengers.forEach((person, i) => {
+      person.visible = articulated && !s.crash && i < s.riderIds.length;
+      if (useSourceArt) person.position.set(-1.20, 2.19, -.78);
+    });
     this.bikePassengers.forEach((person, i) => {
       person.visible = !s.crash && open && i < s.riderIds.length;
       person.position.set((i % 2 ? 1 : -1) * (.15 + Math.floor(i / 2) * .09),
