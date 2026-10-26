@@ -46,6 +46,20 @@ describe('moving event art uses prototype contracts', () => {
     expect(vendor.root.getObjectByName('vendor_damage')?.visible).toBe(true);
     vendor.dispose();
   });
+  it('cycles officer and vendor steps only from the supplied simulation time', () => {
+    for (const asset of [createOfficerArt('police'), createVendorArt()]) {
+      const leg = asset.root.getObjectByName('hip_leg_-1')!;
+      asset.setVisualTime!(.3125, true);
+      const moving = leg.rotation.x;
+      asset.setVisualTime!(.3125, true);
+      expect(leg.rotation.x).toBe(moving);
+      asset.setVisualTime!(.9375, true);
+      expect(leg.rotation.x).toBeLessThan(moving);
+      asset.setVisualTime!(.3125, false);
+      expect(Math.abs(leg.rotation.x)).toBeLessThan(Math.abs(moving));
+      asset.dispose();
+    }
+  });
   it('keeps the police shirt and full trousers in a bright warm uniform distinct from militia', () => {
     const police = createOfficerArt('police');
     const militia = createOfficerArt('militia');

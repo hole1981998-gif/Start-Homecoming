@@ -8,6 +8,7 @@ export interface MovingArt {
   root: THREE.Group;
   sockets: Record<string, THREE.Object3D>;
   setState: (state: 'normal' | 'stunned' | 'damaged') => void;
+  setVisualTime?: (activeSeconds: number, moving?: boolean) => void;
   dispose: () => void;
 }
 const mat = (color: string, metalness = 0) => new THREE.MeshStandardMaterial({
@@ -148,16 +149,23 @@ export function createOfficerArt(kind: 'police' | 'militia', lod: 'near' | 'far'
   }
   const mark = new THREE.Group(); mark.name = 'stunned_mark'; root.add(mark);
   box(mark, 'small_mark', [.23, .13, .16], [0, 1.97, 0], mat('#d9b568'));
+  let currentState: 'normal' | 'stunned' | 'damaged' = 'normal';
+  const setVisualTime = (activeSeconds: number, moving = false) => {
+    const phase = activeSeconds * (moving ? .8 : .35) % 1;
+    person.setPose(currentState === 'stunned' ? 'recover' : moving ? 'walk' : 'stand',
+      currentState === 'stunned' ? .35 : phase);
+  };
   const setState = (state: 'normal' | 'stunned' | 'damaged') => {
+    currentState = state;
     mark.visible = state === 'stunned';
-    person.setPose(state === 'stunned' ? 'recover' : 'stand');
+    setVisualTime(0, false);
   };
   setState('normal');
   root.userData = { ...root.userData, id: `chr_${kind}_A`, collisionRole: 'reference-only',
     npcWidthM: movingBalance.npcWidth, npcDepthM: movingBalance.npcDepth,
     motionSource: 'crossMotion' };
   markGameplayAccentTarget(root);
-  return { root, sockets: person.sockets, setState, dispose: () => disposeTree(root) };
+  return { root, sockets: person.sockets, setState, setVisualTime, dispose: () => disposeTree(root) };
 }
 
 /** One cart silhouette spans the existing 1.8 × 2.1 m vendor footprint. */
@@ -180,8 +188,14 @@ export function createVendorArt(lod: 'near' | 'far' = 'near'): MovingArt {
   seller.root.position.set(0, 0, -.68); root.add(seller.root);
   const damaged = new THREE.Group(); damaged.name = 'vendor_damage'; root.add(damaged);
   box(damaged, 'fallen_goods', [.38, .13, .32], [.54, .14, .82], fruit);
+  let currentState: 'normal' | 'stunned' | 'damaged' = 'normal';
+  const setVisualTime = (activeSeconds: number, moving = false) => {
+    seller.setPose(currentState === 'stunned' ? 'recover' : moving ? 'walk' : 'stand',
+      currentState === 'stunned' ? .35 : activeSeconds * (moving ? .8 : .35) % 1);
+  };
   const setState = (state: 'normal' | 'stunned' | 'damaged') => {
-    seller.setPose(state === 'stunned' ? 'recover' : 'stand');
+    currentState = state;
+    setVisualTime(0, false);
     damaged.visible = state === 'damaged';
   };
   setState('normal');
@@ -190,5 +204,5 @@ export function createVendorArt(lod: 'near' | 'far' = 'near'): MovingArt {
     motionSource: 'crossMotion', collisionRole: 'reference-only' };
   markGameplayAccentTarget(root);
   return { root, sockets: { contact: point(root, 'contact', [0, 0, 0]) },
-    setState, dispose: () => disposeTree(root) };
+    setState, setVisualTime, dispose: () => disposeTree(root) };
 }

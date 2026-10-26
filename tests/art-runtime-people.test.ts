@@ -23,6 +23,10 @@ describe('runtime people visuals', () => {
     expect(moving.pose).toBe('walk');
     expect(roadsidePose(person, 10.5)).toEqual(moving);
     person.passengerMotion.idle = true;
+    expect(roadsidePose(person, 30).pose).toBe('hail');
+    expect(roadsidePose(person, 30)).toEqual(roadsidePose(person, 30));
+    expect(roadsidePose(person, 30).phase).not.toBe(roadsidePose(person, 31).phase);
+    person.pickupable = false;
     expect(roadsidePose(person, 30).pose).toBe('stand');
   });
 
@@ -49,6 +53,11 @@ describe('runtime people visuals', () => {
     const original = torso(template).quaternion.clone();
     const driver = createRidingBlenderDriver(template);
     const bounds = new THREE.Box3().setFromObject(driver);
+    const seated = torso(driver).quaternion.clone();
+    driver.setVisualTime(.625);
+    expect(torso(driver).quaternion.equals(seated)).toBe(false);
+    driver.setVisualTime(0);
+    expect(torso(driver).quaternion.equals(seated)).toBe(true);
     expect(torso(driver).quaternion.equals(original)).toBe(false);
     expect(torso(template).quaternion.equals(original)).toBe(true);
     expect(bounds.getSize(new THREE.Vector3()).y).toBeGreaterThan(1);
