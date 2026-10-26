@@ -27,7 +27,10 @@ export function gradeStormCityBuilding(root: THREE.Object3D): void {
     if (!material) {
       material = source.clone();
       if (material instanceof THREE.MeshStandardMaterial) {
-        material.color.offsetHSL(0, -.10, -.09);
+        // Named GLB facades form the city's quiet midground. Preserve the
+        // warmer shop, foliage and roof accents that give the storm life.
+        const facade = /plaster|columns|paving|stone|concrete/i.test(material.name);
+        material.color.offsetHSL(0, facade ? -.16 : -.08, facade ? -.16 : -.07);
         material.roughness = Math.max(material.roughness, .78);
       }
       graded.set(source, material);
@@ -51,8 +54,8 @@ export function createStormLighting(scene: THREE.Scene) {
   const context = sky.getContext('2d')!;
   const gradient = context.createLinearGradient(0, 0, 0, sky.height);
   gradient.addColorStop(0, '#344a5b');
-  gradient.addColorStop(.18, '#557a84');
-  gradient.addColorStop(.35, '#608b91');
+  gradient.addColorStop(.18, '#70989b');
+  gradient.addColorStop(.35, '#7a9da0');
   gradient.addColorStop(.62, '#83a4a5');
   gradient.addColorStop(1, '#a3b9b2');
   context.fillStyle = gradient;
@@ -75,24 +78,24 @@ export function createStormLighting(scene: THREE.Scene) {
   const environment = skyTexture.clone();
   environment.mapping = THREE.EquirectangularReflectionMapping;
   environment.needsUpdate = true;
-  const fog = new THREE.Fog('#688d94', 43, 108);
+  const fog = new THREE.Fog('#70989b', 43, 108);
   scene.background = skyTexture;
   scene.environment = environment;
   scene.environmentIntensity = .035;
   scene.fog = fog;
 
-  const hemisphere = new THREE.HemisphereLight('#7da5b4', '#2a5267', .36);
+  const hemisphere = new THREE.HemisphereLight('#8daeb9', '#28566f', .39);
   const ambient = new THREE.AmbientLight('#5a91a3', .07);
-  const sun = new THREE.DirectionalLight('#ffe2c5', 3.08);
+  const sun = new THREE.DirectionalLight('#fff0de', 2.88);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.left = -34; sun.shadow.camera.right = 34;
   sun.shadow.camera.top = 48; sun.shadow.camera.bottom = -32;
   sun.shadow.camera.near = 1; sun.shadow.camera.far = 105;
   sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8;
-  const fill = new THREE.DirectionalLight('#55aaca', .10);
-  const sunBreak = new THREE.SpotLight('#ffe0be', 1120, 65, Math.PI / 3, 1, 2);
-  const facadeSun = new THREE.SpotLight('#ffe6cd', 275, 43, Math.PI / 4.2, .9, 2);
+  const fill = new THREE.DirectionalLight('#5babc8', .20);
+  const sunBreak = new THREE.SpotLight('#fff0da', 1050, 65, Math.PI / 3, 1, 2);
+  const facadeSun = new THREE.SpotLight('#fff1df', 245, 43, Math.PI / 4.2, .9, 2);
   const gameplayAccent = new THREE.DirectionalLight('#d6edf0', .72);
   gameplayAccent.layers.set(gameplayAccentLayer);
   scene.add(hemisphere, ambient, sun, sun.target, fill, fill.target,

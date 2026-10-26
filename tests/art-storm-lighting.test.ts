@@ -30,6 +30,22 @@ describe('storm city material handoff', () => {
     expect(a.material).toBe(graded);
     a.geometry.dispose(); b.geometry.dispose(); original.dispose(); graded.dispose();
   });
+  it('quiets broad facades more than small warm shop accents', () => {
+    const facade = new THREE.MeshStandardMaterial({ name: 'midrise ivory columns', color: '#d7ad91' });
+    const accent = new THREE.MeshStandardMaterial({ name: 'midrise shop amber', color: '#d7ad91' });
+    const root = new THREE.Group();
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(), facade);
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(), accent);
+    root.add(wall, sign);
+    gradeStormCityBuilding(root);
+    const luminance = (mesh: THREE.Mesh) =>
+      (mesh.material as THREE.MeshStandardMaterial).color.getHSL({ h: 0, s: 0, l: 0 }).l;
+    expect(luminance(sign) - luminance(wall)).toBeGreaterThan(.06);
+    expect(facade.color.equals(accent.color)).toBe(true);
+    wall.geometry.dispose(); sign.geometry.dispose();
+    facade.dispose(); accent.dispose();
+    (wall.material as THREE.Material).dispose(); (sign.material as THREE.Material).dispose();
+  });
 });
 
 describe('gameplay accent selection', () => {
