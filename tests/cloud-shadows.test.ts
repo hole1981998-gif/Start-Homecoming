@@ -63,7 +63,8 @@ describe('landscape ground and cloud shade', () => {
     expect(green(48, 48)).toBeGreaterThan(200);
     expect(green(0, 0)).toBe(0);
     expect(green(3, 48)).toBeLessThan(green(32, 48));
-    expect(material.opacity).toBeLessThan(.4);
+    expect(material.opacity).toBeGreaterThan(.4);
+    expect(material.opacity).toBeLessThan(.55);
     expect(material.depthWrite).toBe(false);
     art.dispose();
   });

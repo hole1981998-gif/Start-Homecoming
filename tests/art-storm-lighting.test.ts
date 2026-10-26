@@ -46,6 +46,24 @@ describe('storm city material handoff', () => {
     facade.dispose(); accent.dispose();
     (wall.material as THREE.Material).dispose(); (sign.material as THREE.Material).dispose();
   });
+  it('brings a sunlit cream GLB facade toward the storm palette without muting its shop interior', () => {
+    const plaster = new THREE.MeshStandardMaterial({ name: 'sunlit cream plaster', color: '#f2cc91' });
+    const interior = new THREE.MeshStandardMaterial({ name: 'warm shop interior', color: '#f2b85c' });
+    const root = new THREE.Group();
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(), plaster);
+    const shop = new THREE.Mesh(new THREE.BoxGeometry(), interior);
+    root.add(wall, shop);
+    const before = plaster.color.clone();
+    gradeStormCityBuilding(root);
+    const gradedWall = (wall.material as THREE.MeshStandardMaterial).color;
+    const gradedShop = (shop.material as THREE.MeshStandardMaterial).color;
+    const brightness = (color: THREE.Color) => color.r * .2126 + color.g * .7152 + color.b * .0722;
+    expect(brightness(gradedWall)).toBeLessThan(brightness(before) * .65);
+    expect(brightness(gradedShop)).toBeGreaterThan(brightness(gradedWall));
+    expect(plaster.color.equals(before)).toBe(true);
+    wall.geometry.dispose(); shop.geometry.dispose(); plaster.dispose(); interior.dispose();
+    (wall.material as THREE.Material).dispose(); (shop.material as THREE.Material).dispose();
+  });
 });
 
 describe('gameplay accent selection', () => {

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export const stormExposure = 1.05;
+export const stormExposure = .99;
 export const gameplayAccentLayer = 1;
 
 /** Keep layer 0 visible; render cameras also enable layer 1 to collect the accent light. */
@@ -31,6 +31,12 @@ export function gradeStormCityBuilding(root: THREE.Object3D): void {
         // warmer shop, foliage and roof accents that give the storm life.
         const facade = /plaster|columns|paving|stone|concrete/i.test(material.name);
         material.color.offsetHSL(0, facade ? -.16 : -.08, facade ? -.16 : -.07);
+        if (facade && /cream|ochre|warm.plaster/i.test(material.name)) {
+          // Imported cream walls are large and still blow out beneath the key.
+          // Blend toward storm teal while preserving their warmer local hue.
+          material.color.lerp(new THREE.Color('#789196'), .27);
+          material.color.offsetHSL(0, -.05, -.07);
+        }
         material.roughness = Math.max(material.roughness, .78);
       }
       graded.set(source, material);
@@ -54,8 +60,9 @@ export function createStormLighting(scene: THREE.Scene) {
   const context = sky.getContext('2d')!;
   const gradient = context.createLinearGradient(0, 0, 0, sky.height);
   gradient.addColorStop(0, '#344a5b');
-  gradient.addColorStop(.18, '#70989b');
-  gradient.addColorStop(.35, '#7a9da0');
+  gradient.addColorStop(.10, '#668a93');
+  gradient.addColorStop(.20, '#70989b');
+  gradient.addColorStop(.42, '#70989b');
   gradient.addColorStop(.62, '#83a4a5');
   gradient.addColorStop(1, '#a3b9b2');
   context.fillStyle = gradient;
@@ -95,7 +102,7 @@ export function createStormLighting(scene: THREE.Scene) {
   sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8;
   const fill = new THREE.DirectionalLight('#5babc8', .20);
   const sunBreak = new THREE.SpotLight('#fff0da', 1050, 65, Math.PI / 3, 1, 2);
-  const facadeSun = new THREE.SpotLight('#fff1df', 245, 43, Math.PI / 4.2, .9, 2);
+  const facadeSun = new THREE.SpotLight('#e6ece6', 140, 43, Math.PI / 4.2, .9, 2);
   const gameplayAccent = new THREE.DirectionalLight('#d6edf0', .72);
   gameplayAccent.layers.set(gameplayAccentLayer);
   scene.add(hemisphere, ambient, sun, sun.target, fill, fill.target,

@@ -61,7 +61,7 @@ export function createCloudShadowArt(): CloudShadowArt {
   const geometry = new THREE.PlaneGeometry(1, 1);
   geometry.rotateX(-Math.PI / 2);
   const material = new THREE.MeshBasicMaterial({
-    color: '#26343a', alphaMap: texture, opacity: .32,
+    color: '#203c4c', alphaMap: texture, opacity: .46,
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
   });
   const patches = Array.from({ length: visiblePatches }, (_, index) => {
