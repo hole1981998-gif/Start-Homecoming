@@ -162,6 +162,33 @@ describe('essential roadside scenery', () => {
     expect(art.root.getObjectByName('courtyard_shed_pitched_roof')).toBeDefined();
     art.dispose();
   });
+  it('gives code-native city masses a shaded side while keeping shop accents brighter', () => {
+    const color = (root: THREE.Object3D, name: string) =>
+      ((root.getObjectByName(name) as THREE.Mesh).material as THREE.MeshStandardMaterial).color;
+    const brightness = (value: THREE.Color) => value.r * .2126 + value.g * .7152 + value.b * .0722;
+    for (const roadsideSide of [-1, 1] as const) {
+      const art = createSceneryCluster('city', roadsideSide, 'near', 14);
+      for (const [rootName, body, shade] of [
+        ['narrow_two_storey', 'plaster', 'plaster_ambient_side'],
+        ['midrise_apartments', 'midrise_main_mass', 'midrise_ambient_side'],
+        ['wide_storefront', 'store_wide_mass', 'store_ambient_side'],
+      ]) {
+        const building = art.root.getObjectByName(rootName)!;
+        const shadeMesh = building.getObjectByName(shade) as THREE.Mesh;
+        // RoadRenderer rotates each rigid cluster by PI on a straight road.
+        expect(Math.sign(shadeMesh.position.x)).toBe(-roadsideSide);
+        expect(brightness(color(building, shade)))
+          .toBeLessThan(brightness(color(building, body)) * .8);
+      }
+      const house = art.root.getObjectByName('narrow_two_storey')!;
+      expect(brightness(color(house, 'plaster_upper_ambient')))
+        .toBeLessThan(brightness(color(house, 'plaster')) * .8);
+      const shop = art.root.getObjectByName('wide_storefront')!;
+      expect(brightness(color(shop, 'store_sign_inset')))
+        .toBeGreaterThan(brightness(color(shop, 'store_wide_mass')) * 1.5);
+      art.dispose();
+    }
+  });
   it('keeps seeded city variations deterministic and safely roadside', () => {
     const roadHalfWidth = balance.laneWidth * balance.laneCount / 2;
     const positions: number[] = [];

@@ -50,9 +50,9 @@ export function createBendSceneryStrip(kind: LandscapeKind, side: -1 | 1,
       // The bend already has many independently rotated pieces. Keep the main
       // silhouettes but omit tiny facade parts that multiply draw calls here.
       const building = module === 0
-        ? house(lot, 'bend_corner_shop', 0, 0, 3.85, 2, 'warm', false, 'shop')
+        ? house(lot, 'bend_corner_shop', 0, 0, 3.85, 2, 'warm', false, side, 'shop')
         : module === 1
-          ? midrise(lot, 0, 0, false, 1)
+          ? midrise(lot, 0, 0, false, 1, side)
           : pocketPark(lot, 0, 0, false, side);
       building.rotation.y = -side * Math.PI / 2;
     } else if (kind === 'trees') {
@@ -248,15 +248,26 @@ function roof(parent: THREE.Object3D, name: string, width: number, length: numbe
 }
 function house(parent: THREE.Object3D, name: string, x: number, z: number, width: number,
   floors: 1 | 2, palette: 'warm' | 'cool' | 'ochre', near: boolean,
-  use: 'home' | 'shop' = 'home') {
+  cameraSide: -1 | 1, use: 'home' | 'shop' = 'home') {
   const root = new THREE.Group(); root.name = name; root.position.set(x, 0, z); parent.add(root);
-  const wall = mat(palette === 'warm' ? '#ae9c8a' : palette === 'cool' ? '#829d99' : '#ae947c');
+  const wall = mat(palette === 'warm' ? '#897f78' : palette === 'cool' ? '#71898b' : '#8c7d6d');
+  const sideShade = mat(palette === 'warm' ? '#626b70' : palette === 'cool' ? '#536f78' : '#69686a');
+  const lowerWash = mat(palette === 'warm' ? '#766f6c' : palette === 'cool' ? '#617b80' : '#796f66');
+  const upperShade = mat(palette === 'warm' ? '#687176' : palette === 'cool' ? '#5a767d' : '#706e6d');
   const trim = mat(palette === 'warm' ? '#745b56' : palette === 'cool' ? '#486c70' : '#786153');
   const roofMat = mat(palette === 'warm' ? '#896658' : palette === 'cool' ? '#4d7076' : '#81635c');
   const glass = mat('#426b75'), wood = mat('#845e44'), flood = mat('#8a8977');
   const lit = mat('#f1c578'), shade = mat('#394e50'), frame = mat('#f0dfb8');
   const height = floors === 2 ? 5.8 : 3.25;
   box(root, 'plaster', [width, height, 4.3], [0, height / 2, 0], wall);
+  // Broad, quiet value planes keep the code-native facade from reading as one peach box.
+  // Recesses and glazing sit farther out, so the wash does not hide playable cues.
+  box(root, 'plaster_ambient_side', [.018, height - .34, 4.26],
+    [cameraSide * (width / 2 + .008), (height + .34) / 2, 0], sideShade);
+  box(root, 'plaster_lower_wash', [width - .18, 2.30, .018],
+    [0, 1.22, 2.155], lowerWash);
+  if (floors === 2) box(root, 'plaster_upper_ambient', [width - .20, 2.42, .018],
+    [0, 4.38, 2.155], upperShade);
   box(root, 'plinth', [width + .08, .34, 4.35], [0, .17, 0], trim);
   box(root, 'flood_stain', [width + .095, .12, 4.37], [0, .22, 0], flood);
   if (use === 'shop') {
@@ -359,13 +370,18 @@ function house(parent: THREE.Object3D, name: string, x: number, z: number, width
   return root;
 }
 function midrise(parent: THREE.Object3D, x: number, z: number, near: boolean,
-  palette: number) {
+  palette: number, cameraSide: -1 | 1) {
   const root = new THREE.Group(); root.name = 'midrise_apartments';
   root.position.set(x, 0, z); parent.add(root);
-  const wall = mat(['#aa998d', '#849e99', '#a89896'][palette]);
+  const wall = mat(['#847d79', '#70888a', '#827d7d'][palette]);
+  const sideShade = mat(['#596a70', '#516d76', '#606b73'][palette]);
+  const upperShade = mat(['#646e74', '#58757b', '#676e74'][palette]);
   const trim = mat(['#705c58', '#506f6c', '#755e68'][palette]);
   const glass = mat('#416b72'), shadow = mat('#384d50'), warm = mat('#e8bb74');
   box(root, 'midrise_main_mass', [5.7, 10.5, 5.0], [0, 5.25, 0], wall);
+  box(root, 'midrise_ambient_side', [.018, 10.2, 4.96],
+    [cameraSide * 2.858, 5.4, 0], sideShade);
+  box(root, 'midrise_upper_ambient', [5.47, 7.35, .018], [0, 6.83, 2.508], upperShade);
   box(root, 'midrise_stair_tower', [1.15, 11.55, 4.7], [-2.25, 5.78, -.12], trim);
   box(root, 'flat_roof_parapet', [6.1, .45, 5.45], [0, 10.65, 0], trim);
   box(root, 'rooftop_water_tank', [1.35, 1.08, 1.3], [1.45, 11.42, -.85], shadow);
@@ -404,18 +420,18 @@ function midrise(parent: THREE.Object3D, x: number, z: number, near: boolean,
   return root;
 }
 function backlotBlock(parent: THREE.Object3D, x: number, z: number,
-  style: 0 | 1 | 2, near: boolean) {
+  style: 0 | 1 | 2, near: boolean, cameraSide: -1 | 1) {
   const root = new THREE.Group(); root.name = `backlot_${style}`;
   root.position.set(x, 0, z); parent.add(root);
   const width = [6.3, 7.1, 5.7][style], depth = [5.8, 6.7, 6.2][style];
   const height = [7.1, 14.2, 9.3][style];
-  const wall = mat(['#a99b86', '#859d95', '#a99784'][style]);
-  const sideWall = mat(['#897e70', '#69837d', '#887565'][style]);
+  const wall = mat(['#837d74', '#71888a', '#84796e'][style]);
+  const sideWall = mat(['#5b6970', '#536f75', '#646a6b'][style]);
   const trim = mat(['#765d54', '#4e706b', '#785b54'][style]);
   const shade = mat('#354e53'), frame = mat('#dfd5b6');
   box(root, 'backlot_main', [width, height, depth], [0, height / 2, 0], wall);
   box(root, 'backlot_shaded_wing', [.24, height, depth + .08],
-    [-width * .48, height / 2, 0], sideWall);
+    [cameraSide * width * .48, height / 2, 0], sideWall);
   box(root, 'backlot_plinth', [width + .12, .36, depth + .10],
     [0, .18, 0], trim);
   box(root, 'backlot_vertical_bay', [.25, height - .38, .12],
@@ -488,13 +504,16 @@ function backlotBlock(parent: THREE.Object3D, x: number, z: number,
   return root;
 }
 function wideStorefront(parent: THREE.Object3D, x: number, z: number, near: boolean,
-  palette: number) {
+  palette: number, cameraSide: -1 | 1) {
   const root = new THREE.Group(); root.name = 'wide_storefront';
   root.position.set(x, 0, z); parent.add(root);
-  const wall = mat(['#ae9986', '#899f92', '#aa9a89'][palette]);
+  const wall = mat(['#8b8077', '#738a87', '#897f76'][palette]);
+  const sideShade = mat(['#5f6c70', '#547276', '#646c6d'][palette]);
   const trim = mat(['#805c53', '#54746f', '#7d6257'][palette]);
   const shadow = mat('#354b51'), glass = mat('#60959a'), warm = mat('#edc77f');
   box(root, 'store_wide_mass', [8.2, 3.35, 4.3], [0, 1.68, 0], wall);
+  box(root, 'store_ambient_side', [.018, 3.16, 4.26],
+    [cameraSide * 4.108, 1.68, 0], sideShade);
   box(root, 'store_roof_band', [8.6, .27, 4.65], [0, 3.45, 0], trim);
   roof(root, 'store_pitched_roof', 8.6, 4.65, 3.53, trim);
   box(root, 'store_signboard', [7.45, .53, .12], [0, 2.94, 2.27], trim);
@@ -652,7 +671,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     const jitter = (slot: number) => (variation(slot) - .5) * 1.4;
     const palette = (slot: number) => Math.floor(variation(slot + 23) * 3);
     const palettes = ['warm', 'cool', 'ochre'] as const;
-    const pavement = mat('#a9a88b'), curb = mat('#e0c8a4'), wall = mat('#aa9473');
+    const pavement = mat('#939a8e'), curb = mat('#c3bcaa'), wall = mat('#807971');
     const grass = mat('#6e9965');
     box(root, 'sidewalk_base', [4.5, .10, 96], [x(1.2), -.08, 0], pavement);
     box(root, 'sidewalk_curb', [.18, .22, 96], [x(-1.14), -.01, 0], curb);
@@ -680,22 +699,26 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       const setback = module === 2 && variantSeed === 0 ? 0 : variation(slot + 41) * 2.0;
       const yaw = (variation(slot + 54) - .5) * .16;
       let building: THREE.Object3D | undefined;
+      // Rigid clusters rotate another PI in RoadRenderer; the camera-facing
+      // local flank is therefore opposite to the roadside sign. Bend strips
+      // have no such extra rotation and pass their sign directly above.
+      const cameraSide = -side as -1 | 1;
       if (module === 0) building = house(root, 'narrow_two_storey', x(.55 + setback), z,
-        3.45 + variation(slot + 72) * .65, 2, palettes[palette(slot)], near);
-      else if (module === 1) building = midrise(root, x(.55 + setback), z, near, palette(slot));
+        3.45 + variation(slot + 72) * .65, 2, palettes[palette(slot)], near, cameraSide);
+      else if (module === 1) building = midrise(root, x(.55 + setback), z, near, palette(slot), cameraSide);
       else if (module === 2) building = house(root, 'porch_house', x(.48 + setback), z,
-        4.5, 1, palettes[palette(slot)], near);
+        4.5, 1, palettes[palette(slot)], near, cameraSide);
       else if (module === 3) building = wideStorefront(root, x(.48 + setback), z,
-        near, palette(slot));
+        near, palette(slot), cameraSide);
       else if (module === 4) pocketPark(root, x(3.7 + setback * .55), z, near, side);
       else building = house(root, 'corner_shop', x(.58 + setback), z,
         3.85 + variation(slot + 81) * .60, 2,
-        palettes[palette(slot)], near, 'shop');
+        palettes[palette(slot)], near, cameraSide, 'shop');
       if (building) building.rotation.y = -side * Math.PI / 2 + yaw;
     }
     for (const [i, z] of [[0, -18], [1, 7], [2, 30]] as const) {
       const block = backlotBlock(root, x(10.2 + variation(i + 89) * 2),
-        z + jitter(i + 9), i, near);
+        z + jitter(i + 9), i, near, -side as -1 | 1);
       block.rotation.y = -side * Math.PI / 2;
     }
     for (const z of [-11, 19]) {
