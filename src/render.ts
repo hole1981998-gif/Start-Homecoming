@@ -21,6 +21,7 @@ import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMarket, m
 import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
 import { createCloudShadowArt, type CloudShadowArt } from './art/cloud-shadows';
 import { createStormPostProcessing } from './art/storm-post';
+import { createRoadContactShadows } from './art/road-contact-shadows';
 import { passengerWindowPoses } from './art/passenger-windows';
 import { createWindStreakArt, type WindStreakArt } from './art/wind-streaks';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
@@ -42,6 +43,9 @@ export class RoadRenderer {
   private camera = new THREE.PerspectiveCamera(52, 9 / 16, 0.1, 180);
   private stormLighting: ReturnType<typeof createStormLighting>;
   private stormPost: ReturnType<typeof createStormPostProcessing>;
+  private contactShadows = createRoadContactShadows();
+  private playerShadow!: THREE.Mesh;
+  private trailerShadow!: THREE.Mesh;
   private bike = new THREE.Group();
   private playerArt = new Map<VehicleKind, VehicleArt>();
   private playerDrivers = new Map<VehicleKind, PersonArt>();
@@ -212,6 +216,10 @@ export class RoadRenderer {
       this.crossings.push({ group, straightStub, barrier, turnRoad, landscapeStub });
     }
     this.scene.add(this.bike);
+    this.playerShadow = this.contactShadows.create();
+    this.trailerShadow = this.contactShadows.create();
+    this.trailerShadow.visible = false;
+    this.scene.add(this.playerShadow, this.trailerShadow);
     this.bike.add(this.openFrame, this.tricycleFrame, this.closedFrame,
       this.windowPassengerFrame, this.tractorFrame);
     this.scene.add(this.trailerFrame);
@@ -388,6 +396,13 @@ export class RoadRenderer {
       const art = createPropHazardArt(kind === 'fuel' ? 'fuel' : 'repair');
       g.add(art.root); g.userData.hazardArt = art;
     }
+    if (kind === 'traffic' || kind === 'cargo' || kind === 'accident' || kind === 'jam' ||
+      kind === 'police' || kind === 'militia' || kind === 'broken' ||
+      kind === 'fuel' || kind === 'repair') {
+      const shadow = this.contactShadows.create();
+      this.scene.add(shadow);
+      g.userData.roadContactShadow = shadow;
+    }
     this.scene.add(g); return g;
   }
   draw(s: Run, previous: Run, alpha: number): void {
@@ -468,11 +483,17 @@ export class RoadRenderer {
       this.trailerFrame.position.set(trailerPose.x + Math.cos(trailerPose.heading) * parts.trailerX,
         jumpHeight(s), trailerPose.z + Math.sin(trailerPose.heading) * parts.trailerX);
       this.trailerFrame.rotation.set(0, -trailerPose.heading - parts.trailerYaw, 0, 'YXZ');
+      this.contactShadows.place(this.trailerShadow, this.trailerFrame.position.x,
+        this.trailerFrame.position.z, this.trailerFrame.rotation.y, vehicle.width * 1.18, 10.8);
     }
+    this.trailerShadow.visible = !!parts;
     const lateralAcceleration = (s.lateralVelocity - previous.lateralVelocity) / balance.fixedStep;
     const lean = THREE.MathUtils.clamp(-(s.lateralVelocity * .035 + lateralAcceleration * .012) * vehicle.leanFactor,
       -.34, .34);
     this.bike.rotation.set(0, -bodyPose.heading - yaw, lean, 'YXZ');
+    this.contactShadows.place(this.playerShadow, this.bike.position.x,
+      this.bike.position.z, this.bike.rotation.y, vehicle.width * 1.18,
+      articulated ? 5.4 : vehicle.length * 1.16);
     this.rider.visible = !useSourceArt && !s.crash && open;
     this.helmet.visible = !useSourceArt && !s.crash && open;
     for (const [kind, driver] of this.playerDrivers) {
@@ -745,6 +766,9 @@ export class RoadRenderer {
         entityPose.z + Math.sin(entityPose.heading) * entityX);
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
+      const contactShadow = entry.mesh.userData.roadContactShadow as THREE.Mesh | undefined;
+      if (contactShadow) this.contactShadows.place(contactShadow, entry.mesh.position.x,
+        entry.mesh.position.z, entry.mesh.rotation.y, e.width * 1.2, e.length * 1.18);
       if (e.kind === 'cargo') {
         (entry.mesh.userData.cargoCrate as HazardArt).root.visible = e.cargoType !== 'barrel';
         (entry.mesh.userData.cargoBarrel as HazardArt).root.visible = e.cargoType === 'barrel';
@@ -803,6 +827,8 @@ export class RoadRenderer {
     }
     for (const [id, entry] of this.entityMeshes) if (!live.has(id)) {
       entry.mesh.visible = false;
+      const contactShadow = entry.mesh.userData.roadContactShadow as THREE.Mesh | undefined;
+      if (contactShadow) contactShadow.visible = false;
       if (entry.kind === 'water' || entry.kind === 'pothole') {
         this.scene.remove(entry.mesh);
         (entry.mesh.userData.hazardArt as HazardArt).dispose();
@@ -846,6 +872,7 @@ export class RoadRenderer {
     this.observer.disconnect();
     this.stormLighting.dispose();
     this.stormPost.dispose();
+    this.contactShadows.dispose();
     if (this.cloudShadows) { this.scene.remove(this.cloudShadows.root); this.cloudShadows.dispose(); }
     for (const art of [this.rain, this.rainSplashes]) if (art) { this.scene.remove(art.root); art.dispose(); }
     for (const art of this.scenery.values()) { this.scene.remove(art.root); art.dispose(); }
