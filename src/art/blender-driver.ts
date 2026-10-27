@@ -90,6 +90,17 @@ export function createCrashBlenderDriver(template: THREE.Group): CrashBlenderDri
         rotate(legs[0], 0, -.32);
         rotate(legs[1], 0, .30);
       } else knees.forEach(knee => rotate(knee!, .52 * (1 - recovery)));
+    } else if (pose === 'run') {
+      const stride = Math.sin(t * Math.PI * 2);
+      hips.position.y = hipRestY + Math.abs(stride) * .055;
+      rotate(torso, .12, stride * .045);
+      rotate(legs[0], stride * .86);
+      rotate(legs[1], -stride * .86);
+      rotate(knees[0]!, Math.max(0, -stride) * .82);
+      rotate(knees[1]!, Math.max(0, stride) * .82);
+      rotate(arms[0], -stride * .62 - .13);
+      rotate(arms[1], stride * .62 - .13);
+      elbows.forEach(elbow => rotate(elbow!, -.25));
     }
   };
   driver.setTimedPose({ pose: 'stand', phase: 0 });

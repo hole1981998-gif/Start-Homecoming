@@ -11,7 +11,8 @@ import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, roadsideRegion
 import { attachArticulatedContainerArt, attachVehicleArtToPrototype } from './art/prototype-adapter';
 import { createVehicleArt, type VehicleArt } from './art/vehicle-catalog';
 import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './art/hazards';
-import { createOfficerArt, createTrainArt, createVendorArt, type MovingArt } from './art/moving-events';
+import { createOfficerArt, createTrainArt, createVendorArt, crossingVisualYaw,
+  type MovingArt } from './art/moving-events';
 import { createAccidentArt, createShopArt } from './art/special-hazards';
 import { createRoadTileArt } from './art/road-kit';
 import { createJunctionAsphaltMaterial, createJunctionTurnArt, type JunctionTurnArt } from './art/junction-turn';
@@ -25,7 +26,8 @@ import { createWindStreakArt, type WindStreakArt } from './art/wind-streaks';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
 import { openPassengerSeat } from './art/open-passengers';
 import { roadsideArchetype, roadsidePose, roadsideWalkingYaw } from './art/runtime-people';
-import { driverCrashPose, passengerCrashPose } from './art/timing';
+import { driverCrashPose, driverVisualReturnProgress, passengerVisualReturnProgress,
+  returningPassengerPose } from './art/timing';
 import { createCrashBlenderDriver, createRidingBlenderDriver, type AnimatedBlenderDriver,
   type CrashBlenderDriver } from './art/blender-driver';
 import type { VehicleKind } from './vehicles';
@@ -344,7 +346,6 @@ export class RoadRenderer {
       g.add(art.root); g.userData.movingArt = art;
     } else if (kind === 'police' || kind === 'militia') {
       const art = createOfficerArt(kind);
-      art.root.rotation.y = Math.PI;
       g.add(art.root); g.userData.movingArt = art;
     } else if (isSpecial(kind)) {
       if (kind === 'accident') {
@@ -530,8 +531,9 @@ export class RoadRenderer {
     }
     if (s.crash) {
       const { elapsed, side, originDistance, impactSpeed, returningRiderIds } = s.crash;
+      const crashPose = driverCrashPose(elapsed);
       const ejection = Math.min(1, elapsed / balance.driverFallSeconds);
-      const returnProgress = Math.max(0, Math.min(1, (elapsed - balance.driverFallSeconds - balance.driverPauseSeconds) / balance.driverReturnSeconds));
+      const returnProgress = driverVisualReturnProgress(elapsed);
       const away = ejection * (1 - returnProgress);
       const ejectedDistance = originDistance + impactSpeed * balance.driverEjectionSpeedFactor *
         Math.min(elapsed, balance.driverFallSeconds);
@@ -540,7 +542,11 @@ export class RoadRenderer {
       const driverX = x + side * (.65 + balance.driverEjectionLateralMetres * away);
       this.fallenDriver.position.set(fallenPose.x + Math.cos(fallenPose.heading) * driverX, 0,
         fallenPose.z + Math.sin(fallenPose.heading) * driverX);
-      this.fallenDriver.rotation.set(0, -fallenPose.heading, side * 1.25 * away, 'YXZ');
+      const driverRise = crashPose.pose === 'recover' ? 1 - crashPose.phase :
+        crashPose.pose === 'run' ? 0 : 1;
+      const driverYaw = crashPose.pose === 'run' ? Math.atan2(playerX - this.fallenDriver.position.x,
+        playerZ - this.fallenDriver.position.z) : -fallenPose.heading;
+      this.fallenDriver.rotation.set(0, driverYaw, side * 1.25 * ejection * driverRise, 'YXZ');
       // Lost passengers already exist as roadside entities; only animate those returning to the vehicle.
       for (let i = 0; i < returningRiderIds.length; i++) {
         const id = returningRiderIds[i];
@@ -549,17 +555,20 @@ export class RoadRenderer {
           person = createPersonArt(roadsideArchetype(id), 'far');
           this.scene.add(person.root); this.fallenPassengerModels.set(id, person);
         }
-        const timed = passengerCrashPose(elapsed);
+        const timed = returningPassengerPose(elapsed);
         person.setPose(timed.pose, timed.phase);
-        const passengerReturn = returnProgress;
+        const passengerReturn = passengerVisualReturnProgress(elapsed);
         const passengerDistance = THREE.MathUtils.lerp(ejectedDistance + .7 + i * .8, distance,
           passengerReturn);
         const pose = pathPose(passengerDistance, s.route, s.seed);
         const lateral = x + side * (1.3 + i * .45) * (1 - passengerReturn);
         person.root.position.set(pose.x + Math.cos(pose.heading) * lateral, 0,
           pose.z + Math.sin(pose.heading) * lateral);
-        const topple = 1 - passengerReturn;
-        person.root.rotation.set(0, -pose.heading, -side * .85 * Math.min(1, ejection) * topple, 'YXZ');
+        const passengerRise = timed.pose === 'recover' ? 1 - timed.phase :
+          timed.pose === 'run' || timed.pose === 'stand' ? 0 : 1;
+        const passengerYaw = timed.pose === 'run' ? Math.atan2(playerX - person.root.position.x,
+          playerZ - person.root.position.z) : -pose.heading;
+        person.root.rotation.set(0, passengerYaw, -side * .85 * ejection * passengerRise, 'YXZ');
       }
     }
     // Camera follows the centerline tangent, so Q/E visibly bends the road and the bike.
@@ -758,6 +767,7 @@ export class RoadRenderer {
         const vendorArt = entry.mesh.userData.vendorArt as MovingArt;
         vendorArt.root.visible = vendor;
         if (vendor) {
+          vendorArt.root.rotation.y = e.crossMotion ? crossingVisualYaw(e.crossMotion, s.activeSeconds) : 0;
           vendorArt.setState(e.stunned ? 'stunned' : 'normal');
           vendorArt.setVisualTime?.(visualTime, !!e.crossMotion);
         }
@@ -780,6 +790,7 @@ export class RoadRenderer {
       }
       if (e.kind === 'police' || e.kind === 'militia') {
         const movingArt = entry.mesh.userData.movingArt as MovingArt;
+        movingArt.root.rotation.y = e.crossMotion ? crossingVisualYaw(e.crossMotion, s.activeSeconds) : 0;
         movingArt.setState(e.stunned ? 'stunned' : 'normal');
         movingArt.setVisualTime?.(visualTime, !!e.crossMotion);
       }

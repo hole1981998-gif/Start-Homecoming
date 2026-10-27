@@ -5,7 +5,7 @@ export type PersonArchetype = 'driver' | 'commuter' | 'student' | 'child' | 'sen
 export const passengerArchetypes = ['commuter', 'student', 'child', 'childRain',
   'teenHood', 'office', 'active', 'worker', 'parent', 'caretaker', 'senior',
   'elderPoncho'] as const satisfies readonly PersonArchetype[];
-export type EssentialPose = 'stand' | 'walk' | 'seated' | 'riding' | 'hail' | 'ejected' |
+export type EssentialPose = 'stand' | 'walk' | 'run' | 'seated' | 'riding' | 'hail' | 'ejected' |
   'grounded' | 'recover' | 'refuse';
 export interface PersonArt {
   root: THREE.Group;
@@ -352,20 +352,21 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
       arms[1].rotation.x -= breath * .055;
       arms[0].rotation.z = -.28; arms[1].rotation.z = .28;
       elbows[0].rotation.z = .25; elbows[1].rotation.z = -.25;
-    } else if (pose === 'walk') {
+    } else if (pose === 'walk' || pose === 'run') {
+      const running = pose === 'run';
       const stride = Math.sin(t * Math.PI * 2);
-      hips.position.y = hipHeight + Math.abs(stride) * .018 * scale;
-      legs[0].rotation.x = stride * .54;
-      legs[1].rotation.x = -stride * .54;
-      knees[0].rotation.x = Math.max(0, -stride) * .56;
-      knees[1].rotation.x = Math.max(0, stride) * .56;
-      arms[0].rotation.x = -stride * .43 - .13;
-      arms[1].rotation.x = stride * .43 - .13;
+      hips.position.y = hipHeight + Math.abs(stride) * (running ? .055 : .018) * scale;
+      legs[0].rotation.x = stride * (running ? .86 : .54);
+      legs[1].rotation.x = -stride * (running ? .86 : .54);
+      knees[0].rotation.x = Math.max(0, -stride) * (running ? .82 : .56);
+      knees[1].rotation.x = Math.max(0, stride) * (running ? .82 : .56);
+      arms[0].rotation.x = -stride * (running ? .62 : .43) - .13;
+      arms[1].rotation.x = stride * (running ? .62 : .43) - .13;
       arms[0].rotation.z = -.28; arms[1].rotation.z = .28;
       elbows[0].rotation.x = -.22 - Math.max(0, stride) * .10;
       elbows[1].rotation.x = -.22 - Math.max(0, -stride) * .10;
       elbows[0].rotation.z = .25; elbows[1].rotation.z = -.25;
-      torso.rotation.x += .035;
+      torso.rotation.x += running ? .12 : .035;
       torso.rotation.z = stride * .045;
       head.rotation.z = -stride * .025;
     } else if (pose === 'hail') {
