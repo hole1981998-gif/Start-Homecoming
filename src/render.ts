@@ -196,14 +196,6 @@ export class RoadRenderer {
       oldRoad.position.set(0, -.08, -95);
       oldRoad.receiveShadow = true;
       straightStub.add(oldRoad);
-      const oldEdgeMaterial = new THREE.MeshStandardMaterial({ color: '#e0d7b3', roughness: 1 });
-      const oldLaneMaterial = new THREE.MeshStandardMaterial({ color: '#c5d3c4', roughness: 1 });
-      for (const side of [-1, 1]) {
-        const edge = new THREE.Mesh(new THREE.BoxGeometry(.12, .025, 150), oldEdgeMaterial);
-        edge.position.set(side * 4.9, -.035, -95); straightStub.add(edge);
-        const stripe = new THREE.Mesh(new THREE.BoxGeometry(.09, .025, 150), oldLaneMaterial);
-        stripe.position.set(side * balance.laneWidth / 2, -.035, -95); straightStub.add(stripe);
-      }
       const landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial>[] = [];
       if (this.landscapeMaterials) {
         const shoulderGeometry = new THREE.PlaneGeometry(30, 1);

@@ -53,13 +53,11 @@ export function createJunctionAsphaltMaterial(): THREE.MeshPhysicalMaterial {
     clearcoat: .39, clearcoatRoughness: .31, flatShading: true, side: THREE.DoubleSide });
 }
 
-/** Asphalt and edge lines bridge the hidden road tiles across the 16 m Q/E arc. */
+/** Asphalt bridges the hidden road tiles across the 16 m Q/E arc. */
 export function createJunctionTurnArt(): JunctionTurnArt {
   const root = new THREE.Group(); root.name = 'junction_turn_road';
   root.userData.collisionRole = 'decorative-only';
   const asphalt = createJunctionAsphaltMaterial();
-  const edge = new THREE.MeshStandardMaterial({ color: '#e0d7b3', roughness: 1,
-    side: THREE.DoubleSide });
   const crossStreet = new THREE.Mesh(new THREE.BoxGeometry(90, .07, roadWidth), asphalt);
   crossStreet.name = 'junction_cross_street';
   crossStreet.position.set(0, -.055, -10.2);
@@ -72,11 +70,8 @@ export function createJunctionTurnArt(): JunctionTurnArt {
     surface.name = `turn_surface_${turn ?? 'straight'}`;
     surface.receiveShadow = true;
     group.add(surface);
-    for (const side of [-1, 1]) {
-      const line = new THREE.Mesh(ribbon(turn, side * (roadWidth / 2 + .06), .12, .027), edge);
-      line.name = `turn_edge_${turn ?? 'straight'}_${side}`;
-      group.add(line);
-    }
+    // Long edge ribbons cut across the cross street before a choice and fold
+    // over the abandoned straight after Q/E. Road-tile marks resume beyond it.
     root.add(group); variants.set(turn, group);
   }
   const setTurn = (turn: Turn | null) => {
@@ -85,6 +80,6 @@ export function createJunctionTurnArt(): JunctionTurnArt {
   setTurn(null);
   return { root, setTurn, dispose: () => {
     root.traverse(object => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
-    asphalt.dispose(); edge.dispose();
+    asphalt.dispose();
   } };
 }
