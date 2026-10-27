@@ -149,11 +149,32 @@ export function createOfficerArt(kind: 'police' | 'militia', lod: 'near' | 'far'
   }
   const mark = new THREE.Group(); mark.name = 'stunned_mark'; root.add(mark);
   box(mark, 'small_mark', [.23, .13, .16], [0, 1.97, 0], mat('#d9b568'));
+  const signalArm = root.getObjectByName('shoulder_1')!;
+  const signalElbow = root.getObjectByName('elbow_1')!;
+  const torso = root.getObjectByName('torso_pivot')!;
+  const head = root.getObjectByName('head_pivot')!;
   let currentState: 'normal' | 'stunned' | 'damaged' = 'normal';
   const setVisualTime = (activeSeconds: number, moving = false) => {
     const phase = activeSeconds * (moving ? .8 : .35) % 1;
     person.setPose(currentState === 'stunned' ? 'recover' : moving ? 'walk' : 'stand',
       currentState === 'stunned' ? .35 : phase);
+    if (currentState === 'stunned') return;
+    const beat = Math.sin(activeSeconds * (kind === 'police' ? 2.2 : 3.1));
+    if (kind === 'police') {
+      // Open hand toward the lane: a clear stop signal even between footsteps.
+      signalArm.rotation.x = -1.12 + beat * .09;
+      signalArm.rotation.z = .20;
+      signalElbow.rotation.x = -.25 - beat * .08;
+      torso.rotation.y = -.10 + beat * .025;
+      head.rotation.y += .14;
+    } else {
+      // The militia waves traffic through with a higher, wider sweep.
+      signalArm.rotation.x = -.36;
+      signalArm.rotation.z = 1.42 + beat * .28;
+      signalElbow.rotation.z = -.55 + beat * .16;
+      torso.rotation.y = .13 + beat * .035;
+      head.rotation.y -= .12;
+    }
   };
   const setState = (state: 'normal' | 'stunned' | 'damaged') => {
     currentState = state;
@@ -175,10 +196,15 @@ export function createVendorArt(lod: 'near' | 'far' = 'near'): MovingArt {
   const fruit = mat('#de9956');
   box(root, 'cart_tray', [1.5, .18, 1.25], [0, .78, .19], wood);
   box(root, 'cart_lower', [1.24, .53, .98], [0, .46, .19], canvas);
+  const wheels: THREE.Mesh[] = [];
   for (const side of [-1, 1]) {
     const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.23, .23, .11, 8), dark);
-    wheel.name = `cart_wheel_${side}`; wheel.rotation.z = Math.PI / 2;
+    wheel.name = `cart_wheel_${side}`;
+    wheel.rotation.order = 'ZYX'; // Spin on local Y before aligning its axle with world X.
+    wheel.rotation.z = Math.PI / 2;
     wheel.position.set(side * .68, .28, -.05); root.add(wheel);
+    box(wheel, `wheel_marker_${side}`, [.055, .012, .10], [0, -side * .061, .13], wood);
+    wheels.push(wheel);
     box(root, `cart_handle_${side}`, [.07, .07, .62], [side * .52, .85, -.72], wood);
   }
   if (lod === 'near') for (const x of [-.38, 0, .38])
@@ -186,12 +212,32 @@ export function createVendorArt(lod: 'near' | 'far' = 'near'): MovingArt {
   const seller = createPersonArt('worker', lod);
   seller.root.name = 'vendor_person'; seller.root.scale.setScalar(.82);
   seller.root.position.set(0, 0, -.68); root.add(seller.root);
+  const sellerArms = [-1, 1].map(side => seller.root.getObjectByName(`shoulder_${side}`)!);
+  const sellerElbows = [-1, 1].map(side => seller.root.getObjectByName(`elbow_${side}`)!);
+  const sellerTorso = seller.root.getObjectByName('torso_pivot')!;
+  const cartParts = root.children.filter(part => part.name === 'cart_tray' ||
+    part.name === 'cart_lower' || part.name.startsWith('goods_'));
+  const cartHeights = cartParts.map(part => part.position.y);
   const damaged = new THREE.Group(); damaged.name = 'vendor_damage'; root.add(damaged);
   box(damaged, 'fallen_goods', [.38, .13, .32], [.54, .14, .82], fruit);
   let currentState: 'normal' | 'stunned' | 'damaged' = 'normal';
   const setVisualTime = (activeSeconds: number, moving = false) => {
     seller.setPose(currentState === 'stunned' ? 'recover' : moving ? 'walk' : 'stand',
       currentState === 'stunned' ? .35 : activeSeconds * (moving ? .8 : .35) % 1);
+    const step = Math.sin(activeSeconds * Math.PI * 1.6);
+    const travelling = moving && currentState !== 'stunned';
+    wheels.forEach(wheel => { wheel.rotation.y = travelling ? -activeSeconds * 3.4 : 0; });
+    cartParts.forEach((part, index) => {
+      part.position.y = cartHeights[index] + (travelling ? Math.abs(step) * .012 : 0);
+      if (part.name.startsWith('goods_')) part.rotation.z = travelling ? step * .035 : 0;
+    });
+    if (currentState === 'stunned') return;
+    sellerArms.forEach((arm, index) => {
+      arm.rotation.x = -.72 + (travelling ? step * (index ? -.04 : .04) : 0);
+      arm.rotation.z = index ? .17 : -.17;
+    });
+    sellerElbows.forEach(elbow => { elbow.rotation.x = -.48; });
+    sellerTorso.rotation.x += travelling ? .07 : .025;
   };
   const setState = (state: 'normal' | 'stunned' | 'damaged') => {
     currentState = state;

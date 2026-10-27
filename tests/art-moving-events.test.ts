@@ -60,6 +60,55 @@ describe('moving event art uses prototype contracts', () => {
       asset.dispose();
     }
   });
+  it('gives police and militia distinct repeatable signals without moving their collision roots', () => {
+    const police = createOfficerArt('police');
+    const militia = createOfficerArt('militia');
+    const policeArm = police.root.getObjectByName('shoulder_1')!;
+    const militiaArm = militia.root.getObjectByName('shoulder_1')!;
+    for (const asset of [police, militia]) {
+      asset.setVisualTime!(1.2, true);
+      const arm = asset.root.getObjectByName('shoulder_1')!;
+      const first = arm.rotation.clone();
+      asset.setVisualTime!(2.4, true);
+      expect(arm.rotation.equals(first)).toBe(false);
+      asset.setVisualTime!(1.2, true);
+      expect(arm.rotation.equals(first)).toBe(true);
+      expect(asset.root.position.length()).toBe(0);
+      asset.setState('stunned');
+      asset.setVisualTime!(1.2, false);
+      expect(asset.root.getObjectByName('stunned_mark')?.visible).toBe(true);
+    }
+    police.setState('normal'); militia.setState('normal');
+    police.setVisualTime!(1.2, false); militia.setVisualTime!(1.2, false);
+    expect(policeArm.rotation.x).toBeLessThan(-.8);
+    expect(militiaArm.rotation.z).toBeGreaterThan(1);
+    police.dispose(); militia.dispose();
+  });
+  it('rolls the vendor wheels and braces both hands only while pushing', () => {
+    const vendor = createVendorArt();
+    const wheel = vendor.root.getObjectByName('cart_wheel_1')!;
+    const arm = vendor.root.getObjectByName('shoulder_1')!;
+    vendor.setVisualTime!(1, true);
+    expect(Math.abs(wheel.rotation.y)).toBeGreaterThan(3);
+    expect(arm.rotation.x).toBeLessThan(-.6);
+    const axle = () => new THREE.Vector3(0, 1, 0).applyQuaternion(wheel.getWorldQuaternion(new THREE.Quaternion()));
+    expect(Math.abs(axle().x)).toBeCloseTo(1);
+    expect(Math.abs(axle().y)).toBeLessThan(.00001);
+    expect(Math.abs(axle().z)).toBeLessThan(.00001);
+    const angle = wheel.rotation.y;
+    vendor.setVisualTime!(1, true);
+    expect(wheel.rotation.y).toBe(angle);
+    vendor.setVisualTime!(2, true);
+    expect(Math.abs(axle().x)).toBeCloseTo(1);
+    expect(Math.abs(axle().z)).toBeLessThan(.00001);
+    vendor.setVisualTime!(1, false);
+    expect(wheel.rotation.y).toBe(0);
+    vendor.setState('stunned');
+    vendor.setVisualTime!(1, true);
+    expect(wheel.rotation.y).toBe(0);
+    expect(vendor.root.position.length()).toBe(0);
+    vendor.dispose();
+  });
   it('keeps the police shirt and full trousers in a bright warm uniform distinct from militia', () => {
     const police = createOfficerArt('police');
     const militia = createOfficerArt('militia');
