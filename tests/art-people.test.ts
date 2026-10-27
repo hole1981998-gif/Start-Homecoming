@@ -58,6 +58,26 @@ describe('essential people art', () => {
     expect(person.root.position.toArray()).toEqual([0, 0, 0]);
     person.dispose();
   });
+  it('adds a step bounce and a visible repeated hail without accumulating pose drift', () => {
+    const person = createPersonArt('student');
+    const hip = person.sockets.hip;
+    person.setPose('walk', 0);
+    const rest = hip.getWorldPosition(new THREE.Vector3()).y;
+    person.setPose('walk', .25);
+    expect(hip.getWorldPosition(new THREE.Vector3()).y).toBeGreaterThan(rest);
+    person.setPose('walk', .5);
+    expect(hip.getWorldPosition(new THREE.Vector3()).y).toBeCloseTo(rest);
+    const arm = person.root.getObjectByName('shoulder_1')!;
+    person.setPose('hail', .25);
+    const high = arm.rotation.z;
+    person.setPose('hail', .75);
+    expect(high - arm.rotation.z).toBeGreaterThan(.45);
+    person.setPose('hail', .25);
+    expect(arm.rotation.z).toBeCloseTo(high);
+    person.setPose('stand');
+    expect(hip.getWorldPosition(new THREE.Vector3()).y).toBeCloseTo(rest);
+    person.dispose();
+  });
 
   it('animates breathing in place for seated, riding and standing people', () => {
     const person = createPersonArt('commuter');

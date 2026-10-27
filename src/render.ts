@@ -22,6 +22,7 @@ import { createCloudShadowArt, type CloudShadowArt } from './art/cloud-shadows';
 import { passengerWindowPoses } from './art/passenger-windows';
 import { createWindStreakArt, type WindStreakArt } from './art/wind-streaks';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
+import { openPassengerSeat } from './art/open-passengers';
 import { roadsideArchetype, roadsidePose, roadsideWalkingYaw } from './art/runtime-people';
 import { driverCrashPose, passengerCrashPose } from './art/timing';
 import { createCrashBlenderDriver, createRidingBlenderDriver, type AnimatedBlenderDriver,
@@ -307,9 +308,7 @@ export class RoadRenderer {
     } catch { /* Keep the procedural driver if the delivered GLB has incompatible pivots. */ }
   }
   private syncOpenPassengers(kind: VehicleKind, art: VehicleArt, riderIds: string[], visualTime: number): number {
-    const seats = Array.isArray(art.seats) ? art.seats.slice(1) :
-      'passenger' in art.seats ? [art.seats.passenger] : [];
-    const visibleIds = riderIds.slice(0, seats.length);
+    const visibleIds = riderIds;
     let models = this.openPassengerModels.get(kind);
     if (!models) { models = new Map(); this.openPassengerModels.set(kind, models); }
     for (const [id, person] of models) if (!visibleIds.includes(id)) {
@@ -318,14 +317,15 @@ export class RoadRenderer {
     visibleIds.forEach((id, index) => {
       let person = models!.get(id);
       if (!person) {
-        person = createPersonArt(roadsideArchetype(id), 'far');
+        person = createPersonArt(roadsideArchetype(id), 'near');
         models!.set(id, person);
       }
-      mountPersonOnSeat(person, seats[index], kind === 'tricycle' ? 'seated' : 'riding');
+      mountPersonOnSeat(person, openPassengerSeat(art, kind, index),
+        kind === 'tricycle' ? 'seated' : 'riding');
       person.setPose(kind === 'tricycle' ? 'seated' : 'riding', visualTime * .4 % 1);
       person.root.visible = true;
     });
-    return seats.length;
+    return visibleIds.length;
   }
   private entityMesh(kind: EntityKind, trafficKind: TrafficKind = 'car4', width = 1, length = 1,
     passengerCast?: PersonArchetype): THREE.Group {

@@ -352,24 +352,27 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
       elbows[0].rotation.z = .25; elbows[1].rotation.z = -.25;
     } else if (pose === 'walk') {
       const stride = Math.sin(t * Math.PI * 2);
-      legs[0].rotation.x = stride * .48;
-      legs[1].rotation.x = -stride * .48;
-      knees[0].rotation.x = Math.max(0, -stride) * .48;
-      knees[1].rotation.x = Math.max(0, stride) * .48;
-      arms[0].rotation.x = -stride * .34 - .14;
-      arms[1].rotation.x = stride * .34 - .14;
+      hips.position.y = hipHeight + Math.abs(stride) * .018 * scale;
+      legs[0].rotation.x = stride * .54;
+      legs[1].rotation.x = -stride * .54;
+      knees[0].rotation.x = Math.max(0, -stride) * .56;
+      knees[1].rotation.x = Math.max(0, stride) * .56;
+      arms[0].rotation.x = -stride * .43 - .13;
+      arms[1].rotation.x = stride * .43 - .13;
       arms[0].rotation.z = -.28; arms[1].rotation.z = .28;
-      elbows[0].rotation.x = -.22;
-      elbows[1].rotation.x = -.22;
+      elbows[0].rotation.x = -.22 - Math.max(0, stride) * .10;
+      elbows[1].rotation.x = -.22 - Math.max(0, -stride) * .10;
       elbows[0].rotation.z = .25; elbows[1].rotation.z = -.25;
-      torso.rotation.z = stride * .035;
-      head.rotation.z = -stride * .02;
+      torso.rotation.x += .035;
+      torso.rotation.z = stride * .045;
+      head.rotation.z = -stride * .025;
     } else if (pose === 'hail') {
       torso.position.y = breath * .012 * scale;
       torso.rotation.z = breath * .02;
-      arms[1].rotation.z = 2.35 + Math.sin(phase * Math.PI * 2) * .15;
-      elbows[1].rotation.z = -.33;
-      head.rotation.y = -.15;
+      arms[1].rotation.z = 2.22 + breath * .27;
+      elbows[1].rotation.z = -.45 + breath * .21;
+      arms[0].rotation.z = -.22;
+      head.rotation.y = -.15 + breath * .045;
     } else if (pose === 'refuse') {
       arms[1].rotation.z = 1.18;
       elbows[1].rotation.x = -1.0;
