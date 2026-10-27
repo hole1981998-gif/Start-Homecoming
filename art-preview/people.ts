@@ -48,18 +48,21 @@ function poseAdjustedDriver(root: THREE.Group, pose: EssentialPose, phase: numbe
       for (const arm of arms) turn(arm, x, -.92);
       for (const elbow of elbows) turn(elbow, x, -.35);
     }
-    turn(torso, z, Math.sin(t * Math.PI * 2) * .025);
-    turn(head, y, Math.sin(t * Math.PI * 2 + .8) * .055);
+    torso.position.y += Math.sin(t * Math.PI * 2) * .024;
+    turn(torso, z, Math.sin(t * Math.PI * 2) * .043);
+    turn(head, y, Math.sin(t * Math.PI * 2 + .8) * .09);
   } else if (pose === 'hail') {
     const wave = Math.sin(t * Math.PI * 2);
     turn(arms[1], z, 2.22 + wave * .27);
     turn(elbows[1], z, -.45 + wave * .21); turn(head, y, -.15 + wave * .045);
   } else if (pose === 'stand') {
     const breath = Math.sin(t * Math.PI * 2);
-    turn(torso, z, breath * .025); turn(head, y, breath * .06);
+    torso.position.y += breath * .018;
+    turn(torso, z, breath * .034); turn(head, y, breath * .085);
   } else if (pose === 'refuse') {
     turn(arms[1], z, 1.18); turn(elbows[1], x, -1);
-    turn(head, y, -.42); turn(torso, y, -.24);
+    turn(head, y, -.42 + Math.sin(t * Math.PI * 4) * .17);
+    turn(torso, y, -.24 + Math.sin(t * Math.PI * 2) * .05);
   } else if (pose === 'ejected') {
     turn(torso, x, -.25 - .36 * t); turn(torso, z, .10 + .20 * t);
     turn(arms[0], z, -.5 - .6 * t); turn(arms[1], z, .5 + .5 * t);

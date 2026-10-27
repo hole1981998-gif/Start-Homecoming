@@ -97,6 +97,22 @@ describe('essential people art', () => {
     expect(person.root.getObjectByName('shoulder_1')!.rotation.z).toBeLessThan(raisedArm);
     person.dispose();
   });
+  it('keeps riding and refusal gestures alive without shifting the character root', () => {
+    const person = createPersonArt('commuter');
+    const head = person.root.getObjectByName('head_pivot')!;
+    const elbow = person.root.getObjectByName('elbow_1')!;
+    person.setPose('riding', .25);
+    const headAtQuarter = head.rotation.y, elbowAtQuarter = elbow.rotation.x;
+    person.setPose('riding', .75);
+    expect(head.rotation.y).not.toBeCloseTo(headAtQuarter);
+    expect(elbow.rotation.x).not.toBeCloseTo(elbowAtQuarter);
+    person.setPose('refuse', .125);
+    const refusalLeft = head.rotation.y;
+    person.setPose('refuse', .375);
+    expect(head.rotation.y).toBeLessThan(refusalLeft);
+    expect(person.root.position.toArray()).toEqual([0, 0, 0]);
+    person.dispose();
+  });
 
   it('mounts a rider at the vehicle hip socket while preserving the vehicle root', () => {
     const bike = createTwoWheelerArt('motorcycle');

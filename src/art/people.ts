@@ -333,21 +333,23 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
     head.rotation.set(0, 0, 0);
     for (const part of [...arms, ...elbows, ...legs, ...knees]) part.rotation.set(0, 0, 0);
     if (pose === 'seated' || pose === 'riding') {
-      torso.position.y = (pose === 'seated' ? -.19 : 0) * scale + breath * .012 * scale;
-      torso.rotation.z = breath * .025;
-      head.rotation.y = Math.sin(phase * Math.PI * 2 + .8) * .055;
+      torso.position.y = (pose === 'seated' ? -.19 : 0) * scale + breath * .024 * scale;
+      torso.rotation.z = breath * .043;
+      head.rotation.y = Math.sin(phase * Math.PI * 2 + .8) * .09;
       for (let i = 0; i < 2; i++) { legs[i].rotation.x = pose === 'riding' ? -.77 : -1.25;
         knees[i].rotation.x = pose === 'riding' ? 1.0 : 1.33; }
       if (pose === 'riding') { torso.rotation.x = .22; arms[0].rotation.x = -.92; arms[1].rotation.x = -.92;
-        elbows[0].rotation.x = -.35 + breath * .035;
-        elbows[1].rotation.x = -.35 - breath * .035; }
+        elbows[0].rotation.x = -.35 + breath * .065;
+        elbows[1].rotation.x = -.35 - breath * .065; }
     } else if (pose === 'stand') {
       const sway = .10 + Math.sin(phase * Math.PI * 2) * .10;
-      torso.position.y = breath * .012 * scale;
-      torso.rotation.z = breath * .025;
-      head.rotation.y = Math.sin(phase * Math.PI * 2 + .8) * .06;
+      torso.position.y = breath * .018 * scale;
+      torso.rotation.z = breath * .034;
+      head.rotation.y = Math.sin(phase * Math.PI * 2 + .8) * .085;
       legs[0].rotation.x = sway; legs[1].rotation.x = -sway;
       arms[0].rotation.x = -sway * .75; arms[1].rotation.x = sway * .75;
+      arms[0].rotation.x += breath * .055;
+      arms[1].rotation.x -= breath * .055;
       arms[0].rotation.z = -.28; arms[1].rotation.z = .28;
       elbows[0].rotation.z = .25; elbows[1].rotation.z = -.25;
     } else if (pose === 'walk') {
@@ -376,15 +378,15 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
     } else if (pose === 'refuse') {
       arms[1].rotation.z = 1.18;
       elbows[1].rotation.x = -1.0;
-      head.rotation.y = -.42;
-      torso.rotation.y = -.24;
+      head.rotation.y = -.42 + Math.sin(phase * Math.PI * 4) * .17;
+      torso.rotation.y = -.24 + breath * .05;
     } else if (pose === 'ejected') {
       torso.rotation.x = -.25 - .36 * t; torso.rotation.z = .10 + .20 * t;
       arms[0].rotation.z = -.5 - .6 * t; arms[1].rotation.z = .5 + .5 * t;
       legs[0].rotation.x = -.16 - .19 * t; legs[1].rotation.x = .19 + .23 * t;
     } else if (pose === 'grounded') {
       hips.position.y = .33 * scale;
-      torso.rotation.x = -1.25;
+      torso.rotation.x = -1.25 + breath * .018;
       arms[0].rotation.x = -1.12; arms[1].rotation.x = -1.12;
       legs[0].rotation.z = -.32; legs[1].rotation.z = .30;
     } else if (pose === 'recover') {

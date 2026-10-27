@@ -27,6 +27,7 @@ export function createRidingBlenderDriver(template: THREE.Group): AnimatedBlende
   const head = nodes.find(node => node.name.startsWith('head_pivot'));
   const animated = driver as AnimatedBlenderDriver;
   const torsoRest = torso.quaternion.clone();
+  const torsoRestY = torso.position.y;
   const armRests = arms.map(arm => arm.quaternion.clone());
   const headRest = head?.quaternion.clone();
   const twist = new THREE.Quaternion();
@@ -34,11 +35,12 @@ export function createRidingBlenderDriver(template: THREE.Group): AnimatedBlende
   animated.setVisualTime = activeSeconds => {
     const phase = activeSeconds * .4 * Math.PI * 2;
     const breath = Math.sin(phase);
-    torso.quaternion.copy(torsoRest).premultiply(twist.setFromAxisAngle(zAxis, breath * .025));
+    torso.position.y = torsoRestY + breath * .024;
+    torso.quaternion.copy(torsoRest).premultiply(twist.setFromAxisAngle(zAxis, breath * .043));
     arms.forEach((arm, i) => arm.quaternion.copy(armRests[i])
-      .premultiply(twist.setFromAxisAngle(xAxis, breath * (i === 0 ? .035 : -.035))));
+      .premultiply(twist.setFromAxisAngle(xAxis, breath * (i === 0 ? .065 : -.065))));
     if (head && headRest) head.quaternion.copy(headRest)
-      .premultiply(twist.setFromAxisAngle(yAxis, Math.sin(phase + .8) * .055));
+      .premultiply(twist.setFromAxisAngle(yAxis, Math.sin(phase + .8) * .09));
   };
   animated.setVisualTime(0);
   driver.traverse(node => { if (node instanceof THREE.Mesh) node.castShadow = true; });
