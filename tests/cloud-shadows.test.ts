@@ -36,7 +36,7 @@ describe('landscape ground and cloud shade', () => {
     const route = { ...initialRoute(), history: [{ distance: 800, turn: 'left' as const }] };
     art.update(17, 825, route);
     const patches = art.root.children as THREE.Mesh[];
-    expect(patches).toHaveLength(5);
+    expect(patches).toHaveLength(8);
     const firstPositions = patches.map(patch => patch.position.clone());
     art.update(17, 825, route);
     patches.forEach((patch, i) => {
@@ -45,11 +45,13 @@ describe('landscape ground and cloud shade', () => {
       expect(patch.scale.z).toBeGreaterThanOrEqual(18);
       expect(patch.userData.collider).toBeUndefined();
     });
-    const firstCell = Math.floor((825 - 24) / 58);
+    const firstCell = Math.floor((825 - 24) / 39);
     const placement = cloudShadowPlacement(17, firstCell);
     const pose = pathPose(placement.distance, route, 17);
     expect(patches[0].position.x).toBeCloseTo(pose.x + Math.cos(pose.heading) * placement.lateral);
     expect(patches[0].position.z).toBeCloseTo(pose.z + Math.sin(pose.heading) * placement.lateral);
+    expect(cloudShadowPlacement(17, firstCell + 1).distance - placement.distance)
+      .toBeLessThan(55);
     art.update(18, 825, route);
     expect(patches.some((patch, i) => !patch.position.equals(firstPositions[i]))).toBe(true);
     art.dispose();
