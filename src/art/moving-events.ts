@@ -27,6 +27,24 @@ function box(parent: THREE.Object3D, name: string, dims: [number, number, number
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(...dims), material);
   mesh.name = name; mesh.position.set(...pos); parent.add(mesh); return mesh;
 }
+function roofShell(parent: THREE.Object3D, name: string, width: number, length: number,
+  material: THREE.Material) {
+  const half = width / 2, end = length / 2;
+  const vertices = new Float32Array([
+    -half, 2.42, -end, half, 2.42, -end, -half * .84, 2.71, -end, half * .84, 2.71, -end,
+    -half, 2.42, end, half, 2.42, end, -half * .84, 2.71, end, half * .84, 2.71, end,
+  ]);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+  geometry.setIndex([
+    0, 1, 3, 0, 3, 2, 4, 6, 7, 4, 7, 5,
+    0, 2, 6, 0, 6, 4, 1, 5, 7, 1, 7, 3,
+    2, 3, 7, 2, 7, 6, 0, 4, 5, 0, 5, 1,
+  ]);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = name; parent.add(mesh); return mesh;
+}
 function point(parent: THREE.Object3D, name: string, pos: [number, number, number]) {
   const node = new THREE.Object3D(); node.name = name; node.position.set(...pos); parent.add(node); return node;
 }
@@ -46,41 +64,98 @@ export function createTrainArt(direction: -1 | 1 = 1, lod: 'near' | 'far' = 'nea
   // The authored nose is mirrored into output +Z, then +Z is aimed along the crossing velocity.
   train.scale.z = -1; train.rotation.y = direction * Math.PI / 2; root.add(train);
   const total = movingBalance.trainWidth, depth = movingBalance.trainDepth;
-  const shell = mat('#c69b67'), roof = mat('#385f6b'), window = mat('#95c6c8', .05);
-  const dark = mat('#243b43'), lamp = mat('#ffe1a1'), red = mat('#cb6551');
+  const coach = mat('#c7a17a'), cab = mat('#d1ad79'), roof = mat('#3c626a');
+  const underbody = mat('#344c50'), ink = mat('#20353d'), glass = mat('#648b91', .05);
+  const trim = mat('#e2c8a0'), coral = mat('#b95c47'), lamp = mat('#ffe1a1');
   const lengths = [5.4, 8.8, 8.8], centers = [-9.2, -2.1, 7.2];
   lengths.forEach((length, i) => {
     const z = centers[i], carriage = new THREE.Group();
     carriage.name = i === 0 ? 'locomotive' : `carriage_${i}`;
     carriage.position.z = z; train.add(carriage);
-    box(carriage, `shell_${i}`, [depth * .90, 2.12, length - .08], [0, 1.36, 0], shell);
-    box(carriage, `roof_${i}`, [depth * .98, .22, length - .05], [0, 2.53, 0], roof);
-    box(carriage, `undercarriage_${i}`, [depth * .82, .22, length - .08], [0, .40, 0], dark);
-    const count = lod === 'near' ? (i === 0 ? 2 : 4) : 2;
-    for (const side of [-1, 1]) for (let n = 0; n < count; n++) {
-      const offset = (n / count - .5 + .5 / count) * (length - .8);
-      box(carriage, `window_${i}_${side}_${n}`, [.025, .64, Math.min(1.28, length / (count + .35))],
-        [side * depth * .456, 1.72, offset], window);
+    box(carriage, `shell_${i}`, [depth * .88, 2.06, length - .10], [0, 1.39, 0], i === 0 ? cab : coach);
+    roofShell(carriage, `roof_${i}`, depth * .98, length - .04, roof);
+    box(carriage, `underframe_${i}`, [depth * .81, .24, length - .15], [0, .40, 0], underbody);
+    box(carriage, `lower_skirt_${i}`, [depth * .89, .32, length - .12], [0, .66, 0], underbody);
+    const count = i === 0 ? 1 : (lod === 'near' ? 5 : 3);
+    for (const side of [-1, 1]) {
+      const x = side * depth * .444;
+      box(carriage, `belt_${i}_${side}`, [.034, .17, length - .18], [x, 1.04, 0], coral);
+      box(carriage, `sill_${i}_${side}`, [.038, .055, length - .22], [x, 1.42, 0], trim);
+      box(carriage, `eave_${i}_${side}`, [.07, .09, length - .12], [side * depth * .485, 2.43, 0], trim);
+      for (let n = 0; n < count; n++) {
+        const offset = i === 0 ? -1.32 : (n / count - .5 + .5 / count) * (length - .82);
+        const windowLength = i === 0 ? 1.05 : Math.min(1.22, length / (count + .8));
+        box(carriage, `window_recess_${i}_${side}_${n}`, [.04, .78, windowLength + .10],
+          [x, 1.82, offset], ink);
+        box(carriage, `window_${i}_${side}_${n}`, [.045, .62, windowLength],
+          [x + side * .009, 1.83, offset], glass);
+        if (lod === 'near') box(carriage, `window_post_${i}_${side}_${n}`, [.055, .74, .055],
+          [x + side * .012, 1.82, offset + windowLength / 2], trim);
+      }
+      if (i > 0) {
+        const doorZ = length * .38;
+        box(carriage, `door_recess_${i}_${side}`, [.047, 1.46, .77],
+          [x, 1.31, doorZ], underbody);
+        box(carriage, `door_panel_${i}_${side}`, [.052, 1.38, .64],
+          [x + side * .008, 1.32, doorZ], coach);
+        box(carriage, `door_glass_${i}_${side}`, [.058, .44, .48],
+          [x + side * .015, 1.73, doorZ], glass);
+        if (lod === 'near') box(carriage, `door_handle_${i}_${side}`, [.068, .04, .15],
+          [x + side * .02, 1.22, doorZ - .19], trim);
+      } else {
+        box(carriage, `engine_hood_panel_${side}`, [.047, 1.14, 2.50],
+          [x + side * .008, 1.62, 1.16], roof);
+        box(carriage, `engine_grille_${side}`, [.05, .38, 1.54],
+          [x + side * .012, 1.55, 1.28], underbody);
+        box(carriage, `engine_number_plate_${side}`, [.058, .26, .68],
+          [x + side * .018, 2.06, .50], trim);
+        if (lod === 'near') for (let n = 0; n < 4; n++)
+          box(carriage, `grille_slat_${side}_${n}`, [.058, .035, 1.38],
+            [x + side * .021, 1.40 + n * .1, 1.28], trim);
+      }
+    }
+    if (lod === 'near') {
+      box(carriage, `roof_vent_${i}`, [.72, .09, i === 0 ? 1.14 : .82],
+        [0, 2.74, i === 0 ? 1.10 : -.5], underbody);
+      if (i === 0) for (const side of [-1, 1])
+        box(carriage, `cab_roof_horn_${side}`, [.14, .11, .46],
+          [side * .41, 2.78, -1.39], trim);
+      for (const end of [-1, 1]) box(carriage, `end_post_${i}_${end}`,
+        [depth * .91, .08, .07], [0, 2.28, end * (length / 2 - .10)], trim);
     }
     for (const end of [-1, 1]) {
       const bogie = new THREE.Group(); bogie.name = `bogie_${i}_${end}`;
       bogie.position.set(0, .30, end * (length * .32)); carriage.add(bogie);
       for (const side of [-1, 1]) {
-        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.28, .28, .12, lod === 'near' ? 10 : 6), dark);
+        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.28, .28, .12, lod === 'near' ? 10 : 6), ink);
         wheel.name = `wheel_${i}_${end}_${side}`; wheel.rotation.z = Math.PI / 2;
         wheel.position.x = side * depth * .37; bogie.add(wheel);
+        if (lod === 'near') {
+          const hub = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .015, 8), trim);
+          hub.name = `wheel_hub_${i}_${end}_${side}`; hub.rotation.z = Math.PI / 2;
+          hub.position.x = side * depth * .37 + side * .07; bogie.add(hub);
+        }
       }
     }
-    if (i < 2) box(train, `coupler_${i}`, [.42, .14, .48], [0, .39, z + length / 2 + .15], dark);
+    if (i < 2) box(train, `coupler_${i}`, [.42, .14, .48], [0, .39, z + length / 2 + .15], ink);
   });
-  // The front and tail stay legible whichever direction the crossing starts from.
-  box(train, 'nose', [depth * .75, 1.52, .38], [0, 1.13, -11.92], roof);
+  // The cab has a distinctive face instead of a third identical passenger coach.
+  box(train, 'cab_cowl', [depth * .76, 1.34, .38], [0, 1.09, -11.79], roof);
+  box(train, 'cab_windscreen_recess', [depth * .72, .76, .055], [0, 1.91, -11.984], ink);
+  for (const side of [-1, 1]) {
+    box(train, `cab_windscreen_${side}`, [depth * .315, .61, .061],
+      [side * depth * .183, 1.94, -12.018], glass);
+    box(train, `cab_chevron_${side}`, [depth * .31, .095, .04],
+      [side * depth * .20, 1.01, -11.998], coral);
+  }
+  box(train, 'cab_center_post', [.085, .72, .08], [0, 1.94, -12.043], trim);
+  box(train, 'cab_pilot', [depth * .72, .22, .14], [0, .47, -12.015], underbody);
   for (const side of [-1, 1]) {
     box(train, `headlamp_${side}`, [.24, .22, .035], [side * .65, 1.31, -12.10], lamp);
-    box(train, `tail_lamp_${side}`, [.19, .18, .035], [side * .65, 1.27, 11.96], red);
+    box(train, `tail_lamp_${side}`, [.19, .18, .035], [side * .65, 1.27, 11.96], coral);
   }
   const damaged = new THREE.Group(); damaged.name = 'damaged_overlay'; train.add(damaged);
-  box(damaged, 'soot', [1.28, .37, .03], [0, 1.15, -12.13], dark);
+  box(damaged, 'soot', [1.28, .37, .03], [0, 1.15, -12.13], ink);
   const sockets = { front: point(train, 'front_socket', [0, 1.1, -12]),
     rear: point(train, 'rear_socket', [0, 1.1, 12]),
     crossing_contact: point(root, 'crossing_contact', [0, 0, 0]) };
