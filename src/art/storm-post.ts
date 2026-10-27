@@ -25,14 +25,20 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
         float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
         float shadow = 1.0 - smoothstep(0.09, 0.52, luminance);
         float highlight = smoothstep(0.35, 1.15, luminance);
-        // Preserve the cool storm shade without lifting it into bright cyan.
-        color *= mix(vec3(1.0), vec3(0.965, 1.025, 1.075), shadow * 0.65);
-        color += shadow * vec3(0.005, 0.009, 0.013);
-        // Neutral daylight on sunlit surfaces; avoid an overall yellow wash.
-        color *= mix(vec3(1.0), vec3(1.018, 1.005, 0.994), highlight * 0.45);
+        // Slate blue storm shade with a narrow warm break in the distant sky.
+        color *= mix(vec3(1.0), vec3(0.91, 0.99, 1.055), shadow * 0.76);
+        color += shadow * vec3(0.002, 0.006, 0.010);
+        color *= mix(vec3(1.0), vec3(1.025, 1.012, 0.992), highlight * 0.48);
         float gradedLuma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-        color = mix(vec3(gradedLuma), color, 1.045);
-        color *= 1.02;
+        color = mix(vec3(gradedLuma), color, 0.98);
+        color *= 1.015;
+        // Broad translucent horizon glow fades out before it reaches the near road.
+        float horizon = exp(-pow((vUv.y - 0.78) / 0.12, 2.0));
+        float horizonCore = exp(-pow((vUv.y - 0.78) / 0.038, 2.0));
+        float breakLight = exp(-pow((vUv.x - 0.62) / 0.42, 2.0));
+        float veil = horizon * (0.45 + 0.55 * breakLight);
+        color = mix(color, vec3(0.68, 0.76, 0.71), veil * 0.33 + horizonCore * 0.54);
+        color += vec3(0.018, 0.012, 0.004) * veil;
         gl_FragColor = vec4(color, source.a);
       }`,
   });

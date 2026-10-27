@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { pathPose, type RouteState } from '../route';
 import { roadShadowColor, roadShadowOpacity } from './road-shadows';
 
-const cellMetres = 58;
-const visiblePatches = 5;
+const cellMetres = 39;
+const visiblePatches = 8;
 
 function hash(value: number): number {
   let result = Math.imul(value ^ (value >>> 16), 0x7feb352d);
@@ -16,7 +16,7 @@ export function cloudShadowPlacement(seed: number, cell: number) {
   const value = hash(seed ^ Math.imul(cell, 0x9e3779b1) ^ 0x4ba0735d);
   const sizeClass = (value >>> 20) & 3;
   return {
-    distance: cell * cellMetres + 18 + (value & 15),
+    distance: cell * cellMetres + 12 + (value & 11),
     lateral: ((value >>> 8) % 2001) / 100 - 10,
     width: [19, 28, 40, 53][sizeClass] + ((value >>> 16) & 3),
     length: [18, 26, 35, 44][sizeClass] + ((value >>> 24) & 3),
