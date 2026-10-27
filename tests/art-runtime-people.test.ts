@@ -96,18 +96,25 @@ describe('runtime people visuals', () => {
     const sample = (elapsed: number) => {
       driver.setTimedPose(driverCrashPose(elapsed));
       let torso: THREE.Object3D | undefined;
+      let leg: THREE.Object3D | undefined;
       driver.traverse(node => { if (node.name.startsWith('torso_pivot')) torso = node; });
+      driver.traverse(node => { if (node.name.startsWith('hip_leg_') && !leg) leg = node; });
       return { y: hip(driver).position.y,
-        torso: torso!.quaternion.clone() };
+        torso: torso!.quaternion.clone(), leg: leg!.quaternion.clone() };
     };
     const airborne = sample(.2);
     const grounded = sample(balance.driverFallSeconds + .1);
-    const recovering = sample(balance.driverFallSeconds + balance.driverPauseSeconds +
-      balance.driverReturnSeconds * .5);
+    const down = balance.driverFallSeconds + balance.driverPauseSeconds;
+    const recovering = sample(down + .2);
+    const running = sample(down + .6);
+    const nextStep = sample(down + .9);
     expect(airborne.y).toBeCloseTo(originalY);
     expect(grounded.y).toBeLessThan(originalY - .3);
     expect(recovering.y).toBeGreaterThan(grounded.y);
     expect(recovering.y).toBeLessThan(originalY);
+    expect(running.y).toBeGreaterThanOrEqual(originalY);
+    expect(running.torso.equals(recovering.torso)).toBe(false);
+    expect(running.leg.equals(nextStep.leg)).toBe(false);
     expect(recovering.torso.equals(grounded.torso)).toBe(false);
     expect(sample(.2).torso.equals(airborne.torso)).toBe(true);
     expect(hip(template).position.y).toBe(originalY);

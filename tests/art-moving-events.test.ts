@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { movingBalance } from '../src/config';
-import { createAmbulanceArt, createOfficerArt, createTrainArt, createVendorArt } from '../src/art/moving-events';
+import { createAmbulanceArt, createOfficerArt, createTrainArt, createVendorArt,
+  crossingVisualYaw } from '../src/art/moving-events';
 
 describe('moving event art uses prototype contracts', () => {
   it('keeps a finite crossing train within the existing world-space footprint in either direction', () => {
@@ -47,18 +48,37 @@ describe('moving event art uses prototype contracts', () => {
     vendor.dispose();
   });
   it('cycles officer and vendor steps only from the supplied simulation time', () => {
-    for (const asset of [createOfficerArt('police'), createVendorArt()]) {
+    for (const [asset, firstTime, secondTime] of [
+      [createOfficerArt('police'), .25 / 1.55, .75 / 1.55],
+      [createVendorArt(), .3125, .9375],
+    ] as const) {
       const leg = asset.root.getObjectByName('hip_leg_-1')!;
-      asset.setVisualTime!(.3125, true);
+      asset.setVisualTime!(firstTime, true);
       const moving = leg.rotation.x;
-      asset.setVisualTime!(.3125, true);
+      asset.setVisualTime!(firstTime, true);
       expect(leg.rotation.x).toBe(moving);
-      asset.setVisualTime!(.9375, true);
+      asset.setVisualTime!(secondTime, true);
       expect(leg.rotation.x).toBeLessThan(moving);
-      asset.setVisualTime!(.3125, false);
+      asset.setVisualTime!(firstTime, false);
       expect(Math.abs(leg.rotation.x)).toBeLessThan(Math.abs(moving));
       asset.dispose();
     }
+  });
+  it('faces crossers along their travel, including patrol reversal, with the seller behind the cart', () => {
+    const patrol = { type: 'pingpong' as const, origin: -2, velocity: 2, startedAt: 0, min: -2, max: 2 };
+    expect(crossingVisualYaw(patrol, 1)).toBeCloseTo(Math.PI / 2);
+    expect(crossingVisualYaw(patrol, 3)).toBeCloseTo(-Math.PI / 2);
+    const vendor = createVendorArt();
+    const tray = vendor.root.getObjectByName('cart_tray')!;
+    const seller = vendor.root.getObjectByName('vendor_person')!;
+    for (const direction of [-1, 1]) {
+      vendor.root.rotation.y = direction * Math.PI / 2;
+      vendor.root.updateMatrixWorld(true);
+      const travel = tray.getWorldPosition(new THREE.Vector3()).x -
+        seller.getWorldPosition(new THREE.Vector3()).x;
+      expect(Math.sign(travel)).toBe(direction);
+    }
+    vendor.dispose();
   });
   it('gives police and militia distinct repeatable signals without moving their collision roots', () => {
     const police = createOfficerArt('police');

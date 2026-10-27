@@ -58,6 +58,20 @@ describe('essential people art', () => {
     expect(person.root.position.toArray()).toEqual([0, 0, 0]);
     person.dispose();
   });
+
+  it('gives a returning passenger a larger alternating run stride without root drift', () => {
+    const person = createPersonArt('commuter');
+    const left = person.root.getObjectByName('hip_leg_-1')!;
+    const right = person.root.getObjectByName('hip_leg_1')!;
+    person.setPose('run', .25);
+    expect(left.rotation.x).toBeGreaterThan(.8);
+    expect(right.rotation.x).toBeLessThan(-.8);
+    person.setPose('run', .75);
+    expect(left.rotation.x).toBeLessThan(-.8);
+    expect(right.rotation.x).toBeGreaterThan(.8);
+    expect(person.root.position.toArray()).toEqual([0, 0, 0]);
+    person.dispose();
+  });
   it('adds a step bounce and a visible repeated hail without accumulating pose drift', () => {
     const person = createPersonArt('student');
     const hip = person.sockets.hip;

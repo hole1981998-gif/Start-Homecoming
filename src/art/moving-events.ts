@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { crossX, type CrossMotion } from '../cross-motion';
 import { movingBalance } from '../config';
 import { createCar7Art } from './car7';
 import { createPersonArt, type PersonArt } from './people';
@@ -10,6 +11,13 @@ export interface MovingArt {
   setState: (state: 'normal' | 'stunned' | 'damaged') => void;
   setVisualTime?: (activeSeconds: number, moving?: boolean) => void;
   dispose: () => void;
+}
+/** Local +Z is forward. Sample the next visual tick so ping-pong patrols turn at their reflection. */
+export function crossingVisualYaw(motion: CrossMotion, activeSeconds: number): number {
+  const now = crossX(motion, activeSeconds);
+  const ahead = crossX(motion, activeSeconds + 1 / 60);
+  const delta = Math.abs(ahead - now) > 1e-6 ? ahead - now : motion.velocity;
+  return Math.sign(delta) * Math.PI / 2;
 }
 const mat = (color: string, metalness = 0) => new THREE.MeshStandardMaterial({
   color, roughness: .76, metalness, flatShading: true, side: THREE.DoubleSide,
@@ -155,8 +163,8 @@ export function createOfficerArt(kind: 'police' | 'militia', lod: 'near' | 'far'
   const head = root.getObjectByName('head_pivot')!;
   let currentState: 'normal' | 'stunned' | 'damaged' = 'normal';
   const setVisualTime = (activeSeconds: number, moving = false) => {
-    const phase = activeSeconds * (moving ? .8 : .35) % 1;
-    person.setPose(currentState === 'stunned' ? 'recover' : moving ? 'walk' : 'stand',
+    const phase = activeSeconds * (moving ? 1.55 : .35) % 1;
+    person.setPose(currentState === 'stunned' ? 'recover' : moving ? 'run' : 'stand',
       currentState === 'stunned' ? .35 : phase);
     if (currentState === 'stunned') return;
     const beat = Math.sin(activeSeconds * (kind === 'police' ? 2.2 : 3.1));
