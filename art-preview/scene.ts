@@ -8,7 +8,8 @@ import { createSceneryCluster, optimizeNearScenery } from '../src/art/scenery';
 import { createRoadTileArt } from '../src/art/road-kit';
 import { createRainArt, createRainSplashArt } from '../src/art/weather';
 import { configureStormRenderer, createStormLighting, gradeStormCityBuilding } from '../src/art/storm-lighting';
-import { createRoadShadowArt } from '../src/art/road-shadows';
+import { createStormPostProcessing } from '../src/art/storm-post';
+import { createRoadShadowArt, roadShadowColor, roadShadowOpacity } from '../src/art/road-shadows';
 import { balance } from '../src/config';
 import { vehicles, type VehicleKind } from '../src/vehicles';
 import type { LandscapeKind } from '../src/landscape';
@@ -43,8 +44,8 @@ shadowContext.putImageData(shadowPixels, 0, 0);
 const shadowMap = new THREE.CanvasTexture(shadowCanvas);
 for (const [x, z, width, length] of [[-2, 36, 29, 21], [4, 77, 25, 16]] as const) {
   const cloudShadow = new THREE.Mesh(new THREE.PlaneGeometry(width, length),
-    new THREE.MeshBasicMaterial({ color: '#1b4459', alphaMap: shadowMap,
-      transparent: true, opacity: .46, depthWrite: false }));
+    new THREE.MeshBasicMaterial({ color: roadShadowColor, alphaMap: shadowMap,
+      transparent: true, opacity: roadShadowOpacity, depthWrite: false }));
   cloudShadow.name = `cloud_shadow_${z}`;
   cloudShadow.rotation.x = -Math.PI / 2;
   cloudShadow.position.set(x, .027, z);
@@ -152,6 +153,7 @@ scene.traverse(object => {
   }
 });
 const camera = new THREE.PerspectiveCamera(52, 9 / 16, .1, 140);
+const stormPost = createStormPostProcessing(renderer, scene, camera);
 camera.layers.enable(1);
 const cameraMode = document.getElementById('cameraMode') as HTMLSelectElement;
 const vehicleKind = document.getElementById('vehicleKind') as HTMLSelectElement;
@@ -283,7 +285,8 @@ new GLTFLoader().load(skylineUrl, gltf => {
 function draw() {
   const width = canvas.clientWidth, height = canvas.clientHeight;
   renderer.setSize(width, height, false);
-  camera.aspect = width / height; camera.updateProjectionMatrix(); renderer.render(scene, camera);
+  stormPost.setSize(width, height);
+  camera.aspect = width / height; camera.updateProjectionMatrix(); stormPost.render();
   if (!reviewHud.hidden) {
     document.getElementById('reviewDistance')!.textContent =
       String(Math.round(cameraMode.value === 'drive' ? driveDistance : 0));

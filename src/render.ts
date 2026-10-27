@@ -19,6 +19,7 @@ import { configureStormRenderer, createStormLighting, gameplayAccentLayer, grade
 import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMarket, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, mountBlenderCoastalBoat, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
 import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
 import { createCloudShadowArt, type CloudShadowArt } from './art/cloud-shadows';
+import { createStormPostProcessing } from './art/storm-post';
 import { passengerWindowPoses } from './art/passenger-windows';
 import { createWindStreakArt, type WindStreakArt } from './art/wind-streaks';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
@@ -38,6 +39,7 @@ export class RoadRenderer {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(52, 9 / 16, 0.1, 180);
   private stormLighting: ReturnType<typeof createStormLighting>;
+  private stormPost: ReturnType<typeof createStormPostProcessing>;
   private bike = new THREE.Group();
   private playerArt = new Map<VehicleKind, VehicleArt>();
   private playerDrivers = new Map<VehicleKind, PersonArt>();
@@ -94,6 +96,7 @@ export class RoadRenderer {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     configureStormRenderer(this.renderer);
     this.stormLighting = createStormLighting(this.scene);
+    this.stormPost = createStormPostProcessing(this.renderer, this.scene, this.camera);
     new GLTFLoader().load(new URL('../assets/art/driver-adjusted-delivery.glb', import.meta.url).href,
       gltf => {
         if (this.disposed) return;
@@ -262,7 +265,9 @@ export class RoadRenderer {
     const lamp = box(0.3, 0.16, 0.05, '#fff0ba', this.openFrame); lamp.position.set(0, 0.72, -0.77);
     this.observer = new ResizeObserver(() => {
       const { width, height } = host.getBoundingClientRect();
-      this.renderer.setSize(width, height, false); this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
+      this.renderer.setSize(width, height, false);
+      this.stormPost.setSize(width, height);
+      this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
     });
     this.observer.observe(host);
   }
@@ -807,7 +812,7 @@ export class RoadRenderer {
       } else this.pools[entry.kind].push(entry.mesh);
       this.entityMeshes.delete(id);
     }
-    this.renderer.render(this.scene, this.camera);
+    this.stormPost.render();
     const tail = this.project(x, 0, vehicle.length / 2 + .45);
     this.host.style.setProperty('--bike-x', `${Math.max(30, Math.min(70, tail.x))}%`);
     this.host.style.setProperty('--bike-tail-y', `${Math.max(76, Math.min(86, tail.y))}%`);
@@ -837,6 +842,7 @@ export class RoadRenderer {
     this.disposed = true;
     this.observer.disconnect();
     this.stormLighting.dispose();
+    this.stormPost.dispose();
     if (this.cloudShadows) { this.scene.remove(this.cloudShadows.root); this.cloudShadows.dispose(); }
     for (const art of [this.rain, this.rainSplashes]) if (art) { this.scene.remove(art.root); art.dispose(); }
     for (const art of this.scenery.values()) { this.scene.remove(art.root); art.dispose(); }
