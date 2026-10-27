@@ -43,8 +43,6 @@ export class RoadRenderer {
   private playerDrivers = new Map<VehicleKind, PersonArt>();
   private openPassengerModels = new Map<VehicleKind, Map<string, PersonArt>>();
   private playerBlenderDrivers = new Map<VehicleKind, AnimatedBlenderDriver>();
-  private reduceMotion = typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   private driverTemplate: THREE.Group | null = null;
   private powerRing!: THREE.Mesh;
   private openFrame = new THREE.Group();
@@ -396,7 +394,9 @@ export class RoadRenderer {
   }
   draw(s: Run, previous: Run, alpha: number): void {
     this.viewState = s;
-    const visualTime = this.reduceMotion ? 0 : s.activeSeconds;
+    // Character gestures communicate movement and pickup state; they stay
+    // visible even when optional screen motion is reduced by the OS.
+    const visualTime = s.activeSeconds;
     const vehicle = activeVehicle(s);
     this.powerRing.visible = hasStar(s) || hasBoost(s);
     (this.powerRing.material as THREE.MeshBasicMaterial).color.set(hasStar(s) ? '#f7df85' : '#86d6ec');
@@ -783,9 +783,7 @@ export class RoadRenderer {
         (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
         const person = entry.mesh.userData.personArt as PersonArt;
         const visualPose = roadsidePose(e, s.activeSeconds);
-        person.setPose(visualPose.pose, this.reduceMotion &&
-          (visualPose.pose === 'stand' || visualPose.pose === 'walk' || visualPose.pose === 'hail') ?
-          0 : visualPose.phase);
+        person.setPose(visualPose.pose, visualPose.phase);
       }
       const baseWidth = e.kind === 'wind' ? 9.6 : e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'wind' ? 65 : e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
