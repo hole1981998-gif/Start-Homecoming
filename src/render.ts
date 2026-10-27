@@ -614,6 +614,9 @@ export class RoadRenderer {
       const roadPose = pathPose(roadDistance, s.route, s.seed);
       this.roadPieces[i].position.set(roadPose.x, 0, roadPose.z);
       this.roadPieces[i].rotation.y = -roadPose.heading;
+      // Both roadside rows now place a pair every 8 m rather than every tile.
+      const posts = this.roadPieces[i].getObjectByName('roadside_posts');
+      if (posts) posts.visible = Math.round(roadDistance / 4) % 2 === 0;
       // No dashed lane markers or roadside posts across the middle of a junction.
       this.roadPieces[i].visible = [s.route.index - 1, s.route.index].every(index =>
         index < 0 || Math.abs(roadDistance - junction(s.seed, index).distance) >= 13);

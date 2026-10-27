@@ -48,6 +48,7 @@ export function createRoadTileArt(lod: 'near' | 'far' = 'near'): RoadArt {
   const dirt = mat('#92765d'), grass = mat('#67915e'), postMat = mat('#d6c7a4');
   box(root, 'asphalt_4m', [width, .07, 4], [0, -.035, 0], asphalt.material);
   const marks = new THREE.Group(); marks.name = 'markings'; root.add(marks);
+  const posts = new THREE.Group(); posts.name = 'roadside_posts'; marks.add(posts);
   for (const side of [-1, 1]) {
     const x = side * width / 2;
     box(marks, `edge_${side}`, [.12, .018, 4], [x + side * .06, .016, 0], edge);
@@ -57,7 +58,7 @@ export function createRoadTileArt(lod: 'near' | 'far' = 'near'): RoadArt {
     if (lod === 'near') {
       box(root, `shoulder_grass_${side}`, [.29, .045, 4],
         [side * (width / 2 + .78), -.046, 0], grass);
-      box(marks, `road_post_${side}`, [.18, .68, .18],
+      box(posts, `road_post_${side}`, [.18, .68, .18],
         [side * (width / 2 + .50), .34, 0], postMat);
     }
   }
