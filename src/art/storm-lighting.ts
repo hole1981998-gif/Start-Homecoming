@@ -118,15 +118,17 @@ export function createStormLighting(scene: THREE.Scene) {
   sky.width = 512; sky.height = 256;
   const context = sky.getContext('2d')!;
   const gradient = context.createLinearGradient(0, 0, 0, sky.height);
-  const horizonColor = '#a9beb4';
+  // Fog and the middle of the sky share one cool value, so the far road
+  // dissolves into the background without a bright horizontal stripe.
+  const horizonColor = '#6b9094';
   gradient.addColorStop(0, '#263b4f');
-  gradient.addColorStop(.10, '#415e70');
-  gradient.addColorStop(.29, '#708f98');
-  gradient.addColorStop(.43, '#95afa9');
+  gradient.addColorStop(.10, '#405e6e');
+  gradient.addColorStop(.29, '#5a7e89');
+  gradient.addColorStop(.43, '#678b94');
   gradient.addColorStop(.50, horizonColor);
-  gradient.addColorStop(.57, '#b7c9b7');
-  gradient.addColorStop(.72, '#a1b9af');
-  gradient.addColorStop(1, '#b4c6b8');
+  gradient.addColorStop(.57, '#6d9297');
+  gradient.addColorStop(.72, '#78999e');
+  gradient.addColorStop(1, '#89a7a6');
   context.fillStyle = gradient;
   context.fillRect(0, 0, sky.width, sky.height);
   context.filter = 'blur(11px)';
