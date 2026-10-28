@@ -15,6 +15,7 @@ import { hasBoost, hasStar, itemNames, requestJump, usePowerItem } from './items
 import { ShopView } from './shop-view';
 import type { ForceIntegration } from './force-integration';
 import { runtimeMode } from './runtime-mode';
+import { AudioDirector } from './audio-director';
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } });
 
 const version = runtimeMode(location.pathname);
@@ -58,6 +59,7 @@ function newRun() {
   return import.meta.env.DEV ? developmentScenario(run, scenario, Number(params.get('start') ?? 0)) : run;
 }
 let state = newRun(), previous = state, input = noInput();
+const audio = new AudioDirector();
 type Screen = 'start' | 'pause' | 'help' | 'card' | 'result' | 'shop' | null;
 let screen: Screen = 'start';
 let discovery: EntityKind | null = null, cardTimer: ReturnType<typeof setTimeout> | undefined;
@@ -102,15 +104,18 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
 }
 function pauseRun(): void {
   if (state.phase !== 'running') return;
+  audio.pause();
   state = { ...state, phase: 'paused' };
   show('pause', 'Nghỉ một nhịp', 'Xe đã dừng an toàn. Xăng, điểm và tiền không thay đổi khi tạm dừng.');
 }
 function resume(): void {
   if (document.hidden || state.phase === 'ended') return;
+  audio.unlock();
   state = { ...leaveShop(state), phase: 'running' }; screen = null; modal.hidden = true;
   versionLink.hidden = false; clearInput(); canvas.focus({ preventScroll: true });
 }
 function reset(): void {
+  audio.reset();
   clearTimeout(cardTimer); discovery = null;
   force = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
   state = newRun(); previous = state;
@@ -187,11 +192,13 @@ function discover(): void {
     e.distance - state.distance <= warningDistance(state.speed, e, activeVehicle(state).length)).sort((a, b) => a.distance - b.distance)[0];
   if (!candidate) return;
   discovery = candidate.kind; state = { ...state, phase: 'paused' };
+  audio.pause();
   show('card', candidate.displayName ?? names[candidate.kind], candidate.help ?? cardDescriptions[candidate.kind]);
   text('discovery-hint', `Game đang tạm dừng. Bấm nút hoặc chờ ${balance.discoverySeconds} giây để đóng thẻ.`);
   cardTimer = setTimeout(dismissCard, balance.discoverySeconds * 1000);
 }
 play.addEventListener('click', () => {
+  audio.unlock();
   if (screen === 'card') dismissCard(); else if (screen === 'result') { reset(); resume(); } else resume();
 }, { signal: listeners.signal });
 pause.addEventListener('click', () => state.phase === 'running' ? pauseRun() : resume(), { signal: listeners.signal });
@@ -301,6 +308,7 @@ const frameTimes: number[] = [], renderTimes: number[] = []; let measuredFrames 
 function frame(now: number): void {
   const elapsed = (now - last) / 1000; last = now; const start = performance.now();
   const alpha = state.phase === 'running' ? clock.advance(elapsed, () => { previous = state; state = force ? force.step(state, input) : stepRun(state, input); }) : 1;
+  void audio.update(state, input);
   if (state.phase === 'ended' && screen !== 'result' && screen !== 'help') {
     resultView();
   } else discover();
@@ -319,4 +327,4 @@ function frame(now: number): void {
   canvas.dataset.forceContacts = `${force?.contactPairs ?? 0}`;
 }
 reset(); updateHud(); animation = requestAnimationFrame(frame);
-if (import.meta.hot) import.meta.hot.dispose(() => { cancelAnimationFrame(animation); listeners.abort(); clearTimeout(cardTimer); graphics.dispose(); });
+if (import.meta.hot) import.meta.hot.dispose(() => { cancelAnimationFrame(animation); listeners.abort(); clearTimeout(cardTimer); graphics.dispose(); audio.dispose(); });
