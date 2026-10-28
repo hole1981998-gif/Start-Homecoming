@@ -27,7 +27,7 @@ function cylinder(parent: THREE.Object3D, name: string, rTop: number, rBottom: n
 function point(parent: THREE.Object3D, name: string, pos: [number, number, number]) {
   const node = new THREE.Object3D(); node.name = name; node.position.set(...pos); parent.add(node); return node;
 }
-function waterNormalMap() {
+function waterNormalMap(width: number, length: number) {
   const size = 64, data = new Uint8Array(size * size * 4);
   const wave = (u: number, v: number) =>
     Math.sin((u * 3 + v * .7) * Math.PI * 2) * .58 +
@@ -47,7 +47,8 @@ function waterNormalMap() {
   const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.magFilter = texture.minFilter = THREE.LinearFilter;
-  texture.repeat.set(2, 3);
+  // Preserve the original 3.2 × 7 m patch's ripple scale for every footprint.
+  texture.repeat.set(width / 1.6, length / (7 / 3));
   texture.needsUpdate = true;
   return texture;
 }
@@ -115,15 +116,16 @@ function bevelBasin(parent: THREE.Object3D, kind: SurfaceHazardKind, width: numb
 }
 function facetedWaterFloor(parent: THREE.Object3D, width: number, length: number,
   material: THREE.Material) {
-  const columns = 8, rows = 10, exponent = 4.7;
+  const columns = Math.max(2, Math.ceil(width / .4));
+  const rows = Math.max(2, Math.ceil(length / .7)), exponent = 4.7;
   const positions: number[] = [], colors: number[] = [], uvs: number[] = [];
   const palette = ['#427c7d', '#498385', '#518b8a']
     .map(hex => new THREE.Color(hex));
   const edge = new THREE.Color('#7ba5a0');
   const vertex = (column: number, row: number): [number, number, number] => {
     const boundary = column === 0 || column === columns || row === 0 || row === rows;
-    const jitterX = boundary ? 0 : Math.sin(column * 91.7 + row * 23.3) * .018;
-    const jitterZ = boundary ? 0 : Math.sin(column * 31.9 - row * 74.1) * .013;
+    const jitterX = boundary ? 0 : Math.sin(column * 91.7 + row * 23.3) * .018 * 3.2 / width;
+    const jitterZ = boundary ? 0 : Math.sin(column * 31.9 - row * 74.1) * .013 * 7 / length;
     const u = (column / columns * 2 - 1) + jitterX;
     const v = (row / rows * 2 - 1) + jitterZ;
     const square = Math.max(Math.abs(u), Math.abs(v));
@@ -256,7 +258,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
       side: THREE.DoubleSide })
     : new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
       roughness: 1, side: THREE.DoubleSide });
-  const normalMap = kind === 'water' ? waterNormalMap() : undefined;
+  const normalMap = kind === 'water' ? waterNormalMap(width, length) : undefined;
   const setReflectionTime = center instanceof THREE.MeshPhysicalMaterial ? addWaterReflection(center) : undefined;
   if (center instanceof THREE.MeshPhysicalMaterial && normalMap) {
     center.normalMap = normalMap;

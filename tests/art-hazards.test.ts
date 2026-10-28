@@ -5,6 +5,28 @@ import { createPropHazardArt, createSurfaceHazardArt, type PropHazardKind } from
 import { createRoadTileArt } from '../src/art/road-kit';
 
 describe('essential hazard art', () => {
+  it('keeps ripple texel density and average facet area consistent as puddles grow', () => {
+    const areas: number[] = [];
+    for (const [width, length] of [[3.2, 7], [5.7, 24], [9.6, 30]]) {
+      const water = createSurfaceHazardArt('water', width, length);
+      const floor = water.root.getObjectByName('deep_water') as THREE.Mesh;
+      const p = floor.geometry.getAttribute('position'), uv = floor.geometry.getAttribute('uv');
+      const map = (floor.material as THREE.MeshPhysicalMaterial).normalMap!;
+      let total = 0;
+      const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+      for (let i = 0; i < p.count; i += 3) {
+        a.fromBufferAttribute(p, i); b.fromBufferAttribute(p, i + 1); c.fromBufferAttribute(p, i + 2);
+        total += b.sub(a).cross(c.sub(a)).length() / 2;
+      }
+      areas.push(total / (p.count / 3));
+      const i = p.count - 1;
+      expect((uv.getX(i) - uv.getX(0)) * map.repeat.x / (p.getX(i) - p.getX(0))).toBeCloseTo(1 / 1.6);
+      expect((uv.getY(i) - uv.getY(0)) * map.repeat.y / (p.getZ(i) - p.getZ(0))).toBeCloseTo(3 / 7);
+      water.dispose();
+    }
+    for (const area of areas) expect(area / areas[0]).toBeGreaterThan(.8);
+    for (const area of areas) expect(area / areas[0]).toBeLessThan(1.2);
+  });
   it('reflects the shared sky without owning its lifetime or altering other hazard materials', () => {
     const sky = new THREE.Texture(); let disposed = false;
     sky.addEventListener('dispose', () => { disposed = true; });
