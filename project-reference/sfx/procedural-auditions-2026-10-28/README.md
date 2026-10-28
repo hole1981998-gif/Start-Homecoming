@@ -1,6 +1,6 @@
 # Homecoming procedural sound auditions — 28 October 2026
 
-This folder holds **76 WAV drafts** for the game's non-voice sound design. Open `LISTEN.html` locally to audition them by group. `MANIFEST.json` maps each new file to its cue name, bus, length and intended character. The first eight A/B auditions (`generate.py`) remain at this folder's top level; `generate_full.py` adds 68 more files across the subfolders.
+This folder holds **138 WAV drafts** for the game's non-voice sound design. Open `LISTEN.html` locally for the gameplay SFX and `ui-modern/LISTEN_UI.html` for the dedicated modern UI pack. `MANIFEST.json` maps the 68 full-pack files; `ui-modern/MANIFEST.json` maps the 62 UI files. The first eight A/B auditions (`generate.py`) remain at this folder's top level; `generate_full.py` adds 68 game files, and `generate_ui.py` adds 62 UI files.
 
 | Group | Files | Coverage |
 | --- | ---: | --- |
@@ -13,8 +13,9 @@ This folder holds **76 WAV drafts** for the game's non-voice sound design. Open 
 | Results | 5 | Damage, fuel, train, police and secret endings |
 | Engine loops | 8 | One loop for each playable vehicle kind |
 | Ambience loops | 4 | Light/heavy rain, wind and wet road |
+| Modern UI A/B takes | 62 | Menu, controls, cards, toast, rewards, shop, inventory and result panels |
 
-All one-shots are at most 1.83 s. Files are 44.1 kHz, 16-bit PCM, mono; the loop files have matched first/last samples. Both generators use Python's standard library and deterministic seeds. **ElevenLabs was not used** for these SFX. Voice lines and music are outside this pack.
+Gameplay one-shots are at most 1.83 s; modern UI cues are at most 0.76 s. Files are 44.1 kHz, 16-bit PCM, mono; the loop files have matched first/last samples. All three generators use Python's standard library and deterministic seeds. **ElevenLabs was not used** for these SFX. Voice lines and music are outside this pack.
 
 ## Review and integration boundaries
 
@@ -25,4 +26,4 @@ All one-shots are at most 1.83 s. Files are 44.1 kHz, 16-bit PCM, mono; the loop
 - Duck ambience under warnings and future voice lines; keep the SFX and ambience volume/mute controls separate. Every hazard and consequence needs an equivalent visual cue when muted. Avoid stacking police and train warning cues into a continuous alarm.
 - Review at gameplay volume with rain, engine and alerts together. If a cue is harsh, repetitive or masks a warning, revise it before P12 integration. Final selection and game wiring require owner approval and gameplay checks.
 
-To regenerate, run `generate.py` then `generate_full.py` from this directory with Python 3. The scripts do not need the ElevenLabs API key.
+To regenerate, run `generate.py`, `generate_full.py`, then `generate_ui.py` from this directory with Python 3. The scripts do not need the ElevenLabs API key.

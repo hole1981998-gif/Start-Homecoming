@@ -446,8 +446,10 @@ if __name__ == "__main__":
             "article{display:flex;gap:20px;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #34403d}"
             "small{display:block;color:#a8b9b5;margin-top:3px}audio{width:280px;max-width:100%}"
             "@media(max-width:650px){article{display:block}audio{margin-top:8px;width:100%}}</style>"
-            "<h1>Homecoming SFX auditions</h1><p>76 local WAV drafts. Listen at moderate volume; no voice or music."
-            " Nothing here is approved or integrated into the game.</p>" + sections + "</html>\n")
+            "<h1>Homecoming SFX auditions</h1><p>76 gameplay WAV drafts. Listen at moderate volume; no voice or music."
+            " Nothing here is approved or integrated into the game. "
+            "<a href=\"ui-modern/LISTEN_UI.html\" style=\"color:#aee0cf\">Open the modern UI sound pack (62 takes)</a>.</p>"
+            + sections + "</html>\n")
     (ROOT / "LISTEN.html").write_text(page, encoding="utf-8")
     print(f"Generated {len(manifest)} files across {len(SPECS)} one-shots, 8 engine loops, 4 ambience loops")
     print(f"Longest one-shot: {max(x['duration_seconds'] for x in manifest if not x['file'].endswith('_loop.wav')):.2f}s")

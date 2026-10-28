@@ -1,0 +1,622 @@
+[
+  {
+    "key": "menu_open",
+    "take": "a",
+    "group": "menu",
+    "file": "menu_open_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.37,
+    "rms": 0.0548,
+    "guidance": "Panel opens"
+  },
+  {
+    "key": "menu_open",
+    "take": "b",
+    "group": "menu",
+    "file": "menu_open_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.37,
+    "rms": 0.054,
+    "guidance": "Panel opens"
+  },
+  {
+    "key": "menu_close",
+    "take": "a",
+    "group": "menu",
+    "file": "menu_close_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.3,
+    "rms": 0.0535,
+    "guidance": "Panel closes"
+  },
+  {
+    "key": "menu_close",
+    "take": "b",
+    "group": "menu",
+    "file": "menu_close_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.3,
+    "rms": 0.0548,
+    "guidance": "Panel closes"
+  },
+  {
+    "key": "menu_move",
+    "take": "a",
+    "group": "menu",
+    "file": "menu_move_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.18,
+    "rms": 0.0427,
+    "guidance": "Keyboard/gamepad focus moves; cooldown"
+  },
+  {
+    "key": "menu_move",
+    "take": "b",
+    "group": "menu",
+    "file": "menu_move_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.18,
+    "rms": 0.0493,
+    "guidance": "Keyboard/gamepad focus moves; cooldown"
+  },
+  {
+    "key": "menu_select",
+    "take": "a",
+    "group": "menu",
+    "file": "menu_select_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.27,
+    "rms": 0.069,
+    "guidance": "A menu action is committed"
+  },
+  {
+    "key": "menu_select",
+    "take": "b",
+    "group": "menu",
+    "file": "menu_select_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.27,
+    "rms": 0.0667,
+    "guidance": "A menu action is committed"
+  },
+  {
+    "key": "menu_back",
+    "take": "a",
+    "group": "menu",
+    "file": "menu_back_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.25,
+    "rms": 0.0559,
+    "guidance": "Return to previous panel"
+  },
+  {
+    "key": "menu_back",
+    "take": "b",
+    "group": "menu",
+    "file": "menu_back_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.25,
+    "rms": 0.0563,
+    "guidance": "Return to previous panel"
+  },
+  {
+    "key": "menu_hover",
+    "take": "a",
+    "group": "menu",
+    "file": "menu_hover_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.13,
+    "rms": 0.0362,
+    "guidance": "Optional pointer hover; rate limit heavily"
+  },
+  {
+    "key": "menu_hover",
+    "take": "b",
+    "group": "menu",
+    "file": "menu_hover_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.13,
+    "rms": 0.0428,
+    "guidance": "Optional pointer hover; rate limit heavily"
+  },
+  {
+    "key": "toggle_on",
+    "take": "a",
+    "group": "controls",
+    "file": "toggle_on_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.27,
+    "rms": 0.0576,
+    "guidance": "Setting enabled"
+  },
+  {
+    "key": "toggle_on",
+    "take": "b",
+    "group": "controls",
+    "file": "toggle_on_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.27,
+    "rms": 0.0617,
+    "guidance": "Setting enabled"
+  },
+  {
+    "key": "toggle_off",
+    "take": "a",
+    "group": "controls",
+    "file": "toggle_off_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.25,
+    "rms": 0.051,
+    "guidance": "Setting disabled"
+  },
+  {
+    "key": "toggle_off",
+    "take": "b",
+    "group": "controls",
+    "file": "toggle_off_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.25,
+    "rms": 0.0514,
+    "guidance": "Setting disabled"
+  },
+  {
+    "key": "slider_step",
+    "take": "a",
+    "group": "controls",
+    "file": "slider_step_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.14,
+    "rms": 0.0388,
+    "guidance": "Only at meaningful slider steps, not every pixel"
+  },
+  {
+    "key": "slider_step",
+    "take": "b",
+    "group": "controls",
+    "file": "slider_step_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.14,
+    "rms": 0.0449,
+    "guidance": "Only at meaningful slider steps, not every pixel"
+  },
+  {
+    "key": "help_open",
+    "take": "a",
+    "group": "controls",
+    "file": "help_open_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.35,
+    "rms": 0.0456,
+    "guidance": "Help panel opens"
+  },
+  {
+    "key": "help_open",
+    "take": "b",
+    "group": "controls",
+    "file": "help_open_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.35,
+    "rms": 0.0513,
+    "guidance": "Help panel opens"
+  },
+  {
+    "key": "card_open",
+    "take": "a",
+    "group": "controls",
+    "file": "card_open_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.4,
+    "rms": 0.0506,
+    "guidance": "First-discovery card, only in safe window"
+  },
+  {
+    "key": "card_open",
+    "take": "b",
+    "group": "controls",
+    "file": "card_open_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.4,
+    "rms": 0.0499,
+    "guidance": "First-discovery card, only in safe window"
+  },
+  {
+    "key": "card_dismiss",
+    "take": "a",
+    "group": "controls",
+    "file": "card_dismiss_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.27,
+    "rms": 0.0514,
+    "guidance": "Card dismissed"
+  },
+  {
+    "key": "card_dismiss",
+    "take": "b",
+    "group": "controls",
+    "file": "card_dismiss_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.27,
+    "rms": 0.0516,
+    "guidance": "Card dismissed"
+  },
+  {
+    "key": "toast_positive",
+    "take": "a",
+    "group": "feedback",
+    "file": "toast_positive_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.42,
+    "rms": 0.0596,
+    "guidance": "Optional positive toast; cooldown/group duplicates"
+  },
+  {
+    "key": "toast_positive",
+    "take": "b",
+    "group": "feedback",
+    "file": "toast_positive_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.42,
+    "rms": 0.0621,
+    "guidance": "Optional positive toast; cooldown/group duplicates"
+  },
+  {
+    "key": "toast_negative",
+    "take": "a",
+    "group": "feedback",
+    "file": "toast_negative_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.4,
+    "rms": 0.0467,
+    "guidance": "Optional negative toast; do not punish the player"
+  },
+  {
+    "key": "toast_negative",
+    "take": "b",
+    "group": "feedback",
+    "file": "toast_negative_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.4,
+    "rms": 0.048,
+    "guidance": "Optional negative toast; do not punish the player"
+  },
+  {
+    "key": "reward_small",
+    "take": "a",
+    "group": "feedback",
+    "file": "reward_small_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.53,
+    "rms": 0.0658,
+    "guidance": "Discrete reward, never per distance/score tick"
+  },
+  {
+    "key": "reward_small",
+    "take": "b",
+    "group": "feedback",
+    "file": "reward_small_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.53,
+    "rms": 0.0681,
+    "guidance": "Discrete reward, never per distance/score tick"
+  },
+  {
+    "key": "reward_major",
+    "take": "a",
+    "group": "feedback",
+    "file": "reward_major_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.76,
+    "rms": 0.0694,
+    "guidance": "Rare milestone or major reward only"
+  },
+  {
+    "key": "reward_major",
+    "take": "b",
+    "group": "feedback",
+    "file": "reward_major_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.76,
+    "rms": 0.0718,
+    "guidance": "Rare milestone or major reward only"
+  },
+  {
+    "key": "resource_gain",
+    "take": "a",
+    "group": "feedback",
+    "file": "resource_gain_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.32,
+    "rms": 0.0577,
+    "guidance": "Discrete fuel/HP gain, no continuous spam"
+  },
+  {
+    "key": "resource_gain",
+    "take": "b",
+    "group": "feedback",
+    "file": "resource_gain_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.32,
+    "rms": 0.0577,
+    "guidance": "Discrete fuel/HP gain, no continuous spam"
+  },
+  {
+    "key": "resource_loss",
+    "take": "a",
+    "group": "feedback",
+    "file": "resource_loss_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.31,
+    "rms": 0.0474,
+    "guidance": "Discrete consequence; visual number remains primary"
+  },
+  {
+    "key": "resource_loss",
+    "take": "b",
+    "group": "feedback",
+    "file": "resource_loss_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.31,
+    "rms": 0.0463,
+    "guidance": "Discrete consequence; visual number remains primary"
+  },
+  {
+    "key": "shop_enter",
+    "take": "a",
+    "group": "shop",
+    "file": "shop_enter_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.39,
+    "rms": 0.0533,
+    "guidance": "Shop panel opens; choose instead of old shop_open"
+  },
+  {
+    "key": "shop_enter",
+    "take": "b",
+    "group": "shop",
+    "file": "shop_enter_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.39,
+    "rms": 0.0526,
+    "guidance": "Shop panel opens; choose instead of old shop_open"
+  },
+  {
+    "key": "shop_category",
+    "take": "a",
+    "group": "shop",
+    "file": "shop_category_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.2,
+    "rms": 0.037,
+    "guidance": "Shop category changes"
+  },
+  {
+    "key": "shop_category",
+    "take": "b",
+    "group": "shop",
+    "file": "shop_category_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.2,
+    "rms": 0.0441,
+    "guidance": "Shop category changes"
+  },
+  {
+    "key": "purchase_success",
+    "take": "a",
+    "group": "shop",
+    "file": "purchase_success_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.52,
+    "rms": 0.0637,
+    "guidance": "Successful purchase only"
+  },
+  {
+    "key": "purchase_success",
+    "take": "b",
+    "group": "shop",
+    "file": "purchase_success_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.52,
+    "rms": 0.0611,
+    "guidance": "Successful purchase only"
+  },
+  {
+    "key": "purchase_fail",
+    "take": "a",
+    "group": "shop",
+    "file": "purchase_fail_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.35,
+    "rms": 0.0466,
+    "guidance": "Cannot buy; do not play success cue"
+  },
+  {
+    "key": "purchase_fail",
+    "take": "b",
+    "group": "shop",
+    "file": "purchase_fail_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.35,
+    "rms": 0.0455,
+    "guidance": "Cannot buy; do not play success cue"
+  },
+  {
+    "key": "shop_upgrade",
+    "take": "a",
+    "group": "shop",
+    "file": "shop_upgrade_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.65,
+    "rms": 0.0616,
+    "guidance": "Upgrade purchased; choose instead of old shop_upgrade"
+  },
+  {
+    "key": "shop_upgrade",
+    "take": "b",
+    "group": "shop",
+    "file": "shop_upgrade_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.65,
+    "rms": 0.0634,
+    "guidance": "Upgrade purchased; choose instead of old shop_upgrade"
+  },
+  {
+    "key": "shop_service",
+    "take": "a",
+    "group": "shop",
+    "file": "shop_service_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.45,
+    "rms": 0.0515,
+    "guidance": "Fuel or repair service completed"
+  },
+  {
+    "key": "shop_service",
+    "take": "b",
+    "group": "shop",
+    "file": "shop_service_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.45,
+    "rms": 0.0498,
+    "guidance": "Fuel or repair service completed"
+  },
+  {
+    "key": "vehicle_purchase",
+    "take": "a",
+    "group": "shop",
+    "file": "vehicle_purchase_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.69,
+    "rms": 0.0679,
+    "guidance": "Vehicle purchase completed"
+  },
+  {
+    "key": "vehicle_purchase",
+    "take": "b",
+    "group": "shop",
+    "file": "vehicle_purchase_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.69,
+    "rms": 0.0688,
+    "guidance": "Vehicle purchase completed"
+  },
+  {
+    "key": "inventory_select",
+    "take": "a",
+    "group": "actions",
+    "file": "inventory_select_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.22,
+    "rms": 0.0367,
+    "guidance": "Inventory focus/slot selection"
+  },
+  {
+    "key": "inventory_select",
+    "take": "b",
+    "group": "actions",
+    "file": "inventory_select_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.22,
+    "rms": 0.0424,
+    "guidance": "Inventory focus/slot selection"
+  },
+  {
+    "key": "item_use",
+    "take": "a",
+    "group": "actions",
+    "file": "item_use_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.34,
+    "rms": 0.0551,
+    "guidance": "Item activation confirmation; gameplay SFX separate"
+  },
+  {
+    "key": "item_use",
+    "take": "b",
+    "group": "actions",
+    "file": "item_use_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.34,
+    "rms": 0.0599,
+    "guidance": "Item activation confirmation; gameplay SFX separate"
+  },
+  {
+    "key": "pause",
+    "take": "a",
+    "group": "actions",
+    "file": "pause_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.26,
+    "rms": 0.05,
+    "guidance": "Pause transition"
+  },
+  {
+    "key": "pause",
+    "take": "b",
+    "group": "actions",
+    "file": "pause_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.26,
+    "rms": 0.0501,
+    "guidance": "Pause transition"
+  },
+  {
+    "key": "resume",
+    "take": "a",
+    "group": "actions",
+    "file": "resume_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.27,
+    "rms": 0.0553,
+    "guidance": "Resume transition"
+  },
+  {
+    "key": "resume",
+    "take": "b",
+    "group": "actions",
+    "file": "resume_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.27,
+    "rms": 0.0494,
+    "guidance": "Resume transition"
+  },
+  {
+    "key": "restart",
+    "take": "a",
+    "group": "actions",
+    "file": "restart_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.49,
+    "rms": 0.0576,
+    "guidance": "New run starts"
+  },
+  {
+    "key": "restart",
+    "take": "b",
+    "group": "actions",
+    "file": "restart_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.49,
+    "rms": 0.0568,
+    "guidance": "New run starts"
+  },
+  {
+    "key": "result_open",
+    "take": "a",
+    "group": "actions",
+    "file": "result_open_a.wav",
+    "bus": "ui",
+    "duration_seconds": 0.48,
+    "rms": 0.0492,
+    "guidance": "Results panel appears; terminal event cue separate"
+  },
+  {
+    "key": "result_open",
+    "take": "b",
+    "group": "actions",
+    "file": "result_open_b.wav",
+    "bus": "ui",
+    "duration_seconds": 0.48,
+    "rms": 0.0493,
+    "guidance": "Results panel appears; terminal event cue separate"
+  }
+]
