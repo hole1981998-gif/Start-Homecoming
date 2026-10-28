@@ -116,9 +116,9 @@ function facetedWaterFloor(parent: THREE.Object3D, width: number, length: number
   material: THREE.Material) {
   const columns = 8, rows = 10, exponent = 4.7;
   const positions: number[] = [], colors: number[] = [], uvs: number[] = [];
-  const palette = ['#4c9bb4', '#51a0b8', '#56a4bb']
+  const palette = ['#427c7d', '#498385', '#518b8a']
     .map(hex => new THREE.Color(hex));
-  const edge = new THREE.Color('#6eb6c2');
+  const edge = new THREE.Color('#7ba5a0');
   const vertex = (column: number, row: number): [number, number, number] => {
     const boundary = column === 0 || column === columns || row === 0 || row === rows;
     const jitterX = boundary ? 0 : Math.sin(column * 91.7 + row * 23.3) * .018;
@@ -132,7 +132,7 @@ function facetedWaterFloor(parent: THREE.Object3D, width: number, length: number
     const uneven = 1 + Math.sin(angle * 3 + .4) * .018 + Math.sin(angle * 7 - .6) * .012;
     const x = u * factor * width * .445 * uneven;
     const z = v * factor * length * .445 * uneven;
-    const y = .047 - square * .012 + Math.sin(x * 3.1 + z * 1.4) * .002;
+    const y = .057 - square * .009 + Math.sin(x * 1.1 + z * .7) * .002;
     return [x, y, z];
   };
   let face = 0;
@@ -177,14 +177,14 @@ function basinFloor(parent: THREE.Object3D, kind: SurfaceHazardKind,
   const segments = lod === 'near' ? 40 : 24;
   const positions: number[] = [], colors: number[] = [], uvs: number[] = [];
   const gradient = kind === 'water'
-    ? ['#1c6391', '#46afd0', '#82d8dc']
+    ? ['#396b70', '#498385', '#7ba5a0']
     : ['#171e20', '#303331', '#655848'];
   const rings = kind === 'water' ? [0, .09, .18, .27, .36, .445] : [0, .18, .335];
   const vertex = (ring: number, index: number) => {
     const angle = index * Math.PI * 2 / segments;
     const wobble = ring === 0 ? 1 : outlineRadius(kind, angle);
     const height = kind === 'water'
-      ? .047 - rings[ring] * .027 + (ring === 0 ? 0 : Math.sin(angle * 3) * .003)
+      ? .057 - rings[ring] * .020 + (ring === 0 ? 0 : Math.sin(angle * 3) * .002)
       : [.037, .038, .040][ring] + (ring === 0 ? 0 : Math.sin(angle * 4) * .001);
     return [Math.cos(angle) * width * rings[ring] * wobble, height,
       Math.sin(angle) * length * rings[ring] * wobble] as const;
@@ -250,8 +250,8 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   const edge = material(kind === 'water' ? '#426a70' : '#394951');
   const center = kind === 'water'
     ? new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true,
-      roughness: .28, metalness: .04, clearcoat: .72,
-      clearcoatRoughness: .14, side: THREE.DoubleSide })
+      roughness: .43, metalness: .02, clearcoat: .34,
+      clearcoatRoughness: .31, side: THREE.DoubleSide })
     : new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
       roughness: 1, side: THREE.DoubleSide });
   const normalMap = kind === 'water' ? waterNormalMap() : undefined;
@@ -259,12 +259,12 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
     center.normalMap = normalMap;
     center.normalScale.set(.08, .08);
   }
-  const glint = new THREE.MeshStandardMaterial({ color: '#a4e1e5', roughness: .32,
-    transparent: true, opacity: .48, depthWrite: false, side: THREE.DoubleSide });
+  const glint = new THREE.MeshStandardMaterial({ color: '#94bcb5', roughness: .48,
+    transparent: true, opacity: .34, depthWrite: false, side: THREE.DoubleSide });
   const debris = material('#665f54');
   // Potholes may span all three lanes. Their footprint must sit above the
   // road dash top (.025 m) so the painted line cannot show through the basin.
-  patch(root, 'readable_footprint', width, length, kind === 'pothole' ? .030 : .015, edge, kind);
+  patch(root, 'readable_footprint', width, length, .030, edge, kind);
   bevelBasin(root, kind, width, length, lod, kind === 'water'
     ? material('#6d9fa6')
     : new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
@@ -275,12 +275,12 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
     for (let i = 0; i < (lod === 'near' ? 5 : 2); i++) {
       const z = (i / (lod === 'near' ? 5 : 2) - .42) * length * .72;
       ripples.push(box(root, `water_ripple_${i}`, [width * (.20 + (i % 3) * .10), .004, .022],
-        [((i * 7) % 5 - 2) * width * .07, .043, z * .77], glint));
+        [((i * 7) % 5 - 2) * width * .07, .067, z * .77], glint));
     }
     for (const side of [-1, 1]) for (const z of [-.20, .20])
       box(root, `wet_bank_${side}_${z}`,
         [Math.min(.035, width * .018), .004, length * .085],
-        [side * width * .28, .045, z * length * .8], glint);
+        [side * width * .28, .061, z * length * .8], glint);
   } else {
     for (const side of [-1, 1]) {
       const chips = side < 0 ? [-.29, .04, .27] : [-.17, .23];
@@ -322,20 +322,23 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
     const positions = attribute.array as Float32Array;
     const base = Float32Array.from(positions);
     const rippleZ = ripples.map(mesh => mesh.position.z);
+    let lastTime = -1;
     art.setVisualTime = (elapsedSeconds: number) => {
       const t = Math.max(0, elapsedSeconds);
+      if (t === lastTime) return;
+      lastTime = t;
       if (normalMap) normalMap.offset.set(t * .009 % 1, t * .016 % 1);
       for (let i = 0; i < attribute.count; i++) {
         const offset = i * 3;
         positions[offset + 1] = base[offset + 1] +
-          (Math.sin(base[offset] * 5.7 + base[offset + 2] * 1.8 + t * 2.2) +
-            Math.sin(base[offset] * 2.1 - base[offset + 2] * 4.6 - t * 1.5) * .55) * .008;
+          (Math.sin(base[offset] * 1.4 + base[offset + 2] * .65 + t * .65) +
+            Math.sin(base[offset] * .7 - base[offset + 2] * 1.1 - t * .48) * .55) * .005;
       }
       attribute.needsUpdate = true;
       floor.geometry.computeVertexNormals();
       ripples.forEach((mesh, i) => {
-        mesh.position.z = rippleZ[i] + Math.sin(t * 1.7 + i * 1.9) * length * .012;
-        mesh.scale.x = 1 + Math.sin(t * 2.1 + i * 1.3) * .09;
+        mesh.position.z = rippleZ[i] + Math.sin(t * .65 + i * 1.9) * length * .018;
+        mesh.scale.x = 1 + Math.sin(t * .8 + i * 1.3) * .12;
       });
     };
   }

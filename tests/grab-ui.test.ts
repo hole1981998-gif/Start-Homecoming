@@ -4,6 +4,7 @@ import { expect, it, vi } from 'vitest';
 import type { Run } from '../src/survival';
 const drawn = vi.hoisted(() => ({ run: undefined as Run | undefined }));
 vi.mock('../src/render', () => ({ RoadRenderer: class {
+  setLowEffects() { /* Presentation preference; no WebGL in DOM tests. */ }
   draw(run: Run) { drawn.run = run; }
   project() { return { x: 50, y: 40 }; }
   dispose() { /* no WebGL resources */ }

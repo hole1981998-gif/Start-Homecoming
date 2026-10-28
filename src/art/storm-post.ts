@@ -28,7 +28,7 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
         // Slate blue storm shade; the sky texture and distance fog own the horizon.
         color *= mix(vec3(1.0), vec3(0.91, 0.99, 1.055), shadow * 0.76);
         color += shadow * vec3(0.002, 0.006, 0.010);
-        color *= mix(vec3(1.0), vec3(1.025, 1.012, 0.992), highlight * 0.48);
+        color *= mix(vec3(1.0), vec3(1.012, 1.014, 1.010), highlight * 0.48);
         float gradedLuma = dot(color, vec3(0.2126, 0.7152, 0.0722));
         color = mix(vec3(gradedLuma), color, 0.98);
         color *= 1.015;

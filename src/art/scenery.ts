@@ -999,10 +999,10 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     tree(root, 'field_edge_tree', x(2), 23, 4.6, near, 'palm');
   } else {
     const shore = mat('#b0a485'), seam = mat('#7d8c7f');
-    const sea = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: .42,
-      metalness: .02, clearcoat: .44, clearcoatRoughness: .22,
+    const sea = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: .58,
+      metalness: .01, clearcoat: .24, clearcoatRoughness: .4,
       flatShading: true, side: THREE.DoubleSide });
-    const foam = mat('#c4d8c0');
+    const foam = mat('#839e99');
     const wallStart = seaEdges.start ? -40 : -48;
     const wallEnd = seaEdges.end ? 40 : 48;
     const wallLength = wallEnd - wallStart;
@@ -1036,7 +1036,7 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
     indexedWater.dispose();
     const waterPoints = waterGeometry.getAttribute('position') as THREE.BufferAttribute;
     const waterColors = waterGeometry.getAttribute('color') as THREE.BufferAttribute;
-    const facets = ['#4c8ca7', '#5394ac', '#5b9ab0', '#508da6', '#61a2b4']
+    const facets = ['#52787e', '#557b80', '#5a8084', '#587d81', '#60878a']
       .map(hex => new THREE.Color(hex));
     for (let i = 0; i < waterPoints.count; i += 3) {
       const px = (waterPoints.getX(i) + waterPoints.getX(i + 1) + waterPoints.getX(i + 2)) / 3;
@@ -1122,8 +1122,8 @@ export function createSceneryCluster(kind: LandscapeKind, side: -1 | 1,
       for (let i = 0; i < positions.length; i += 3) {
         const x = surface.base[i], z = surface.base[i + 2];
         positions[i + 1] = surface.base[i + 1] + surface.amplitude *
-          (Math.sin(x * 1.25 + z * .72 + t * 1.8 + surface.phase) +
-            .46 * Math.sin(x * 2.4 - z * 1.33 - t * 1.15));
+          (Math.sin(x * .75 + z * .52 + t * .65 + surface.phase) +
+            .46 * Math.sin(x * 1.4 - z * .8 - t * .45));
       }
       attribute.needsUpdate = true;
       surface.geometry.computeVertexNormals();

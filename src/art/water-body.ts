@@ -18,8 +18,8 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
     axes: '+Y up, +Z forward', collisionRole: 'decorative-only',
     placementSource: 'future art placement; no spawn change' };
   const vertices: number[] = [], colors: number[] = [], indices: number[] = [];
-  const edge = new THREE.Color('#7eb6bd');
-  const middle = new THREE.Color(kind === 'river' ? '#4d8fa8' : '#5592a7');
+  const edge = new THREE.Color('#6f9091');
+  const middle = new THREE.Color(kind === 'river' ? '#52787e' : '#587c80');
   const color = new THREE.Color();
   if (kind === 'river') {
     const columns = lod === 'near' ? 12 : 7;
@@ -69,7 +69,7 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
   indexed.dispose();
   const faceColors = geometry.getAttribute('color') as THREE.BufferAttribute;
   const positions = geometry.getAttribute('position') as THREE.BufferAttribute;
-  const facets = ['#4d8faa', '#5598af', '#5b9db3', '#528fa8', '#61a2b5']
+  const facets = ['#52787e', '#557b80', '#5a8084', '#587d81', '#60878a']
     .map(hex => new THREE.Color(hex));
   for (let i = 0; i < positions.count; i += 3) {
     const x = (positions.getX(i) + positions.getX(i + 1) + positions.getX(i + 2)) / 3;
@@ -84,7 +84,7 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
   faceColors.needsUpdate = true;
   geometry.computeVertexNormals();
   const material = new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true,
-    roughness: .42, metalness: .02, clearcoat: .44, clearcoatRoughness: .22,
+    roughness: .58, metalness: .01, clearcoat: .24, clearcoatRoughness: .4,
     side: THREE.DoubleSide, flatShading: true });
   const surface = new THREE.Mesh(geometry, material);
   surface.name = `${kind}_water_surface`;
@@ -151,9 +151,9 @@ export function createOpenWaterArt(kind: OpenWaterKind, width: number, length: n
       const fade = Math.max(.16, 1 - edgeDistance * .74);
       const amplitude = (lod === 'near' ? 1 : .28) * (kind === 'lake' ? .75 : 1);
       array[i + 1] = base[i + 1] +
-        fade * amplitude * (Math.sin(x * .68 + z * .84 + t * 1.3) * .11 +
-          Math.sin(x * 1.45 - z * .46 - t * 1.1) * .055 +
-          Math.sin(z * .19 + x * .26 + t * .65) * .07);
+        fade * amplitude * (Math.sin(x * .68 + z * .84 + t * .55) * .065 +
+          Math.sin(x * 1.45 - z * .46 - t * .45) * .035 +
+          Math.sin(z * .19 + x * .26 + t * .3) * .045);
     }
     position.needsUpdate = true;
     geometry.computeVertexNormals();

@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { balance, movingBalance } from './config';
 import { jumpHeight, hasStar, hasBoost } from './items';
 import { activeVehicle, type Run } from './survival';
-import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from './world';
+import { passengerPose, trafficTypes, warningDistance, type EntityKind, type TrafficKind } from './world';
 import { junction, pathPose } from './route';
 import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep';
 import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
@@ -24,6 +24,8 @@ import { createStormPostProcessing } from './art/storm-post';
 import { createRoadContactShadows } from './art/road-contact-shadows';
 import { passengerWindowPoses } from './art/passenger-windows';
 import { createWindStreakArt, type WindStreakArt } from './art/wind-streaks';
+import { createRoadEffects } from './art/road-effects';
+import { vehicleEffectState, vehicleLampSignal } from './art/vehicle-effects';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
 import { openPassengerSeat } from './art/open-passengers';
 import { roadsideArchetype, roadsidePose, roadsideWalkingYaw } from './art/runtime-people';
@@ -44,6 +46,9 @@ export class RoadRenderer {
   private stormLighting: ReturnType<typeof createStormLighting>;
   private stormPost: ReturnType<typeof createStormPostProcessing>;
   private contactShadows = createRoadContactShadows();
+  private effects = createRoadEffects();
+  private reducedMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  private lowEffects = false;
   private playerShadow!: THREE.Mesh;
   private trailerShadow!: THREE.Mesh;
   private bike = new THREE.Group();
@@ -98,6 +103,7 @@ export class RoadRenderer {
   private crossings: JunctionView[] = [];
   constructor(canvas: HTMLCanvasElement, host: HTMLElement, private forceMode = false) {
     this.host = host;
+    this.scene.add(this.effects.root);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     configureStormRenderer(this.renderer);
@@ -410,8 +416,10 @@ export class RoadRenderer {
     // Character gestures communicate movement and pickup state; they stay
     // visible even when optional screen motion is reduced by the OS.
     const visualTime = s.activeSeconds;
+    const lowFx = this.lowEffects || !!this.reducedMotion?.matches;
+    const weatherTime = lowFx ? 0 : visualTime;
     const vehicle = activeVehicle(s);
-    this.powerRing.visible = hasStar(s) || hasBoost(s);
+    this.powerRing.visible = s.phase !== 'ready' && s.phase !== 'ended' && (hasStar(s) || hasBoost(s));
     (this.powerRing.material as THREE.MeshBasicMaterial).color.set(hasStar(s) ? '#f7df85' : '#86d6ec');
     const tricycle = vehicle.kind === 'tricycle';
     const open = ['motorcycle', 'motorbike', 'tricycle'].includes(vehicle.kind);
@@ -467,8 +475,10 @@ export class RoadRenderer {
       this.rainSplashes.setIntensity(.20);
       this.scene.add(this.rain.root, this.rainSplashes.root);
     }
-    this.rain!.update(s.activeSeconds, playerX, playerZ - 18);
-    this.rainSplashes!.update(s.activeSeconds, playerX, playerZ - 18);
+    this.rain!.setIntensity(lowFx ? .10 : .34);
+    this.rainSplashes!.setIntensity(lowFx ? .04 : .20);
+    this.rain!.update(weatherTime, playerX, playerZ - 18);
+    this.rainSplashes!.update(weatherTime, playerX, playerZ - 18);
     const yaw = THREE.MathUtils.lerp(previous.forceYaw, s.forceYaw, alpha);
     const bodyX = !this.forceMode ? x : vehicle.kind === 'car7' ?
       car7BodyCenterX(x, vehicle.length, yaw) : vehicle.kind === 'bus' || vehicle.kind === 'truck' ?
@@ -710,7 +720,7 @@ export class RoadRenderer {
           art.root.position.set(pose.x, 0, pose.z);
           art.root.rotation.y = Math.PI - pose.heading;
         }
-        art.setVisualTime?.(s.activeSeconds);
+        art.setVisualTime?.(weatherTime);
       }
     }
     for (const [key, art] of this.scenery) if (!visibleScenery.has(key)) {
@@ -774,9 +784,9 @@ export class RoadRenderer {
         (entry.mesh.userData.cargoBarrel as HazardArt).root.visible = e.cargoType === 'barrel';
         entry.mesh.rotation.z = (e.cargoVelocityX ?? 0) * s.activeSeconds * 1.5;
       }
-      if (e.kind === 'water') (entry.mesh.userData.hazardArt as HazardArt).setVisualTime?.(s.activeSeconds);
+      if (e.kind === 'water') (entry.mesh.userData.hazardArt as HazardArt).setVisualTime?.(weatherTime);
       if (e.kind === 'wind') (entry.mesh.userData.windArt as WindStreakArt)
-        .setVisualTime(visualTime, e.lateralPush ?? 1);
+        .setVisualTime(weatherTime, e.lateralPush ?? 1, lowFx);
       if (e.kind === 'jam') {
         const vendor = e.crossingRole === 'vendor' || e.width === movingBalance.vendorWidth;
         (entry.mesh.userData.barrierArt as HazardArt).root.visible = !vendor;
@@ -841,6 +851,7 @@ export class RoadRenderer {
       } else this.pools[entry.kind].push(entry.mesh);
       this.entityMeshes.delete(id);
     }
+    this.syncRoadEffects(s, previous, lowFx);
     this.stormPost.render();
     const tail = this.project(x, 0, vehicle.length / 2 + .45);
     this.host.style.setProperty('--bike-x', `${Math.max(30, Math.min(70, tail.x))}%`);
@@ -851,9 +862,149 @@ export class RoadRenderer {
     this.projected.set(p.x + Math.cos(p.heading) * x, y, p.z + Math.sin(p.heading) * x).project(this.camera);
     return { x: (this.projected.x + 1) * 50, y: (1 - this.projected.y) * 50 };
   }
-  renderStats(): { drawCalls: number; triangles: number } {
+  renderStats(): { drawCalls: number; triangles: number; fxParticles: number; fxSignals: number } {
     return { drawCalls: this.renderer.info.render.calls,
-      triangles: this.renderer.info.render.triangles };
+      triangles: this.renderer.info.render.triangles,
+      fxParticles: this.effects.activeCount, fxSignals: this.effects.signalCount };
+  }
+  setLowEffects(enabled: boolean): void { this.lowEffects = enabled; }
+
+  private syncRoadEffects(s: Run, previous: Run, low: boolean): void {
+    this.effects.begin(s.activeSeconds, s.runId, low);
+    if (s.phase === 'ready' || s.phase === 'ended') { this.effects.reset(); return; }
+    if (s.phase === 'running' || s.phase === 'paused') {
+      const emitting = s.phase === 'running';
+      const heading = pathPose(s.distance, s.route, s.seed).heading;
+      const direction = new THREE.Vector3(-Math.sin(heading) + Math.cos(heading) * s.lateralVelocity * .15,
+        0, Math.cos(heading) + Math.sin(heading) * s.lateralVelocity * .15);
+      const vehicle = activeVehicle(s), player = this.playerArt.get(vehicle.kind);
+      this.effects.retainOwners(new Set([s.activeVehicleId,
+        ...s.world.entities.filter(entity => !entity.consumed && !entity.motionWaiting).map(entity => entity.id)]));
+      const position = new THREE.Vector3(), local = new THREE.Vector3();
+      player?.root.updateWorldMatrix(true, true);
+      const bucket = Math.floor(s.activeSeconds * (low ? 4 : 10));
+      const signals = (art: VehicleArt, brake: boolean, turn: 'left' | 'right' | null, wrecked: boolean) => {
+        if (wrecked) return;
+        for (const [name, socket] of Object.entries(art.sockets)) {
+          const signal = vehicleLampSignal(name, brake, turn, s.activeSeconds, low);
+          if (!signal) continue;
+          socket.getWorldPosition(position); this.effects.signal(position, signal.color, signal.size);
+        }
+      };
+      if (player) {
+        signals(player, s.speed < previous.speed - .001, s.route.choice, false);
+        const smokeSocket = player.sockets.engine_smoke_fire;
+        if (emitting && smokeSocket && !low && !s.crash) {
+          smokeSocket.getWorldPosition(position);
+          this.effects.burst(`rain-body:${Math.floor(s.activeSeconds * 2)}`, position,
+            new THREE.Vector3(0, 0, .15), 'water', 2);
+        }
+        if (emitting && smokeSocket && s.durability / vehicle.durabilityCapacity < .35) {
+          smokeSocket.getWorldPosition(position);
+          this.effects.burst(`player-smoke:${s.activeVehicleId}:${bucket}`, position, direction, 'smoke', 1, s.activeVehicleId);
+        }
+        const exhaust = player.sockets.exhaust;
+        if (emitting && exhaust && hasBoost(s) && !s.crash) {
+          exhaust.getWorldPosition(position);
+          this.effects.burst(`boost:${s.activeVehicleId}:${bucket}`, position, direction, 'nitro', 3, s.activeVehicleId);
+        }
+      }
+      for (const e of s.world.entities) {
+        const entry = this.entityMeshes.get(e.id);
+        if (e.motionWaiting && !e.consumed && !e.stunned && e.crossMotion &&
+          (e.kind === 'train' || e.kind === 'traffic') && e.distance + e.length / 2 >= s.distance &&
+          e.distance - s.distance <= warningDistance(s.speed, e, vehicle.length)) {
+          // Same visibility window as RoadHud. Indicate the source verge without
+          // displaying a train early or inventing a second event clock.
+          const pose = pathPose(e.distance, s.route, s.seed), side = Math.sign(e.crossMotion.velocity);
+          for (let i = 0; i < 3; i++) {
+            const x = -side * (5.7 - i * .22);
+            position.set(pose.x + Math.cos(pose.heading) * x, .18,
+              pose.z + Math.sin(pose.heading) * x);
+            this.effects.signal(position, '#b5ac78', .05 + i * .02);
+          }
+        }
+        const consumedContact = e.consumed && previous.world.entities.some(old => old.id === e.id && !old.consumed) &&
+          s.feedbackKind === e.kind && s.activeSeconds - s.feedbackAt < .15;
+        const recentContact = s.activeSeconds - e.lastHit >= 0 && s.activeSeconds - e.lastHit < .15;
+        if (emitting && (recentContact || consumedContact) &&
+          ['traffic', 'cargo', 'pothole', 'police', 'militia', 'jam', 'accident', 'broken', 'train', 'passenger'].includes(e.kind)) {
+          const pose = pathPose(e.distance, s.route, s.seed);
+          position.set(pose.x + Math.cos(pose.heading) * e.x, .28,
+            pose.z + Math.sin(pose.heading) * e.x);
+          const offset = this.bike.position.clone().sub(position);
+          offset.clampLength(0, Math.min(e.width, e.length) * .5);
+          position.add(offset); position.y = .28;
+          this.effects.burst(`hit:${e.id}:${recentContact ? e.lastHit : `feedback-${s.eventSequence}`}`,
+            position, direction, e.kind === 'traffic' || e.kind === 'train' || e.cargoType === 'barrel'
+              ? 'spark' : 'impact', 10);
+        }
+        if (!entry || e.consumed || e.motionWaiting) continue;
+        if (emitting && e.kind === 'water' && player && !s.crash && s.speed > 1 && jumpHeight(s) < .08) {
+          const sockets = Object.entries(player.sockets).filter(([name]) => name.startsWith('wheel_spray'));
+          const spraySources = sockets.length ? sockets : 'wheels' in player
+            ? Object.values(player.wheels).map((wheel: THREE.Object3D, i) => [`axle-${i}`, wheel] as const) : [];
+          entry.mesh.updateWorldMatrix(true, false);
+          for (const [name, socket] of spraySources) {
+            socket.getWorldPosition(position);
+            local.copy(position); entry.mesh.worldToLocal(local);
+            if (Math.abs(local.x) <= e.width * .5 && Math.abs(local.z) <= e.length * .5) {
+              position.y = .12;
+              this.effects.burst(`spray:${e.id}:${name}:${bucket}`, position, direction, 'water', 3);
+            }
+          }
+        }
+        if (e.kind === 'traffic') {
+          const art = entry.mesh.userData.trafficArt as VehicleArt;
+          art.root.updateWorldMatrix(true, true);
+          const state = vehicleEffectState((e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp,
+            !!e.wrecked, e.wreckAge ?? 0);
+          signals(art, false, null, !!e.wrecked);
+          if (emitting && !e.wrecked && Math.abs(e.speed) > 1 && e.trafficContacts?.length) {
+            for (const patchId of e.trafficContacts) {
+              const patch = s.world.entities.find(other => other.id === patchId && other.kind === 'water');
+              const patchMesh = this.entityMeshes.get(patchId)?.mesh;
+              if (!patch || !patchMesh) continue;
+              patchMesh.updateWorldMatrix(true, false);
+              const sockets = Object.entries(art.sockets).filter(([name]) => name.startsWith('wheel_spray'));
+              const sources = sockets.length ? sockets : 'wheels' in art
+                ? Object.values(art.wheels).map((wheel: THREE.Object3D, i) => [`axle-${i}`, wheel] as const) : [];
+              for (const [name, socket] of sources) {
+                socket.getWorldPosition(position); local.copy(position); patchMesh.worldToLocal(local);
+                if (Math.abs(local.x) > patch.width / 2 || Math.abs(local.z) > patch.length / 2) continue;
+                position.y = .12;
+                const behind = new THREE.Vector3(-Math.sin(heading) * Math.sign(e.speed), 0,
+                  Math.cos(heading) * Math.sign(e.speed));
+                this.effects.burst(`spray:${e.id}:${patchId}:${name}:${bucket}`, position, behind, 'water', 2);
+              }
+            }
+          }
+          const socket = art.sockets.engine_smoke_fire;
+          if (emitting && state.smoke && socket) {
+            socket.getWorldPosition(position);
+            this.effects.burst(`smoke:${e.id}:${bucket}`, position, direction, 'smoke', 1, e.id);
+            if (state.fire) this.effects.burst(`fire:${e.id}:${bucket}`, position, direction, 'fire', 2, e.id);
+          }
+        }
+        // Existing crossMotion supplies direction and schedule; no new warning timer.
+        if (e.crossMotion && !e.stunned && (e.kind === 'train' || e.kind === 'traffic')) {
+          position.copy(entry.mesh.position);
+          const side = Math.sign(e.crossMotion.velocity);
+          position.x += Math.cos(entry.mesh.rotation.y) * side * (e.width * .5 + .35);
+          position.y += .4;
+          for (let i = 0; i < 3; i++) {
+            this.effects.signal(position, '#b5ac78', .05 + i * .02);
+            position.x += Math.cos(entry.mesh.rotation.y) * side * .22;
+            position.z -= Math.sin(entry.mesh.rotation.y) * side * .22;
+          }
+        }
+        if (e.passengerType === 'grab') {
+          const marker = entry.mesh.userData.grabMarker as THREE.Mesh | undefined;
+          if (marker) marker.scale.setScalar(low ? 1 : 1 + Math.sin(s.activeSeconds * 2) * .09);
+        }
+      }
+    }
+    this.effects.update();
   }
   private refreshNearCityScenery(): void {
     // Visible lots created while the GLBs were loading fall back to native
@@ -873,6 +1024,7 @@ export class RoadRenderer {
     this.stormLighting.dispose();
     this.stormPost.dispose();
     this.contactShadows.dispose();
+    this.effects.dispose();
     if (this.cloudShadows) { this.scene.remove(this.cloudShadows.root); this.cloudShadows.dispose(); }
     for (const art of [this.rain, this.rainSplashes]) if (art) { this.scene.remove(art.root); art.dispose(); }
     for (const art of this.scenery.values()) { this.scene.remove(art.root); art.dispose(); }

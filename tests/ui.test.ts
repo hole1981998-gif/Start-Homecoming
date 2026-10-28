@@ -8,8 +8,9 @@ vi.mock('../src/world', async importOriginal => {
   return { ...actual, fillWorld: (world: World) => ({ ...world, entities: [] }) };
 });
 
-const renderer = vi.hoisted(() => ({ draws: 0, instances: 0 }));
+const renderer = vi.hoisted(() => ({ draws: 0, instances: 0, lowEffects: false }));
 vi.mock('../src/render', () => ({ RoadRenderer: class {
+  setLowEffects(enabled: boolean) { renderer.lowEffects = enabled; }
   constructor() { renderer.instances++; }
   draw() { renderer.draws++; }
   project() { return { x: 50, y: 40 }; }
@@ -31,6 +32,10 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   expect(el('release-help').textContent).toContain('Thả W/S');
   expect(document.getElementById('cruise')).toBeNull();
   expect(el('release-help').textContent).not.toContain('50,4');
+  const effects = el('effects-toggle') as HTMLInputElement;
+  effects.checked = true; effects.dispatchEvent(new Event('change'));
+  expect(renderer.lowEffects).toBe(true);
+  expect(localStorage.getItem('homecoming-low-effects')).toBe('true');
   click('play'); tick(1); expect(el('distance').textContent).toBe('14');
   expect(el('speed').textContent).toBe('50,4');
   const fuel = el('fuel') as HTMLProgressElement;

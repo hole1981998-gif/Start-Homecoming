@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 export interface WindStreakArt {
   root: THREE.Group;
-  setVisualTime: (seconds: number, lateralPush: number) => void;
+  setVisualTime: (seconds: number, lateralPush: number, reduced?: boolean) => void;
   dispose: () => void;
 }
 
@@ -24,7 +24,7 @@ export function createWindStreakArt(width: number, length: number): WindStreakAr
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
   geometry.computeVertexNormals();
   const material = new THREE.MeshBasicMaterial({
-    color: '#afd0ce', transparent: true, opacity: .31,
+    color: '#7eaba8', transparent: true, opacity: .22,
     side: THREE.DoubleSide, depthWrite: false,
   });
   const streaks = new THREE.InstancedMesh(geometry, material, count);
@@ -32,7 +32,11 @@ export function createWindStreakArt(width: number, length: number): WindStreakAr
   streaks.frustumCulled = false;
   root.add(streaks);
   const dummy = new THREE.Object3D();
-  const setVisualTime = (seconds: number, lateralPush: number) => {
+  let lastTime = NaN, lastPush = NaN, lastReduced = false;
+  const setVisualTime = (seconds: number, lateralPush: number, reduced = false) => {
+    if (seconds === lastTime && lateralPush === lastPush && reduced === lastReduced) return;
+    lastTime = seconds; lastPush = lateralPush; lastReduced = reduced;
+    streaks.count = reduced ? 10 : count;
     const direction = lateralPush < 0 ? -1 : 1;
     for (let i = 0; i < count; i++) {
       const lane = i % 4;
@@ -40,10 +44,12 @@ export function createWindStreakArt(width: number, length: number): WindStreakAr
       const x = direction * ((time - .5) * (width - .9));
       const z = (fraction(i * .38196601125) - .5) * (length - 3) +
         Math.sin(seconds * 1.1 + i * 2.2) * .28;
-      dummy.position.set(x, .11 + lane * .075, z);
-      dummy.rotation.set(0, direction * (Math.PI / 2 - .34) +
-        (fraction(i * .754877666) - .5) * .5, 0);
-      dummy.scale.set(.75 + (i % 3) * .18, 1, .42 + (i % 7) * .11);
+      dummy.position.set(x, .35 + lane * .32 + Math.sin(seconds * .6 + i) * .09, z);
+      dummy.rotation.set(.2 + lane * .18, direction * (Math.PI / 2 - .34) +
+        (fraction(i * .754877666) - .5) * .5, direction * .13);
+      const fade = reduced ? .55 : Math.sin(time * Math.PI);
+      dummy.scale.set((.65 + (i % 3) * .18) * fade, 1,
+        (.3 + (i % 7) * .09) * fade);
       dummy.updateMatrix();
       streaks.setMatrixAt(i, dummy.matrix);
     }

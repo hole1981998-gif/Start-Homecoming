@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { expect, it, vi } from 'vitest';
-vi.mock('../src/render', () => ({ RoadRenderer: class { draw() {} project() { return { x: 50, y: 40 }; } dispose() {} } }));
+vi.mock('../src/render', () => ({ RoadRenderer: class {
+  setLowEffects() { /* Presentation preference; no WebGL in DOM tests. */ } draw() {} project() { return { x: 50, y: 40 }; } dispose() {} } }));
 it('first discovery pauses before danger, closes safely, and result/restart cannot revive an old run', async () => {
   document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
   localStorage.clear();

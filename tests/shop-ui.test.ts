@@ -2,6 +2,7 @@
 import { expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 vi.mock('../src/render', () => ({ RoadRenderer: class {
+  setLowEffects() { /* Presentation preference; no WebGL in DOM tests. */ }
   draw() { /* real UI/simulation; WebGL replaced only in DOM integration */ }
   project() { return { x: 50, y: 40 }; }
   dispose() { /* no graphics resources */ }

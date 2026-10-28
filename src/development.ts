@@ -10,6 +10,24 @@ import { balance, itemBalance, movingBalance, stressBalance } from './config';
 import { secretPickup, secretVehicle } from './secret';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
+  if (scenario === 'vfx-state-check') {
+    // DEV-only visual comparison. Real HP/wreck/fuel states drive the renderer;
+    // no new production timer, collision rule or balance profile is introduced.
+    const car = newVehicle('car4', 'qa-vfx-player');
+    const wreck = entity('traffic', 'qa-vfx-wreck', 8, 3.2);
+    Object.assign(wreck, { trafficKind: 'truck', width: trafficTypes.truck.width,
+      length: trafficTypes.truck.length, hp: 0, wrecked: true, wreckAge: 0, speed: 0, baseSpeed: 0,
+      wreckPassengersSpawned: true });
+    const stopped = entity('traffic', 'qa-vfx-fuel-stop', 8, -3.2);
+    Object.assign(stopped, { hp: trafficTypes.car4.hp, fuel: 0, trafficMotion: 'stopped', speed: 0, baseSpeed: 0 });
+    return { ...run, vehicleInstances: [car], activeVehicleId: car.id,
+      fuel: car.fuel, durability: car.durability, speed: vehicles.car4.cruiseSpeed,
+      inventory: ['star', 'nitro'],
+      world: { ...initialWorld(run.seed), entities: [wreck, stopped], nextHazard: 1e9,
+        nextSpecial: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9,
+        prototype: { version: 'vfx-state-check', title: 'Kiểm trạng thái VFX · DEV',
+          description: 'Bên phải là xe tải đã hỏng; bên trái là ô tô còn nguyên HP nhưng hết xăng. Quan sát khói/lửa, đèn và thu hồi khi wreck hết hạn. 1 bật star, 2 bật nitro; Space nhảy. Chỉ là fixture kiểm hình, không dùng để cân bằng.' } } };
+  }
   if (scenario === 'force-tail-bus' || scenario === 'force-tail-truck' || scenario === 'force-tail-container') {
     const kind = scenario === 'force-tail-bus' ? 'bus' : scenario === 'force-tail-truck' ? 'truck' : 'container';
     const vehicle = newVehicle(kind, `qa-tail-${kind}`);

@@ -1,0 +1,112 @@
+[
+  {
+    "file": "city-realtime.webp",
+    "frames": 180,
+    "size": [
+      422,
+      750
+    ],
+    "durationMs": 6290,
+    "startUtc": "2026-10-27T16:19:07.519000+00:00",
+    "note": "Real browser captures at variable sample intervals; not native video or a 60-FPS capture."
+  },
+  {
+    "file": "junction-before-realtime.webp",
+    "frames": 180,
+    "size": [
+      422,
+      750
+    ],
+    "durationMs": 6185,
+    "startUtc": "2026-10-27T16:22:29.497000+00:00",
+    "note": "Real browser captures at variable sample intervals; not native video or a 60-FPS capture."
+  },
+  {
+    "file": "junction-realtime.webp",
+    "frames": 180,
+    "size": [
+      422,
+      750
+    ],
+    "durationMs": 6613,
+    "startUtc": "2026-10-27T16:21:08.184000+00:00",
+    "note": "Real browser captures at variable sample intervals; not native video or a 60-FPS capture."
+  },
+  {
+    "file": "states-realtime.webp",
+    "frames": 180,
+    "size": [
+      422,
+      750
+    ],
+    "durationMs": 8224,
+    "startUtc": "2026-10-27T16:25:50.427000+00:00",
+    "note": "Real browser captures at variable sample intervals; not native video or a 60-FPS capture."
+  },
+  {
+    "file": "stress-realtime.webp",
+    "frames": 150,
+    "size": [
+      422,
+      750
+    ],
+    "durationMs": 7467,
+    "startUtc": "2026-10-27T16:23:15.318000+00:00",
+    "note": "Real browser captures at variable sample intervals; not native video or a 60-FPS capture."
+  },
+  {
+    "file": "water-realtime.webp",
+    "frames": 180,
+    "size": [
+      540,
+      960
+    ],
+    "durationMs": 9049,
+    "startUtc": "2026-10-27T12:56:16.688000+00:00",
+    "note": "Real browser captures at variable sample intervals; not native video or a 60-FPS capture."
+  },
+  {
+    "file": "water-seed7-fast-realtime.webp",
+    "frames": 180,
+    "size": [
+      422,
+      750
+    ],
+    "durationMs": 6401,
+    "startUtc": "2026-10-27T16:34:05.937000+00:00",
+    "note": "Real browser captures at variable sample intervals; not native video or a 60-FPS capture."
+  },
+  {
+    "file": "wind-left-low-realtime.webp",
+    "frames": 160,
+    "size": [
+      422,
+      750
+    ],
+    "durationMs": 5478,
+    "startUtc": "2026-10-27T16:13:08.491000+00:00",
+    "note": "Real browser captures at variable sample intervals; not native video or a 60-FPS capture."
+  },
+  {
+    "file": "wind-right-realtime.webp",
+    "frames": 180,
+    "size": [
+      422,
+      750
+    ],
+    "durationMs": 6238,
+    "startUtc": "2026-10-27T16:15:52.227000+00:00",
+    "note": "Real browser captures at variable sample intervals; not native video or a 60-FPS capture."
+  },
+  {
+    "file": "wreck-close-realtime.webp",
+    "frames": 100,
+    "size": [
+      422,
+      750
+    ],
+    "durationMs": 3411,
+    "startUtc": "2026-10-27T16:28:46.322000+00:00",
+    "note": "Real browser captures at variable sample intervals; not native video or a 60-FPS capture."
+  }
+]

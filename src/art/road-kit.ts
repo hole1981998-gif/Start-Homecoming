@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { balance } from '../config';
+import { createWetRoadRoughness } from './wet-road';
 
 export interface RoadArt {
   root: THREE.Group;
@@ -13,15 +14,15 @@ const mat = (color: string) => new THREE.MeshStandardMaterial({
 function asphaltMaterial(dryColor: string, wetColor: string) {
   const dry = new THREE.Color(dryColor), wet = new THREE.Color(wetColor);
   const material = new THREE.MeshPhysicalMaterial({
-    color: dry, roughness: .94, clearcoat: 0, clearcoatRoughness: .31,
+    color: dry, roughness: .94, roughnessMap: createWetRoadRoughness(), clearcoat: 0, clearcoatRoughness: .42,
     flatShading: true, side: THREE.DoubleSide,
   });
   const setWetness = (amount: number) => {
     const wetness = THREE.MathUtils.clamp(amount, 0, 1);
     material.color.copy(dry).lerp(wet, wetness);
-    material.roughness = .94 - wetness * .53;
+    material.roughness = .94 - wetness * .39;
     material.clearcoat = wetness * .56;
-    material.envMapIntensity = .12 + wetness * 2.35;
+    material.envMapIntensity = .12 + wetness * .9;
   };
   return { material, setWetness };
 }
@@ -36,7 +37,10 @@ function disposeTree(root: THREE.Object3D) {
     geometries.add(obj.geometry);
     (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => materials.add(m));
   } });
-  geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
+  geometries.forEach(g => g.dispose()); materials.forEach(m => {
+    if (m instanceof THREE.MeshStandardMaterial) m.roughnessMap?.dispose();
+    m.dispose();
+  });
 }
 
 /** Four-metre visual tile following pathPose at runtime; lane width stays 3.2 m × 3. */

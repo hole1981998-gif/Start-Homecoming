@@ -64,6 +64,9 @@ describe('essential hazard art', () => {
     const bounds = new THREE.Box3().setFromObject(water.root);
     water.setVisualTime?.(1.25);
     const frame = Array.from(position.array);
+    const uploadedVersion = (position as THREE.BufferAttribute).version;
+    water.setVisualTime?.(1.25);
+    expect((position as THREE.BufferAttribute).version).toBe(uploadedVersion);
     const normalOffset = material.normalMap!.offset.clone();
     expect(frame).not.toEqual(initial);
     water.setVisualTime?.(3.5);
@@ -117,6 +120,24 @@ describe('essential hazard art', () => {
     expect(patchHeight).toBeGreaterThan(dashTop);
     expect(floorHeight).toBeGreaterThan(patchHeight);
     hole.dispose(); road.dispose();
+  });
+  it('keeps animated floodwater and its opaque footprint above lane paint at both LODs', () => {
+    const road = createRoadTileArt();
+    const dashTop = new THREE.Box3().setFromObject(road.root.getObjectByName('lane_dash_1')!).max.y;
+    for (const lod of ['near', 'far'] as const) {
+      const water = createSurfaceHazardArt('water', 9.6, 25, lod);
+      const footprint = water.root.getObjectByName('readable_footprint')!;
+      expect(new THREE.Box3().setFromObject(footprint).min.y).toBeGreaterThan(dashTop);
+      const floor = water.root.getObjectByName('deep_water') as THREE.Mesh;
+      for (const seconds of [0, 1, 7, 19, 120]) {
+        water.setVisualTime?.(seconds);
+        // Recompute bounds because the animated buffer changes in place.
+        floor.geometry.computeBoundingBox();
+        expect(floor.geometry.boundingBox!.min.y).toBeGreaterThan(dashTop);
+      }
+      water.dispose();
+    }
+    road.dispose();
   });
   it('uses soft square outlines and a subdivided water surface within the collider footprint', () => {
     for (const kind of ['water', 'pothole'] as const) {

@@ -66,6 +66,15 @@ let savedRunId = '';
 const seen = seenCards(), clock = new FixedClock(), listeners = new AbortController();
 const flavorToggle = el<HTMLInputElement>('flavor-toggle'); flavorToggle.checked = showFlavor();
 flavorToggle.addEventListener('change', () => saveFlavor(flavorToggle.checked), { signal: listeners.signal });
+const effectsToggle = document.querySelector<HTMLInputElement>('#effects-toggle');
+if (effectsToggle) {
+  try { effectsToggle.checked = localStorage.getItem('homecoming-low-effects') === 'true'; } catch { /* Optional preference. */ }
+  if (new URLSearchParams(location.search).get('fx') === 'low') effectsToggle.checked = true;
+  effectsToggle.addEventListener('change', () => {
+    graphics.setLowEffects(effectsToggle.checked);
+    try { localStorage.setItem('homecoming-low-effects', String(effectsToggle.checked)); } catch { /* Session still works. */ }
+  }, { signal: listeners.signal });
+}
 const roadHud = new RoadHud(el('world-cues'));
 const shopView = new ShopView(el('shop-panel'), () => state, command => {
   const result = transact(state, command); state = result.run; previous = state;
@@ -80,6 +89,7 @@ function openShop(): void {
 let graphics: RoadRenderer;
 try { graphics = new RoadRenderer(canvas, el('game'), version === 'force'); }
 catch (error) { el('error').hidden = false; modal.hidden = true; throw error; }
+graphics.setLowEffects(effectsToggle?.checked ?? false);
 
 function clearInput(): void { input = noInput(); clock.reset(); previous = state; }
 function show(view: Exclude<Screen, null>, title: string, description: string): void {
@@ -299,6 +309,8 @@ function updateHud(): void {
 let last = performance.now(), animation = 0;
 const diagnostics = new URLSearchParams(location.search).has('diagnostics');
 const frameTimes: number[] = [], renderTimes: number[] = []; let measuredFrames = 0;
+let diagnosticRunId = '';
+const diagnosticSamples: unknown[] = [];
 function frame(now: number): void {
   const elapsed = (now - last) / 1000; last = now; const start = performance.now();
   const alpha = state.phase === 'running' ? clock.advance(elapsed, () => { previous = state; state = force ? force.step(state, input) : stepRun(state, input); }) : 1;
@@ -306,15 +318,24 @@ function frame(now: number): void {
     resultView();
   } else discover();
   graphics.draw(state, previous, state.phase === 'running' ? alpha : 1);
+  if (diagnostics && diagnosticRunId !== state.runId) {
+    diagnosticRunId = state.runId; measuredFrames = 0;
+    frameTimes.length = renderTimes.length = diagnosticSamples.length = 0;
+    delete canvas.dataset.performance; delete canvas.dataset.performanceSamples;
+  }
   if (diagnostics && state.phase === 'running') {
     frameTimes.push(elapsed * 1000); renderTimes.push(performance.now() - start); measuredFrames++;
     if (frameTimes.length > 600) { frameTimes.shift(); renderTimes.shift(); }
     if (measuredFrames % 120 === 0) {
       const sorted = [...frameTimes].sort((a, b) => a - b);
-      canvas.dataset.performance = JSON.stringify({ frames: measuredFrames, window: sorted.length,
+      const sample = { frames: measuredFrames, window: sorted.length, distance: state.distance, seed: state.seed,
         fps: 1000 / (frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length), frameP95Ms: sorted[Math.floor(sorted.length * .95)],
         meanRenderCpuMs: renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length,
-        ...graphics.renderStats() });
+        ...graphics.renderStats() };
+      canvas.dataset.performance = JSON.stringify(sample);
+      diagnosticSamples.push(sample);
+      if (diagnosticSamples.length > 16) diagnosticSamples.shift();
+      canvas.dataset.performanceSamples = JSON.stringify(diagnosticSamples);
     }
   }
   updateHud(); animation = requestAnimationFrame(frame);

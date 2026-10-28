@@ -156,7 +156,7 @@ export function createStormLighting(scene: THREE.Scene) {
 
   const hemisphere = new THREE.HemisphereLight('#8daeb9', '#28566f', .39);
   const ambient = new THREE.AmbientLight('#5a91a3', .07);
-  const sun = new THREE.DirectionalLight('#fff0de', 2.88);
+  const sun = new THREE.DirectionalLight('#f5f4ed', 2.88);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.left = -34; sun.shadow.camera.right = 34;
@@ -164,7 +164,7 @@ export function createStormLighting(scene: THREE.Scene) {
   sun.shadow.camera.near = 1; sun.shadow.camera.far = 105;
   sun.shadow.bias = -.0004; sun.shadow.blurSamples = 16; sun.shadow.radius = 8;
   const fill = new THREE.DirectionalLight('#5babc8', .20);
-  const sunBreak = new THREE.SpotLight('#fff0da', 1050, 65, Math.PI / 3, 1, 2);
+  const sunBreak = new THREE.SpotLight('#f5f1e8', 1050, 65, Math.PI / 3, 1, 2);
   const facadeSun = new THREE.SpotLight('#e6ece6', 100, 43, Math.PI / 4.2, .9, 2);
   const gameplayAccent = new THREE.DirectionalLight('#d6edf0', .72);
   gameplayAccent.layers.set(gameplayAccentLayer);
