@@ -417,7 +417,7 @@ export class RoadRenderer {
     }
     if (kind === 'traffic' || kind === 'cargo' || kind === 'accident' || kind === 'jam' ||
       kind === 'police' || kind === 'militia' || kind === 'broken' ||
-      kind === 'fuel' || kind === 'repair') {
+      kind === 'fuel' || kind === 'repair' || kind === 'passenger') {
       const shadow = this.contactShadows.create();
       this.scene.add(shadow);
       g.userData.roadContactShadow = shadow;
@@ -519,8 +519,8 @@ export class RoadRenderer {
       -.34, .34);
     this.bike.rotation.set(0, -bodyPose.heading - yaw, lean, 'YXZ');
     this.contactShadows.place(this.playerShadow, this.bike.position.x,
-      this.bike.position.z, this.bike.rotation.y, vehicle.width * 1.18,
-      articulated ? 5.4 : vehicle.length * 1.16);
+      this.bike.position.z, this.bike.rotation.y, vehicle.width * 1.5,
+      articulated ? 5.8 : vehicle.length * 1.4);
     this.rider.visible = !useSourceArt && !s.crash && open;
     this.helmet.visible = !useSourceArt && !s.crash && open;
     for (const [kind, driver] of this.playerDrivers) {
@@ -795,7 +795,7 @@ export class RoadRenderer {
         pose.roll, 'YXZ');
       const contactShadow = entry.mesh.userData.roadContactShadow as THREE.Mesh | undefined;
       if (contactShadow) this.contactShadows.place(contactShadow, entry.mesh.position.x,
-        entry.mesh.position.z, entry.mesh.rotation.y, e.width * 1.2, e.length * 1.18);
+        entry.mesh.position.z, entry.mesh.rotation.y, e.width * 1.5, e.length * 1.4);
       if (e.kind === 'cargo') {
         (entry.mesh.userData.cargoCrate as HazardArt).root.visible = e.cargoType !== 'barrel';
         (entry.mesh.userData.cargoBarrel as HazardArt).root.visible = e.cargoType === 'barrel';
