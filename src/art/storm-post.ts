@@ -30,15 +30,22 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
         vec4 source = texture2D(tDiffuse, vUv);
         vec3 color = source.rgb;
         float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
-        float shadow = 1.0 - smoothstep(0.09, 0.52, luminance);
-        float highlight = smoothstep(0.35, 1.15, luminance);
-        // Slate blue storm shade; the sky texture and distance fog own the horizon.
-        color *= mix(vec3(1.0), vec3(0.91, 0.99, 1.055), shadow * 0.76);
-        color += shadow * vec3(0.002, 0.006, 0.010);
-        color *= mix(vec3(1.0), vec3(1.012, 1.014, 1.010), highlight * 0.48);
+        float shadow = 1.0 - smoothstep(.025, .30, luminance);
+        float highlight = smoothstep(.08, .60, luminance);
+        float cyan = smoothstep(.015, .13, min(color.g, color.b) - color.r);
+        float green = smoothstep(.015, .14, color.g - max(color.r, color.b));
+        // Reference palette: deep teal shade, restrained olive foliage and
+        // sandy cream light. Hue masks keep turquoise water out of the gold wheel.
+        color = vec3(color.r * 1.02 + color.b * .015, color.g, color.b * .96);
+        color *= mix(vec3(1.0), vec3(.58, .99, 1.02), cyan);
+        vec3 olive = mix(vec3(luminance), color, .72) * vec3(1.04, 1.0, .88);
+        color = mix(color, olive, green * .8);
+        color *= mix(vec3(1.0), vec3(.83, 1.01, .94), shadow * .65);
+        color += shadow * vec3(.006, .014, .012);
+        color *= mix(vec3(1.0), vec3(1.22, 1.08, .70), highlight * (1.0 - cyan * .80));
         float gradedLuma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-        color = mix(vec3(gradedLuma), color, 0.98);
-        color *= 1.015;
+        color = mix(vec3(gradedLuma), color, .86 + cyan * .15);
+        color *= .95 - cyan * .10;
         // A gentle irregular glimmer follows the sun, never a full-screen flash.
         float glimmer = .5 + .5 * sin(uTime * 1.8 + sin(uTime * .73) * .8);
         float pulse = .12 + .88 * smoothstep(.15, .95, glimmer);
