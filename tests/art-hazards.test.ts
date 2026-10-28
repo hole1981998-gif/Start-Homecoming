@@ -5,6 +5,16 @@ import { createPropHazardArt, createSurfaceHazardArt, type PropHazardKind } from
 import { createRoadTileArt } from '../src/art/road-kit';
 
 describe('essential hazard art', () => {
+  it('reflects the shared sky without owning its lifetime or altering other hazard materials', () => {
+    const sky = new THREE.Texture(); let disposed = false;
+    sky.addEventListener('dispose', () => { disposed = true; });
+    const water = createSurfaceHazardArt('water', 3.2, 7, 'near', sky);
+    const floor = water.root.getObjectByName('deep_water') as THREE.Mesh;
+    expect((floor.material as THREE.MeshPhysicalMaterial).envMap).toBe(sky);
+    const hole = createSurfaceHazardArt('pothole', 3.2, 7, 'near', sky);
+    expect(((hole.root.getObjectByName('pothole_depth') as THREE.Mesh).material as THREE.MeshStandardMaterial).envMap).toBeNull();
+    water.dispose(); hole.dispose(); expect(disposed).toBe(false); sky.dispose();
+  });
   it('matches all live water and pothole footprints without altering simulation dimensions', () => {
     for (const kind of ['water', 'pothole'] as const) for (const [width, length] of hazardSizes[kind]) {
       const asset = createSurfaceHazardArt(kind, width, length);

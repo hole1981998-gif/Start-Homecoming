@@ -242,7 +242,7 @@ function finish(root: THREE.Group, sockets: Record<string, THREE.Object3D>,
 
 /** Geometry uses the current simulation entity width/length verbatim; no gameplay collider lives here. */
 export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, length: number,
-  lod: 'near' | 'far' = 'near'): HazardArt {
+  lod: 'near' | 'far' = 'near', reflectionEnvironment: THREE.Texture | null = null): HazardArt {
   if (!Number.isFinite(width) || !Number.isFinite(length) || width <= 0 || length <= 0)
     throw new Error('Invalid hazard footprint');
   const root = new THREE.Group(); root.name = `haz_${kind}_${lod}`;
@@ -251,15 +251,16 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   const edge = material(kind === 'water' ? '#426a70' : '#394951');
   const center = kind === 'water'
     ? new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true,
-      roughness: .5, metalness: .04, clearcoat: .18, specularIntensity: .25,
-      clearcoatRoughness: .5, side: THREE.DoubleSide })
+      roughness: .20, metalness: 0, ior: 1.333, clearcoat: .55, specularIntensity: 1,
+      clearcoatRoughness: .22, envMap: reflectionEnvironment, envMapIntensity: 2.4,
+      side: THREE.DoubleSide })
     : new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
       roughness: 1, side: THREE.DoubleSide });
   const normalMap = kind === 'water' ? waterNormalMap() : undefined;
   const setReflectionTime = center instanceof THREE.MeshPhysicalMaterial ? addWaterReflection(center) : undefined;
   if (center instanceof THREE.MeshPhysicalMaterial && normalMap) {
     center.normalMap = normalMap;
-    center.normalScale.set(.025, .025);
+    center.normalScale.set(.045, .045);
   }
   const debris = material('#665f54');
   // Potholes may span all three lanes. Their footprint must sit above the

@@ -376,7 +376,9 @@ export class RoadRenderer {
       g.add(art.root); g.userData.windArt = art;
     }
     else if (kind === 'water' || kind === 'pothole') {
-      const art = createSurfaceHazardArt(kind, width, length, 'near');
+      // Explicit sky binding gives water its own reflection exposure instead of
+      // the deliberately dim global environment used by buildings and asphalt.
+      const art = createSurfaceHazardArt(kind, width, length, 'near', this.scene.environment);
       g.add(art.root); g.userData.hazardArt = art;
     } else if (kind === 'cargo') {
       const crate = createPropHazardArt('cargo_crate');
