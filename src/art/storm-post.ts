@@ -12,7 +12,7 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
   const grade = new ShaderPass({
     name: 'StormSplitTone',
     uniforms: { tDiffuse: { value: null }, uTime: { value: 0 },
-      uBloom: { value: 1 }, uBloomMotion: { value: 1 }, uLightSide: { value: -1 },
+      uBloom: { value: 1 }, uLightSide: { value: -1 },
       uTexel: { value: new THREE.Vector2(1 / 540, 1 / 960) } },
     vertexShader: `varying vec2 vUv;
       void main() {
@@ -20,11 +20,11 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }`,
     fragmentShader: `uniform sampler2D tDiffuse;
-      uniform float uTime; uniform float uBloom; uniform float uBloomMotion; uniform float uLightSide; uniform vec2 uTexel;
+      uniform float uTime; uniform float uBloom; uniform float uLightSide; uniform vec2 uTexel;
       varying vec2 vUv;
       vec3 bright(vec2 uv) {
         vec3 c = texture2D(tDiffuse, clamp(uv, vec2(0.0), vec2(1.0))).rgb;
-        return c * smoothstep(.68, 1.3, dot(c, vec3(.2126, .7152, .0722)));
+        return c * smoothstep(.32, .95, dot(c, vec3(.2126, .7152, .0722)));
       }
       void main() {
         vec4 source = texture2D(tDiffuse, vUv);
@@ -39,16 +39,17 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
         float gradedLuma = dot(color, vec3(0.2126, 0.7152, 0.0722));
         color = mix(vec3(gradedLuma), color, 0.98);
         color *= 1.015;
-        // Follow the sun's side of the camera, including road turns. Bloom only
-        // side; thresholded scene highlights avoid a white veil or HUD glow.
-        float pulse = mix(.25, pow(max(0.0, sin(uTime * .32)), 8.0), uBloomMotion);
+        // A gentle irregular glimmer follows the sun, never a full-screen flash.
+        float glimmer = .5 + .5 * sin(uTime * 1.8 + sin(uTime * .73) * .8);
+        float pulse = .12 + .88 * smoothstep(.15, .95, glimmer);
         float sideX = uLightSide < 0.0 ? vUv.x : 1.0 - vUv.x;
         float side = (1.0 - smoothstep(.12, .56, sideX)) * smoothstep(.22, .72, vUv.y);
         vec2 radius = uTexel * 7.0;
         vec3 halo = (bright(vUv + radius) + bright(vUv - radius)
           + bright(vUv + vec2(radius.x, -radius.y))
           + bright(vUv + vec2(-radius.x, radius.y))) * .25;
-        color += halo * side * pulse * uBloom * .18;
+        float softEdge = exp(-pow(sideX / .28, 2.0) - pow((vUv.y - .68) / .3, 2.0));
+        color += (halo * side * .20 + vec3(1.0, .94, .79) * softEdge * .055) * pulse * uBloom;
         gl_FragColor = vec4(color, source.a);
       }`,
   });
@@ -58,9 +59,9 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
   composer.addPass(output);
   return {
     setVisualTime: (seconds: number, reduced: boolean, lightSide = -1) => {
-      grade.uniforms.uTime.value = seconds;
-      grade.uniforms.uBloom.value = reduced ? .4 : 1;
-      grade.uniforms.uBloomMotion.value = reduced ? 0 : 1;
+      // Requested light shimmer stays animated; reduced mode softens and slows it.
+      grade.uniforms.uTime.value = seconds * (reduced ? .65 : 1);
+      grade.uniforms.uBloom.value = reduced ? .55 : 1;
       grade.uniforms.uLightSide.value = lightSide;
     },
     render: () => {

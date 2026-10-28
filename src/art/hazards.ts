@@ -251,18 +251,16 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   const edge = material(kind === 'water' ? '#426a70' : '#394951');
   const center = kind === 'water'
     ? new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true,
-      roughness: .32, metalness: .08, clearcoat: .5,
-      clearcoatRoughness: .24, side: THREE.DoubleSide })
+      roughness: .5, metalness: .04, clearcoat: .18, specularIntensity: .25,
+      clearcoatRoughness: .5, side: THREE.DoubleSide })
     : new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
       roughness: 1, side: THREE.DoubleSide });
   const normalMap = kind === 'water' ? waterNormalMap() : undefined;
   const setReflectionTime = center instanceof THREE.MeshPhysicalMaterial ? addWaterReflection(center) : undefined;
   if (center instanceof THREE.MeshPhysicalMaterial && normalMap) {
     center.normalMap = normalMap;
-    center.normalScale.set(.05, .05);
+    center.normalScale.set(.025, .025);
   }
-  const glint = new THREE.MeshStandardMaterial({ color: '#94bcb5', roughness: .48,
-    transparent: true, opacity: .34, depthWrite: false, side: THREE.DoubleSide });
   const debris = material('#665f54');
   // Potholes may span all three lanes. Their footprint must sit above the
   // road dash top (.025 m) so the painted line cannot show through the basin.
@@ -272,18 +270,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
     : new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
       roughness: 1, flatShading: true, side: THREE.DoubleSide }));
   basinFloor(root, kind, width, length, lod, center);
-  const ripples: THREE.Mesh[] = [];
-  if (kind === 'water') {
-    for (let i = 0; i < (lod === 'near' ? 5 : 2); i++) {
-      const z = (i / (lod === 'near' ? 5 : 2) - .42) * length * .72;
-      ripples.push(box(root, `water_ripple_${i}`, [width * (.20 + (i % 3) * .10), .004, .022],
-        [((i * 7) % 5 - 2) * width * .07, .067, z * .77], glint));
-    }
-    for (const side of [-1, 1]) for (const z of [-.20, .20])
-      box(root, `wet_bank_${side}_${z}`,
-        [Math.min(.035, width * .018), .004, length * .085],
-        [side * width * .28, .061, z * length * .8], glint);
-  } else {
+  if (kind === 'pothole') {
     for (const side of [-1, 1]) {
       const chips = side < 0 ? [-.29, .04, .27] : [-.17, .23];
       for (const [index, z] of chips.entries()) {
@@ -323,7 +310,6 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
     const attribute = floor.geometry.getAttribute('position') as THREE.BufferAttribute;
     const positions = attribute.array as Float32Array;
     const base = Float32Array.from(positions);
-    const rippleZ = ripples.map(mesh => mesh.position.z);
     let lastTime = -1;
     art.setVisualTime = (elapsedSeconds: number) => {
       const t = Math.max(0, elapsedSeconds);
@@ -339,10 +325,6 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
       }
       attribute.needsUpdate = true;
       floor.geometry.computeVertexNormals();
-      ripples.forEach((mesh, i) => {
-        mesh.position.z = rippleZ[i] + Math.sin(t * .65 + i * 1.9) * length * .018;
-        mesh.scale.x = 1 + Math.sin(t * .8 + i * 1.3) * .12;
-      });
     };
   }
   const baseDispose = art.dispose;
