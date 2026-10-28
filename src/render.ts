@@ -486,7 +486,11 @@ export class RoadRenderer {
     this.rain!.setIntensity(lowFx ? .10 : .34);
     this.rainSplashes!.setIntensity(lowFx ? .04 : .20);
     this.rain!.update(weatherTime, playerX, playerZ - 18);
-    this.rainSplashes!.update(weatherTime, playerX, playerZ - 18);
+    this.rainSplashes!.update(weatherTime, playerX, playerZ - 18, (lateral, longitudinal) => {
+      const pose = pathPose(s.distance + 18 - longitudinal, s.route, s.seed);
+      return { x: pose.x + Math.cos(pose.heading) * lateral,
+        z: pose.z + Math.sin(pose.heading) * lateral };
+    });
     const yaw = THREE.MathUtils.lerp(previous.forceYaw, s.forceYaw, alpha);
     const bodyX = !this.forceMode ? x : vehicle.kind === 'car7' ?
       car7BodyCenterX(x, vehicle.length, yaw) : vehicle.kind === 'bus' || vehicle.kind === 'truck' ?
