@@ -1,21 +1,28 @@
-# Procedural SFX auditions — 28 October 2026
+# Homecoming procedural sound auditions — 28 October 2026
 
-Eight short mono WAV drafts, two variants for each of four events. Generated locally with `generate.py` using Python's standard library and deterministic random seeds. ElevenLabs was **not** used for these SFX. No sound here is integrated into the game or approved as a final asset.
+This folder holds **76 WAV drafts** for the game's non-voice sound design. Open `LISTEN.html` locally to audition them by group. `MANIFEST.json` maps each new file to its cue name, bus, length and intended character. The first eight A/B auditions (`generate.py`) remain at this folder's top level; `generate_full.py` adds 68 more files across the subfolders.
 
-| Event | Files | Duration | Layer direction |
-| --- | --- | --- | --- |
-| Driver picks up a passenger | `pickup_01.wav`, `pickup_02.wav` | 0.70 s | Soft latch and warm two-note acknowledgement |
-| Driver kicks a passenger out | `kick_01.wav`, `kick_02.wav` | 0.78 s | Spring release, short air movement, soft landing; leaves room for the passenger vocal cry |
-| Player vehicle hits a roadside passenger | `passenger_hit_01.wav`, `passenger_hit_02.wav` | 0.57 s | Muted thump, cloth movement and scuff, without an explosive impact |
-| Player vehicle hits another vehicle | `traffic_hit_01.wav`, `traffic_hit_02.wav` | 0.88 s | Low body hit, rubber scrape and loose metal rattle |
+| Group | Files | Coverage |
+| --- | ---: | --- |
+| First A/B drafts | 8 | Passenger pickup, ejection, roadside passenger impact, traffic impact |
+| Vehicle one-shots | 8 | Acceleration, braking, skid, coast, stop, driver fall, breakdown, vehicle switch |
+| Road and cargo | 8 | Water, pothole, wind gust, crate/barrel release, roll and impact |
+| Hazard and NPC | 16 | Train, police, militia, banana, jam, accident, broken car, barrier, vendor, ambulance, reboard/refusal |
+| Item | 7 | Fuel, repair, nitro, jump, landing, star, Grab call |
+| Shop and UI | 12 | Shop actions, QTE, pause, resume, restart |
+| Results | 5 | Damage, fuel, train, police and secret endings |
+| Engine loops | 8 | One loop for each playable vehicle kind |
+| Ambience loops | 4 | Light/heavy rain, wind and wet road |
 
-All files are 44.1 kHz, 16-bit PCM, mono. Peak level is at most 0.58 full scale; the generator prints RMS and duration. The two variants differ in pitch, timing, texture or weight. The impact sounds are intended to sit behind the short voice reactions, not mask them.
+All one-shots are at most 1.83 s. Files are 44.1 kHz, 16-bit PCM, mono; the loop files have matched first/last samples. Both generators use Python's standard library and deterministic seeds. **ElevenLabs was not used** for these SFX. Voice lines and music are outside this pack.
 
-## Listening review needed
+## Review and integration boundaries
 
-- Check whether the two takes for each event are audibly distinct and sound human/playful enough for the game's stormy but upbeat mood. Metadata and waveform checks cannot confirm this.
-- Compare with engine, rain, speech and warning audio at gameplay volume. Reduce or reshape impact weight if it feels like combat or makes a person being hit into a joke.
-- Confirm timing against the actual event animation before integration. The kick sound's landing layer is only a sketch; the runtime may need to trigger landing separately.
-- Keep visual confirmation for pickup, ejection and collisions when sound or voice is muted. Route these files through the SFX bus with event deduplication and cooldown if selected later.
+- These are **audition drafts**, not approved final SFX and not wired into the runtime. Numeric/audio checks verify format, length, non-silence, clipping and loop edges; they do not prove that the sounds feel right. Human listening is required, especially for the engine realism, rain texture and loudness balance.
+- The engine loops are beds to pitch and scale with each vehicle's speed in a future audio director. Rain/wind/wet-road loops belong on the ambience bus. Do not trigger loop files as one-shots.
+- Trigger one-shots only from real event/state transitions, with cooldown and event deduplication. Do not let audio calls change simulation timing or RNG. For collision variants, trigger once per collision pair rather than every overlapping frame.
+- The `barrier`, `vendor` and `ambulance` cues are for corresponding game/fixture states when those are active; do not add gameplay rules because a sound exists. The kick draft includes a soft landing at a tentative time; actual animation timing may require separate landing playback.
+- Duck ambience under warnings and future voice lines; keep the SFX and ambience volume/mute controls separate. Every hazard and consequence needs an equivalent visual cue when muted. Avoid stacking police and train warning cues into a continuous alarm.
+- Review at gameplay volume with rain, engine and alerts together. If a cue is harsh, repetitive or masks a warning, revise it before P12 integration. Final selection and game wiring require owner approval and gameplay checks.
 
-This pack is for owner audition. Final SFX integration follows the project's P12 approval and gameplay checks.
+To regenerate, run `generate.py` then `generate_full.py` from this directory with Python 3. The scripts do not need the ElevenLabs API key.

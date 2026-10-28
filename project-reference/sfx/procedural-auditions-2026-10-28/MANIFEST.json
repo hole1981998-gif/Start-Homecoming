@@ -1,0 +1,614 @@
+[
+  {
+    "key": "accelerate",
+    "bus": "sfx",
+    "file": "vehicle/accelerate.wav",
+    "duration_seconds": 0.68,
+    "peak_target": 0.42,
+    "rms": 0.1371,
+    "note": "Engine surge; pitch to follow speed in runtime"
+  },
+  {
+    "key": "brake",
+    "bus": "sfx",
+    "file": "vehicle/brake.wav",
+    "duration_seconds": 0.62,
+    "peak_target": 0.43,
+    "rms": 0.0863,
+    "note": "Wet tire hiss and slowing tone"
+  },
+  {
+    "key": "skid",
+    "bus": "sfx",
+    "file": "vehicle/skid.wav",
+    "duration_seconds": 0.82,
+    "peak_target": 0.47,
+    "rms": 0.1073,
+    "note": "Brief rubber slide, limit repetition"
+  },
+  {
+    "key": "coast",
+    "bus": "sfx",
+    "file": "vehicle/coast.wav",
+    "duration_seconds": 0.74,
+    "peak_target": 0.35,
+    "rms": 0.1047,
+    "note": "Power dies into rolling air"
+  },
+  {
+    "key": "stop",
+    "bus": "sfx",
+    "file": "vehicle/stop.wav",
+    "duration_seconds": 0.48,
+    "peak_target": 0.37,
+    "rms": 0.0889,
+    "note": "Soft final engine stop"
+  },
+  {
+    "key": "driver_fall",
+    "bus": "sfx",
+    "file": "vehicle/driver_fall.wav",
+    "duration_seconds": 0.62,
+    "peak_target": 0.43,
+    "rms": 0.0803,
+    "note": "Low body fall; voice separate"
+  },
+  {
+    "key": "vehicle_break",
+    "bus": "sfx",
+    "file": "vehicle/vehicle_break.wav",
+    "duration_seconds": 0.92,
+    "peak_target": 0.5,
+    "rms": 0.1088,
+    "note": "Sputter and panel rattle"
+  },
+  {
+    "key": "vehicle_switch",
+    "bus": "sfx",
+    "file": "vehicle/vehicle_switch.wav",
+    "duration_seconds": 0.63,
+    "peak_target": 0.4,
+    "rms": 0.0929,
+    "note": "Two latches and motor restart"
+  },
+  {
+    "key": "water_splash",
+    "bus": "sfx",
+    "file": "road/water_splash.wav",
+    "duration_seconds": 0.76,
+    "peak_target": 0.46,
+    "rms": 0.0711,
+    "note": "Wet crossing; visual splash remains primary"
+  },
+  {
+    "key": "pothole",
+    "bus": "sfx",
+    "file": "road/pothole.wav",
+    "duration_seconds": 0.48,
+    "peak_target": 0.43,
+    "rms": 0.0834,
+    "note": "Suspension thump and small rattle"
+  },
+  {
+    "key": "wind_gust",
+    "bus": "sfx",
+    "file": "road/wind_gust.wav",
+    "duration_seconds": 1.05,
+    "peak_target": 0.38,
+    "rms": 0.0777,
+    "note": "Lateral gust, low and not startling"
+  },
+  {
+    "key": "cargo_release",
+    "bus": "sfx",
+    "file": "road/cargo_release.wav",
+    "duration_seconds": 0.48,
+    "peak_target": 0.44,
+    "rms": 0.0737,
+    "note": "Latch then falling item"
+  },
+  {
+    "key": "cargo_crate_roll",
+    "bus": "sfx",
+    "file": "road/cargo_crate_roll.wav",
+    "duration_seconds": 1.22,
+    "peak_target": 0.31,
+    "rms": 0.0617,
+    "note": "Rolling wood knocks; loop only while moving"
+  },
+  {
+    "key": "cargo_barrel_roll",
+    "bus": "sfx",
+    "file": "road/cargo_barrel_roll.wav",
+    "duration_seconds": 1.24,
+    "peak_target": 0.35,
+    "rms": 0.0792,
+    "note": "Rolling metal knocks; loop only while moving"
+  },
+  {
+    "key": "cargo_crate_hit",
+    "bus": "sfx",
+    "file": "road/cargo_crate_hit.wav",
+    "duration_seconds": 0.52,
+    "peak_target": 0.47,
+    "rms": 0.0913,
+    "note": "Woody impact"
+  },
+  {
+    "key": "cargo_barrel_hit",
+    "bus": "sfx",
+    "file": "road/cargo_barrel_hit.wav",
+    "duration_seconds": 0.59,
+    "peak_target": 0.5,
+    "rms": 0.0962,
+    "note": "Metallic impact"
+  },
+  {
+    "key": "train_approach",
+    "bus": "sfx",
+    "file": "hazard/train_approach.wav",
+    "duration_seconds": 1.65,
+    "peak_target": 0.43,
+    "rms": 0.124,
+    "note": "Low approaching rumble and bell; visual warning required"
+  },
+  {
+    "key": "train_pass",
+    "bus": "sfx",
+    "file": "hazard/train_pass.wav",
+    "duration_seconds": 1.83,
+    "peak_target": 0.52,
+    "rms": 0.1505,
+    "note": "Crossing train rumble and clacks"
+  },
+  {
+    "key": "train_clear",
+    "bus": "sfx",
+    "file": "hazard/train_clear.wav",
+    "duration_seconds": 0.62,
+    "peak_target": 0.34,
+    "rms": 0.0617,
+    "note": "Last wheels fading away"
+  },
+  {
+    "key": "police_warning",
+    "bus": "sfx",
+    "file": "hazard/police_warning.wav",
+    "duration_seconds": 0.84,
+    "peak_target": 0.37,
+    "rms": 0.0831,
+    "note": "Rounded two-note whistle, avoid shrill siren"
+  },
+  {
+    "key": "militia_warning",
+    "bus": "sfx",
+    "file": "hazard/militia_warning.wav",
+    "duration_seconds": 0.75,
+    "peak_target": 0.33,
+    "rms": 0.0724,
+    "note": "Soft wooden knock warning"
+  },
+  {
+    "key": "police_capture",
+    "bus": "sfx",
+    "file": "hazard/police_capture.wav",
+    "duration_seconds": 0.78,
+    "peak_target": 0.45,
+    "rms": 0.0599,
+    "note": "Confiscation latch and falling tone"
+  },
+  {
+    "key": "banana_use",
+    "bus": "sfx",
+    "file": "hazard/banana_use.wav",
+    "duration_seconds": 0.58,
+    "peak_target": 0.39,
+    "rms": 0.1151,
+    "note": "Comic slip response"
+  },
+  {
+    "key": "jam",
+    "bus": "sfx",
+    "file": "hazard/jam.wav",
+    "duration_seconds": 0.7,
+    "peak_target": 0.4,
+    "rms": 0.0815,
+    "note": "Muted traffic cluster"
+  },
+  {
+    "key": "accident",
+    "bus": "sfx",
+    "file": "hazard/accident.wav",
+    "duration_seconds": 0.98,
+    "peak_target": 0.52,
+    "rms": 0.0733,
+    "note": "Low wreck and rattles"
+  },
+  {
+    "key": "broken_car",
+    "bus": "sfx",
+    "file": "hazard/broken_car.wav",
+    "duration_seconds": 0.87,
+    "peak_target": 0.43,
+    "rms": 0.1027,
+    "note": "Stalled car sputter"
+  },
+  {
+    "key": "barrier_hit",
+    "bus": "sfx",
+    "file": "hazard/barrier_hit.wav",
+    "duration_seconds": 0.63,
+    "peak_target": 0.48,
+    "rms": 0.0805,
+    "note": "Barrier impact"
+  },
+  {
+    "key": "vendor_near",
+    "bus": "sfx",
+    "file": "hazard/vendor_near.wav",
+    "duration_seconds": 0.42,
+    "peak_target": 0.28,
+    "rms": 0.0504,
+    "note": "Small roadside cart rattle"
+  },
+  {
+    "key": "vendor_hit",
+    "bus": "sfx",
+    "file": "hazard/vendor_hit.wav",
+    "duration_seconds": 0.79,
+    "peak_target": 0.47,
+    "rms": 0.0758,
+    "note": "Cart objects clatter; avoid comic injury accent"
+  },
+  {
+    "key": "ambulance_pass",
+    "bus": "sfx",
+    "file": "hazard/ambulance_pass.wav",
+    "duration_seconds": 1.42,
+    "peak_target": 0.33,
+    "rms": 0.0729,
+    "note": "Distant, gentle siren and road air"
+  },
+  {
+    "key": "fuel_pickup",
+    "bus": "sfx",
+    "file": "item/fuel_pickup.wav",
+    "duration_seconds": 0.69,
+    "peak_target": 0.35,
+    "rms": 0.0625,
+    "note": "Liquid gulp and small positive note"
+  },
+  {
+    "key": "repair_pickup",
+    "bus": "sfx",
+    "file": "item/repair_pickup.wav",
+    "duration_seconds": 0.72,
+    "peak_target": 0.36,
+    "rms": 0.0669,
+    "note": "Tool ratchet and small positive note"
+  },
+  {
+    "key": "nitro_activate",
+    "bus": "sfx",
+    "file": "item/nitro_activate.wav",
+    "duration_seconds": 0.79,
+    "peak_target": 0.49,
+    "rms": 0.124,
+    "note": "Air surge and rising engine"
+  },
+  {
+    "key": "jump",
+    "bus": "sfx",
+    "file": "item/jump.wav",
+    "duration_seconds": 0.58,
+    "peak_target": 0.4,
+    "rms": 0.1289,
+    "note": "Elastic lift after Space"
+  },
+  {
+    "key": "landing",
+    "bus": "sfx",
+    "file": "item/landing.wav",
+    "duration_seconds": 0.56,
+    "peak_target": 0.43,
+    "rms": 0.0748,
+    "note": "Suspension landing"
+  },
+  {
+    "key": "star_activate",
+    "bus": "sfx",
+    "file": "item/star_activate.wav",
+    "duration_seconds": 0.88,
+    "peak_target": 0.38,
+    "rms": 0.0783,
+    "note": "Warm shimmer; do not loop per frame"
+  },
+  {
+    "key": "grab_call",
+    "bus": "sfx",
+    "file": "item/grab_call.wav",
+    "duration_seconds": 0.55,
+    "peak_target": 0.34,
+    "rms": 0.0641,
+    "note": "Phone-like confirmation; pickup separately"
+  },
+  {
+    "key": "passenger_reboard",
+    "bus": "sfx",
+    "file": "npc/passenger_reboard.wav",
+    "duration_seconds": 0.56,
+    "peak_target": 0.31,
+    "rms": 0.0547,
+    "note": "Foot and door for passenger returning"
+  },
+  {
+    "key": "passenger_refuse",
+    "bus": "sfx",
+    "file": "npc/passenger_refuse.wav",
+    "duration_seconds": 0.5,
+    "peak_target": 0.27,
+    "rms": 0.0859,
+    "note": "Low neutral cue, optional beside visual feedback"
+  },
+  {
+    "key": "shop_open",
+    "bus": "sfx",
+    "file": "ui/shop_open.wav",
+    "duration_seconds": 0.56,
+    "peak_target": 0.32,
+    "rms": 0.0642,
+    "note": "Small door bell"
+  },
+  {
+    "key": "shop_buy",
+    "bus": "sfx",
+    "file": "ui/shop_buy.wav",
+    "duration_seconds": 0.5,
+    "peak_target": 0.32,
+    "rms": 0.0507,
+    "note": "Coin and confirmation"
+  },
+  {
+    "key": "shop_upgrade",
+    "bus": "sfx",
+    "file": "ui/shop_upgrade.wav",
+    "duration_seconds": 0.82,
+    "peak_target": 0.38,
+    "rms": 0.0748,
+    "note": "Tool and rising notes"
+  },
+  {
+    "key": "shop_fuel",
+    "bus": "sfx",
+    "file": "ui/shop_fuel.wav",
+    "duration_seconds": 0.68,
+    "peak_target": 0.36,
+    "rms": 0.0729,
+    "note": "Refuel at shop"
+  },
+  {
+    "key": "shop_repair",
+    "bus": "sfx",
+    "file": "ui/shop_repair.wav",
+    "duration_seconds": 0.72,
+    "peak_target": 0.4,
+    "rms": 0.0658,
+    "note": "Repair at shop"
+  },
+  {
+    "key": "shop_fail",
+    "bus": "sfx",
+    "file": "ui/shop_fail.wav",
+    "duration_seconds": 0.43,
+    "peak_target": 0.25,
+    "rms": 0.0553,
+    "note": "Soft unavailable action"
+  },
+  {
+    "key": "qte_warning",
+    "bus": "sfx",
+    "file": "ui/qte_warning.wav",
+    "duration_seconds": 0.65,
+    "peak_target": 0.35,
+    "rms": 0.0854,
+    "note": "Three compact warning taps; graphic cue required"
+  },
+  {
+    "key": "qte_confirm",
+    "bus": "sfx",
+    "file": "ui/qte_confirm.wav",
+    "duration_seconds": 0.47,
+    "peak_target": 0.34,
+    "rms": 0.0677,
+    "note": "Turn confirmed"
+  },
+  {
+    "key": "qte_miss",
+    "bus": "sfx",
+    "file": "ui/qte_miss.wav",
+    "duration_seconds": 0.47,
+    "peak_target": 0.29,
+    "rms": 0.0947,
+    "note": "Missed turn; avoid punishment sting"
+  },
+  {
+    "key": "pause",
+    "bus": "sfx",
+    "file": "ui/pause.wav",
+    "duration_seconds": 0.34,
+    "peak_target": 0.25,
+    "rms": 0.0569,
+    "note": "Pause menu open"
+  },
+  {
+    "key": "resume",
+    "bus": "sfx",
+    "file": "ui/resume.wav",
+    "duration_seconds": 0.34,
+    "peak_target": 0.25,
+    "rms": 0.0561,
+    "note": "Pause menu closed"
+  },
+  {
+    "key": "restart",
+    "bus": "sfx",
+    "file": "ui/restart.wav",
+    "duration_seconds": 0.57,
+    "peak_target": 0.3,
+    "rms": 0.054,
+    "note": "New run start"
+  },
+  {
+    "key": "result_damage",
+    "bus": "sfx",
+    "file": "result/result_damage.wav",
+    "duration_seconds": 0.89,
+    "peak_target": 0.39,
+    "rms": 0.0622,
+    "note": "HP failure"
+  },
+  {
+    "key": "result_fuel",
+    "bus": "sfx",
+    "file": "result/result_fuel.wav",
+    "duration_seconds": 0.89,
+    "peak_target": 0.34,
+    "rms": 0.1019,
+    "note": "Out of fuel and coast"
+  },
+  {
+    "key": "result_train",
+    "bus": "sfx",
+    "file": "result/result_train.wav",
+    "duration_seconds": 0.87,
+    "peak_target": 0.46,
+    "rms": 0.0701,
+    "note": "Train collision terminal"
+  },
+  {
+    "key": "result_police",
+    "bus": "sfx",
+    "file": "result/result_police.wav",
+    "duration_seconds": 0.81,
+    "peak_target": 0.38,
+    "rms": 0.0598,
+    "note": "Police confiscation terminal"
+  },
+  {
+    "key": "result_secret",
+    "bus": "sfx",
+    "file": "result/result_secret.wav",
+    "duration_seconds": 1.45,
+    "peak_target": 0.42,
+    "rms": 0.0769,
+    "note": "Secret success, short warm flourish"
+  },
+  {
+    "key": "engine_motorcycle",
+    "bus": "sfx",
+    "file": "engine/motorcycle_loop.wav",
+    "duration_seconds": 2.0,
+    "peak_target": 0.34,
+    "rms": 0.1619,
+    "note": "2 s looping engine bed; speed-dependent pitch/volume in runtime"
+  },
+  {
+    "key": "engine_motorbike",
+    "bus": "sfx",
+    "file": "engine/motorbike_loop.wav",
+    "duration_seconds": 2.0,
+    "peak_target": 0.34,
+    "rms": 0.1594,
+    "note": "2 s looping engine bed; speed-dependent pitch/volume in runtime"
+  },
+  {
+    "key": "engine_car4",
+    "bus": "sfx",
+    "file": "engine/car4_loop.wav",
+    "duration_seconds": 2.0,
+    "peak_target": 0.34,
+    "rms": 0.1691,
+    "note": "2 s looping engine bed; speed-dependent pitch/volume in runtime"
+  },
+  {
+    "key": "engine_car7",
+    "bus": "sfx",
+    "file": "engine/car7_loop.wav",
+    "duration_seconds": 2.0,
+    "peak_target": 0.34,
+    "rms": 0.1646,
+    "note": "2 s looping engine bed; speed-dependent pitch/volume in runtime"
+  },
+  {
+    "key": "engine_tricycle",
+    "bus": "sfx",
+    "file": "engine/tricycle_loop.wav",
+    "duration_seconds": 2.0,
+    "peak_target": 0.34,
+    "rms": 0.162,
+    "note": "2 s looping engine bed; speed-dependent pitch/volume in runtime"
+  },
+  {
+    "key": "engine_bus",
+    "bus": "sfx",
+    "file": "engine/bus_loop.wav",
+    "duration_seconds": 2.0,
+    "peak_target": 0.34,
+    "rms": 0.1572,
+    "note": "2 s looping engine bed; speed-dependent pitch/volume in runtime"
+  },
+  {
+    "key": "engine_truck",
+    "bus": "sfx",
+    "file": "engine/truck_loop.wav",
+    "duration_seconds": 2.0,
+    "peak_target": 0.34,
+    "rms": 0.1553,
+    "note": "2 s looping engine bed; speed-dependent pitch/volume in runtime"
+  },
+  {
+    "key": "engine_container",
+    "bus": "sfx",
+    "file": "engine/container_loop.wav",
+    "duration_seconds": 2.0,
+    "peak_target": 0.34,
+    "rms": 0.1548,
+    "note": "2 s looping engine bed; speed-dependent pitch/volume in runtime"
+  },
+  {
+    "key": "ambience_rain_light",
+    "bus": "ambience",
+    "file": "ambience/rain_light_loop.wav",
+    "duration_seconds": 4.0,
+    "peak_target": 0.28,
+    "rms": 0.0715,
+    "note": "4 s ambience bed; duck under warnings and voice"
+  },
+  {
+    "key": "ambience_rain_heavy",
+    "bus": "ambience",
+    "file": "ambience/rain_heavy_loop.wav",
+    "duration_seconds": 4.0,
+    "peak_target": 0.28,
+    "rms": 0.0815,
+    "note": "4 s ambience bed; duck under warnings and voice"
+  },
+  {
+    "key": "ambience_wind",
+    "bus": "ambience",
+    "file": "ambience/wind_loop.wav",
+    "duration_seconds": 4.0,
+    "peak_target": 0.28,
+    "rms": 0.0697,
+    "note": "4 s ambience bed; duck under warnings and voice"
+  },
+  {
+    "key": "ambience_wet_road",
+    "bus": "ambience",
+    "file": "ambience/wet_road_loop.wav",
+    "duration_seconds": 4.0,
+    "peak_target": 0.28,
+    "rms": 0.0663,
+    "note": "4 s ambience bed; duck under warnings and voice"
+  }
+]
