@@ -4,12 +4,28 @@ import { movingScenario } from './moving-scenarios';
 import { movingEvent } from './moving-events';
 import type { Run } from './survival';
 import { entity, fillWorld, initialWorld, passengerMotion, trafficTypes } from './world';
-import { junction } from './route';
+import { junction, junctionWindow } from './route';
 import { newVehicle, vehicles, type VehicleKind } from './vehicles';
 import { balance, itemBalance, movingBalance, stressBalance } from './config';
 import { secretPickup, secretVehicle } from './secret';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
+  if (scenario?.startsWith('lights-')) {
+    const requested = scenario.slice(7);
+    const kind = requested in vehicles ? requested as VehicleKind : 'car4';
+    const car = newVehicle(kind, 'qa-lights-player');
+    const start = junctionWindow(junction(run.seed, 0), vehicles[kind].cruiseSpeed, kind).openDistance + 1;
+    const oncoming = entity('traffic', 'qa-lights-oncoming', start + 28, -3.2);
+    Object.assign(oncoming, { speed: -6, baseSpeed: -6, hp: trafficTypes.car4.hp });
+    const stopped = entity('traffic', 'qa-lights-stopped', start + 16, 3.2);
+    Object.assign(stopped, { speed: 0, baseSpeed: 0, hp: trafficTypes.car4.hp, fuel: 0, trafficMotion: 'stopped' });
+    return { ...run, distance: start, vehicleInstances: [car], activeVehicleId: car.id,
+      fuel: car.fuel, durability: car.durability, speed: vehicles[kind].cruiseSpeed,
+      world: { ...initialWorld(run.seed), entities: [oncoming, stopped], nextHazard: 1e9,
+        nextSpecial: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9,
+        prototype: { version: 'vehicle-lights-qa-1', title: `Đèn xe · ${vehicles[kind].name}`,
+          description: 'Q/E chọn rẽ thật để xem xi nhan, S phanh. Xe đối diện có pha; xe hết xăng bật cảnh báo hai bên. Fixture DEV, không dùng cân bằng.' } } };
+  }
   if (scenario === 'vfx-state-check') {
     // DEV-only visual comparison. Real HP/wreck/fuel states drive the renderer;
     // no new production timer, collision rule or balance profile is introduced.

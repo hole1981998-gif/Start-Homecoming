@@ -189,6 +189,7 @@ export function createCar7Art(lod: 'near' | 'far' = 'near'): Car7Art {
     sockets[`headlamp_${n}`] = point(root, `headlamp_${n}`, [side * .65, 1.11, 2.40]);
     sockets[`tail_${n}`] = point(root, `tail_${n}`, [side * .77, 1.17, -2.41]);
     sockets[`indicator_${n}`] = point(root, `indicator_${n}`, [side * .89, 1.0, 2.39]);
+    sockets[`indicator_rear_${n}`] = point(root, `indicator_rear_${n}`, [side * .77, 1.45, -2.43]);
     sockets[`wheel_spray_front_${n}`] = point(root, `wheel_spray_front_${n}`, [side * .88, .30, 1.48]);
     sockets[`wheel_spray_rear_${n}`] = point(root, `wheel_spray_rear_${n}`, [side * .88, .30, -1.63]);
   }

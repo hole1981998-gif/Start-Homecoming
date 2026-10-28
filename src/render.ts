@@ -25,7 +25,9 @@ import { createRoadContactShadows } from './art/road-contact-shadows';
 import { passengerWindowPoses } from './art/passenger-windows';
 import { createWindStreakArt, type WindStreakArt } from './art/wind-streaks';
 import { createRoadEffects } from './art/road-effects';
-import { vehicleEffectState, vehicleLampSignal } from './art/vehicle-effects';
+import { vehicleEffectState } from './art/vehicle-effects';
+import { createVehicleLightBeams } from './art/vehicle-light-beams';
+import { bindVehicleLampMaterials } from './art/vehicle-light-materials';
 import { createStarAura } from './art/star-aura';
 import { createNitroJet } from './art/nitro-jet';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
@@ -50,6 +52,8 @@ export class RoadRenderer {
   private stormPost: ReturnType<typeof createStormPostProcessing>;
   private contactShadows = createRoadContactShadows();
   private effects = createRoadEffects();
+  private lightBeams = createVehicleLightBeams();
+  private lampMaterials = new WeakMap<VehicleArt, ReturnType<typeof bindVehicleLampMaterials>>();
   private starAura = createStarAura();
   private nitroJet = createNitroJet();
   private reducedMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
@@ -108,6 +112,7 @@ export class RoadRenderer {
   constructor(canvas: HTMLCanvasElement, host: HTMLElement, private forceMode = false) {
     this.host = host;
     this.scene.add(this.effects.root);
+    this.scene.add(this.lightBeams.root);
     this.scene.add(this.starAura.root);
     this.scene.add(this.nitroJet.root);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -880,15 +885,16 @@ export class RoadRenderer {
     this.projected.set(p.x + Math.cos(p.heading) * x, y, p.z + Math.sin(p.heading) * x).project(this.camera);
     return { x: (this.projected.x + 1) * 50, y: (1 - this.projected.y) * 50 };
   }
-  renderStats(): { drawCalls: number; triangles: number; fxParticles: number; fxSignals: number } {
+  renderStats(): { drawCalls: number; triangles: number; fxParticles: number; fxSignals: number; lightWashes: number } {
     return { drawCalls: this.renderer.info.render.calls,
       triangles: this.renderer.info.render.triangles,
-      fxParticles: this.effects.activeCount, fxSignals: this.effects.signalCount };
+      fxParticles: this.effects.activeCount, fxSignals: this.effects.signalCount, lightWashes: this.lightBeams.root.count };
   }
   setLowEffects(enabled: boolean): void { this.lowEffects = enabled; }
 
   private syncRoadEffects(s: Run, previous: Run, low: boolean): void {
     this.effects.begin(s.activeSeconds, s.runId, low);
+    this.lightBeams.reset();
     this.nitroJet.root.visible = false;
     if (s.phase === 'ready' || s.phase === 'ended') { this.effects.reset(); return; }
     if (s.phase === 'running' || s.phase === 'paused') {
@@ -904,16 +910,23 @@ export class RoadRenderer {
       // Lower particle count once in the pool; lowering rate as well made the
       // reduced-motion exhaust and spray almost disappear (12% of normal).
       const bucket = Math.floor(s.activeSeconds * 10);
-      const signals = (art: VehicleArt, brake: boolean, turn: 'left' | 'right' | null, wrecked: boolean) => {
-        if (wrecked) return;
+      const lights = (art: VehicleArt, brake: boolean, turn: 'left' | 'right' | null,
+        wrecked: boolean, hazard = false, beams = true) => {
+        let lenses = this.lampMaterials.get(art);
+        if (!lenses) { lenses = bindVehicleLampMaterials(art); this.lampMaterials.set(art, lenses); }
+        lenses.update(brake, turn, s.activeSeconds, low, hazard, wrecked);
+        if (wrecked || !beams) return;
         for (const [name, socket] of Object.entries(art.sockets)) {
-          const signal = vehicleLampSignal(name, brake, turn, s.activeSeconds, low);
-          if (!signal) continue;
-          socket.getWorldPosition(position); this.effects.signal(position, signal.color, signal.size);
+          if (!name.startsWith('headlamp')) continue;
+          socket.getWorldPosition(position);
+          this.lightBeams.add(position, new THREE.Vector3(0, 0, 1).transformDirection(socket.matrixWorld));
         }
       };
       if (player) {
-        signals(player, s.speed < previous.speed - .001, s.route.choice, false);
+        const turn = s.route.choice ?? (s.activeSeconds - s.route.turnAt < 1.2 && s.route.lastTurn !== 'straight'
+          ? s.route.lastTurn : null);
+        lights(player, s.speed < previous.speed - .001, turn, false,
+          !!s.crash || s.fuel <= 0 && s.speed < .5, !s.crash && jumpHeight(s) < .08);
         const smokeSocket = player.sockets.engine_smoke_fire;
         if (emitting && smokeSocket && !low && !s.crash) {
           smokeSocket.getWorldPosition(position);
@@ -993,7 +1006,10 @@ export class RoadRenderer {
           art.root.updateWorldMatrix(true, true);
           const state = vehicleEffectState((e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp,
             !!e.wrecked, e.wreckAge ?? 0);
-          signals(art, false, null, !!e.wrecked);
+          const old = previous.world.entities.find(other => other.id === e.id);
+          lights(art, Math.abs(e.speed) < Math.abs(old?.speed ?? e.speed) - .01, null, !!e.wrecked,
+            e.fuel === 0 && Math.abs(e.speed) < .5 || !!e.trafficStoppedByCollision,
+            Math.abs(e.distance - s.distance) < (low ? 25 : 45));
           if (emitting && !e.wrecked && Math.abs(e.speed) > 1 && e.trafficContacts?.length) {
             for (const patchId of e.trafficContacts) {
               const patch = s.world.entities.find(other => other.id === patchId && other.kind === 'water');
@@ -1060,6 +1076,7 @@ export class RoadRenderer {
     this.stormPost.dispose();
     this.contactShadows.dispose();
     this.effects.dispose();
+    this.lightBeams.dispose();
     this.starAura.dispose();
     this.nitroJet.dispose();
     if (this.cloudShadows) { this.scene.remove(this.cloudShadows.root); this.cloudShadows.dispose(); }

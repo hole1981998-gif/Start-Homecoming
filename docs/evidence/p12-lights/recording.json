@@ -1,0 +1,11 @@
+{
+  "frames": 90,
+  "size": [
+    568,
+    634
+  ],
+  "durationMs": 3712,
+  "pausedFramesIdentical": true,
+  "note": "Real variable-interval browser screenshots; no resizing, not native video or 60-FPS capture.",
+  "finalBrakeCheck": "Start, Q, hold S for 700 ms; subsequent HUD read 37.0 km/h; console error query empty."
+}

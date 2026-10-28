@@ -24,7 +24,11 @@ describe('presentation event pool lifecycle', () => {
     expect(vehicleLampSignal('indicator_front_left', false, 'right', 0, false)).toBeNull();
     expect(vehicleLampSignal('indicator_front_right', false, 'right', .7, false)).toBeNull();
     expect(vehicleLampSignal('indicator_front_right', false, 'right', .7, true)).not.toBeNull();
-    expect(vehicleLampSignal('headlamp', false, null, 0, false)).toBeNull();
+    expect(vehicleLampSignal('headlamp', false, null, 0, false)).not.toBeNull();
+    expect(vehicleLampSignal('indicator_front_right', false, 'right', 1, true)).toBeNull();
+    expect(vehicleLampSignal('indicator_rear_left', false, null, 0, false, true)).not.toBeNull();
+    expect(vehicleLampSignal('indicator_rear_right', false, null, 0, false, true)).not.toBeNull();
+    expect(vehicleLampSignal('indicator_rear_left', false, null, .7, false, true)).toBeNull();
   });
   it('keeps an undamaged fuel-stopped vehicle distinct from a wreck', () => {
     expect(vehicleEffectState(1, false, 0)).toEqual({ smoke: false, fire: false, lamp: 'tail' });
