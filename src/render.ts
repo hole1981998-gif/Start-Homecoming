@@ -26,6 +26,8 @@ import { passengerWindowPoses } from './art/passenger-windows';
 import { createWindStreakArt, type WindStreakArt } from './art/wind-streaks';
 import { createRoadEffects } from './art/road-effects';
 import { vehicleEffectState, vehicleLampSignal } from './art/vehicle-effects';
+import { createStarAura } from './art/star-aura';
+import { createNitroJet } from './art/nitro-jet';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
 import { openPassengerSeat } from './art/open-passengers';
 import { roadsideArchetype, roadsidePose, roadsideWalkingYaw } from './art/runtime-people';
@@ -47,6 +49,8 @@ export class RoadRenderer {
   private stormPost: ReturnType<typeof createStormPostProcessing>;
   private contactShadows = createRoadContactShadows();
   private effects = createRoadEffects();
+  private starAura = createStarAura();
+  private nitroJet = createNitroJet();
   private reducedMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
   private lowEffects = false;
   private playerShadow!: THREE.Mesh;
@@ -57,7 +61,6 @@ export class RoadRenderer {
   private openPassengerModels = new Map<VehicleKind, Map<string, PersonArt>>();
   private playerBlenderDrivers = new Map<VehicleKind, AnimatedBlenderDriver>();
   private driverTemplate: THREE.Group | null = null;
-  private powerRing!: THREE.Mesh;
   private openFrame = new THREE.Group();
   private tricycleFrame = new THREE.Group();
   private closedFrame = new THREE.Group();
@@ -104,6 +107,8 @@ export class RoadRenderer {
   constructor(canvas: HTMLCanvasElement, host: HTMLElement, private forceMode = false) {
     this.host = host;
     this.scene.add(this.effects.root);
+    this.scene.add(this.starAura.root);
+    this.scene.add(this.nitroJet.root);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     configureStormRenderer(this.renderer);
@@ -231,8 +236,6 @@ export class RoadRenderer {
     this.scene.add(this.trailerFrame);
     this.tractorFrame.add(this.tractorPlaceholder);
     this.trailerFrame.add(this.trailerPlaceholder);
-    this.powerRing = new THREE.Mesh(new THREE.TorusGeometry(1.5, .06, 4, 20), new THREE.MeshBasicMaterial({ color: '#f7df85' }));
-    this.powerRing.rotation.x = Math.PI / 2; this.powerRing.position.y = .15; this.bike.add(this.powerRing);
     const body = box(0.65, 0.42, 1.5, '#dbb55c', this.openFrame); body.position.y = 0.65;
     for (const z of [-0.68, 0.68]) { const wheel = box(0.22, 0.48, 0.46, '#172126', this.openFrame); wheel.position.set(0, 0.25, z); }
     const shell = box(1, .8, 2, '#d0ad68', this.closedFrame); shell.position.y = .75;
@@ -417,10 +420,9 @@ export class RoadRenderer {
     // visible even when optional screen motion is reduced by the OS.
     const visualTime = s.activeSeconds;
     const lowFx = this.lowEffects || !!this.reducedMotion?.matches;
-    const weatherTime = lowFx ? 0 : visualTime;
+    // Density is reduced, never the clock: static rain looks like suspended scratches.
+    const weatherTime = visualTime;
     const vehicle = activeVehicle(s);
-    this.powerRing.visible = s.phase !== 'ready' && s.phase !== 'ended' && (hasStar(s) || hasBoost(s));
-    (this.powerRing.material as THREE.MeshBasicMaterial).color.set(hasStar(s) ? '#f7df85' : '#86d6ec');
     const tricycle = vehicle.kind === 'tricycle';
     const open = ['motorcycle', 'motorbike', 'tricycle'].includes(vehicle.kind);
     const articulated = this.forceMode && vehicle.kind === 'container';
@@ -852,6 +854,12 @@ export class RoadRenderer {
       this.entityMeshes.delete(id);
     }
     this.syncRoadEffects(s, previous, lowFx);
+    this.starAura.update([this.bike, this.tractorFrame, this.trailerFrame],
+      s.phase !== 'ready' && s.phase !== 'ended' && hasStar(s), visualTime, lowFx);
+    this.camera.updateMatrixWorld();
+    const lightSide = new THREE.Vector3(-23, 0, 22)
+      .dot(new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0));
+    this.stormPost.setVisualTime(visualTime, lowFx, lightSide);
     this.stormPost.render();
     const tail = this.project(x, 0, vehicle.length / 2 + .45);
     this.host.style.setProperty('--bike-x', `${Math.max(30, Math.min(70, tail.x))}%`);
@@ -871,6 +879,7 @@ export class RoadRenderer {
 
   private syncRoadEffects(s: Run, previous: Run, low: boolean): void {
     this.effects.begin(s.activeSeconds, s.runId, low);
+    this.nitroJet.root.visible = false;
     if (s.phase === 'ready' || s.phase === 'ended') { this.effects.reset(); return; }
     if (s.phase === 'running' || s.phase === 'paused') {
       const emitting = s.phase === 'running';
@@ -882,7 +891,9 @@ export class RoadRenderer {
         ...s.world.entities.filter(entity => !entity.consumed && !entity.motionWaiting).map(entity => entity.id)]));
       const position = new THREE.Vector3(), local = new THREE.Vector3();
       player?.root.updateWorldMatrix(true, true);
-      const bucket = Math.floor(s.activeSeconds * (low ? 4 : 10));
+      // Lower particle count once in the pool; lowering rate as well made the
+      // reduced-motion exhaust and spray almost disappear (12% of normal).
+      const bucket = Math.floor(s.activeSeconds * 10);
       const signals = (art: VehicleArt, brake: boolean, turn: 'left' | 'right' | null, wrecked: boolean) => {
         if (wrecked) return;
         for (const [name, socket] of Object.entries(art.sockets)) {
@@ -901,12 +912,22 @@ export class RoadRenderer {
         }
         if (emitting && smokeSocket && s.durability / vehicle.durabilityCapacity < .35) {
           smokeSocket.getWorldPosition(position);
-          this.effects.burst(`player-smoke:${s.activeVehicleId}:${bucket}`, position, direction, 'smoke', 1, s.activeVehicleId);
+          position.y += .35;
+          this.effects.burst(`player-smoke:${s.activeVehicleId}:${bucket}`, position, direction, 'smoke', 2, s.activeVehicleId);
         }
-        const exhaust = player.sockets.exhaust;
-        if (emitting && exhaust && hasBoost(s) && !s.crash) {
-          exhaust.getWorldPosition(position);
-          this.effects.burst(`boost:${s.activeVehicleId}:${bucket}`, position, direction, 'nitro', 3, s.activeVehicleId);
+        const exhaust = player.sockets.exhaust ?? player.sockets.wheel_spray_rear;
+        if (exhaust) this.nitroJet.update(exhaust, hasBoost(s) && !s.crash, s.activeSeconds, low);
+        if (emitting && hasBoost(s) && !s.crash) {
+          if (exhaust) exhaust.getWorldPosition(position);
+          else position.set(0, .4, -vehicle.length * .5).applyMatrix4(player.root.matrixWorld);
+          // Use the actual model's rear axis, including curves and steering.
+          const jet = new THREE.Vector3(0, 0, -1).transformDirection(player.root.matrixWorld);
+          const carrier = jet.clone().multiplyScalar(-s.speed * .88);
+          position.addScaledVector(jet, .2);
+          position.y += .22;
+          this.effects.burst(`boost:${s.activeVehicleId}:${bucket}`, position, jet, 'nitro', 5, s.activeVehicleId, carrier);
+          this.effects.burst(`boost-fire:${s.activeVehicleId}:${bucket}`, position, jet, 'fire', 3, s.activeVehicleId, carrier);
+          this.effects.burst(`boost-smoke:${s.activeVehicleId}:${bucket}`, position, jet, 'smoke', 1, s.activeVehicleId, carrier);
         }
       }
       for (const e of s.world.entities) {
@@ -950,7 +971,10 @@ export class RoadRenderer {
             local.copy(position); entry.mesh.worldToLocal(local);
             if (Math.abs(local.x) <= e.width * .5 && Math.abs(local.z) <= e.length * .5) {
               position.y = .12;
-              this.effects.burst(`spray:${e.id}:${name}:${bucket}`, position, direction, 'water', 3);
+              const fan = direction.clone();
+              fan.x += Math.cos(heading) * Math.sign(local.x || 1) * 1.2;
+              fan.z += Math.sin(heading) * Math.sign(local.x || 1) * 1.2;
+              this.effects.burst(`spray:${e.id}:${name}:${bucket}`, position, fan, 'water', 5);
             }
           }
         }
@@ -982,7 +1006,8 @@ export class RoadRenderer {
           const socket = art.sockets.engine_smoke_fire;
           if (emitting && state.smoke && socket) {
             socket.getWorldPosition(position);
-            this.effects.burst(`smoke:${e.id}:${bucket}`, position, direction, 'smoke', 1, e.id);
+            position.y += .4;
+            this.effects.burst(`smoke:${e.id}:${bucket}`, position, direction, 'smoke', 2, e.id);
             if (state.fire) this.effects.burst(`fire:${e.id}:${bucket}`, position, direction, 'fire', 2, e.id);
           }
         }
@@ -1025,6 +1050,8 @@ export class RoadRenderer {
     this.stormPost.dispose();
     this.contactShadows.dispose();
     this.effects.dispose();
+    this.starAura.dispose();
+    this.nitroJet.dispose();
     if (this.cloudShadows) { this.scene.remove(this.cloudShadows.root); this.cloudShadows.dispose(); }
     for (const art of [this.rain, this.rainSplashes]) if (art) { this.scene.remove(art.root); art.dispose(); }
     for (const art of this.scenery.values()) { this.scene.remove(art.root); art.dispose(); }

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { markGameplayAccentTarget } from './storm-lighting';
+import { addWaterReflection } from './water-reflection';
 
 export type SurfaceHazardKind = 'water' | 'pothole';
 export type PropHazardKind = 'cargo_crate' | 'cargo_barrel' | 'fuel' | 'repair' |
@@ -250,14 +251,15 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
   const edge = material(kind === 'water' ? '#426a70' : '#394951');
   const center = kind === 'water'
     ? new THREE.MeshPhysicalMaterial({ color: '#ffffff', vertexColors: true,
-      roughness: .43, metalness: .02, clearcoat: .34,
-      clearcoatRoughness: .31, side: THREE.DoubleSide })
+      roughness: .32, metalness: .08, clearcoat: .5,
+      clearcoatRoughness: .24, side: THREE.DoubleSide })
     : new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true,
       roughness: 1, side: THREE.DoubleSide });
   const normalMap = kind === 'water' ? waterNormalMap() : undefined;
+  const setReflectionTime = center instanceof THREE.MeshPhysicalMaterial ? addWaterReflection(center) : undefined;
   if (center instanceof THREE.MeshPhysicalMaterial && normalMap) {
     center.normalMap = normalMap;
-    center.normalScale.set(.08, .08);
+    center.normalScale.set(.05, .05);
   }
   const glint = new THREE.MeshStandardMaterial({ color: '#94bcb5', roughness: .48,
     transparent: true, opacity: .34, depthWrite: false, side: THREE.DoubleSide });
@@ -327,6 +329,7 @@ export function createSurfaceHazardArt(kind: SurfaceHazardKind, width: number, l
       const t = Math.max(0, elapsedSeconds);
       if (t === lastTime) return;
       lastTime = t;
+      setReflectionTime?.(t);
       if (normalMap) normalMap.offset.set(t * .009 % 1, t * .016 % 1);
       for (let i = 0; i < attribute.count; i++) {
         const offset = i * 3;

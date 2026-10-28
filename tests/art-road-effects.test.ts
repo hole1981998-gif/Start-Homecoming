@@ -4,6 +4,17 @@ import { createRoadEffects } from '../src/art/road-effects';
 import { vehicleEffectState, vehicleLampSignal } from '../src/art/vehicle-effects';
 
 describe('presentation event pool lifecycle', () => {
+  it('carries exhaust with a moving vehicle and fades smoke instead of a solid lingering chunk', () => {
+    const fx = createRoadEffects(), point = new THREE.Vector3(), carrier = new THREE.Vector3(0, 0, -20);
+    fx.begin(0, 'run', false); fx.burst('boost-smoke', point, new THREE.Vector3(0, 0, 1), 'smoke', 1, 'car', carrier);
+    fx.update();
+    const mesh = fx.root.children[0] as THREE.InstancedMesh;
+    const alpha = mesh.geometry.getAttribute('particleOpacity'), first = alpha.getX(0);
+    fx.begin(.3, 'run', false); fx.update();
+    const matrix = new THREE.Matrix4(); mesh.getMatrixAt(0, matrix);
+    expect(matrix.elements[14]).toBeLessThan(-5); expect(alpha.getX(0)).toBeLessThan(first);
+    expect(carrier.z).toBe(-20); expect(point.length()).toBe(0); fx.dispose();
+  });
   it('supports single and sided rear lamps, and only the committed indicator side', () => {
     for (const name of ['tail', 'tail_left', 'tail_right']) {
       const tail = vehicleLampSignal(name, false, null, 0, false)!;

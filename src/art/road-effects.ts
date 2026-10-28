@@ -6,16 +6,24 @@ interface Particle {
   size: number; kind: RoadEffect; owner: string;
 }
 const colors: Record<RoadEffect, string> = {
-  water: '#83b3ad', impact: '#a69e86', spark: '#ebc87e', smoke: '#4b5a5c', fire: '#e69b48', nitro: '#66b9c5',
+  water: '#b8e2df', impact: '#a69e86', spark: '#ebc87e', smoke: '#6b7379', fire: '#ffac45', nitro: '#79dfff',
 };
 const noise = (i: number) => Math.abs(Math.sin(i * 127.1 + 311.7) * 43758.5453) % 1;
 
 /** A bounded presentation pool. Its clock and event identities belong to the caller. */
 export function createRoadEffects(capacity = 192) {
   const root = new THREE.Group(); root.name = 'road_event_effects';
-  const geometry = new THREE.IcosahedronGeometry(1, 0);
-  const material = new THREE.MeshBasicMaterial({ transparent: true, opacity: .55,
-    depthWrite: false, toneMapped: true });
+  const geometry = new THREE.IcosahedronGeometry(1, 1);
+  const alpha = new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1);
+  alpha.setUsage(THREE.DynamicDrawUsage); geometry.setAttribute('particleOpacity', alpha);
+  const material = new THREE.MeshBasicMaterial({ transparent: true, opacity: 1,
+    depthWrite: false, toneMapped: false });
+  material.onBeforeCompile = shader => {
+    shader.vertexShader = `attribute float particleOpacity; varying float vParticleOpacity;\n${shader.vertexShader}`
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvParticleOpacity = particleOpacity;');
+    shader.fragmentShader = `varying float vParticleOpacity;\n${shader.fragmentShader}`
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.a *= vParticleOpacity;');
+  };
   const mesh = new THREE.InstancedMesh(geometry, material, capacity);
   mesh.frustumCulled = false; mesh.count = 0; root.add(mesh);
   const signalMaterial = new THREE.MeshBasicMaterial({ depthWrite: false });
@@ -40,7 +48,7 @@ export function createRoadEffects(capacity = 192) {
     signals.setColorAt(signals.count++, color.set(tint));
   };
   const burst = (key: string, origin: THREE.Vector3, direction: THREE.Vector3,
-    kind: RoadEffect, amount = 8, owner = '') => {
+    kind: RoadEffect, amount = 8, owner = '', carrier = new THREE.Vector3()) => {
     if (emitted.has(key)) return;
     emitted.set(key, time);
     // Bounded even if a broken caller produces thousands of unique events.
@@ -48,16 +56,17 @@ export function createRoadEffects(capacity = 192) {
     const count = Math.max(1, Math.round(amount * (low ? .3 : 1)));
     for (let i = 0; i < Math.min(count, capacity); i++) {
       if (particles.length >= capacity) particles.shift();
-      const smoke = kind === 'smoke', flame = kind === 'fire';
-      const spread = smoke ? .18 : low ? .3 : .8;
-      const velocity = direction.clone().multiplyScalar(smoke ? .12 : .55 + noise(i + 3) * .45);
+      const smoke = kind === 'smoke', flame = kind === 'fire', nitro = kind === 'nitro';
+      const spread = smoke ? .5 : low ? .7 : 1.7;
+      const velocity = direction.clone().multiplyScalar(smoke ? .35 : nitro ? 5 : 1.5 + noise(i + 3) * 1.5);
       velocity.x += (noise(i + 1) - .5) * spread;
       velocity.z += (noise(i + 2) - .5) * spread;
       // Engine locators are under the hood, so smoke must rise clear of the
       // body before fading. It is still a narrow, short-lived plume.
-      velocity.y = smoke ? 1.8 : flame ? 1.1 : .4 + noise(i + 4) * (low ? .3 : 1.1);
-      particles.push({ born: time, life: smoke ? 1.2 : kind === 'impact' ? .24 : flame ? .55 : .42,
-        origin: origin.clone(), velocity, size: smoke ? .17 : flame ? .09 : .025 + noise(i) * .025, kind, owner });
+      velocity.y = smoke ? 2.4 : flame ? 1.5 : nitro ? .35 : .9 + noise(i + 4) * (low ? .6 : 1.8);
+      velocity.add(carrier);
+      particles.push({ born: time, life: smoke ? 1.6 : kind === 'impact' ? .24 : flame ? .65 : nitro ? .5 : .7,
+        origin: origin.clone(), velocity, size: smoke ? .24 : flame ? .16 : nitro ? .13 : .065 + noise(i) * .055, kind, owner });
     }
   };
   const retainOwners = (live: ReadonlySet<string>) => {
@@ -71,14 +80,17 @@ export function createRoadEffects(capacity = 192) {
     particles.forEach((particle, i) => {
       const age = Math.max(0, time - particle.born), phase = age / particle.life;
       dummy.position.copy(particle.origin).addScaledVector(particle.velocity, age);
-      if (particle.kind !== 'smoke' && particle.kind !== 'fire')
+      if (particle.kind !== 'smoke' && particle.kind !== 'fire' && particle.kind !== 'nitro')
         dummy.position.y = Math.max(.06, dummy.position.y - age * age * 2.2);
       const size = particle.size * (1 - phase) * (particle.kind === 'smoke' ? 1 + phase * 3 : 1);
-      dummy.scale.set(size, particle.kind === 'water' ? size * 1.8 : size, size);
+      alpha.setX(i, (particle.kind === 'smoke' ? .42 : .9) * (1 - phase));
+      dummy.scale.set(size, particle.kind === 'water' ? size * 1.8 : size,
+        particle.kind === 'nitro' ? size * 3 : size);
       dummy.rotation.set(age, i, age * .5); dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix); mesh.setColorAt(i, color.set(colors[particle.kind]));
     });
     mesh.instanceMatrix.needsUpdate = true;
+    alpha.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     signals.instanceMatrix.needsUpdate = true;
     if (signals.instanceColor) signals.instanceColor.needsUpdate = true;

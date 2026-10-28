@@ -1,0 +1,49 @@
+{
+  "recordings": [
+    {
+      "file": "bike-star-nitro.webp",
+      "frames": 100,
+      "size": [
+        422,
+        750
+      ],
+      "durationMs": 3503,
+      "startUnixMs": 1793199423758,
+      "note": "Real variable-interval browser screenshots; not native video or 60-FPS capture."
+    },
+    {
+      "file": "final-water.webp",
+      "frames": 145,
+      "size": [
+        422,
+        750
+      ],
+      "durationMs": 4997,
+      "startUnixMs": 1793199243364,
+      "note": "Real variable-interval browser screenshots; not native video or 60-FPS capture."
+    },
+    {
+      "file": "wind-final.webp",
+      "frames": 145,
+      "size": [
+        422,
+        750
+      ],
+      "durationMs": 4925,
+      "startUnixMs": 1793199490298,
+      "note": "Real variable-interval browser screenshots; not native video or 60-FPS capture."
+    },
+    {
+      "file": "car-final.webp",
+      "frames": 70,
+      "size": [
+        422,
+        750
+      ],
+      "durationMs": 2388,
+      "startUnixMs": 1793199630448,
+      "note": "Real variable-interval browser screenshots; not native video or 60-FPS capture."
+    }
+  ],
+  "pausedFramesIdentical": true
+}

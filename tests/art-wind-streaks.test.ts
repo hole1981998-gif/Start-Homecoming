@@ -3,6 +3,15 @@ import * as THREE from 'three';
 import { createWindStreakArt } from '../src/art/wind-streaks';
 
 describe('wind gust visual', () => {
+  it('retains directional motion at reduced density and freezes only at equal active time', () => {
+    const art = createWindStreakArt(9.6, 65);
+    const mesh = art.root.children[0] as THREE.InstancedMesh;
+    art.setVisualTime(1, 1, true);
+    const first = Array.from(mesh.instanceMatrix.array);
+    art.setVisualTime(1, 1, true); expect(Array.from(mesh.instanceMatrix.array)).toEqual(first);
+    art.setVisualTime(1.2, 1, true); expect(Array.from(mesh.instanceMatrix.array)).not.toEqual(first);
+    expect(mesh.count).toBeLessThan(30); art.dispose();
+  });
   it('uses sparse translucent streaks instead of a road-sized color plane', () => {
     const art = createWindStreakArt(9.6, 65);
     const streaks = art.root.getObjectByName('wind_gust_ribbons') as THREE.InstancedMesh;

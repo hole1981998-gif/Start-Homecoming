@@ -24,7 +24,7 @@ export function createWindStreakArt(width: number, length: number): WindStreakAr
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
   geometry.computeVertexNormals();
   const material = new THREE.MeshBasicMaterial({
-    color: '#7eaba8', transparent: true, opacity: .22,
+    color: '#b3d3d0', transparent: true, opacity: .34,
     side: THREE.DoubleSide, depthWrite: false,
   });
   const streaks = new THREE.InstancedMesh(geometry, material, count);
@@ -36,7 +36,7 @@ export function createWindStreakArt(width: number, length: number): WindStreakAr
   const setVisualTime = (seconds: number, lateralPush: number, reduced = false) => {
     if (seconds === lastTime && lateralPush === lastPush && reduced === lastReduced) return;
     lastTime = seconds; lastPush = lateralPush; lastReduced = reduced;
-    streaks.count = reduced ? 10 : count;
+    streaks.count = reduced ? 14 : count;
     const direction = lateralPush < 0 ? -1 : 1;
     for (let i = 0; i < count; i++) {
       const lane = i % 4;
@@ -47,7 +47,7 @@ export function createWindStreakArt(width: number, length: number): WindStreakAr
       dummy.position.set(x, .35 + lane * .32 + Math.sin(seconds * .6 + i) * .09, z);
       dummy.rotation.set(.2 + lane * .18, direction * (Math.PI / 2 - .34) +
         (fraction(i * .754877666) - .5) * .5, direction * .13);
-      const fade = reduced ? .55 : Math.sin(time * Math.PI);
+      const fade = reduced ? .8 : Math.sin(time * Math.PI);
       dummy.scale.set((.65 + (i % 3) * .18) * fade, 1,
         (.3 + (i % 7) * .09) * fade);
       dummy.updateMatrix();
