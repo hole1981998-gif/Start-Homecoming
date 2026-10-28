@@ -317,7 +317,7 @@ function frame(now: number): void {
   if (state.phase === 'ended' && screen !== 'result' && screen !== 'help') {
     resultView();
   } else discover();
-  graphics.draw(state, previous, state.phase === 'running' ? alpha : 1);
+  graphics.draw(state, previous, state.phase === 'running' ? alpha : 1, input);
   if (diagnostics && diagnosticRunId !== state.runId) {
     diagnosticRunId = state.runId; measuredFrames = 0;
     frameTimes.length = renderTimes.length = diagnosticSamples.length = 0;

@@ -8,6 +8,11 @@ export function vehicleEffectState(hpFraction: number, wrecked: boolean, wreckAg
 /** +Y up / +Z forward: physical left is +X before the runtime's 180° adapter. */
 export const vehicleIndicatorSide = (localX: number): 'left' | 'right' => localX > 0 ? 'left' : 'right';
 
+/** Read actual held controls, never infer intent from wind drift or tyre inertia. */
+export function playerIndicatorTurn(left: boolean, right: boolean, route: 'left' | 'right' | null) {
+  return left !== right ? left ? 'left' : 'right' : route;
+}
+
 /** Catalogs expose both a single `tail` and sided `tail_left/right` locators. */
 export function vehicleLampSignal(name: string, braking: boolean,
   turn: 'left' | 'right' | null, seconds: number, reduced: boolean, hazard = false) {

@@ -25,7 +25,7 @@ import { createRoadContactShadows } from './art/road-contact-shadows';
 import { passengerWindowPoses } from './art/passenger-windows';
 import { createWindStreakArt, type WindStreakArt } from './art/wind-streaks';
 import { createRoadEffects } from './art/road-effects';
-import { vehicleEffectState } from './art/vehicle-effects';
+import { playerIndicatorTurn, vehicleEffectState } from './art/vehicle-effects';
 import { createVehicleLightBeams } from './art/vehicle-light-beams';
 import { bindVehicleLampMaterials } from './art/vehicle-light-materials';
 import { createStarAura } from './art/star-aura';
@@ -424,7 +424,7 @@ export class RoadRenderer {
     }
     this.scene.add(g); return g;
   }
-  draw(s: Run, previous: Run, alpha: number): void {
+  draw(s: Run, previous: Run, alpha: number, steering = { left: false, right: false }): void {
     this.viewState = s;
     // Character gestures communicate movement and pickup state; they stay
     // visible even when optional screen motion is reduced by the OS.
@@ -868,7 +868,7 @@ export class RoadRenderer {
       } else this.pools[entry.kind].push(entry.mesh);
       this.entityMeshes.delete(id);
     }
-    this.syncRoadEffects(s, previous, lowFx);
+    this.syncRoadEffects(s, previous, lowFx, steering);
     this.starAura.update([this.bike, this.tractorFrame, this.trailerFrame],
       s.phase !== 'ready' && s.phase !== 'ended' && hasStar(s), visualTime, lowFx);
     this.camera.updateMatrixWorld();
@@ -892,7 +892,7 @@ export class RoadRenderer {
   }
   setLowEffects(enabled: boolean): void { this.lowEffects = enabled; }
 
-  private syncRoadEffects(s: Run, previous: Run, low: boolean): void {
+  private syncRoadEffects(s: Run, previous: Run, low: boolean, steering: { left: boolean; right: boolean }): void {
     this.effects.begin(s.activeSeconds, s.runId, low);
     this.lightBeams.reset();
     this.nitroJet.root.visible = false;
@@ -923,8 +923,9 @@ export class RoadRenderer {
         }
       };
       if (player) {
-        const turn = s.route.choice ?? (s.activeSeconds - s.route.turnAt < 1.2 && s.route.lastTurn !== 'straight'
+        const routeTurn = s.route.choice ?? (s.activeSeconds - s.route.turnAt < 1.2 && s.route.lastTurn !== 'straight'
           ? s.route.lastTurn : null);
+        const turn = playerIndicatorTurn(!s.crash && steering.left, !s.crash && steering.right, routeTurn);
         lights(player, s.speed < previous.speed - .001, turn, false,
           !!s.crash || s.fuel <= 0 && s.speed < .5, !s.crash && jumpHeight(s) < .08);
         const smokeSocket = player.sockets.engine_smoke_fire;
