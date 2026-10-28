@@ -1,16 +1,33 @@
 import type { Run } from './survival';
 import type { VehicleKind } from './vehicles';
-import { warningDistance } from './world';
 import { activeVehicle } from './survival';
 import { itemBalance } from './config';
 
 const files = import.meta.glob([
-  '../project-reference/sfx/procedural-auditions-2026-10-28/ambience/*.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/ambience/rain_light_loop.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/ambience/wind_loop.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/ambience/wet_road_loop.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/engine-v2/*_loop.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/*.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/collision_*.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/cargo_*.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/passenger_hit.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/vendor_hit.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/ambulance_pass.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/wind_gust.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/police_capture.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/banana_use.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/train_pass.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/broken_car.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/item/*.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/road/*.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/*.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/road/water_splash.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/road/water_roll_loop.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/road/pothole_rattle_*.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/accelerate.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/brake.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/coast.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/driver_fall.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/stop.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/vehicle_switch.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/result/*.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/pickup_01.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/kick_01.wav',
@@ -20,6 +37,11 @@ const url = (name: string): string | undefined => files[root + name];
 
 type Bus = 'sfx' | 'ambience';
 type Stem = { sources: AudioBufferSourceNode[]; gains: GainNode[]; kind: VehicleKind };
+const heavyVehicle = (kind?: VehicleKind): boolean => kind === 'bus' || kind === 'truck' || kind === 'container';
+const lightVehicle = (kind?: VehicleKind): boolean => kind === 'motorcycle' || kind === 'motorbike' || kind === 'tricycle';
+const collisionCue = (a?: VehicleKind, b?: VehicleKind): string =>
+  `interaction-v2/collision_${heavyVehicle(a) || heavyVehicle(b) ? 'heavy' : lightVehicle(a) && lightVehicle(b) ? 'light' : 'medium'}.wav`;
+const potholeCue = (kind?: VehicleKind): string => `road/pothole_rattle_${heavyVehicle(kind) ? 'heavy' : 'light'}.wav`;
 
 /** Presentation-only sound: every cue follows simulation state and never feeds back into it. */
 export class AudioDirector {
@@ -28,8 +50,9 @@ export class AudioDirector {
   private buffers = new Map<string, Promise<AudioBuffer | null>>();
   private stem?: Stem;
   private ambience = new Map<string, { source: AudioBufferSourceNode; gain: GainNode }>();
-  private warned = new Set<string>();
   private near = new Set<string>();
+  private trafficPairs = new Set<string>();
+  private trafficHoles = new Set<string>();
   private entityState = new Map<string, { lastHit: number; cargoDropped: boolean; consumed: boolean }>();
   private cooldown = new Map<string, number>();
   private oneShots = new Set<AudioBufferSourceNode>();
@@ -44,6 +67,7 @@ export class AudioDirector {
   private airborne = false;
   private crashed = false;
   private inWind = false;
+  private waterActive = false;
   private vehicleId = '';
   private requestedKind?: VehicleKind;
   private generation = 0;
@@ -88,7 +112,7 @@ export class AudioDirector {
   private async loop(name: string, bus: Bus, volume: number): Promise<void> {
     if (this.ambience.has(name) || !this.context || !this.buses) return;
     const ctx = this.context, generation = this.generation, buffer = await this.buffer(name);
-    if (!buffer || generation !== this.generation || this.ambience.has(name) || ctx.state !== 'running') return;
+    if (!buffer || generation !== this.generation || this.ambience.has(name) || ctx.state !== 'running' || name.includes('water_roll') && !this.waterActive) return;
     const source = ctx.createBufferSource(), gain = ctx.createGain();
     source.buffer = buffer; source.loop = true; gain.gain.value = 0;
     source.connect(gain).connect(this.buses[bus]); source.start();
@@ -127,13 +151,14 @@ export class AudioDirector {
     this.oneShots.clear();
     this.stopEngine();
     for (const { source, gain } of this.ambience.values()) { try { source.stop(); } catch { /* already stopped */ } source.disconnect(); gain.disconnect(); }
-    this.ambience.clear(); this.warned.clear(); this.near.clear(); this.entityState.clear(); this.cooldown.clear(); this.sweepTick = 0;
-    this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.vehicleId = ''; this.requestedKind = undefined;
+    this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.entityState.clear(); this.cooldown.clear(); this.sweepTick = 0;
+    this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.vehicleId = ''; this.requestedKind = undefined;
   }
 
   pause(): void {
     this.generation++;
     this.requestedKind = undefined;
+    this.waterActive = false;
     this.stopEngine();
     for (const source of this.oneShots) { try { source.stop(); } catch { /* already stopped */ } }
     for (const { gain } of this.ambience.values()) gain.gain.setTargetAtTime(0, this.context?.currentTime ?? 0, .08);
@@ -153,11 +178,14 @@ export class AudioDirector {
       }
       return;
     }
+    const vehicle = activeVehicle(run);
+    const inWater = run.world.entities.some(e => e.kind === 'water' && e.touching && !e.consumed);
+    this.waterActive = inWater;
     void this.loop('ambience/rain_light_loop.wav', 'ambience', .65);
     void this.loop('ambience/wind_loop.wav', 'ambience', .24);
     void this.loop('ambience/wet_road_loop.wav', 'ambience', .13);
-    for (const [name, node] of this.ambience) node.gain.gain.setTargetAtTime(name.includes('rain') ? .65 : name.includes('wind') ? .24 : .13, ctx.currentTime, .15);
-    const vehicle = activeVehicle(run);
+    if (inWater) void this.loop('road/water_roll_loop.wav', 'sfx', .38);
+    for (const [name, node] of this.ambience) node.gain.gain.setTargetAtTime(name.includes('water_roll') ? inWater ? .38 : 0 : name.includes('rain') ? .65 : name.includes('wind') ? .24 : .13, ctx.currentTime, name.includes('water_roll') ? .09 : .15);
     this.requestedKind = vehicle.kind;
     if (this.vehicleId && this.vehicleId !== run.activeVehicleId) void this.play('vehicle/vehicle_switch.wav');
     this.vehicleId = run.activeVehicleId;
@@ -173,7 +201,6 @@ export class AudioDirector {
     if (input.brake && this.lastSpeed - run.speed > .1) void this.play('vehicle/brake.wav', 'brake', 2, .33);
     if (input.accelerate && run.speed - this.lastSpeed > .1) void this.play('vehicle/accelerate.wav', 'accelerate', 3, .25);
     if (this.lastSpeed > 2 && run.speed < .1) void this.play('vehicle/stop.wav', 'stop', 1, .35);
-    if (Math.abs(run.lateralVelocity) > 3 && run.speed > 8) void this.play('vehicle/skid.wav', 'skid', 2.5, .3);
     if (run.crash && !this.crashed) void this.play('vehicle/driver_fall.wav', 'driver-fall', .5, .7);
     this.crashed = !!run.crash;
     if (run.motion === 'coasting' && this.lastMotion !== 'coasting') void this.play('vehicle/coast.wav');
@@ -191,11 +218,32 @@ export class AudioDirector {
       this.lastSequence = run.eventSequence;
       const kind = run.feedbackKind;
       const hitEntity = run.world.entities.find(e => e.consumed && !this.entityState.get(e.id)?.consumed && e.kind === kind);
-      const cue: Record<string, string> = { water: 'road/water_splash.wav', pothole: 'road/pothole.wav', traffic: 'interaction-v2/vehicle_collision.wav', cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: run.feedback.startsWith('Gọi Grab') ? 'item/grab_call.wav' : 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/militia_warning.wav', jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : 'interaction-v2/jam.wav', accident: 'interaction-v2/accident.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
-      if (kind && cue[kind]) void this.play(cue[kind], `event-${kind}`, .2);
+      const hitTraffic = run.world.entities.find(e => e.kind === 'traffic' && e.lastHit >= 0 && Math.abs(e.lastHit - run.activeSeconds) < .1);
+      const cue: Record<string, string> = { water: 'road/water_splash.wav', pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: run.feedback.startsWith('Gọi Grab') ? 'item/grab_call.wav' : 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : collisionCue(vehicle.kind), accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
+      if (kind && cue[kind]) void this.play(cue[kind], `event-${kind}`, .2, kind === 'water' ? .4 : 1);
     }
+    const nextPairs = new Set<string>(), nextHoles = new Set<string>();
+    const trafficById = new Map(run.world.entities.filter(e => e.kind === 'traffic').map(e => [e.id, e]));
+    const potholes = new Set(run.world.entities.filter(e => e.kind === 'pothole').map(e => e.id));
     for (const e of run.world.entities) {
       const prior = this.entityState.get(e.id);
+      if (e.kind === 'traffic') {
+        for (const otherId of e.trafficPairContacts ?? []) {
+          const other = trafficById.get(otherId);
+          if (!other) continue;
+          const key = [e.id, otherId].sort().join('|');
+          nextPairs.add(key);
+          if (!this.trafficPairs.has(key) && Math.abs((e.distance + other.distance) / 2 - run.distance) < 65)
+            void this.play(collisionCue(e.trafficKind, other.trafficKind), 'traffic-pair', .22, .55);
+        }
+        for (const holeId of e.trafficContacts ?? []) {
+          if (!potholes.has(holeId)) continue;
+          const key = `${e.id}|${holeId}`;
+          nextHoles.add(key);
+          if (!this.trafficHoles.has(key) && Math.abs(e.distance - run.distance) < 40)
+            void this.play(potholeCue(e.trafficKind), 'traffic-pothole', .28, .42);
+        }
+      }
       if (e.kind === 'passenger' && prior && e.lastHit > prior.lastHit && e.lastHit >= 0 && e.passengerMotion?.crashRecovery)
         void this.play('interaction-v2/passenger_hit.wav', 'passenger-hit', .35, .75);
       if (e.kind === 'traffic' && e.cargoDropped && prior && !prior.cargoDropped && run.world.entities.some(c => c.cargoSourceId === e.id))
@@ -203,24 +251,15 @@ export class AudioDirector {
       if (e.kind === 'cargo' && !prior && e.cargoSourceId && e.distance - run.distance < 95)
         void this.play(`interaction-v2/cargo_${e.cargoType === 'barrel' ? 'barrel' : 'crate'}_roll.wav`, 'cargo-roll', .3, .45);
       const ahead = e.distance - run.distance;
-      if (!e.consumed && ahead > 0 && ahead < 25 && e.crossingRole === 'vendor' && !this.near.has(e.id)) {
-        this.near.add(e.id); void this.play('interaction-v2/vendor_near.wav', 'vendor-near', 2, .6);
-      }
       if (!e.consumed && ahead > 0 && ahead < 18 && e.serviceRole === 'ambulance' && !this.near.has(e.id)) {
         this.near.add(e.id); void this.play('interaction-v2/ambulance_pass.wav', 'ambulance-pass', 2, .6);
       }
       this.entityState.set(e.id, { lastHit: e.lastHit, cargoDropped: !!e.cargoDropped, consumed: e.consumed });
-      if (e.consumed || e.distance <= run.distance || this.warned.has(e.id)) continue;
-      if (!['train', 'police', 'militia', 'cargo', 'jam'].includes(e.kind)) continue;
-      if (e.distance - run.distance > warningDistance(run.speed, e, vehicle.length)) continue;
-      this.warned.add(e.id);
-      const cues: Record<string, string> = { train: 'interaction-v2/train_approach.wav', police: 'interaction-v2/police_warning.wav', militia: 'interaction-v2/militia_warning.wav', cargo: 'interaction-v2/cargo_release.wav', jam: 'interaction-v2/jam.wav' };
-      void this.play(cues[e.kind], `warning-${e.kind}`, .2, .7);
     }
+    this.trafficPairs = nextPairs; this.trafficHoles = nextHoles;
     if (++this.sweepTick % 300 === 0) {
       const ids = new Set(run.world.entities.map(e => e.id));
       for (const id of this.entityState.keys()) if (!ids.has(id)) this.entityState.delete(id);
-      for (const id of this.warned) if (!ids.has(id)) this.warned.delete(id);
       for (const id of this.near) if (!ids.has(id)) this.near.delete(id);
     }
   }
