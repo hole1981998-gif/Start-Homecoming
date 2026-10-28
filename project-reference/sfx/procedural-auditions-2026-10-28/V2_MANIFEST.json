@@ -1,0 +1,454 @@
+{
+  "engine": [
+    {
+      "vehicle": "motorcycle",
+      "state": "idle",
+      "file": "engine-v2/motorcycle_idle_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3321,
+      "rms": 0.1865
+    },
+    {
+      "vehicle": "motorcycle",
+      "state": "cruise",
+      "file": "engine-v2/motorcycle_cruise_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3223,
+      "rms": 0.1639
+    },
+    {
+      "vehicle": "motorcycle",
+      "state": "fast",
+      "file": "engine-v2/motorcycle_fast_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.37,
+      "rms": 0.1595
+    },
+    {
+      "vehicle": "motorcycle",
+      "state": "ramp_preview",
+      "file": "engine-v2/motorcycle_ramp_preview.wav",
+      "duration_seconds": 10.0,
+      "peak": 0.3699,
+      "rms": 0.1693
+    },
+    {
+      "vehicle": "motorbike",
+      "state": "idle",
+      "file": "engine-v2/motorbike_idle_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.328,
+      "rms": 0.184
+    },
+    {
+      "vehicle": "motorbike",
+      "state": "cruise",
+      "file": "engine-v2/motorbike_cruise_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3179,
+      "rms": 0.1626
+    },
+    {
+      "vehicle": "motorbike",
+      "state": "fast",
+      "file": "engine-v2/motorbike_fast_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.37,
+      "rms": 0.1588
+    },
+    {
+      "vehicle": "motorbike",
+      "state": "ramp_preview",
+      "file": "engine-v2/motorbike_ramp_preview.wav",
+      "duration_seconds": 10.0,
+      "peak": 0.37,
+      "rms": 0.1677
+    },
+    {
+      "vehicle": "car4",
+      "state": "idle",
+      "file": "engine-v2/car4_idle_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.35,
+      "rms": 0.1975
+    },
+    {
+      "vehicle": "car4",
+      "state": "cruise",
+      "file": "engine-v2/car4_cruise_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.334,
+      "rms": 0.1721
+    },
+    {
+      "vehicle": "car4",
+      "state": "fast",
+      "file": "engine-v2/car4_fast_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.37,
+      "rms": 0.1666
+    },
+    {
+      "vehicle": "car4",
+      "state": "ramp_preview",
+      "file": "engine-v2/car4_ramp_preview.wav",
+      "duration_seconds": 10.0,
+      "peak": 0.37,
+      "rms": 0.1781
+    },
+    {
+      "vehicle": "car7",
+      "state": "idle",
+      "file": "engine-v2/car7_idle_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3356,
+      "rms": 0.1897
+    },
+    {
+      "vehicle": "car7",
+      "state": "cruise",
+      "file": "engine-v2/car7_cruise_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3194,
+      "rms": 0.1663
+    },
+    {
+      "vehicle": "car7",
+      "state": "fast",
+      "file": "engine-v2/car7_fast_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.37,
+      "rms": 0.1615
+    },
+    {
+      "vehicle": "car7",
+      "state": "ramp_preview",
+      "file": "engine-v2/car7_ramp_preview.wav",
+      "duration_seconds": 10.0,
+      "peak": 0.3699,
+      "rms": 0.1718
+    },
+    {
+      "vehicle": "tricycle",
+      "state": "idle",
+      "file": "engine-v2/tricycle_idle_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3275,
+      "rms": 0.1835
+    },
+    {
+      "vehicle": "tricycle",
+      "state": "cruise",
+      "file": "engine-v2/tricycle_cruise_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3125,
+      "rms": 0.1628
+    },
+    {
+      "vehicle": "tricycle",
+      "state": "fast",
+      "file": "engine-v2/tricycle_fast_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.37,
+      "rms": 0.1594
+    },
+    {
+      "vehicle": "tricycle",
+      "state": "ramp_preview",
+      "file": "engine-v2/tricycle_ramp_preview.wav",
+      "duration_seconds": 10.0,
+      "peak": 0.37,
+      "rms": 0.1678
+    },
+    {
+      "vehicle": "bus",
+      "state": "idle",
+      "file": "engine-v2/bus_idle_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3236,
+      "rms": 0.1835
+    },
+    {
+      "vehicle": "bus",
+      "state": "cruise",
+      "file": "engine-v2/bus_cruise_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3135,
+      "rms": 0.1648
+    },
+    {
+      "vehicle": "bus",
+      "state": "fast",
+      "file": "engine-v2/bus_fast_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.37,
+      "rms": 0.1626
+    },
+    {
+      "vehicle": "bus",
+      "state": "ramp_preview",
+      "file": "engine-v2/bus_ramp_preview.wav",
+      "duration_seconds": 10.0,
+      "peak": 0.37,
+      "rms": 0.1694
+    },
+    {
+      "vehicle": "truck",
+      "state": "idle",
+      "file": "engine-v2/truck_idle_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3208,
+      "rms": 0.1782
+    },
+    {
+      "vehicle": "truck",
+      "state": "cruise",
+      "file": "engine-v2/truck_cruise_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.308,
+      "rms": 0.1611
+    },
+    {
+      "vehicle": "truck",
+      "state": "fast",
+      "file": "engine-v2/truck_fast_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.37,
+      "rms": 0.1597
+    },
+    {
+      "vehicle": "truck",
+      "state": "ramp_preview",
+      "file": "engine-v2/truck_ramp_preview.wav",
+      "duration_seconds": 10.0,
+      "peak": 0.37,
+      "rms": 0.1654
+    },
+    {
+      "vehicle": "container",
+      "state": "idle",
+      "file": "engine-v2/container_idle_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3331,
+      "rms": 0.1828
+    },
+    {
+      "vehicle": "container",
+      "state": "cruise",
+      "file": "engine-v2/container_cruise_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.3249,
+      "rms": 0.1663
+    },
+    {
+      "vehicle": "container",
+      "state": "fast",
+      "file": "engine-v2/container_fast_loop.wav",
+      "duration_seconds": 2.0,
+      "peak": 0.37,
+      "rms": 0.1656
+    },
+    {
+      "vehicle": "container",
+      "state": "ramp_preview",
+      "file": "engine-v2/container_ramp_preview.wav",
+      "duration_seconds": 10.0,
+      "peak": 0.37,
+      "rms": 0.1706
+    }
+  ],
+  "interactions": [
+    {
+      "key": "water_splash",
+      "file": "interaction-v2/water_splash.wav",
+      "duration_seconds": 1.42,
+      "rms": 0.0827,
+      "length_class": "medium",
+      "description": "medium; crossing and draining water"
+    },
+    {
+      "key": "pothole",
+      "file": "interaction-v2/pothole.wav",
+      "duration_seconds": 0.73,
+      "rms": 0.0717,
+      "length_class": "short",
+      "description": "short; suspension bounce and loose body"
+    },
+    {
+      "key": "wind_gust",
+      "file": "interaction-v2/wind_gust.wav",
+      "duration_seconds": 2.62,
+      "rms": 0.0776,
+      "length_class": "long",
+      "description": "long; lateral gust with moving body"
+    },
+    {
+      "key": "cargo_release",
+      "file": "interaction-v2/cargo_release.wav",
+      "duration_seconds": 0.84,
+      "rms": 0.049,
+      "length_class": "short",
+      "description": "short; latch, falling air, ground touch"
+    },
+    {
+      "key": "cargo_crate_roll",
+      "file": "interaction-v2/cargo_crate_roll.wav",
+      "duration_seconds": 3.05,
+      "rms": 0.0648,
+      "length_class": "long",
+      "description": "long; uneven wood knocks with deceleration"
+    },
+    {
+      "key": "cargo_barrel_roll",
+      "file": "interaction-v2/cargo_barrel_roll.wav",
+      "duration_seconds": 3.28,
+      "rms": 0.0791,
+      "length_class": "long",
+      "description": "long; metallic wheel pulses"
+    },
+    {
+      "key": "cargo_crate_hit",
+      "file": "interaction-v2/cargo_crate_hit.wav",
+      "duration_seconds": 1.15,
+      "rms": 0.0586,
+      "length_class": "medium",
+      "description": "medium; impact and scattered wood"
+    },
+    {
+      "key": "cargo_barrel_hit",
+      "file": "interaction-v2/cargo_barrel_hit.wav",
+      "duration_seconds": 1.22,
+      "rms": 0.0661,
+      "length_class": "medium",
+      "description": "medium; impact and metal tail"
+    },
+    {
+      "key": "train_approach",
+      "file": "interaction-v2/train_approach.wav",
+      "duration_seconds": 3.75,
+      "rms": 0.131,
+      "length_class": "long",
+      "description": "long; distant rumble, repeated bell and approach"
+    },
+    {
+      "key": "train_pass",
+      "file": "interaction-v2/train_pass.wav",
+      "duration_seconds": 4.45,
+      "rms": 0.1405,
+      "length_class": "long",
+      "description": "long; train body and sequential wheel clacks"
+    },
+    {
+      "key": "train_clear",
+      "file": "interaction-v2/train_clear.wav",
+      "duration_seconds": 1.35,
+      "rms": 0.0571,
+      "length_class": "medium",
+      "description": "medium; tail wheels recede"
+    },
+    {
+      "key": "police_warning",
+      "file": "interaction-v2/police_warning.wav",
+      "duration_seconds": 1.35,
+      "rms": 0.082,
+      "length_class": "medium",
+      "description": "medium; two compact warning notes, no continuous siren"
+    },
+    {
+      "key": "militia_warning",
+      "file": "interaction-v2/militia_warning.wav",
+      "duration_seconds": 1.2,
+      "rms": 0.0602,
+      "length_class": "medium",
+      "description": "medium; three rounded knocks"
+    },
+    {
+      "key": "police_capture",
+      "file": "interaction-v2/police_capture.wav",
+      "duration_seconds": 1.2,
+      "rms": 0.0619,
+      "length_class": "medium",
+      "description": "medium; latch and falling tone"
+    },
+    {
+      "key": "banana_use",
+      "file": "interaction-v2/banana_use.wav",
+      "duration_seconds": 0.86,
+      "rms": 0.1004,
+      "length_class": "short",
+      "description": "short; comic slide with small landing"
+    },
+    {
+      "key": "jam",
+      "file": "interaction-v2/jam.wav",
+      "duration_seconds": 2.05,
+      "rms": 0.0692,
+      "length_class": "long",
+      "description": "long; muted traffic cluster"
+    },
+    {
+      "key": "accident",
+      "file": "interaction-v2/accident.wav",
+      "duration_seconds": 1.65,
+      "rms": 0.058,
+      "length_class": "medium",
+      "description": "medium; impact and settling parts"
+    },
+    {
+      "key": "broken_car",
+      "file": "interaction-v2/broken_car.wav",
+      "duration_seconds": 2.2,
+      "rms": 0.0928,
+      "length_class": "long",
+      "description": "long; declining sputter and rattle"
+    },
+    {
+      "key": "barrier_hit",
+      "file": "interaction-v2/barrier_hit.wav",
+      "duration_seconds": 1.0,
+      "rms": 0.0659,
+      "length_class": "medium",
+      "description": "medium; barrier impact and rattling"
+    },
+    {
+      "key": "vendor_near",
+      "file": "interaction-v2/vendor_near.wav",
+      "duration_seconds": 1.32,
+      "rms": 0.0352,
+      "length_class": "medium",
+      "description": "medium; roadside cart passing"
+    },
+    {
+      "key": "vendor_hit",
+      "file": "interaction-v2/vendor_hit.wav",
+      "duration_seconds": 1.62,
+      "rms": 0.0541,
+      "length_class": "medium",
+      "description": "medium; cart and object clatter"
+    },
+    {
+      "key": "ambulance_pass",
+      "file": "interaction-v2/ambulance_pass.wav",
+      "duration_seconds": 3.3,
+      "rms": 0.0707,
+      "length_class": "long",
+      "description": "long; distant passing vehicle and soft siren"
+    },
+    {
+      "key": "vehicle_collision",
+      "file": "interaction-v2/vehicle_collision.wav",
+      "duration_seconds": 1.38,
+      "rms": 0.0624,
+      "length_class": "medium",
+      "description": "medium; metal, rubber and panel tail"
+    },
+    {
+      "key": "passenger_hit",
+      "file": "interaction-v2/passenger_hit.wav",
+      "duration_seconds": 0.84,
+      "rms": 0.0556,
+      "length_class": "short",
+      "description": "short; soft cloth and body reaction"
+    }
+  ]
+}
