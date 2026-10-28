@@ -29,6 +29,7 @@ import { vehicleEffectState, vehicleLampSignal } from './art/vehicle-effects';
 import { createStarAura } from './art/star-aura';
 import { createNitroJet } from './art/nitro-jet';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
+import { colorPlayerHelmet, playerHelmetColor } from './art/player-appearance';
 import { openPassengerSeat } from './art/open-passengers';
 import { roadsideArchetype, roadsidePose, roadsideWalkingYaw } from './art/runtime-people';
 import { driverCrashPose, driverVisualReturnProgress, passengerVisualReturnProgress,
@@ -118,6 +119,7 @@ export class RoadRenderer {
       gltf => {
         if (this.disposed) return;
         this.driverTemplate = gltf.scene;
+        colorPlayerHelmet(this.driverTemplate);
         for (const kind of this.playerDrivers.keys()) this.attachBlenderDriver(kind);
         try {
           this.fallenBlenderDriver = createCrashBlenderDriver(gltf.scene);
@@ -262,7 +264,7 @@ export class RoadRenderer {
     const frontWheel = box(.25, .56, .44, '#172126', this.tricycleFrame); frontWheel.position.set(0, .28, -1.17);
     const frontLamp = box(.3, .16, .08, '#fff0ba', this.tricycleFrame); frontLamp.position.set(0, .82, -1.31);
     this.rider = box(0.5, 0.75, 0.45, '#7dabb3', this.bike); this.rider.position.set(0, 1.2, 0.1);
-    this.helmet = box(0.4, 0.35, 0.4, '#e4d9c2', this.bike); this.helmet.position.set(0, 1.75, 0.06);
+    this.helmet = box(0.4, 0.35, 0.4, playerHelmetColor, this.bike); this.helmet.position.set(0, 1.75, 0.06);
     for (let i = 0; i < balance.riderLimit; i++) {
       const onBike = new THREE.Group(); this.bike.add(onBike);
       const color = i % 2 ? '#d59b79' : '#9cb7a6';
@@ -272,6 +274,7 @@ export class RoadRenderer {
     }
     this.scene.add(this.fallenDriver);
     this.fallenDriverArt = createPersonArt('driver');
+    colorPlayerHelmet(this.fallenDriverArt.root);
     this.fallenDriver.add(this.fallenDriverArt.root);
     const lamp = box(0.3, 0.16, 0.05, '#fff0ba', this.openFrame); lamp.position.set(0, 0.72, -0.77);
     this.observer = new ResizeObserver(() => {
@@ -433,6 +436,7 @@ export class RoadRenderer {
       const art = createVehicleArt(vehicle.kind, 'player', 'near');
       if (open) {
         const driver = createPersonArt('driver');
+        colorPlayerHelmet(driver.root);
         const seat = Array.isArray(art.seats) ? art.seats[0] : art.seats.driver;
         mountPersonOnSeat(driver, seat, 'riding');
         this.playerDrivers.set(vehicle.kind, driver);
