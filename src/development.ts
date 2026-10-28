@@ -10,6 +10,22 @@ import { balance, itemBalance, movingBalance, stressBalance } from './config';
 import { secretPickup, secretVehicle } from './secret';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
+  if (scenario === 'recovery-motorcycle' || scenario === 'recovery-motorbike' || scenario === 'wreck-open-drivers') {
+    const kind = scenario === 'recovery-motorbike' ? 'motorbike' : 'motorcycle';
+    const bike = newVehicle(kind, 'qa-recovery-bike');
+    const entities = scenario === 'wreck-open-drivers' ?
+      (['motorcycle', 'motorbike', 'tricycle'] as const).map((trafficKind, i) => ({
+        ...entity('traffic', `qa-open-wreck-${i}`, 18 + i * 5, (i - 1) * 3.2), trafficKind,
+        width: trafficTypes[trafficKind].width, length: trafficTypes[trafficKind].length,
+        speed: 0, baseSpeed: 0, hp: 0, wrecked: true, wreckAge: 0,
+      })) : [{ ...entity('traffic', 'qa-recovery-hit', 8, 0), speed: 0, baseSpeed: 0 }];
+    return { ...run, vehicleInstances: [bike], activeVehicleId: bike.id, speed: vehicles[kind].cruiseSpeed,
+      fuel: bike.fuel, durability: bike.durability,
+      world: { ...initialWorld(run.seed), entities, nextHazard: 1e9, nextSpecial: 1e9, nextFuel: 1e9,
+        nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9,
+        prototype: { version: 'bike-recovery-qa-1', title: scenario === 'wreck-open-drivers' ? 'Xe hỏng không còn tài xế ngồi' : 'Ngã xe và dựng xe',
+          description: 'Fixture DEV: quan sát trạng thái hình ảnh, không thay luật tai nạn hay cân bằng. Start để xem va chạm/ngã/quay lại/dựng xe.' } } };
+  }
   if (scenario?.startsWith('lights-')) {
     const requested = scenario.slice(7);
     const kind = requested in vehicles ? requested as VehicleKind : 'car4';

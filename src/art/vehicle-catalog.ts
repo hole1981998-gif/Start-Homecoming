@@ -10,6 +10,12 @@ import { markGameplayAccentTarget } from './storm-lighting';
 export type VehicleArt = ReturnType<typeof createCar4Art> | ReturnType<typeof createCar7Art> |
   ReturnType<typeof createTwoWheelerArt> | ReturnType<typeof createUtilityVehicleArt>;
 
+/** Reapply on pooled traffic too: an ejected NPC must not leave a seated duplicate. */
+export function setTrafficDriverSeated(art: VehicleArt, seated: boolean): void {
+  const driver = art.root.getObjectByName('chr_driver_root');
+  if (driver) driver.visible = seated;
+}
+
 /** Distinct player identities against the cyan storm environment. One finish per family. */
 export const playerVehiclePaint: Record<VehicleKind, string> = {
   motorcycle: '#22b9a1', motorbike: '#d55583', car4: '#e96b45',

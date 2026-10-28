@@ -9,7 +9,8 @@ import { junction, pathPose } from './route';
 import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep';
 import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
 import { attachArticulatedContainerArt, attachVehicleArtToPrototype } from './art/prototype-adapter';
-import { createVehicleArt, type VehicleArt } from './art/vehicle-catalog';
+import { createVehicleArt, setTrafficDriverSeated, type VehicleArt } from './art/vehicle-catalog';
+import { bikeLiftSeconds, twoWheelCrashPose } from './art/vehicle-recovery';
 import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './art/hazards';
 import { createOfficerArt, createTrainArt, createVendorArt, crossingVisualYaw,
   type MovingArt } from './art/moving-events';
@@ -503,8 +504,9 @@ export class RoadRenderer {
     const parts = articulated ? containerParts(x, distance, yaw,
       THREE.MathUtils.lerp(previous.forceTrailerRearX, s.forceTrailerRearX, alpha)) : null;
     const bodyPose = parts ? pathPose(parts.tractorDistance, s.route, s.seed) : playerPose;
+    const recovery = twoWheelCrashPose(vehicle.kind, s.crash);
     this.bike.position.set(bodyPose.x + Math.cos(bodyPose.heading) * bodyX,
-      jumpHeight(s), bodyPose.z + Math.sin(bodyPose.heading) * bodyX);
+      jumpHeight(s) + recovery.height, bodyPose.z + Math.sin(bodyPose.heading) * bodyX);
     if (parts) {
       const trailerPose = pathPose(parts.trailerDistance, s.route, s.seed);
       this.trailerFrame.position.set(trailerPose.x + Math.cos(trailerPose.heading) * parts.trailerX,
@@ -517,7 +519,8 @@ export class RoadRenderer {
     const lateralAcceleration = (s.lateralVelocity - previous.lateralVelocity) / balance.fixedStep;
     const lean = THREE.MathUtils.clamp(-(s.lateralVelocity * .035 + lateralAcceleration * .012) * vehicle.leanFactor,
       -.34, .34);
-    this.bike.rotation.set(0, -bodyPose.heading - yaw, lean, 'YXZ');
+    this.bike.rotation.set(0, -bodyPose.heading - yaw,
+      s.crash && (vehicle.kind === 'motorcycle' || vehicle.kind === 'motorbike') ? recovery.roll : lean, 'YXZ');
     this.contactShadows.place(this.playerShadow, this.bike.position.x,
       this.bike.position.z, this.bike.rotation.y, vehicle.width * 1.5,
       articulated ? 5.8 : vehicle.length * 1.4);
@@ -562,7 +565,8 @@ export class RoadRenderer {
     });
     this.fallenDriver.visible = !!s.crash;
     if (s.crash) {
-      const crashPose = driverCrashPose(s.crash.elapsed);
+      const crashPose = recovery.lifting ? { pose: 'recover' as const, phase: .4 + .6 * recovery.liftProgress } :
+        driverCrashPose(s.crash.elapsed);
       if (this.fallenBlenderDriver) this.fallenBlenderDriver.setTimedPose(crashPose);
       else this.fallenDriverArt.setPose(crashPose.pose, crashPose.phase);
     }
@@ -571,9 +575,11 @@ export class RoadRenderer {
     }
     if (s.crash) {
       const { elapsed, side, originDistance, impactSpeed, returningRiderIds } = s.crash;
-      const crashPose = driverCrashPose(elapsed);
+      const crashPose = recovery.lifting ? { pose: 'recover' as const, phase: .4 + .6 * recovery.liftProgress } :
+        driverCrashPose(elapsed);
       const ejection = Math.min(1, elapsed / balance.driverFallSeconds);
-      const returnProgress = driverVisualReturnProgress(elapsed);
+      const returnProgress = driverVisualReturnProgress(elapsed +
+        (vehicle.kind === 'motorcycle' || vehicle.kind === 'motorbike' ? bikeLiftSeconds : 0));
       const away = ejection * (1 - returnProgress);
       const ejectedDistance = originDistance + impactSpeed * balance.driverEjectionSpeedFactor *
         Math.min(elapsed, balance.driverFallSeconds);
@@ -584,9 +590,9 @@ export class RoadRenderer {
         fallenPose.z + Math.sin(fallenPose.heading) * driverX);
       const driverRise = crashPose.pose === 'recover' ? 1 - crashPose.phase :
         crashPose.pose === 'run' ? 0 : 1;
-      const driverYaw = crashPose.pose === 'run' ? Math.atan2(playerX - this.fallenDriver.position.x,
+      const driverYaw = crashPose.pose === 'run' || recovery.lifting ? Math.atan2(playerX - this.fallenDriver.position.x,
         playerZ - this.fallenDriver.position.z) : -fallenPose.heading;
-      this.fallenDriver.rotation.set(0, driverYaw, side * 1.25 * ejection * driverRise, 'YXZ');
+      this.fallenDriver.rotation.set(0, driverYaw, recovery.lifting ? 0 : side * 1.25 * ejection * driverRise, 'YXZ');
       // Lost passengers already exist as roadside entities; only animate those returning to the vehicle.
       for (let i = 0; i < returningRiderIds.length; i++) {
         const id = returningRiderIds[i];
@@ -826,6 +832,7 @@ export class RoadRenderer {
         art.setPaint(e.serviceRole === 'ambulance' ? '#d2dedd' : trafficTypes[e.trafficKind ?? 'car4'].color);
         const hpRatio = (e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp;
         art.setCondition(e.wrecked ? 'destroyed' : hpRatio < .45 ? 'damaged' : hpRatio < .8 ? 'used' : 'clean');
+        setTrafficDriverSeated(art, !e.wrecked && !e.wreckPassengersSpawned);
       }
       if (e.kind === 'train') {
         entry.mesh.visible = !!e.crossMotion || trainClosed(e, s.activeSeconds);
