@@ -32,7 +32,7 @@ import { bindVehicleLampMaterials } from './art/vehicle-light-materials';
 import { createStarAura } from './art/star-aura';
 import { createNitroJet } from './art/nitro-jet';
 import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
-import { colorPlayerHelmet, playerHelmetColor } from './art/player-appearance';
+import { colorPlayerHelmet, colorPlayerJacket, playerHelmetColor } from './art/player-appearance';
 import { openPassengerSeat } from './art/open-passengers';
 import { roadsideArchetype, roadsidePose, roadsideWalkingYaw } from './art/runtime-people';
 import { driverCrashPose, driverVisualReturnProgress, passengerVisualReturnProgress,
@@ -126,6 +126,7 @@ export class RoadRenderer {
         if (this.disposed) return;
         this.driverTemplate = gltf.scene;
         colorPlayerHelmet(this.driverTemplate);
+        colorPlayerJacket(this.driverTemplate);
         for (const kind of this.playerDrivers.keys()) this.attachBlenderDriver(kind);
         try {
           this.fallenBlenderDriver = createCrashBlenderDriver(gltf.scene);
@@ -281,6 +282,7 @@ export class RoadRenderer {
     this.scene.add(this.fallenDriver);
     this.fallenDriverArt = createPersonArt('driver');
     colorPlayerHelmet(this.fallenDriverArt.root);
+    colorPlayerJacket(this.fallenDriverArt.root);
     this.fallenDriver.add(this.fallenDriverArt.root);
     const lamp = box(0.3, 0.16, 0.05, '#fff0ba', this.openFrame); lamp.position.set(0, 0.72, -0.77);
     this.observer = new ResizeObserver(() => {
@@ -443,6 +445,7 @@ export class RoadRenderer {
       if (open) {
         const driver = createPersonArt('driver');
         colorPlayerHelmet(driver.root);
+        colorPlayerJacket(driver.root);
         const seat = Array.isArray(art.seats) ? art.seats[0] : art.seats.driver;
         mountPersonOnSeat(driver, seat, 'riding');
         this.playerDrivers.set(vehicle.kind, driver);
