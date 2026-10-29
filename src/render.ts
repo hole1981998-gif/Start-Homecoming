@@ -10,7 +10,7 @@ import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep
 import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
 import { attachArticulatedContainerArt, attachVehicleArtToPrototype } from './art/prototype-adapter';
 import { createVehicleArt, setTrafficDriverSeated, type VehicleArt } from './art/vehicle-catalog';
-import { bikeLiftSeconds, twoWheelCrashPose } from './art/vehicle-recovery';
+import { bikeLiftSeconds, trafficBikeWreckPose, twoWheelCrashPose } from './art/vehicle-recovery';
 import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './art/hazards';
 import { createOfficerArt, createTrainArt, createVendorArt, crossingVisualYaw,
   type MovingArt } from './art/moving-events';
@@ -833,6 +833,9 @@ export class RoadRenderer {
         const hpRatio = (e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp;
         art.setCondition(e.wrecked ? 'destroyed' : hpRatio < .45 ? 'damaged' : hpRatio < .8 ? 'used' : 'clean');
         setTrafficDriverSeated(art, !e.wrecked && !e.wreckPassengersSpawned);
+        const wreckPose = trafficBikeWreckPose(e.trafficKind ?? 'car4', !!e.wrecked, e.wreckAge ?? 0, e.id);
+        art.root.rotation.set(0, Math.PI, wreckPose.roll, 'YXZ');
+        art.root.position.y = wreckPose.height;
       }
       if (e.kind === 'train') {
         entry.mesh.visible = !!e.crossMotion || trainClosed(e, s.activeSeconds);

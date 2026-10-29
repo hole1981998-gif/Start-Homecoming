@@ -1,11 +1,26 @@
 import { expect, it } from 'vitest';
 import { balance } from '../src/config';
-import { twoWheelCrashPose, bikeLiftSeconds } from '../src/art/vehicle-recovery';
+import { twoWheelCrashPose, bikeLiftSeconds, trafficBikeWreckPose } from '../src/art/vehicle-recovery';
 import { createVehicleArt, setTrafficDriverSeated } from '../src/art/vehicle-catalog';
 import type { CrashState } from '../src/survival';
 
 const crash: CrashState = { elapsed: 0, side: 1, originX: 0, originDistance: 0, impactSpeed: 14,
   returningRiderIds: [], strandedRiderIds: [] };
+it('topples only wrecked two-wheel traffic, keeps it down and clears tilt for healthy pool reuse', () => {
+  for (const kind of ['motorcycle', 'motorbike'] as const) for (const id of ['bike-a', 'bike-b']) {
+    const start = trafficBikeWreckPose(kind, true, 0, id);
+    const mid = trafficBikeWreckPose(kind, true, .14, id);
+    const down = trafficBikeWreckPose(kind, true, 1, id);
+    expect(Math.abs(start.roll)).toBe(0);
+    expect(Math.abs(mid.roll)).toBeGreaterThan(0);
+    expect(Math.abs(mid.roll)).toBeLessThan(Math.abs(down.roll));
+    expect(Math.abs(down.roll)).toBeGreaterThan(1.2);
+    expect(trafficBikeWreckPose(kind, true, 100, id)).toEqual(down);
+    expect(trafficBikeWreckPose(kind, false, 100, id)).toEqual({ roll: 0, height: 0 });
+  }
+  expect(trafficBikeWreckPose('tricycle', true, 2, 'bike-a')).toEqual({ roll: 0, height: 0 });
+  expect(trafficBikeWreckPose('car4', true, 2, 'bike-a')).toEqual({ roll: 0, height: 0 });
+});
 it('falls on the impact side, stays down until return, then lifts quickly without changing crash state', () => {
   const end = balance.driverFallSeconds + balance.driverPauseSeconds + balance.driverReturnSeconds;
   for (const kind of ['motorcycle', 'motorbike'] as const) for (const side of [-1, 1] as const) {

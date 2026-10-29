@@ -5,6 +5,14 @@ import type { VehicleKind } from '../vehicles';
 export const bikeLiftSeconds = .28;
 const smooth = (value: number) => { const t = Math.max(0, Math.min(1, value)); return t * t * (3 - 2 * t); };
 
+/** Wrecks never remount. Stable entity identity picks a side without simulation RNG. */
+export function trafficBikeWreckPose(kind: VehicleKind, wrecked: boolean, age: number, id: string) {
+  if (!wrecked || kind !== 'motorcycle' && kind !== 'motorbike') return { roll: 0, height: 0 };
+  const side = id.split('').reduce((hash, char) => Math.imul(hash, 31) + char.charCodeAt(0) | 0, 0) & 1 ? 1 : -1;
+  const fallen = smooth(Math.max(0, age) / .28);
+  return { roll: -side * 1.38 * fallen, height: .14 * fallen };
+}
+
 /** Presentation only: same crash duration/slide/boarding rules as the simulation. */
 export function twoWheelCrashPose(kind: VehicleKind, crash: CrashState | null) {
   const twoWheeler = kind === 'motorcycle' || kind === 'motorbike';
