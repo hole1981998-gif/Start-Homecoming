@@ -1,5 +1,9 @@
 # Đường Về Nhà — Roadmap
 
+> **UI 29/10/2026 — đang chờ chủ dự án review:** feature `feature/ui-flat-mobile` dùng nền `1680b5e` theo lựa chọn trực tiếp của chủ dự án. Shop bố cục thẻ, HUD ưu tiên điểm, tag chỉ xăng/sửa/shop, menu hamburger và discovery theo nhóm. Feedback tiếp theo: bảng bo tròn, icon shade flat có màu (bỏ bản dựng khối nhiều chi tiết), nền gần trắng trung tính thay nền vàng; texture chỉ rất nhẹ. Xem `UI_REDESIGN_REVIEW_2026-10-29.md`. Chưa merge; không thay balance/VFX.
+
+> **Quyết định của chủ dự án 29/10/2026:** coi giai đoạn VFX hiện tại đã xong để chuyển sang UI. Nền chuyển tiếp là `1680b5e` (áo xanh đậm, gồm chuỗi VFX và sửa ngã xe đã push). Đây là chốt phạm vi giai đoạn, không phải bằng chứng đã merge hoặc nghiệm thu mọi thiết bị. UI bắt đầu bằng lượt làm rõ HUD/QTE/Help; tiếp theo rà onboarding, cửa hàng/kho và kết ván. Không tự mở lại polish VFX ngoài lỗi cản đọc hoặc thao tác.
+
 > **Quyết định của chủ dự án 23/10/2026:** khép giai đoạn cân bằng ở revision `7478502` (`codex/c3-early-score-qte`) và chọn bản này làm nền cho các giai đoạn tiếp theo. Báo cáo cuối: `P8_C3_REFINEMENT_REVIEW_2026-10-23.md`; các giới hạn kiểm thử ghi trong báo cáo vẫn cần được theo dõi, không phải cam kết mọi chỉ số đã đạt. Việc đưa revision này thành `main`/nhánh mặc định trên GitHub còn phụ thuộc quy trình kiểm tra, CI và review trong AGENTS.md. `ver.noforce` tiếp tục là backup, chỉ sửa khi chủ dự án yêu cầu. Các đoạn P2/P5 bên dưới là lịch sử của baseline cũ.
 
 > **Quyết định 20/10/2026:** đưa luật lực từ `ver.force` vào bản chính `/`; `ver.noforce.html` là backup, không chỉnh nếu chủ dự án không yêu cầu. Hệ số lực và sát thương vẫn TẠM. P8 cần kiểm tra thêm nhiều seed/tốc độ/xe, giao lộ, sát mép đường, camera, hiệu năng và economy trước khi khóa cân bằng.

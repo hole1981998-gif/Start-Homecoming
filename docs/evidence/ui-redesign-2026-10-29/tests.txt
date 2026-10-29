@@ -1,0 +1,260 @@
+$ vitest run --configLoader native "--maxWorkers=2"
+
+ RUN  v3.2.4 C:/Users/Admin/Documents/Codex/2026-10-17/c-to-n-b-b-t/outputs/duong-ve-nha
+
+stdout | tests/playtest.test.ts > P5 baseline without special events: seeded survival/economy across cruise, W and S strategies
+{"config":"p8-encounter-candidate-a-1","director":"backup","scenario":"P5 baseline: special events disabled, ordinary hazards retained","summary":[{"strategy":"cruise","afforded":30,"medianAfford":76.88444303529673,"deaths":22,"lowFuelRuns":30,"noAffordSeeds":[]},{"strategy":"fast","afforded":30,"medianAfford":50.18333333333177,"deaths":30,"lowFuelRuns":30,"noAffordSeeds":[]},{"strategy":"slow","afforded":26,"medianAfford":124.78333333332753,"deaths":6,"lowFuelRuns":20,"noAffordSeeds":[17,20261017,106,113]}]}
+
+ ✓ tests/playtest.test.ts (2 tests) 18783ms
+   ✓ P5 baseline without special events: seeded survival/economy across cruise, W and S strategies  18032ms
+   ✓ resource, collision and RNG outcomes match at 30/60/144 render FPS  751ms
+stdout | tests/stress.test.ts > dense integrated seed 1 stays finite through genuine failures without mutating source
+{"mode":"stress integrated, unbalanced, W only, 30s cap","seed":1,"distance":232,"phase":"ended","end":"train","maxEntities":64,"seconds":14.58143796992519}
+
+stdout | tests/stress.test.ts > dense integrated seed 7 stays finite through genuine failures without mutating source
+{"mode":"stress integrated, unbalanced, W only, 30s cap","seed":7,"distance":232,"phase":"ended","end":"train","maxEntities":67,"seconds":14.576169590643659}
+
+stdout | tests/stress.test.ts > dense integrated seed 17 stays finite through genuine failures without mutating source
+{"mode":"stress integrated, unbalanced, W only, 30s cap","seed":17,"distance":232,"phase":"ended","end":"train","maxEntities":74,"seconds":18.410260025062804}
+
+stdout | tests/stress.test.ts > dense integrated seed 42 stays finite through genuine failures without mutating source
+{"mode":"stress integrated, unbalanced, W only, 30s cap","seed":42,"distance":329,"phase":"running","end":null,"maxEntities":80,"seconds":29.97778017679293}
+
+stdout | tests/stress.test.ts > dense integrated seed 101 stays finite through genuine failures without mutating source
+{"mode":"stress integrated, unbalanced, W only, 30s cap","seed":101,"distance":232,"phase":"ended","end":"train","maxEntities":70,"seconds":18.39447055137863}
+
+stdout | tests/stress.test.ts > dense integrated seed 126 stays finite through genuine failures without mutating source
+{"mode":"stress integrated, unbalanced, W only, 30s cap","seed":126,"distance":232,"phase":"ended","end":"train","maxEntities":75,"seconds":18.47332196356526}
+
+stdout | tests/stress.test.ts > W sees a generated integrated train move across the road in the game loop
+{"scenario":"generated train approach","seed":1,"started":true,"moved":true,"distance":1446.5,"fuel":12.685399999999959,"speed":0,"train":1450,"end":"train"}
+
+ ✓ tests/stress.test.ts (12 tests) 9904ms
+   ✓ dense integrated seed 1 stays finite through genuine failures without mutating source  1614ms
+   ✓ dense integrated seed 7 stays finite through genuine failures without mutating source  1407ms
+   ✓ dense integrated seed 17 stays finite through genuine failures without mutating source  1755ms
+   ✓ dense integrated seed 42 stays finite through genuine failures without mutating source  2008ms
+   ✓ dense integrated seed 101 stays finite through genuine failures without mutating source  1619ms
+   ✓ dense integrated seed 126 stays finite through genuine failures without mutating source  1472ms
+stdout | tests/integrated-game.test.ts > integrated seeded journeys use actual shops, passengers, junctions and moving events with finite resources
+{"version":"p8-encounter-c3-refinement-1","mode":"integrated generated routes, scripted pilot, 720s cap, no resource grants","observations":[{"seed":1,"distance":2688,"seconds":173,"end":"fuel","shops":3,"purchases":1,"moving":12,"winds":14,"cargoSources":3,"drops":0,"turns":0,"riders":2},{"seed":7,"distance":3165,"seconds":183,"end":"fuel","shops":4,"purchases":1,"moving":14,"winds":18,"cargoSources":2,"drops":2,"turns":0,"riders":5},{"seed":17,"distance":1645,"seconds":96,"end":"fuel","shops":2,"purchases":1,"moving":6,"winds":8,"cargoSources":2,"drops":0,"turns":1,"riders":1},{"seed":42,"distance":2376,"seconds":138,"end":"fuel","shops":3,"purchases":1,"moving":12,"winds":12,"cargoSources":2,"drops":1,"turns":1,"riders":7},{"seed":101,"distance":2557,"seconds":143,"end":"fuel","shops":3,"purchases":1,"moving":13,"winds":12,"cargoSources":2,"drops":2,"turns":1,"riders":6},{"seed":126,"distance":2371,"seconds":141,"end":"fuel","shops":3,"purchases":1,"moving":9,"winds":12,"cargoSources":2,"drops":1,"turns":1,"riders":2}]}
+
+ ✓ tests/integrated-game.test.ts (7 tests) 3452ms
+   ✓ integrated seeded journeys use actual shops, passengers, junctions and moving events with finite resources  3024ms
+stdout | tests/items.test.ts > seeded runs using both powers stay finite and reproducible with no mutation of the source state
+{"config":"p8-encounter-c3-refinement-1","scenario":"power-items-30s","outcomes":[{"seed":1,"distance":468,"phase":"running"},{"seed":2,"distance":472,"phase":"running"},{"seed":3,"distance":407,"phase":"running"},{"seed":4,"distance":472,"phase":"running"},{"seed":5,"distance":367,"phase":"running"},{"seed":6,"distance":444,"phase":"running"},{"seed":7,"distance":443,"phase":"running"},{"seed":8,"distance":407,"phase":"running"},{"seed":9,"distance":464,"phase":"running"},{"seed":10,"distance":425,"phase":"running"},{"seed":11,"distance":472,"phase":"running"},{"seed":12,"distance":413,"phase":"running"},{"seed":13,"distance":418,"phase":"running"},{"seed":14,"distance":409,"phase":"running"},{"seed":15,"distance":472,"phase":"running"},{"seed":16,"distance":472,"phase":"running"},{"seed":17,"distance":441,"phase":"running"},{"seed":18,"distance":472,"phase":"running"},{"seed":19,"distance":420,"phase":"running"},{"seed":20,"distance":414,"phase":"running"}]}
+
+ ✓ tests/items.test.ts (13 tests) 2439ms
+   ✓ seeded runs using both powers stay finite and reproducible with no mutation of the source state  2367ms
+stdout | tests/moving-hazards.test.ts > P6.1 fixture simulation: 30 seeds across all scenarios stays finite with reproducible motion/HP
+{"version":"p61-scenarios-3","mode":"isolated fixtures; not integrated route balance","seeds":"1–30","cases":570,"scenarios":[{"name":"p61-train-left","running":30,"minDistance":22.641666666666644,"maxDistance":22.641666666666644},{"name":"p61-train-right","running":30,"minDistance":22.641666666666644,"maxDistance":22.641666666666644},{"name":"p61-train-container","running":30,"minDistance":20.654166666666654,"maxDistance":20.654166666666654},{"name":"p61-police-one","running":30,"minDistance":107.4354166666667,"maxDistance":107.4354166666667},{"name":"p61-police-two","running":30,"minDistance":139.99999999999974,"maxDistance":139.99999999999974},{"name":"p61-militia-two","running":30,"minDistance":139.99999999999974,"maxDistance":139.99999999999974},{"name":"p61-police-fast","running":30,"minDistance":107.4354166666667,"maxDistance":107.4354166666667},{"name":"p61-police-stagger","running":30,"minDistance":107.4354166666667,"maxDistance":107.4354166666667},{"name":"p61-militia-fast","running":30,"minDistance":139.99999999999974,"maxDistance":139.99999999999974},{"name":"p61-militia-stagger","running":30,"minDistance":139.99999999999974,"maxDistance":139.99999999999974},{"name":"p61-groups","running":30,"minDistance":107.43541666666671,"maxDistance":107.43541666666671},{"name":"p61-traffic-pair","running":30,"minDistance":139.99999999999974,"maxDistance":139.99999999999974},{"name":"p61-traffic-chain","running":30,"minDistance":139.99999999999974,"maxDistance":139.99999999999974},{"name":"p61-traffic-barrier","running":30,"minDistance":139.99999999999974,"maxDistance":139.99999999999974},{"name":"p61-traffic-train","running":30,"minDistance":47.70833333333323,"maxDistance":47.70833333333323},{"name":"p61-traffic-hole","running":30,"minDistance":139.99999999999974,"maxDistance":139.99999999999974},{"name":"p61-barrier","running":30,"minDistance":86.5499999999996,"maxDistance":86.5499999999996},{"name":"p61-vendor","running":30,"minDistance":139.99999999999974,"maxDistance":139.99999999999974},{"name":"p61-ambulance","running":30,"minDistance":139.99999999999974,"maxDistance":139.99999999999974}],"config":{"trainWidth":24,"trainDepth":2.8,"trainSpeed":8.4,"trainCrossSeconds":4,"trainOrigin":20,"npcWidth":0.65,"npcDepth":0.65,"patrolSpeed":4.5,"patrolFastSpeed":6.3,"patrolStaggerSpeed":5.6,"patrolSlowSpeed":3.8,"patrolStaggerDepth":3,"patrolBound":4.35,"barrierWidth":6.2,"barrierDepth":1.4,"blockerDamage":20,"vendorSpeed":3.4,"vendorBurstSpeed":6,"vendorCruiseSpeed":3.8,"vendorBurstSeconds":0.15,"vendorEaseSeconds":0.45,"vendorWidth":1.8,"vendorLength":2.1,"ambulanceSpeed":16}}
+
+ ✓ tests/moving-hazards.test.ts (18 tests) 2024ms
+   ✓ P6.1 fixture simulation: 30 seeds across all scenarios stays finite with reproducible motion/HP  1874ms
+stdout | tests/integrated-hazards.test.ts > normal generated routes contain countersteerable wind and live same-direction tail-drop sources
+{"mode":"generated integrated route, 0–5000m, no pilot","seeds":30,"branchVariants":3,"windCount":1926,"sourceCount":555}
+
+ ✓ tests/integrated-hazards.test.ts (3 tests) 1718ms
+   ✓ normal generated routes contain countersteerable wind and live same-direction tail-drop sources  1657ms
+stdout | tests/shop-playtest.test.ts > samples actual first-car purchases on seeded hazardous routes, separately from merely affording a car
+{"config":"p8-encounter-c3-refinement-1","scenario":"hazardous-route-real-purchase","fast":false,"purchases":29,"medianSeconds":20.233333333333466,"failures":[{"seed":20261017,"reason":"police","seconds":58.86318451247418,"money":50.84876480520239}]}
+{"config":"p8-encounter-c3-refinement-1","scenario":"hazardous-route-real-purchase","fast":true,"purchases":30,"medianSeconds":12.683333333333543,"failures":[]}
+
+ ✓ tests/shop-playtest.test.ts (1 test) 1713ms
+   ✓ samples actual first-car purchases on seeded hazardous routes, separately from merely affording a car  1712ms
+stdout | tests/special-events.test.ts > P6 simulation: 30 seeds × eight vehicles × six event types, with and without the appropriate response
+{"config":"p8-encounter-c3-refinement-1","scenario":"P6 controlled event/response matrix, not a human playtest or natural-route survival rate","seeds":"1–30","cases":1440,"bananaEscapes":480,"trainStops":240,"accidentReplacements":240,"terminalTrains":240}
+
+ ✓ tests/special-events.test.ts (16 tests) 1270ms
+   ✓ P6 simulation: 30 seeds × eight vehicles × six event types, with and without the appropriate response  1194ms
+stdout | tests/environment-forces.test.ts > seeded force fixture simulation keeps finite resources and reports actual outcomes
+{"version":"p62-forces-2","mode":"fixed force fixtures, 6 seeds x 8 cases, 10s cap, scripted AD; not natural-route balance","cases":48,"observations":[{"seed":1,"scenario":"p62-wind-right","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":1,"scenario":"p62-wind-left","x":-1.406,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":1,"scenario":"p62-water-baseline","x":0.473,"distance":140,"fuel":4.014,"hp":122.5,"end":"running"},{"seed":1,"scenario":"p62-mixed","x":-0.518,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":1,"scenario":"p62-star","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":1,"scenario":"p62-crash","x":1.53,"distance":80,"fuel":6.905,"hp":102.5,"end":"running"},{"seed":1,"scenario":"p62-coast","x":1.686,"distance":89,"fuel":0,"hp":122.5,"end":"fuel"},{"seed":1,"scenario":"p62-traffic","x":2.406,"distance":91,"fuel":6.865,"hp":102.5,"end":"running"},{"seed":7,"scenario":"p62-wind-right","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":7,"scenario":"p62-wind-left","x":-1.406,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":7,"scenario":"p62-water-baseline","x":0.473,"distance":140,"fuel":4.014,"hp":122.5,"end":"running"},{"seed":7,"scenario":"p62-mixed","x":-0.518,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":7,"scenario":"p62-star","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":7,"scenario":"p62-crash","x":1.53,"distance":80,"fuel":6.905,"hp":102.5,"end":"running"},{"seed":7,"scenario":"p62-coast","x":1.686,"distance":89,"fuel":0,"hp":122.5,"end":"fuel"},{"seed":7,"scenario":"p62-traffic","x":2.406,"distance":91,"fuel":6.865,"hp":102.5,"end":"running"},{"seed":17,"scenario":"p62-wind-right","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":17,"scenario":"p62-wind-left","x":-1.406,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":17,"scenario":"p62-water-baseline","x":0.473,"distance":140,"fuel":4.014,"hp":122.5,"end":"running"},{"seed":17,"scenario":"p62-mixed","x":-0.518,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":17,"scenario":"p62-star","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":17,"scenario":"p62-crash","x":1.53,"distance":80,"fuel":6.905,"hp":102.5,"end":"running"},{"seed":17,"scenario":"p62-coast","x":1.686,"distance":89,"fuel":0,"hp":122.5,"end":"fuel"},{"seed":17,"scenario":"p62-traffic","x":2.406,"distance":91,"fuel":6.865,"hp":102.5,"end":"running"},{"seed":42,"scenario":"p62-wind-right","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":42,"scenario":"p62-wind-left","x":-1.406,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":42,"scenario":"p62-water-baseline","x":0.473,"distance":140,"fuel":4.014,"hp":122.5,"end":"running"},{"seed":42,"scenario":"p62-mixed","x":-0.518,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":42,"scenario":"p62-star","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":42,"scenario":"p62-crash","x":1.53,"distance":80,"fuel":6.905,"hp":102.5,"end":"running"},{"seed":42,"scenario":"p62-coast","x":1.686,"distance":89,"fuel":0,"hp":122.5,"end":"fuel"},{"seed":42,"scenario":"p62-traffic","x":2.406,"distance":91,"fuel":6.865,"hp":102.5,"end":"running"},{"seed":101,"scenario":"p62-wind-right","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":101,"scenario":"p62-wind-left","x":-1.406,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":101,"scenario":"p62-water-baseline","x":0.473,"distance":140,"fuel":4.014,"hp":122.5,"end":"running"},{"seed":101,"scenario":"p62-mixed","x":-0.518,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":101,"scenario":"p62-star","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":101,"scenario":"p62-crash","x":1.53,"distance":80,"fuel":6.905,"hp":102.5,"end":"running"},{"seed":101,"scenario":"p62-coast","x":1.686,"distance":89,"fuel":0,"hp":122.5,"end":"fuel"},{"seed":101,"scenario":"p62-traffic","x":2.406,"distance":91,"fuel":6.865,"hp":102.5,"end":"running"},{"seed":126,"scenario":"p62-wind-right","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":126,"scenario":"p62-wind-left","x":-1.406,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":126,"scenario":"p62-water-baseline","x":0.473,"distance":140,"fuel":4.014,"hp":122.5,"end":"running"},{"seed":126,"scenario":"p62-mixed","x":-0.518,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":126,"scenario":"p62-star","x":0.306,"distance":140,"fuel":6.646,"hp":122.5,"end":"running"},{"seed":126,"scenario":"p62-crash","x":1.53,"distance":80,"fuel":6.905,"hp":102.5,"end":"running"},{"seed":126,"scenario":"p62-coast","x":1.686,"distance":89,"fuel":0,"hp":122.5,"end":"fuel"},{"seed":126,"scenario":"p62-traffic","x":2.406,"distance":91,"fuel":6.865,"hp":102.5,"end":"running"}]}
+
+ ✓ tests/environment-forces.test.ts (16 tests) 1184ms
+stdout | tests/grab.test.ts > measures actual earnings per minute for normal/Grab riders at equal load and exposes package break-even separately
+{"config":"p8-encounter-c3-refinement-1","scenario":"grab-income-60s","samples":[{"kind":"motorcycle","count":0,"metres":840,"ordinaryIncome":16.8,"grabIncome":16.8,"fuelLeft":4.13},{"kind":"motorcycle","count":1,"metres":721,"ordinaryIncome":158.51,"grabIncome":1455.41,"fuelLeft":4.56},{"kind":"motorcycle","count":3,"metres":484,"ordinaryIncome":300.39,"grabIncome":2916.69,"fuelLeft":4.88},{"kind":"car4","count":0,"metres":960,"ordinaryIncome":19.2,"grabIncome":19.2,"fuelLeft":8.78},{"kind":"car4","count":1,"metres":864,"ordinaryIncome":190.15,"grabIncome":1745.93,"fuelLeft":9.2},{"kind":"car4","count":3,"metres":675,"ordinaryIncome":418.43,"grabIncome":4062.78,"fuelLeft":10.03},{"kind":"bus","count":0,"metres":750,"ordinaryIncome":15,"grabIncome":15,"fuelLeft":27.5},{"kind":"bus","count":1,"metres":732,"ordinaryIncome":161.04,"grabIncome":1478.66,"fuelLeft":27.68},{"kind":"bus","count":3,"metres":696,"ordinaryIncome":431.58,"grabIncome":4190.53,"fuelLeft":28.04},{"kind":"bus","count":12,"metres":536,"ordinaryIncome":1296.2,"grabIncome":12865.59,"fuelLeft":29.64},{"kind":"bus","count":24,"metres":424,"ordinaryIncome":2042.63,"grabIncome":20349.98,"fuelLeft":30.76}],"idealBreakEvenMetresWithThreeRiders":22.22222222222222}
+
+stdout | tests/grab.test.ts > samples real calls and manual pickup commands on 30 seeded hazardous routes without charge or roster drift
+{"config":"p8-encounter-c3-refinement-1","scenario":"grab-real-route-20s","outcomes":[{"seed":1,"calls":3,"aboard":3,"lost":0,"metres":191,"money":950.21,"phase":"running"},{"seed":2,"calls":3,"aboard":3,"lost":0,"metres":203,"money":988.06,"phase":"running"},{"seed":3,"calls":3,"aboard":3,"lost":0,"metres":203,"money":988.06,"phase":"running"},{"seed":4,"calls":3,"aboard":3,"lost":0,"metres":203,"money":978.06,"phase":"running"},{"seed":5,"calls":3,"aboard":3,"lost":0,"metres":189,"money":944.69,"phase":"running"},{"seed":6,"calls":3,"aboard":3,"lost":0,"metres":188,"money":944.38,"phase":"running"},{"seed":7,"calls":3,"aboard":3,"lost":0,"metres":203,"money":978.06,"phase":"running"},{"seed":8,"calls":3,"aboard":3,"lost":0,"metres":203,"money":988.06,"phase":"running"},{"seed":9,"calls":3,"aboard":3,"lost":0,"metres":203,"money":988.06,"phase":"running"},{"seed":10,"calls":3,"aboard":3,"lost":0,"metres":203,"money":988.06,"phase":"running"},{"seed":11,"calls":3,"aboard":3,"lost":0,"metres":203,"money":988.06,"phase":"running"},{"seed":12,"calls":3,"aboard":3,"lost":0,"metres":191,"money":950.28,"phase":"running"},{"seed":13,"calls":3,"aboard":3,"lost":0,"metres":190,"money":938.43,"phase":"running"},{"seed":14,"calls":3,"aboard":3,"lost":0,"metres":190,"money":947.24,"phase":"running"},{"seed":15,"calls":3,"aboard":3,"lost":0,"metres":190,"money":948.36,"phase":"running"},{"seed":16,"calls":3,"aboard":3,"lost":0,"metres":203,"money":988.06,"phase":"running"},{"seed":17,"calls":3,"aboard":3,"lost":0,"metres":203,"money":988.06,"phase":"running"},{"seed":18,"calls":3,"aboard":3,"lost":0,"metres":188,"money":944.55,"phase":"running"},{"seed":19,"calls":3,"aboard":1,"lost":3,"metres":181,"money":865.25,"phase":"running"},{"seed":20,"calls":3,"aboard":3,"lost":0,"metres":190,"money":947.24,"phase":"running"},{"seed":21,"calls":3,"aboard":3,"lost":0,"metres":190,"money":947.24,"phase":"running"},{"seed":22,"calls":3,"aboard":3,"lost":0,"metres":203,"money":978.06,"phase":"running"},{"seed":23,"calls":3,"aboard":3,"lost":0,"metres":190,"money":949.09,"phase":"running"},{"seed":24,"calls":3,"aboard":3,"lost":0,"metres":188,"money":944.52,"phase":"running"},{"seed":25,"calls":3,"aboard":3,"lost":0,"metres":189,"money":945.13,"phase":"running"},{"seed":26,"calls":3,"aboard":3,"lost":0,"metres":190,"money":948.4,"phase":"running"},{"seed":27,"calls":3,"aboard":3,"lost":0,"metres":189,"money":945.39,"phase":"running"},{"seed":28,"calls":3,"aboard":3,"lost":0,"metres":203,"money":988.06,"phase":"running"},{"seed":29,"calls":3,"aboard":3,"lost":0,"metres":190,"money":929.09,"phase":"running"},{"seed":30,"calls":3,"aboard":3,"lost":0,"metres":188,"money":944.55,"phase":"running"}]}
+
+ ✓ tests/grab.test.ts (13 tests) 1014ms
+   ✓ samples real calls and manual pickup commands on 30 seeded hazardous routes without charge or roster drift  638ms
+stdout | tests/balance-coverage.test.ts > samples planned and spawned special coverage on 100 deterministic 3 km roads
+{"planned":700,"spawned":692,"normal":8143,"water":7976,"wideLongWater":646,"pairs":7955,"triples":2924,"layerDistribution":[0,3679,2263],"measuredGroups":7421,"waterGroupShare":0.7203880878587792,"trafficGroupShare":0.6861608947581188,"waterLongitudinalShare":0.4952188679245283,"gapP95Seconds":3.480000000000004,"gapOver2":927,"patterns":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],"roadsWithVariant":{"barrier":57,"vendor":56,"ambulance":53}}
+{"config":"p8-encounter-c3-refinement-1","scenario":"100 seeded generated roads to 3 km; spawned is not a player encounter","planned":700,"spawned":692,"normalPlannedPerRoad":104,"normal":8143,"water":7976,"wideLongWater":646,"pairs":7955,"triples":2924,"layerDistribution":[0,3679,2263],"patterns":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],"roadsWithVariant":{"barrier":57,"vendor":56,"ambulance":53}}
+
+stdout | tests/balance-coverage.test.ts > keeps the no-force backup on its earlier P8 road schedule
+{"scenario":"backup director, 100 roads to 3 km","pairs":98,"specials":685}
+
+ ✓ tests/balance-coverage.test.ts (5 tests) 939ms
+   ✓ samples planned and spawned special coverage on 100 deterministic 3 km roads  902ms
+ ✓ tests/art-blender-assets.test.ts (11 tests) 871ms
+   ✓ editable Blender roadside exports > places the cached midrise on seeded city lots without crossing the road  413ms
+ ✓ tests/art-scenery.test.ts (19 tests) 548ms
+stdout | tests/traffic-cargo.test.ts > samples 30 seeded tail drops without duplicate cargo, invalid state or unavoidable universal hits
+{"scenario":"p63-crate-right","seeds":30,"cruiseHits":9,"cruiseMisses":21}
+
+ ✓ tests/traffic-cargo.test.ts (11 tests) 404ms
+   ✓ samples 30 seeded tail drops without duplicate cargo, invalid state or unavoidable universal hits  336ms
+stdout | tests/force-integration.test.ts > parallel force integration > keeps the bus sweep finite in the playable fixture
+{"kind":"bus","peakYaw":0.19948534372591797,"contacts":1,"moved":0.29998823147026893,"x":3.4400000000000004,"distance":42.78028061836429,"trailerRearX":3.4400000000000004}
+{"scenario":"force-tail-bus","seed":17,"peakYaw":0.19948534372591797,"contacts":1,"moved":0.29998823147026893,"distance":42.78028061836429}
+
+stdout | tests/force-integration.test.ts > parallel force integration > keeps the truck sweep finite in the playable fixture
+{"kind":"truck","peakYaw":0.12870022175865675,"contacts":1,"moved":3.058831470485991,"x":3.4400000000000004,"distance":43.52469055948769,"trailerRearX":3.4400000000000004}
+{"scenario":"force-tail-truck","seed":17,"peakYaw":0.12870022175865675,"contacts":1,"moved":3.058831470485991,"distance":43.52469055948769}
+
+stdout | tests/force-integration.test.ts > parallel force integration > keeps the container sweep finite in the playable fixture
+{"kind":"container","peakYaw":0.2638354546052464,"contacts":3,"moved":3.287971827428123,"x":3.3600000000000008,"distance":25.52931082879012,"trailerRearX":2.052970251241765}
+{"scenario":"force-tail-container","seed":17,"peakYaw":0.2638354546052464,"contacts":3,"moved":3.287971827428123,"distance":25.52931082879012}
+
+stdout | tests/force-integration.test.ts > parallel force integration > runs a seeded full-game sample without invalid resources or runaway contacts
+{"version":"ver.force","seed":17,"seconds":20.000000000000146,"distance":344.50000000000006,"hp":110.93319867792874,"fuel":5.909800000000001,"contacts":0,"phase":"running","end":null}
+
+stdout | tests/force-integration.test.ts > parallel force integration > pushes a small traffic car in the playable bus-ram fixture
+{"scenario":"traffic-ram","firstImpact":{"busSpeed":8.760294859970543,"carDistance":8.203766147847285},"wreckDistance":10.880432814513947,"wreckSpeed":0,"playerDistance":18.613477228907893,"contacts":1}
+
+stdout | tests/force-integration.test.ts > parallel force integration > shoves a surviving car forward, then lets it resume its own driving speed
+{"scenario":"force-car-ram","hitAt":{"time":1.1636363636363558,"distance":22.880664764145017},"endTime":3.9969696969696793,"endDistance":38.807053653034,"speed":5,"hp":6,"wrecked":false,"contacts":1,"playerCrash":true}
+
+ ✓ tests/force-integration.test.ts (17 tests) 224ms
+stdout | tests/vehicles.test.ts > P4B vehicle instances > simulates 60 seconds for each vehicle at solo and loaded cruise without resource or speed drift
+{"config":"p4b-vehicles-1","seconds":60,"samples":[{"kind":"motorcycle","passengers":0,"distance":840,"fuelLeft":4.13,"earned":17},{"kind":"motorcycle","passengers":1,"distance":721,"fuelLeft":4.56,"earned":159},{"kind":"motorbike","passengers":0,"distance":1110,"fuelLeft":5.49,"earned":22},{"kind":"motorbike","passengers":1,"distance":967,"fuelLeft":6.04,"earned":213},{"kind":"car4","passengers":0,"distance":960,"fuelLeft":8.78,"earned":19},{"kind":"car4","passengers":3,"distance":675,"fuelLeft":10.03,"earned":418},{"kind":"car7","passengers":0,"distance":900,"fuelLeft":12.22,"earned":18},{"kind":"car7","passengers":3,"distance":739,"fuelLeft":13.06,"earned":458},{"kind":"tricycle","passengers":0,"distance":690,"fuelLeft":8.89,"earned":14},{"kind":"tricycle","passengers":3,"distance":511,"fuelLeft":9.7,"earned":317},{"kind":"bus","passengers":0,"distance":750,"fuelLeft":27.5,"earned":15},{"kind":"bus","passengers":3,"distance":696,"fuelLeft":28.04,"earned":432},{"kind":"truck","passengers":0,"distance":780,"fuelLeft":22.98,"earned":16},{"kind":"truck","passengers":2,"distance":625,"fuelLeft":24.38,"earned":262},{"kind":"container","passengers":0,"distance":690,"fuelLeft":36.72,"earned":14},{"kind":"container","passengers":1,"distance":582,"fuelLeft":38.01,"earned":128}]}
+
+ ✓ tests/vehicles.test.ts (8 tests) 233ms
+stdout | tests/route.test.ts > P3B junction decisions > seeded QTE sampling separates a missed blocked route from a timely turn
+{"config":"p8-encounter-c3-refinement-1","seeds":30,"blockedMisses":30,"timelyTurnsAvoided":30}
+
+ ✓ tests/route.test.ts (10 tests) 194ms
+stdout | tests/traffic-passengers.test.ts > samples wreck passenger opportunities separately from automatic rewards across seeds
+{"config":"p8-encounter-c3-refinement-1","seeds":30,"source":"bus-ram-car4","generated":61,"min":1,"max":3,"autoBoarded":0,"instantReward":0}
+
+ ✓ tests/traffic-passengers.test.ts (6 tests) 139ms
+stdout | tests/simulation.test.ts > P1 gameplay and future economy invariants > seeded 20 minute input simulation stays finite and reproducible
+{"config":"p8-encounter-c3-refinement-1","durationPerSeed":"1200s","results":[{"seed":17,"result":{"phase":"running","distance":15099.52888888897,"speed":12.500000000000112,"x":-2.9409667598992852,"lateralVelocity":-1.5498204582529682,"ticks":72000}},{"seed":42,"result":{"phase":"running","distance":15149.21486111157,"speed":8.75000000000001,"x":2.4085790497835435,"lateralVelocity":0,"ticks":72000}},{"seed":20261017,"result":{"phase":"running","distance":15091.952916667055,"speed":15.250000000000009,"x":-1.1349264437979292,"lateralVelocity":0,"ticks":72000}}]}
+
+ ✓ tests/simulation.test.ts (12 tests) 120ms
+stdout | tests/passengers.test.ts > P4A passenger loop > samples one minute of solo, full, and overloaded cruise for economy review
+{"config":"p8-encounter-c3-refinement-1","seconds":60,"samples":[{"passengers":0,"distance":840.000000000031,"earned":16.799999999943793,"score":546.0000000000515,"fuelLeft":4.125999999999374,"phase":"running"},{"passengers":1,"distance":720.5000000000268,"earned":158.50999999993832,"score":477.96774232639075,"fuelLeft":4.5561999999990155,"phase":"running"},{"passengers":2,"distance":602.0000000000027,"earned":252.83999999995876,"score":180.95704059312268,"fuelLeft":4.657720000001292,"phase":"running"}]}
+
+ ✓ tests/passengers.test.ts (6 tests) 115ms
+ ✓ tests/collision-sandbox.test.ts (4 tests) 117ms
+ ✓ tests/art-vehicle-catalog.test.ts (4 tests) 112ms
+stdout | tests/shop.test.ts > a real first car purchase follows one pickup and reaches the first shop within 30 seconds
+{"config":"p8-encounter-c3-refinement-1","scenario":"clear-road-real-car-purchase","observations":[{"accelerate":false,"seconds":20.233333333333466,"moneyAfter":25.38399999997995,"fuelBefore":6.249279999999695},{"accelerate":true,"seconds":12.683333333333543,"moneyAfter":25.26799999999355,"fuelBefore":6.249760000000092}]}
+
+ ✓ tests/shop.test.ts (14 tests) 97ms
+ ✓ tests/art-hazards.test.ts (13 tests) 84ms
+ ✓ tests/art-storm-lighting.test.ts (7 tests) 76ms
+ ✓ tests/survival.test.ts (18 tests) 75ms
+ ✓ tests/traffic.test.ts (5 tests) 79ms
+ ✓ tests/art-vehicle-lights.test.ts (4 tests) 70ms
+ ✓ tests/art-people.test.ts (12 tests) 68ms
+stdout | tests/art-lod-budget.test.ts > reduces traffic-distance geometry in every existing vehicle family
+Essential vehicle art LOD metrics {
+  motorcycle: {
+    near: { meshes: 62, triangles: 2006 },
+    far: { meshes: 42, triangles: 1590 }
+  },
+  motorbike: {
+    near: { meshes: 60, triangles: 2020 },
+    far: { meshes: 40, triangles: 1604 }
+  },
+  car4: {
+    near: { meshes: 147, triangles: 2625 },
+    far: { meshes: 84, triangles: 1549 }
+  },
+  car7: {
+    near: { meshes: 149, triangles: 2402 },
+    far: { meshes: 83, triangles: 1418 }
+  },
+  tricycle: {
+    near: { meshes: 68, triangles: 1476 },
+    far: { meshes: 54, triangles: 1212 }
+  },
+  bus: {
+    near: { meshes: 103, triangles: 1552 },
+    far: { meshes: 85, triangles: 1208 }
+  },
+  truck: {
+    near: { meshes: 80, triangles: 1126 },
+    far: { meshes: 68, triangles: 914 }
+  },
+  container: {
+    near: { meshes: 106, triangles: 1774 },
+    far: { meshes: 96, triangles: 1398 }
+  }
+}
+
+ ✓ tests/art-lod-budget.test.ts (1 test) 54ms
+ ✓ tests/art-moving-events.test.ts (8 tests) 53ms
+ ✓ tests/traffic-fuel.test.ts (5 tests) 53ms
+ ✓ tests/art-water-body.test.ts (3 tests) 56ms
+ ✓ tests/cloud-shadows.test.ts (4 tests) 33ms
+ ✓ tests/secret-ending.test.ts (4 tests) 32ms
+stdout | tests/art-car4.test.ts > car4 art handoff contract > has a distinct lower-detail LOD and isolated cosmetic damage groups
+VEH-03 near/far metrics { meshes: 147, triangles: 2625, materials: 15 } { meshes: 84, triangles: 1549, materials: 15 }
+
+ ✓ tests/art-car4.test.ts (2 tests) 27ms
+ ✓ tests/art-utility-vehicles.test.ts (5 tests) 28ms
+ ✓ tests/art-open-passengers.test.ts (2 tests) 25ms
+ ✓ tests/art-vehicle-recovery.test.ts (3 tests) 28ms
+ ✓ tests/art-runtime-people.test.ts (6 tests) 21ms
+ ✓ tests/art-special-hazards.test.ts (2 tests) 25ms
+ ✓ tests/art-prototype-adapter.test.ts (2 tests) 22ms
+stdout | tests/art-car7.test.ts > car7 art handoff > offers a lighter far LOD
+VEH-04 triangles near/far 2402 1418
+
+ ✓ tests/art-car7.test.ts (2 tests) 26ms
+ ✓ tests/art-two-wheelers.test.ts (3 tests) 24ms
+ ✓ tests/passenger-outcomes.test.ts (2 tests) 14ms
+ ✓ tests/art-road-effects.test.ts (7 tests) 12ms
+ ✓ tests/art-road-contact-shadows.test.ts (2 tests) 12ms
+ ✓ tests/balance-c3.test.ts (1 test) 12ms
+ ✓ tests/art-wind-streaks.test.ts (3 tests) 7ms
+ ✓ tests/art-road-kit.test.ts (2 tests) 6ms
+ ✓ tests/art-weather.test.ts (3 tests) 7ms
+ ✓ tests/art-junction-turn.test.ts (1 test) 6ms
+ ✓ tests/art-star-aura.test.ts (2 tests) 6ms
+ ✓ tests/landscape.test.ts (6 tests) 6ms
+ ✓ tests/art-nitro-jet.test.ts (1 test) 4ms
+ ✓ tests/art-player-appearance.test.ts (2 tests) 5ms
+ ✓ tests/art-road-shadows.test.ts (2 tests) 6ms
+ ✓ tests/c3-refinement.test.ts (3 tests) 6ms
+ ✓ tests/art-passenger-windows.test.ts (3 tests) 5ms
+ ✓ tests/art-timing.test.ts (2 tests) 3ms
+ ✓ tests/art-steering-signals.test.ts (1 test) 2ms
+ ✓ tests/runtime-mode.test.ts (2 tests) 2ms
+ ✓ tests/discovery.test.ts (1 test) 2170ms
+   ✓ first discovery pauses before danger, closes safely, and result/restart cannot revive an old run  2169ms
+ ✓ tests/ui.test.ts (1 test) 652ms
+   ✓ real input/UI wiring: release, blur, pause button, help, focus trap and repeat restarts  651ms
+ ✓ tests/grab-ui.test.ts (1 test) 278ms
+ ✓ tests/item-discovery-ui.test.ts (1 test) 247ms
+ ✓ tests/shop-ui.test.ts (1 test) 278ms
+ ✓ tests/items-ui.test.ts (1 test) 264ms
+ ✓ tests/road-hud.test.ts (5 tests) 132ms
+ ✓ tests/shop-garage-ui.test.ts (2 tests) 118ms
+ ✓ tests/persistence.test.ts (3 tests) 6ms
+ ✓ tests/discovery-groups.test.ts (2 tests) 3ms
+stdout | tests/balance-simulation.test.ts > summarizes 'cautious' finite-reaction pilot without claiming human skill
+{"config":"p8-encounter-c3-refinement-1","director":"p8","vehicle":"motorcycle","seedRange":"1–30","capSeconds":720,"firstShop":280,"scenario":"scripted finite-reaction pilots, not human playtest","summary":{"profile":"cautious","ended":28,"endings":{"fuel":18,"police":1,"damage":9,"censored":2},"averageDistance":3688,"averageFuel":1.12,"averageHp":48.3,"averageWaterSeconds":25.2,"visiblePairRuns":30,"visibleObstacleRuns":30,"q25Seconds":275,"medianSeconds":362,"q75Seconds":467,"p10CarSeconds":20.2,"medianCarSeconds":20.2,"p90CarSeconds":20.2,"carWithin24Seconds":29,"carWithin30Seconds":30,"boughtCar":30,"averageCrashes":8.7,"averageSpecials":4,"averageWater":93.9,"averageWideLongWater":6.1,"eligibleRuns":25,"eligibleWithEightGroups":24,"eligibleWithRare":{"barrier":11,"vendor":9,"ambulance":12}}}
+
+stdout | tests/balance-simulation.test.ts > summarizes 'average' finite-reaction pilot without claiming human skill
+{"config":"p8-encounter-c3-refinement-1","director":"p8","vehicle":"motorcycle","seedRange":"1–30","capSeconds":720,"firstShop":280,"scenario":"scripted finite-reaction pilots, not human playtest","summary":{"profile":"average","ended":29,"endings":{"fuel":13,"damage":15,"censored":1,"police":1},"averageDistance":3722,"averageFuel":1.87,"averageHp":27.9,"averageWaterSeconds":20.9,"visiblePairRuns":30,"visibleObstacleRuns":30,"q25Seconds":334,"medianSeconds":384,"q75Seconds":443,"p10CarSeconds":20.2,"medianCarSeconds":20.2,"p90CarSeconds":20.3,"carWithin24Seconds":28,"carWithin30Seconds":30,"boughtCar":30,"averageCrashes":11,"averageSpecials":4,"averageWater":95.7,"averageWideLongWater":6.3,"eligibleRuns":27,"eligibleWithEightGroups":24,"eligibleWithRare":{"barrier":9,"vendor":8,"ambulance":16}}}
+
+stdout | tests/balance-simulation.test.ts > summarizes 'fast' finite-reaction pilot without claiming human skill
+{"config":"p8-encounter-c3-refinement-1","director":"p8","vehicle":"motorcycle","seedRange":"1–30","capSeconds":720,"firstShop":280,"scenario":"scripted finite-reaction pilots, not human playtest","summary":{"profile":"fast","ended":30,"endings":{"damage":19,"police":2,"fuel":9},"averageDistance":2868,"averageFuel":2.08,"averageHp":27,"averageWaterSeconds":14.4,"visiblePairRuns":30,"visibleObstacleRuns":30,"q25Seconds":157,"medianSeconds":178,"q75Seconds":212,"p10CarSeconds":12.7,"medianCarSeconds":12.7,"p90CarSeconds":12.7,"carWithin24Seconds":30,"carWithin30Seconds":30,"boughtCar":30,"averageCrashes":10.4,"averageSpecials":3.6,"averageWater":69.9,"averageWideLongWater":5.1,"eligibleRuns":12,"eligibleWithEightGroups":11,"eligibleWithRare":{"barrier":4,"vendor":7,"ambulance":6}}}
+
+ ✓ tests/balance-simulation.test.ts (9 tests) 101814ms
+   ✓ simulates 'cautious' seeds 1–15 with finite reaction  22549ms
+   ✓ simulates 'cautious' seeds 16–30 with finite reaction  22168ms
+   ✓ simulates 'average' seeds 1–15 with finite reaction  20177ms
+   ✓ simulates 'average' seeds 16–30 with finite reaction  22110ms
+   ✓ simulates 'fast' seeds 1–15 with finite reaction  7177ms
+   ✓ simulates 'fast' seeds 16–30 with finite reaction  7628ms
+
+ Test Files  73 passed (73)
+      Tests  411 passed (411)
+   Start at  23:15:01
+   Duration  102.40s (transform 1.18s, setup 0ms, collect 4.27s, tests 154.66s, environment 4.79s, prepare 6.39s)

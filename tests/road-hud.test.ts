@@ -10,31 +10,36 @@ function setup() {
   document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
   return new RoadHud(document.getElementById('world-cues')!);
 }
-it('spatial warnings choose imminent objects, preserve hazard priority and never mutate a run', () => {
-  const hud = setup();
-  const run: Run = { ...initialRun(), phase: 'running' };
-  run.world.entities = [entity('water', 'near', 35, 3.2), entity('pothole', 'far', 120, 0), entity('fuel', 'fuel', 40, 3.2)];
-  const snapshot = structuredClone(run);
-  const projection = { project: () => ({ x: 120, y: -20 }) };
-  hud.update(run, projection, true);
-  const water = document.querySelector<HTMLElement>('[data-kind="water"]')!;
-  expect(water.hidden).toBe(false); expect(water.getAttribute('aria-label')).toContain('phải · 35 m');
-  expect(water.style.left).toBe('91%'); expect(water.style.top).toBe('32%');
-  expect(document.querySelector<HTMLElement>('[data-kind="fuel"]')!.hidden).toBe(true);
-  expect(document.querySelector<HTMLElement>('[data-kind="pothole"]')!.hidden).toBe(true);
-  expect(run).toEqual(snapshot);
-  hud.update({ ...run, phase: 'paused' }, projection, false);
-  expect(water.hidden).toBe(true);
+it('renders only supply tags and leaves hazards in the world without mutating simulation', () => {
+  const hud=setup(), run: Run={...initialRun(),phase:'running'};
+  run.world.entities=[entity('water','water',35,3.2),entity('traffic','car',25,0),entity('fuel','fuel',40,3.2),entity('repair','repair',30,-3.2),entity('shop','shop',30,3.2)];
+  const before=structuredClone(run);
+  hud.update(run,{project:(x) => ({x:x>0?120:10,y:-20})},true);
+  expect(document.querySelector('[data-kind="water"]')).toBeNull();
+  expect(document.querySelector('[data-kind="traffic"]')).toBeNull();
+  const fuel=document.querySelector<HTMLElement>('[data-kind="fuel"]')!;
+  expect(fuel.hidden).toBe(false);expect(fuel.style.left).toBe('91%');expect(fuel.style.top).toBe('32%');
+  expect([...document.querySelectorAll<HTMLElement>('.world-cue')].map(n=>n.dataset.kind)).toEqual(['fuel','repair','shop']);
+  expect(run).toEqual(before);
+  hud.update({...run,phase:'paused'},{project:()=>({x:50,y:40})},false);expect(fuel.hidden).toBe(true);
 });
-it('keeps corner warnings below top HUD labels while preserving lane position', () => {
-  const hud = setup();
-  const run: Run = { ...initialRun(), phase: 'running',
-    world: { ...initialRun().world, entities: [entity('wind', 'crosswind', 15, 3.2)] } };
-  hud.update(run, { project: () => ({ x: 82, y: 18 }) }, true);
-  const cue = document.querySelector<HTMLElement>('[data-kind="wind"]')!;
-  expect(cue.hidden).toBe(false);
-  expect(cue.style.left).toBe('82%');
-  expect(cue.style.top).toBe('32%');
+it('keeps essential train and banana actions without reinstating obstacle tags', () => {
+ const hud=setup(), train=entity('train','t',15,0), projection={project:()=>({x:50,y:40})};
+ const run: Run={...initialRun(),phase:'running',world:{...initialRun().world,entities:[train]}};
+ hud.update(run,projection,false);expect(document.getElementById('road-action')!.textContent).toContain('TÀU');
+ expect(document.querySelector('[data-kind="train"]')).toBeNull();
+ const officer=entity('police','p',10,0);run.world.entities=[officer];run.inventory=['banana',null];
+ hud.update(run,projection,false);expect(document.getElementById('road-action')!.textContent).toBe('1 · DÙNG CHUỐI');
+ expect(document.querySelector('[data-kind="police"]')).toBeNull();
+});
+it('shows pickup action only for a reachable, unlocked, willing passenger', () => {
+ const hud=setup(),person=entity('passenger','p',0,0), projection={project:()=>({x:50,y:40})};
+ const run: Run={...initialRun(),phase:'running',world:{...initialRun().world,entities:[person]}};
+ const cue=document.getElementById('road-action')!;
+ person.lastHit=2;hud.update(run,projection,false);expect(cue.hidden).toBe(true);
+ run.activeSeconds=2;hud.update(run,projection,false);expect(cue.textContent).toContain('F · ĐÓN');expect(cue.hidden).toBe(false);
+ person.pickupable=false;hud.update(run,projection,false);expect(cue.hidden).toBe(true);
+ person.pickupable=true;person.x=8;hud.update(run,projection,false);expect(cue.hidden).toBe(true);
 });
 it('disabling flavor keeps numeric consequences; expired/restarted feedback clears; coast stays readable', () => {
   const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
@@ -52,39 +57,6 @@ it('disabling flavor keeps numeric consequences; expired/restarted feedback clea
   expect(document.getElementById('feedback')!.textContent).toBe('');
   expect(document.getElementById('coast-cue')!.hidden).toBe(true);
 });
-it('oncoming warning appears earlier and exposes direction without relying on colour', () => {
-  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
-  const car = entity('traffic', 'car', 85, -3.2); car.speed = -6;
-  const run: Run = { ...initialRun(), phase: 'running', speed: 20, world: { ...initialRun().world, entities: [car] } };
-  hud.update(run, projection, true);
-  const cue = document.querySelector<HTMLElement>('[data-kind="traffic"]')!;
-  expect(cue.hidden).toBe(false); expect(cue.getAttribute('aria-label')).toContain('ngược chiều');
-  expect(cue.getAttribute('aria-label')).toContain('Ô tô 4 chỗ');
-  expect(cue.querySelector('.traffic-direction')!.textContent).toBe('↓');
-  hud.update({ ...run, world: { ...run.world, entities: [{ ...car, x: 3.2, speed: 6 }] } }, projection, true);
-  expect(cue.hidden).toBe(true);
-});
-it('traffic warning names the seeded vehicle variety', () => {
-  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
-  const truck = entity('traffic', 'truck', 50, 0); truck.trafficKind = 'truck'; truck.speed = -6;
-  const run: Run = { ...initialRun(), phase: 'running', world: { ...initialRun().world, entities: [truck] } };
-  hud.update(run, projection, true);
-  expect(document.querySelector<HTMLElement>('[data-kind="traffic"]')!.getAttribute('aria-label')).toContain('Xe tải');
-});
-it('empty traffic distinguishes coasting and stopped cues from powered direction', () => {
-  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
-  const car = entity('traffic', 'empty', 30, 3.2); car.fuel = 0;
-  const run: Run = { ...initialRun(), phase: 'running', world: { ...initialRun().world, entities: [car] } };
-  car.trafficMotion = 'coasting'; car.speed = 2;
-  hud.update(run, projection, true);
-  const cue = document.querySelector<HTMLElement>('[data-kind="traffic"]')!;
-  expect(cue.getAttribute('aria-label')).toContain('đang trôi do hết xăng');
-  expect(cue.querySelector('.traffic-direction')!.textContent).toContain('⛽');
-  car.trafficMotion = 'stopped'; car.speed = 0;
-  hud.update(run, projection, true);
-  expect(cue.getAttribute('aria-label')).toContain('đã dừng vì hết xăng');
-  expect(cue.querySelector('.traffic-direction')!.textContent).toContain('■');
-});
 it('crash return cue shows remaining protection time and clears on restart', () => {
   const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
   const run: Run = { ...initialRun(), phase: 'running', crash: { elapsed: 1, side: 1, originDistance: 0, originX: 0,
@@ -94,22 +66,4 @@ it('crash return cue shows remaining protection time and clears on restart', () 
   expect(cue.hidden).toBe(false); expect(cue.getAttribute('aria-label')).toContain('miễn nhiễm');
   hud.update(initialRun(), projection, true);
   expect(cue.hidden).toBe(true);
-});
-it('does not invite F pickup while a kicked passenger is still locked out', () => {
-  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
-  const person = entity('passenger', 'dropped', 0, 0); person.lastHit = 2;
-  const run: Run = { ...initialRun(), phase: 'running', world: { ...initialRun().world, entities: [person] } };
-  const cue = document.querySelector<HTMLElement>('[data-kind="passenger"]')!;
-  hud.update(run, projection, true);
-  expect(cue.hidden).toBe(true);
-  hud.update({ ...run, activeSeconds: 2 }, projection, true);
-  expect(cue.hidden).toBe(false);
-  expect(cue.textContent).toContain('F · ĐÓN');
-});
-it('does not invite F pickup for a crash rider who refuses to reboard', () => {
-  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
-  const person = entity('passenger', 'stranded', 0, 0); person.pickupable = false;
-  const run: Run = { ...initialRun(), phase: 'running', world: { ...initialRun().world, entities: [person] } };
-  hud.update(run, projection, true);
-  expect(document.querySelector<HTMLElement>('[data-kind="passenger"]')!.hidden).toBe(true);
 });

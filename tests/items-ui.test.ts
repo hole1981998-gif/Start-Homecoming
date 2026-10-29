@@ -14,6 +14,7 @@ it('real keys use fixed slots once, paused time freezes effects, and restart cle
   document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
   history.replaceState({}, '', '/?scenario=items&seed=17');
   localStorage.setItem('dvn.cards.v1', JSON.stringify(['water', 'pothole', 'traffic', 'shop']));
+  localStorage.setItem('dvn.discovery.v2', '["nitro","star"]');
   let now = 0, frame: FrameRequestCallback = () => {};
   vi.stubGlobal('performance', { now: () => now });
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { frame = cb; return 1; });
@@ -30,15 +31,15 @@ it('real keys use fixed slots once, paused time freezes effects, and restart cle
   key('Space'); tick(.1); expect(jumpHeight(drawn.run!)).toBeGreaterThan(0);
   const jumpAt = drawn.run!.powers.jumpAt;
   key('Space'); tick(.1); expect(drawn.run!.powers.jumpAt).toBe(jumpAt);
-  expect(el('item-cue').textContent).toContain('1 · —'); expect(el('item-cue').textContent).toContain('2 · ☆');
+  expect(el('item-cue').querySelector('[data-slot="0"] [data-icon]')).toBeNull(); expect(el('item-cue').querySelector('[data-slot="1"] [data-icon="star"]')).not.toBeNull();
   expect(el('item-cue').textContent).toContain('NITRO');
   key('Escape'); tick(.1); const frozen = el('item-cue').textContent;
   key('Digit2'); tick(5); expect(el('item-cue').textContent).toBe(frozen);
   key('Escape'); key('Digit2'); tick(.1);
-  expect(el('item-cue').textContent).toContain('STAR'); expect(el('item-cue').textContent).toContain('2 · —');
+  expect(el('item-cue').textContent).toContain('STAR'); expect(el('item-cue').querySelector('[data-slot="1"] [data-icon]')).toBeNull();
   el('restart').click(); tick(.1);
   expect(el('item-cue').textContent).not.toContain('STAR'); expect(el('item-cue').textContent).not.toContain('NITRO');
-  expect(el('item-cue').textContent).toContain('1 · ↟'); expect(el('item-cue').textContent).toContain('2 · ☆');
+  expect(el('item-cue').querySelector('[data-slot="0"] [data-icon="nitro"]')).not.toBeNull(); expect(el('item-cue').querySelector('[data-slot="1"] [data-icon="star"]')).not.toBeNull();
   window.dispatchEvent(new Event('pagehide'));
   vi.unstubAllGlobals(); history.replaceState({}, '', '/');
 });

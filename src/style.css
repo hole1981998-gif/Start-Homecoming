@@ -37,3 +37,21 @@ footer{position:absolute;bottom:10px;left:14px;right:14px;display:flex;align-ite
 .modal-version-link { display: block; margin-top: 14px; color: #f1e8c9; font-size: 12px; text-align: center; }
 .modal-version-link:focus-visible { outline: 2px solid #f5d786; }
 .test-home-link{display:block;margin-top:12px;text-align:center;color:#d9c99a;font-size:11px}
+
+/* UI pass 1: keep the driving corridor and resource values free of debug chrome. */
+.resources b{font-size:11px;background:#14272acc;padding:3px 5px;border-radius:4px}
+.resources{gap:8px}
+#junction-cue{top:28%;flex-direction:row;gap:6px;max-width:94%;filter:none}
+#junction-cue .junction-options{display:none}
+#junction-cue strong{margin:0;padding:5px 7px;font-size:10px}
+#junction-cue small{padding:5px;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+#junction-branches span{min-width:44px;min-height:52px}
+.actions button{width:44px;height:44px;min-height:44px;padding:10px}
+#help-details{display:grid;gap:14px;margin-top:16px}
+#help-details section{border-top:1px solid #476068;padding-top:12px}
+#help-details h2{font-size:14px;margin:0 0 6px;color:#efcf85}
+#help-details p{margin:0;font-size:12px;line-height:1.7}
+#close-help{margin:8px 0 12px;min-height:44px;background:#dec183;color:#1c2c31;border-color:#dec183;font-weight:700}
+.panel>label{font-size:12px;line-height:1.6;display:block;margin-top:12px}
+.panel input[type=checkbox]{width:18px;height:18px;vertical-align:middle;accent-color:#dec183}
+@media(max-height:650px){.panel{padding:18px}.panel h1{font-size:26px}.actions{gap:4px}footer{right:10px;bottom:7px}.modal-version-link{font-size:11px}}
