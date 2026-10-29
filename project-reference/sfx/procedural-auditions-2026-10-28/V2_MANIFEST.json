@@ -5,16 +5,16 @@
       "state": "idle",
       "file": "engine-v2/motorcycle_idle_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3321,
-      "rms": 0.1865
+      "peak": 0.2728,
+      "rms": 0.1508
     },
     {
       "vehicle": "motorcycle",
       "state": "cruise",
       "file": "engine-v2/motorcycle_cruise_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3223,
-      "rms": 0.1639
+      "peak": 0.301,
+      "rms": 0.1265
     },
     {
       "vehicle": "motorcycle",
@@ -22,31 +22,31 @@
       "file": "engine-v2/motorcycle_fast_loop.wav",
       "duration_seconds": 2.0,
       "peak": 0.37,
-      "rms": 0.1595
+      "rms": 0.1267
     },
     {
       "vehicle": "motorcycle",
       "state": "ramp_preview",
       "file": "engine-v2/motorcycle_ramp_preview.wav",
       "duration_seconds": 10.0,
-      "peak": 0.3699,
-      "rms": 0.1693
+      "peak": 0.3693,
+      "rms": 0.1332
     },
     {
       "vehicle": "motorbike",
       "state": "idle",
       "file": "engine-v2/motorbike_idle_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.328,
-      "rms": 0.184
+      "peak": 0.2598,
+      "rms": 0.1431
     },
     {
       "vehicle": "motorbike",
       "state": "cruise",
       "file": "engine-v2/motorbike_cruise_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3179,
-      "rms": 0.1626
+      "peak": 0.2854,
+      "rms": 0.1208
     },
     {
       "vehicle": "motorbike",
@@ -54,31 +54,31 @@
       "file": "engine-v2/motorbike_fast_loop.wav",
       "duration_seconds": 2.0,
       "peak": 0.37,
-      "rms": 0.1588
+      "rms": 0.1211
     },
     {
       "vehicle": "motorbike",
       "state": "ramp_preview",
       "file": "engine-v2/motorbike_ramp_preview.wav",
       "duration_seconds": 10.0,
-      "peak": 0.37,
-      "rms": 0.1677
+      "peak": 0.3692,
+      "rms": 0.1269
     },
     {
       "vehicle": "car4",
       "state": "idle",
       "file": "engine-v2/car4_idle_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.35,
-      "rms": 0.1975
+      "peak": 0.2805,
+      "rms": 0.1554
     },
     {
       "vehicle": "car4",
       "state": "cruise",
       "file": "engine-v2/car4_cruise_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.334,
-      "rms": 0.1721
+      "peak": 0.3083,
+      "rms": 0.129
     },
     {
       "vehicle": "car4",
@@ -86,31 +86,31 @@
       "file": "engine-v2/car4_fast_loop.wav",
       "duration_seconds": 2.0,
       "peak": 0.37,
-      "rms": 0.1666
+      "rms": 0.1286
     },
     {
       "vehicle": "car4",
       "state": "ramp_preview",
       "file": "engine-v2/car4_ramp_preview.wav",
       "duration_seconds": 10.0,
-      "peak": 0.37,
-      "rms": 0.1781
+      "peak": 0.3696,
+      "rms": 0.1362
     },
     {
       "vehicle": "car7",
       "state": "idle",
       "file": "engine-v2/car7_idle_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3356,
-      "rms": 0.1897
+      "peak": 0.2535,
+      "rms": 0.1422
     },
     {
       "vehicle": "car7",
       "state": "cruise",
       "file": "engine-v2/car7_cruise_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3194,
-      "rms": 0.1663
+      "peak": 0.2782,
+      "rms": 0.1188
     },
     {
       "vehicle": "car7",
@@ -118,31 +118,31 @@
       "file": "engine-v2/car7_fast_loop.wav",
       "duration_seconds": 2.0,
       "peak": 0.37,
-      "rms": 0.1615
+      "rms": 0.1189
     },
     {
       "vehicle": "car7",
       "state": "ramp_preview",
       "file": "engine-v2/car7_ramp_preview.wav",
       "duration_seconds": 10.0,
-      "peak": 0.3699,
-      "rms": 0.1718
+      "peak": 0.37,
+      "rms": 0.1253
     },
     {
       "vehicle": "tricycle",
       "state": "idle",
       "file": "engine-v2/tricycle_idle_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3275,
-      "rms": 0.1835
+      "peak": 0.2694,
+      "rms": 0.1474
     },
     {
       "vehicle": "tricycle",
       "state": "cruise",
       "file": "engine-v2/tricycle_cruise_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3125,
-      "rms": 0.1628
+      "peak": 0.2972,
+      "rms": 0.1248
     },
     {
       "vehicle": "tricycle",
@@ -150,31 +150,31 @@
       "file": "engine-v2/tricycle_fast_loop.wav",
       "duration_seconds": 2.0,
       "peak": 0.37,
-      "rms": 0.1594
+      "rms": 0.1252
     },
     {
       "vehicle": "tricycle",
       "state": "ramp_preview",
       "file": "engine-v2/tricycle_ramp_preview.wav",
       "duration_seconds": 10.0,
-      "peak": 0.37,
-      "rms": 0.1678
+      "peak": 0.3698,
+      "rms": 0.131
     },
     {
       "vehicle": "bus",
       "state": "idle",
       "file": "engine-v2/bus_idle_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3236,
-      "rms": 0.1835
+      "peak": 0.2546,
+      "rms": 0.1416
     },
     {
       "vehicle": "bus",
       "state": "cruise",
       "file": "engine-v2/bus_cruise_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3135,
-      "rms": 0.1648
+      "peak": 0.279,
+      "rms": 0.1215
     },
     {
       "vehicle": "bus",
@@ -182,31 +182,31 @@
       "file": "engine-v2/bus_fast_loop.wav",
       "duration_seconds": 2.0,
       "peak": 0.37,
-      "rms": 0.1626
+      "rms": 0.1222
     },
     {
       "vehicle": "bus",
       "state": "ramp_preview",
       "file": "engine-v2/bus_ramp_preview.wav",
       "duration_seconds": 10.0,
-      "peak": 0.37,
-      "rms": 0.1694
+      "peak": 0.3696,
+      "rms": 0.127
     },
     {
       "vehicle": "truck",
       "state": "idle",
       "file": "engine-v2/truck_idle_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3208,
-      "rms": 0.1782
+      "peak": 0.2777,
+      "rms": 0.1523
     },
     {
       "vehicle": "truck",
       "state": "cruise",
       "file": "engine-v2/truck_cruise_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.308,
-      "rms": 0.1611
+      "peak": 0.3064,
+      "rms": 0.1317
     },
     {
       "vehicle": "truck",
@@ -214,31 +214,31 @@
       "file": "engine-v2/truck_fast_loop.wav",
       "duration_seconds": 2.0,
       "peak": 0.37,
-      "rms": 0.1597
+      "rms": 0.1328
     },
     {
       "vehicle": "truck",
       "state": "ramp_preview",
       "file": "engine-v2/truck_ramp_preview.wav",
       "duration_seconds": 10.0,
-      "peak": 0.37,
-      "rms": 0.1654
+      "peak": 0.3699,
+      "rms": 0.1374
     },
     {
       "vehicle": "container",
       "state": "idle",
       "file": "engine-v2/container_idle_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3331,
-      "rms": 0.1828
+      "peak": 0.2733,
+      "rms": 0.147
     },
     {
       "vehicle": "container",
       "state": "cruise",
       "file": "engine-v2/container_cruise_loop.wav",
       "duration_seconds": 2.0,
-      "peak": 0.3249,
-      "rms": 0.1663
+      "peak": 0.2871,
+      "rms": 0.128
     },
     {
       "vehicle": "container",
@@ -246,15 +246,15 @@
       "file": "engine-v2/container_fast_loop.wav",
       "duration_seconds": 2.0,
       "peak": 0.37,
-      "rms": 0.1656
+      "rms": 0.1295
     },
     {
       "vehicle": "container",
       "state": "ramp_preview",
       "file": "engine-v2/container_ramp_preview.wav",
       "duration_seconds": 10.0,
-      "peak": 0.37,
-      "rms": 0.1706
+      "peak": 0.3698,
+      "rms": 0.1334
     }
   ],
   "interactions": [

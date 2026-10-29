@@ -308,7 +308,7 @@ const frameTimes: number[] = [], renderTimes: number[] = []; let measuredFrames 
 function frame(now: number): void {
   const elapsed = (now - last) / 1000; last = now; const start = performance.now();
   const alpha = state.phase === 'running' ? clock.advance(elapsed, () => { previous = state; state = force ? force.step(state, input) : stepRun(state, input); }) : 1;
-  void audio.update(state, input);
+  void audio.update(state);
   if (state.phase === 'ended' && screen !== 'result' && screen !== 'help') {
     resultView();
   } else discover();

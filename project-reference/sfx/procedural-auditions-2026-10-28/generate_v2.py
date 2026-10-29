@@ -54,16 +54,24 @@ def engine_stems(kind: str) -> dict[str, list[float]]:
         grit_wave = (math.sin(2 * math.pi * (base * 7 + 13) * t + .6) +
                      .48 * math.sin(2 * math.pi * (base * 11 + 27) * t + 1.9) +
                      .28 * math.sin(2 * math.pi * (base * 17 + 41) * t + 2.4))
+        # Periodic upper bands add load, air and tyre texture without breaking
+        # the 2 s loop grid. Their balance changes between the three states.
+        intake = sum(math.sin(2 * math.pi * (base * (9 + k * 3) + 17 * k) * t + 1.13 * k)
+                     for k in range(1, 6)) / 5
+        road = sum(math.sin(2 * math.pi * (690 + base * k + 37 * k) * t + 2.07 * k)
+                   for k in range(1, 7)) / 6
         body = math.sin(angle) * .55 + math.sin(2 * angle + .12) * .25
         stems["idle"][index] = wobble * (body + pulse * pulse_weight * .67 +
-                                           math.sin(3 * angle) * .065 + grit_wave * grit * .33)
-        stems["cruise"][index] = wobble * (body * .80 + pulse * pulse_weight +
-                                             math.sin(3 * angle) * .16 +
-                                             math.sin(4 * angle) * .085 + grit_wave * grit * .72)
-        stems["fast"][index] = wobble * (body * .67 + pulse * pulse_weight * 1.30 +
-                                           math.sin(3 * angle) * .23 +
-                                           math.sin(4 * angle) * .14 +
-                                           math.sin(5 * angle) * .09 + grit_wave * grit)
+                                           math.sin(3 * angle) * .065 + grit_wave * grit * .33 + intake * .025)
+        stems["cruise"][index] = wobble * (body * .72 + pulse * pulse_weight +
+                                             math.sin(3 * angle) * .19 +
+                                             math.sin(4 * angle) * .10 + grit_wave * grit +
+                                             intake * .19 + road * .055)
+        stems["fast"][index] = wobble * (body * .49 + pulse * pulse_weight * 1.36 +
+                                           math.sin(3 * angle) * .29 +
+                                           math.sin(4 * angle) * .19 +
+                                           math.sin(5 * angle) * .14 + grit_wave * grit * 1.25 +
+                                           intake * .31 + road * .13)
     # One scale per vehicle preserves relative loudness between engine states.
     peak = max(abs(x) for stem in stems.values() for x in stem)
     scale = .37 / peak
@@ -327,6 +335,18 @@ if __name__ == "__main__":
             f'<article><div><b>{html.escape(key.replace("_", " "))}</b>'
             f'<small>{html.escape(description)}</small></div>'
             f'<audio controls preload="none" src="interaction-v2/{html.escape(key)}.wav"></audio></article>')
+    for name, description in (
+        ("interaction-v2/collision_light.wav", "Light collision · current game cue"),
+        ("interaction-v2/collision_medium.wav", "Medium collision · current game cue"),
+        ("interaction-v2/collision_heavy.wav", "Heavy collision · current game cue"),
+        ("road/pothole_rattle_light.wav", "Light pothole · current game cue"),
+        ("road/pothole_rattle_heavy.wav", "Heavy pothole · current game cue"),
+        ("road/water_roll_loop.wav", "Water roll · current game loop"),
+    ):
+        loop = " loop" if "water_roll_loop" in name else ""
+        groups.setdefault("Current game mix cues", []).append(
+            f'<article><div><b>{description}</b></div>'
+            f'<audio controls{loop} preload="none" src="{name}"></audio></article>')
     sections = "\n".join(
         f'<section><h2>{html.escape(group)}</h2>{"".join(rows)}</section>'
         for group, rows in groups.items())
@@ -338,7 +358,7 @@ if __name__ == "__main__":
             "article{display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid #34413c;padding:11px 0}"
             "small{display:block;margin-top:3px}audio{width:290px;max-width:100%}@media(max-width:700px){article{display:block}audio{width:100%;margin-top:9px}}"
             "</style><h1>Engine and interaction SFX — V2</h1>"
-            "<p>Listen to each vehicle's acceleration/braking preview and the revised short, medium and long interaction cues."
-            " These are audition drafts, not game-integrated sounds.</p>" + sections + "</html>\n")
+            "<p>Review the current game engine, collision, pothole and water cues, plus earlier interaction drafts."
+            " Browser players audition individual files; use the game to judge the full mix.</p>" + sections + "</html>\n")
     (ROOT / "LISTEN_V2.html").write_text(page, encoding="utf-8")
     print(f"Engine stems: {len(VEHICLES) * 3}; ramp previews: {len(VEHICLES)}; interaction cues: {len(INTERACTIONS)}")

@@ -22,8 +22,6 @@ const files = import.meta.glob([
   '../project-reference/sfx/procedural-auditions-2026-10-28/road/water_splash.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/road/water_roll_loop.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/road/pothole_rattle_*.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/accelerate.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/brake.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/coast.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/driver_fall.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/stop.wav',
@@ -49,6 +47,7 @@ export class AudioDirector {
   private buses?: Record<Bus, GainNode>;
   private buffers = new Map<string, Promise<AudioBuffer | null>>();
   private stem?: Stem;
+  private retiring = new Set<Stem>();
   private ambience = new Map<string, { source: AudioBufferSourceNode; gain: GainNode }>();
   private near = new Set<string>();
   private trafficPairs = new Set<string>();
@@ -70,6 +69,7 @@ export class AudioDirector {
   private waterActive = false;
   private vehicleId = '';
   private requestedKind?: VehicleKind;
+  private running = false;
   private generation = 0;
   private sweepTick = 0;
 
@@ -112,7 +112,7 @@ export class AudioDirector {
   private async loop(name: string, bus: Bus, volume: number): Promise<void> {
     if (this.ambience.has(name) || !this.context || !this.buses) return;
     const ctx = this.context, generation = this.generation, buffer = await this.buffer(name);
-    if (!buffer || generation !== this.generation || this.ambience.has(name) || ctx.state !== 'running' || name.includes('water_roll') && !this.waterActive) return;
+    if (!buffer || generation !== this.generation || !this.running || this.ambience.has(name) || ctx.state !== 'running' || name.includes('water_roll') && !this.waterActive) return;
     const source = ctx.createBufferSource(), gain = ctx.createGain();
     source.buffer = buffer; source.loop = true; gain.gain.value = 0;
     source.connect(gain).connect(this.buses[bus]); source.start();
@@ -126,7 +126,7 @@ export class AudioDirector {
     const names = ['idle', 'cruise', 'fast'].map(s => `engine-v2/${kind}_${s}_loop.wav`);
     const buffers = await Promise.all(names.map(n => this.buffer(n)));
     if (buffers.some(b => !b) || generation !== this.generation || this.requestedKind !== kind || this.stem?.kind === kind || ctx.state !== 'running') return;
-    this.stopEngine();
+    this.stopEngine(.18);
     const sources: AudioBufferSourceNode[] = [], gains: GainNode[] = [];
     for (const buffer of buffers) {
       const source = ctx.createBufferSource(), gain = ctx.createGain();
@@ -139,10 +139,31 @@ export class AudioDirector {
     this.stem = { kind, sources, gains };
   }
 
-  private stopEngine(): void {
-    for (const source of this.stem?.sources ?? []) { try { source.stop(); } catch { /* already stopped */ } source.disconnect(); }
-    for (const gain of this.stem?.gains ?? []) gain.disconnect();
+  private stopEngine(fadeSeconds = 0): void {
+    const stem = this.stem, ctx = this.context;
     this.stem = undefined;
+    if (!stem) return;
+    if (fadeSeconds && ctx?.state === 'running') this.retiring.add(stem);
+    let remaining = stem.sources.length;
+    stem.sources.forEach((source, index) => {
+      const gain = stem.gains[index];
+      if (fadeSeconds && ctx?.state === 'running') {
+        gain.gain.setTargetAtTime(0, ctx.currentTime, fadeSeconds / 4);
+        source.onended = () => { source.disconnect(); gain.disconnect(); if (--remaining === 0) this.retiring.delete(stem); };
+        try { source.stop(ctx.currentTime + fadeSeconds); } catch { /* already stopped */ }
+      } else {
+        try { source.stop(); } catch { /* already stopped */ }
+        source.disconnect(); gain.disconnect();
+      }
+    });
+  }
+
+  private clearRetiring(): void {
+    for (const stem of this.retiring) {
+      stem.sources.forEach(source => { try { source.stop(); } catch { /* already stopped */ } source.disconnect(); });
+      stem.gains.forEach(gain => gain.disconnect());
+    }
+    this.retiring.clear();
   }
 
   reset(): void {
@@ -150,26 +171,40 @@ export class AudioDirector {
     for (const source of this.oneShots) { try { source.stop(); } catch { /* already stopped */ } }
     this.oneShots.clear();
     this.stopEngine();
+    this.clearRetiring();
     for (const { source, gain } of this.ambience.values()) { try { source.stop(); } catch { /* already stopped */ } source.disconnect(); gain.disconnect(); }
     this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.entityState.clear(); this.cooldown.clear(); this.sweepTick = 0;
-    this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.vehicleId = ''; this.requestedKind = undefined;
+    this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.vehicleId = ''; this.requestedKind = undefined; this.running = false;
   }
 
   pause(): void {
     this.generation++;
     this.requestedKind = undefined;
+    this.running = false;
     this.waterActive = false;
     this.stopEngine();
+    this.clearRetiring();
     for (const source of this.oneShots) { try { source.stop(); } catch { /* already stopped */ } }
     for (const { gain } of this.ambience.values()) gain.gain.setTargetAtTime(0, this.context?.currentTime ?? 0, .08);
   }
 
-  async update(run: Run, input: { accelerate: boolean; brake: boolean }): Promise<void> {
+  async update(run: Run): Promise<void> {
     const ctx = this.context;
     if (!ctx) return;
     if (run.runId !== this.runId) { this.reset(); this.runId = run.runId; }
+    const vehicle = activeVehicle(run);
+    if (run.eventSequence !== this.lastSequence) {
+      this.lastSequence = run.eventSequence;
+      const kind = run.feedbackKind;
+      const hitEntity = run.world.entities.find(e => e.consumed && !this.entityState.get(e.id)?.consumed && e.kind === kind);
+      const hitTraffic = run.world.entities.find(e => e.kind === 'traffic' && e.lastHit >= 0 && Math.abs(e.lastHit - run.activeSeconds) < .1);
+      const cue: Record<string, string> = { water: 'road/water_splash.wav', pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: run.feedback.startsWith('Gọi Grab') ? 'item/grab_call.wav' : 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : collisionCue(vehicle.kind), accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
+      if (kind && cue[kind]) void this.play(cue[kind], `event-${kind}`, .2, kind === 'water' ? .4 : 1);
+    }
     if (run.phase !== 'running') {
-      this.stopEngine();
+      this.running = false;
+      this.requestedKind = undefined;
+      this.stopEngine(.12);
       for (const { gain } of this.ambience.values()) gain.gain.setTargetAtTime(0, ctx.currentTime, .1);
       if (run.phase === 'ended' && !this.ended) {
         this.ended = true;
@@ -178,7 +213,7 @@ export class AudioDirector {
       }
       return;
     }
-    const vehicle = activeVehicle(run);
+    this.running = true;
     const inWater = run.world.entities.some(e => e.kind === 'water' && e.touching && !e.consumed);
     this.waterActive = inWater;
     void this.loop('ambience/rain_light_loop.wav', 'ambience', .65);
@@ -189,17 +224,16 @@ export class AudioDirector {
     this.requestedKind = vehicle.kind;
     if (this.vehicleId && this.vehicleId !== run.activeVehicleId) void this.play('vehicle/vehicle_switch.wav');
     this.vehicleId = run.activeVehicleId;
-    if (run.motion === 'powered' && !run.crash) {
+    if (!run.crash && run.speed > .15) {
       void this.engine(vehicle.kind);
       if (this.stem?.kind === vehicle.kind) {
         const s = Math.max(0, Math.min(1, (run.speed - vehicle.minSpeed) / Math.max(1, vehicle.maxSpeed - vehicle.minSpeed)));
         const weights = [Math.max(0, 1 - 2 * s), 1 - Math.abs(2 * s - 1), Math.max(0, 2 * s - 1)];
-        this.stem.gains.forEach((gain, i) => gain.gain.setTargetAtTime(weights[i] * .32, ctx.currentTime, .085));
-        this.stem.sources.forEach(source => source.playbackRate.setTargetAtTime(.86 + .38 * s, ctx.currentTime, .085));
+        const level = run.motion === 'coasting' ? .21 : .32;
+        this.stem.gains.forEach((gain, i) => gain.gain.setTargetAtTime(weights[i] * level, ctx.currentTime, .085));
+        this.stem.sources.forEach(source => source.playbackRate.setTargetAtTime((.86 + .38 * s) * (run.motion === 'coasting' ? .9 : 1), ctx.currentTime, .085));
       }
-    } else this.stopEngine();
-    if (input.brake && this.lastSpeed - run.speed > .1) void this.play('vehicle/brake.wav', 'brake', 2, .33);
-    if (input.accelerate && run.speed - this.lastSpeed > .1) void this.play('vehicle/accelerate.wav', 'accelerate', 3, .25);
+    } else this.stopEngine(.12);
     if (this.lastSpeed > 2 && run.speed < .1) void this.play('vehicle/stop.wav', 'stop', 1, .35);
     if (run.crash && !this.crashed) void this.play('vehicle/driver_fall.wav', 'driver-fall', .5, .7);
     this.crashed = !!run.crash;
@@ -214,14 +248,6 @@ export class AudioDirector {
     const inWind = run.world.entities.some(e => e.kind === 'wind' && !e.consumed && Math.abs(e.distance - run.distance) < (e.length + vehicle.length) / 2 && Math.abs(e.x - run.x) < (e.width + vehicle.width) / 2);
     if (inWind && !this.inWind) void this.play('interaction-v2/wind_gust.wav', 'wind-gust', 1, .5);
     this.inWind = inWind;
-    if (run.eventSequence !== this.lastSequence) {
-      this.lastSequence = run.eventSequence;
-      const kind = run.feedbackKind;
-      const hitEntity = run.world.entities.find(e => e.consumed && !this.entityState.get(e.id)?.consumed && e.kind === kind);
-      const hitTraffic = run.world.entities.find(e => e.kind === 'traffic' && e.lastHit >= 0 && Math.abs(e.lastHit - run.activeSeconds) < .1);
-      const cue: Record<string, string> = { water: 'road/water_splash.wav', pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: run.feedback.startsWith('Gọi Grab') ? 'item/grab_call.wav' : 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : collisionCue(vehicle.kind), accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
-      if (kind && cue[kind]) void this.play(cue[kind], `event-${kind}`, .2, kind === 'water' ? .4 : 1);
-    }
     const nextPairs = new Set<string>(), nextHoles = new Set<string>();
     const trafficById = new Map(run.world.entities.filter(e => e.kind === 'traffic').map(e => [e.id, e]));
     const potholes = new Set(run.world.entities.filter(e => e.kind === 'pothole').map(e => e.id));
