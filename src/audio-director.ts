@@ -37,8 +37,12 @@ type Bus = 'sfx' | 'ambience';
 type Stem = { sources: AudioBufferSourceNode[]; gains: GainNode[]; kind: VehicleKind };
 const heavyVehicle = (kind?: VehicleKind): boolean => kind === 'bus' || kind === 'truck' || kind === 'container';
 const lightVehicle = (kind?: VehicleKind): boolean => kind === 'motorcycle' || kind === 'motorbike' || kind === 'tricycle';
-const collisionCue = (a?: VehicleKind, b?: VehicleKind): string =>
-  `interaction-v2/collision_${heavyVehicle(a) || heavyVehicle(b) ? 'heavy' : lightVehicle(a) && lightVehicle(b) ? 'light' : 'medium'}.wav`;
+const collisionCue = (a?: VehicleKind, b?: VehicleKind, impactSpeed?: number): string => {
+  const weight = impactSpeed === undefined
+    ? heavyVehicle(a) || heavyVehicle(b) ? 'heavy' : lightVehicle(a) && lightVehicle(b) ? 'light' : 'medium'
+    : impactSpeed < 9 ? 'light' : impactSpeed < 21 ? 'medium' : heavyVehicle(a) || heavyVehicle(b) ? 'heavy' : 'medium';
+  return `interaction-v2/collision_${weight}.wav`;
+};
 const potholeCue = (kind?: VehicleKind): string => `road/pothole_rattle_${heavyVehicle(kind) ? 'heavy' : 'light'}.wav`;
 
 /** Presentation-only sound: every cue follows simulation state and never feeds back into it. */
@@ -198,7 +202,8 @@ export class AudioDirector {
       const kind = run.feedbackKind;
       const hitEntity = run.world.entities.find(e => e.consumed && !this.entityState.get(e.id)?.consumed && e.kind === kind);
       const hitTraffic = run.world.entities.find(e => e.kind === 'traffic' && e.lastHit >= 0 && Math.abs(e.lastHit - run.activeSeconds) < .1);
-      const cue: Record<string, string> = { water: 'road/water_splash.wav', pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: run.feedback.startsWith('Gọi Grab') ? 'item/grab_call.wav' : 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : collisionCue(vehicle.kind), accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
+      const impactSpeed = run.crash?.impactSpeed ?? run.speed;
+      const cue: Record<string, string> = { water: 'road/water_splash.wav', pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind, impactSpeed), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: run.feedback.startsWith('Gọi Grab') ? 'item/grab_call.wav' : 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind, undefined, impactSpeed), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : collisionCue(vehicle.kind, undefined, impactSpeed), accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
       if (kind && cue[kind]) void this.play(cue[kind], `event-${kind}`, .2, kind === 'water' ? .4 : 1);
     }
     if (run.phase !== 'running') {
@@ -219,8 +224,13 @@ export class AudioDirector {
     void this.loop('ambience/rain_light_loop.wav', 'ambience', .65);
     void this.loop('ambience/wind_loop.wav', 'ambience', .24);
     void this.loop('ambience/wet_road_loop.wav', 'ambience', .13);
-    if (inWater) void this.loop('road/water_roll_loop.wav', 'sfx', .38);
-    for (const [name, node] of this.ambience) node.gain.gain.setTargetAtTime(name.includes('water_roll') ? inWater ? .38 : 0 : name.includes('rain') ? .65 : name.includes('wind') ? .24 : .13, ctx.currentTime, name.includes('water_roll') ? .09 : .15);
+    const waterSpeed = Math.max(0, Math.min(1, run.speed / Math.max(1, vehicle.maxSpeed)));
+    const waterLevel = .16 + .22 * waterSpeed;
+    if (inWater) void this.loop('road/water_roll_loop.wav', 'sfx', waterLevel);
+    for (const [name, node] of this.ambience) {
+      node.gain.gain.setTargetAtTime(name.includes('water_roll') ? inWater ? waterLevel : 0 : name.includes('rain') ? .65 : name.includes('wind') ? .24 : .13, ctx.currentTime, name.includes('water_roll') ? .09 : .15);
+      if (name.includes('water_roll')) node.source.playbackRate.setTargetAtTime(.88 + .24 * waterSpeed, ctx.currentTime, .18);
+    }
     this.requestedKind = vehicle.kind;
     if (this.vehicleId && this.vehicleId !== run.activeVehicleId) void this.play('vehicle/vehicle_switch.wav');
     this.vehicleId = run.activeVehicleId;
@@ -234,8 +244,8 @@ export class AudioDirector {
         this.stem.sources.forEach(source => source.playbackRate.setTargetAtTime((.86 + .38 * s) * (run.motion === 'coasting' ? .9 : 1), ctx.currentTime, .085));
       }
     } else this.stopEngine(.12);
-    if (this.lastSpeed > 2 && run.speed < .1) void this.play('vehicle/stop.wav', 'stop', 1, .35);
-    if (run.crash && !this.crashed) void this.play('vehicle/driver_fall.wav', 'driver-fall', .5, .7);
+    if (!run.crash && this.lastSpeed > 2 && run.speed < .1) void this.play('vehicle/stop.wav', 'stop', 1, .35);
+    if (run.crash && !this.crashed) void this.play('vehicle/driver_fall.wav', 'driver-fall', .5, .32);
     this.crashed = !!run.crash;
     if (run.motion === 'coasting' && this.lastMotion !== 'coasting') void this.play('vehicle/coast.wav');
     this.lastMotion = run.motion; this.lastSpeed = run.speed;

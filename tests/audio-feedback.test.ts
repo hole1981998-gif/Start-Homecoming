@@ -19,17 +19,18 @@ it('the water contact flag remains active across ticks of a long puddle', () => 
 });
 
 it('sustains water only during contact, uses physical collision types, and leaves steering and warning cues silent', async () => {
-  const sources: Array<{ buffer?: { path: string }; gain?: { gain: { targets: number[] } }; started: boolean; stopped: boolean; loop: boolean }> = [];
+  const sources: Array<{ buffer?: { path: string }; gain?: { gain: { targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean }> = [];
   const fetched: string[] = [];
   class FakeAudioContext {
-    state = 'running'; currentTime = 1; destination = {};
+    static time = 1;
+    state = 'running'; get currentTime() { return FakeAudioContext.time; } destination = {};
     createGain() {
       return { gain: { value: 0, targets: [] as number[], setTargetAtTime(value: number) { this.targets.push(value); } },
         connect() { return this; }, disconnect() { /* detached */ } };
     }
     createBufferSource() {
       const source = { buffer: undefined as { path: string } | undefined, gain: undefined as ReturnType<FakeAudioContext['createGain']> | undefined,
-        started: false, stopped: false, loop: false, playbackRate: { setTargetAtTime() { /* audio parameter */ } },
+        started: false, stopped: false, loop: false, playbackRate: { targets: [] as number[], setTargetAtTime(value: number) { this.targets.push(value); } },
         connect(gain: ReturnType<FakeAudioContext['createGain']>) { this.gain = gain; return gain; },
         disconnect() { /* detached */ }, start() { this.started = true; }, stop() { this.stopped = true; } };
       sources.push(source); return source;
@@ -60,6 +61,10 @@ it('sustains water only during contact, uses physical collision types, and leave
   await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('water_roll_loop'))).toBe(true));
   const waterSource = sources.find(source => source.buffer?.path.includes('water_roll_loop'))!;
   expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
+  await director.update({ ...base, speed: 20, world: { ...base.world, entities: [water] } });
+  const waterTargets = waterSource.gain?.gain.targets ?? [];
+  expect(waterTargets.at(-1)).toBeGreaterThan(waterTargets.at(-2) ?? 0);
+  expect(waterSource.playbackRate.targets.at(-1)).toBeGreaterThan(1);
   await director.update(base);
   expect(waterSource.gain?.gain.targets.at(-1)).toBe(0);
 
@@ -67,18 +72,21 @@ it('sustains water only during contact, uses physical collision types, and leave
   const container = { ...entity('traffic', 'test-container', 0, 0), trafficKind: 'container' as const, lastHit: 0 };
   await director.update({ ...base, eventSequence: 3, feedbackKind: 'traffic', world: { ...base.world, entities: [container] } });
   expect(fetched.some(path => path.includes('pothole_rattle_light'))).toBe(true);
+  expect(fetched.some(path => path.includes('collision_light'))).toBe(true);
+  FakeAudioContext.time = 2;
+  await director.update({ ...base, speed: 25, eventSequence: 4, feedbackKind: 'traffic', world: { ...base.world, entities: [container] } });
   expect(fetched.some(path => path.includes('collision_heavy'))).toBe(true);
   const bike = { ...entity('traffic', 'bike', 0, 0), trafficKind: 'motorbike' as const, trafficPairContacts: ['moto'] };
   const moto = { ...entity('traffic', 'moto', 0, 0), trafficKind: 'motorcycle' as const, trafficPairContacts: ['bike'] };
-  await director.update({ ...base, eventSequence: 3, world: { ...base.world, entities: [bike, moto] } });
+  await director.update({ ...base, eventSequence: 4, world: { ...base.world, entities: [bike, moto] } });
   expect(fetched.some(path => path.includes('collision_light'))).toBe(true);
   const hole = entity('pothole', 'hole', 0, 0);
-  await director.update({ ...base, eventSequence: 3, world: { ...base.world, entities: [{ ...container, trafficContacts: ['hole'] }, hole] } });
+  await director.update({ ...base, eventSequence: 4, world: { ...base.world, entities: [{ ...container, trafficContacts: ['hole'] }, hole] } });
   expect(fetched.some(path => path.includes('pothole_rattle_heavy'))).toBe(true);
   expect(fetched.some(path => path.includes('skid.wav') || path.includes('police_warning'))).toBe(false);
   expect(fetched.some(path => path.includes('vehicle/accelerate.wav') || path.includes('vehicle/brake.wav'))).toBe(false);
   const heavyBefore = sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length;
-  await director.update({ ...base, phase: 'ended', eventSequence: 4, feedbackKind: 'accident' });
+  await director.update({ ...base, phase: 'ended', eventSequence: 5, feedbackKind: 'accident' });
   await vi.waitFor(() => expect(sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length).toBeGreaterThan(heavyBefore));
   director.dispose();
 });
