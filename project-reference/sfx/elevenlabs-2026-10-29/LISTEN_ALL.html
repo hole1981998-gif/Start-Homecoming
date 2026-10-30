@@ -7,12 +7,91 @@
   body{max-width:900px;margin:2rem auto;padding:0 1rem;background:#172126;color:#f2f4ed;font:15px system-ui,sans-serif}
   h1{font-size:1.7rem}h2{margin:2rem 0 .5rem;color:#a6ded9;font-size:1.15rem}p{color:#c5d1cd;line-height:1.5}
   .cue{display:grid;grid-template-columns:minmax(190px,1fr) minmax(250px,2fr);align-items:center;gap:1rem;padding:.6rem 0;border-bottom:1px solid #384c50}
+  .mix-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin:1rem 0}
+  .mix-card{border:1px solid #496167;border-radius:9px;background:#203238;padding:13px}
+  .mix-card h3{font-size:1rem;margin:0 0 5px}.mix-card p{font-size:.87rem;margin:0 0 12px}
+  button{background:#c9e2d0;border:0;border-radius:7px;padding:9px 13px;color:#173037;font-weight:700;cursor:pointer}
+  button:hover{background:#e0f2e4}button:focus-visible{outline:3px solid #f1d484;outline-offset:2px}
+  #mix-stop{background:#d5bbc0}#mix-status{min-height:1.5em;color:#e9dfac}
   audio{width:100%}@media(max-width:600px){.cue{grid-template-columns:1fr;gap:.3rem}}
 </style>
 <h1>Đường Về Nhà · nghe thử SFX đang dùng</h1>
-<p>Chọn từng tiếng. Các file có chữ “loop” tự lặp để kiểm tra điểm nối. Ramp động cơ dài 10 giây cho nghe các trạng thái nối nhau; file máy trong game còn có lớp texture ElevenLabs ở mức nhỏ. Nghe trong game với tiếng máy và mưa để đánh giá mức âm thực tế. Voice line và nhạc nằm ngoài bộ này.</p>
+<p>Nghe các cảnh đã ghép trước, rồi so từng tiếng ở dưới. Cảnh dùng chính file và mức âm gần với game; ramp động cơ mô phỏng tăng tốc trong 10 giây. Bản nghe này là ví dụ được sắp thời điểm sẵn, chưa thay thế việc chơi game để đánh giá phản hồi. Voice line và nhạc nằm ngoài bộ này.</p>
+<section aria-labelledby="mix-title">
+  <h2 id="mix-title">Nghe cảnh đã ghép</h2>
+  <div id="mix-grid" class="mix-grid"></div>
+  <button id="mix-stop" type="button">Dừng cảnh</button>
+  <p id="mix-status" role="status" aria-live="polite">Chọn một cảnh để nghe.</p>
+</section>
+<h2>Nghe từng tiếng</h2>
+<p>Các file có chữ “loop” tự lặp để kiểm tra điểm nối. Dừng cảnh ghép trước khi nghe file lẻ để tránh chồng tiếng.</p>
 <main id="list"></main>
 <script>
+const old = '../procedural-auditions-2026-10-28/';
+const engine = kind => `${old}engine-v2/${kind}_ramp_preview.wav`;
+const uiFile = name => `${old}ui-modern/${name}_a.wav`;
+const track = (file, volume, at = 0, until = null, loop = false) => ({ file, volume, at, until, loop });
+const road = [track('rain_road_loop.mp3', .44, 0, null, true), track('wind_road_loop.mp3', .04, 0, null, true),
+  track('wet_tire_loop.mp3', .022, 0, null, true)];
+const scenes = [
+  { title: 'Xe máy · mưa, nước, ổ gà', detail: 'Máy tăng tốc → qua vũng nước → nhặt xăng → xóc ổ gà', seconds: 11,
+    tracks: [track(engine('motorcycle'), .208), track('engine_bike_texture_loop.mp3', .059, 0, 10, true), ...road,
+      track('water_entry_skim.mp3', .34, 2), track('water_roll_shallow_loop.mp3', .22, 2.2, 6, true),
+      track('water_exit_spray.mp3', .17, 6), track('fuel_pickup.mp3', .42, 7), track(uiFile('resource_gain'), .156, 7),
+      track('pothole_light.mp3', .65, 8.4), track(uiFile('resource_loss'), .156, 8.4)] },
+  { title: 'Ô tô · nitro, va chạm kết ván', detail: 'Máy tăng tốc → nitro → va xe → dừng → kết ván', seconds: 9,
+    tracks: [track(engine('car4'), .208, 0, 5.5), track('engine_car_texture_loop.mp3', .085, 0, 5.5, true),
+      ...road.map(t => ({ ...t, until: 6 })),
+      track('nitro_activate.mp3', .169, 2), track('collision_medium.mp3', .65, 5),
+      track('vehicle_stop.mp3', .34, 5.3), track('result_failure.mp3', .286, 6)] },
+  { title: 'Xe tải · đồ rơi và chướng ngại', detail: 'Máy dầu → thả thùng → lăn → va thùng → ổ gà', seconds: 11,
+    tracks: [track(engine('truck'), .208), track('engine_heavy_texture_loop.mp3', .085, 0, 10, true), ...road,
+      track('cargo_release.mp3', .32, 1.5), track('cargo_barrel_roll.mp3', .19, 2),
+      track('cargo_barrel_hit.mp3', .65, 5), track('pothole_heavy.mp3', .65, 7),
+      track(uiFile('resource_loss'), .156, 7)] },
+  { title: 'Cửa hàng · nhận thưởng · UI', detail: 'Mở menu → chuyển mục → mua thành công → nhận thưởng → đóng', seconds: 8,
+    tracks: [track(uiFile('menu_select'), .247), track(uiFile('shop_enter'), .247, .7),
+      track(uiFile('shop_category'), .247, 1.8), track(uiFile('purchase_success'), .247, 3),
+      track(uiFile('reward_small'), .156, 4), track(uiFile('menu_back'), .247, 5.5)] },
+  { title: 'Xe buýt · tàu kết ván', detail: 'Máy xe buýt trong mưa → va tàu → âm kết ván', seconds: 9,
+    tracks: [track(engine('bus'), .208, 0, 4), track('engine_heavy_texture_loop.mp3', .085, 0, 4, true),
+      ...road.map(t => ({ ...t, until: 4 })), track('train_hit.mp3', .65, 3.8),
+      track('result_train.mp3', .312, 4.1)] },
+];
+let playing = [], timers = [];
+const status = document.querySelector('#mix-status');
+function stopScene(message = 'Đã dừng.') {
+  for (const timer of timers) clearTimeout(timer);
+  timers = [];
+  for (const sound of playing) { sound.pause(); sound.currentTime = 0; }
+  playing = []; status.textContent = message;
+}
+function startScene(scene) {
+  stopScene();
+  for (const item of scene.tracks) {
+    const sound = new Audio(item.file);
+    sound.preload = 'auto'; sound.volume = item.volume; sound.loop = item.loop;
+    sound.addEventListener('error', () => { status.textContent = `Không mở được: ${item.file}`; }, { once: true });
+    playing.push(sound);
+    const start = () => { void sound.play().catch(() => { status.textContent = `Không phát được: ${item.file}`; }); };
+    if (item.at === 0) start(); else timers.push(setTimeout(start, item.at * 1000));
+    if (item.until !== null) timers.push(setTimeout(() => { sound.pause(); sound.currentTime = 0; }, item.until * 1000));
+  }
+  status.textContent = `Đang phát: ${scene.title} · ${scene.seconds} giây`;
+  timers.push(setTimeout(() => stopScene(`Đã nghe xong: ${scene.title}`), scene.seconds * 1000));
+}
+const mixGrid = document.querySelector('#mix-grid');
+for (const scene of scenes) {
+  const card = document.createElement('article'); card.className = 'mix-card';
+  const title = document.createElement('h3'); title.textContent = scene.title;
+  const detail = document.createElement('p'); detail.textContent = scene.detail;
+  const button = document.createElement('button'); button.type = 'button'; button.textContent = `Phát cảnh · ${scene.seconds}s`;
+  button.addEventListener('click', () => startScene(scene));
+  card.append(title, detail, button); mixGrid.append(card);
+}
+document.querySelector('#mix-stop').addEventListener('click', () => stopScene());
+document.addEventListener('visibilitychange', () => { if (document.hidden && playing.length) stopScene('Đã dừng khi rời trang.'); });
+document.querySelector('#list').addEventListener('play', event => { if (event.target instanceof HTMLAudioElement) stopScene('Đã dừng cảnh ghép để nghe file lẻ.'); }, true);
 const groups = {
   'Nước': 'water_entry_skim water_entry_wash water_entry_heavy water_roll_shallow_loop water_roll_deep_loop water_exit_spray',
   'Mưa · gió · mặt đường': 'rain_road_loop wind_road_loop wet_tire_loop wind_gust',

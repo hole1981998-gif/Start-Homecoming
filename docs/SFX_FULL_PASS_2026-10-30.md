@@ -35,3 +35,13 @@ Two sliders on the start/pause/help/result panel set SFX and rain/wind independe
 - `pnpm test --maxWorkers=1 --reporter=dot`: pass, 40 files and 272 tests, exit 0. The first full run had one stale focus-order expectation after inserting sliders; it was corrected and both the focused rerun (10/10) and final full run passed.
 - `pnpm build`: pass, Vite built 1707 modules, exit 0.
 - CI on the eventual pushed commit: pending. No human sound approval yet; no merge.
+
+## Composite audition pass
+
+After owner asked to hear the sounds together, `LISTEN_ALL.html` now begins with five playable, timed mixes: motorcycle in rain/water, car nitro and terminal crash, truck cargo and obstacles, shop/reward UI, and bus/train ending. They use the same source files and approximate runtime bus/cue gains; the engine ramps are existing ten-second previews, so the timing is an illustrative sequence rather than a recording of one game run. The controls stop the previous scene before another starts and stop the mix when the page becomes hidden or an individual cue is played.
+
+Edge opened the page directly from the local `file://` path. The first scene played five simultaneous starting layers and started both water cues at their scheduled times; Stop removed all active tracks. A second smoke check found five scene cards, 44 track placements, zero missing source files and zero page errors. Each scene button was exercised. This checks playback wiring, not sound quality by ear.
+
+Self-review: the game designer sees no simulation change; a real run can place events differently, so these sequences must not be treated as balance evidence. The UI/UX review found the mix section above the file-by-file list with explicit Play, Stop and status text. Owner listening is still needed for mix balance, emotional weight and loop seams.
+
+Access limitation: the owner's in-app browser still did not open the local `file://` audition page. The mix remains committed source in the repository; no standalone rendered mix files were produced before the owner asked to stop and upload the current work.
