@@ -16,7 +16,7 @@
   audio{width:100%}@media(max-width:600px){.cue{grid-template-columns:1fr;gap:.3rem}}
 </style>
 <h1>Đường Về Nhà · nghe thử SFX đang dùng</h1>
-<p>Nghe các cảnh đã ghép trước, rồi so từng tiếng ở dưới. Cảnh dùng chính file và mức âm gần với game; ramp động cơ mô phỏng tăng tốc trong 10 giây. Bản nghe này là ví dụ được sắp thời điểm sẵn, chưa thay thế việc chơi game để đánh giá phản hồi. Voice line và nhạc nằm ngoài bộ này.</p>
+<p>Nghe các cảnh đã ghép trước, rồi so từng tiếng ở dưới. Cảnh dùng chính file và mức âm gần với game; ramp động cơ mô phỏng tăng tốc trong 10 giây. Bản nghe này là ví dụ được sắp thời điểm sẵn, chưa thay thế việc chơi game để đánh giá phản hồi. Các voice line ngắn đã ghép nằm cuối trang.</p>
 <section aria-labelledby="mix-title">
   <h2 id="mix-title">Nghe cảnh đã ghép</h2>
   <div id="mix-grid" class="mix-grid"></div>
@@ -93,17 +93,18 @@ document.querySelector('#mix-stop').addEventListener('click', () => stopScene())
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing.length) stopScene('Đã dừng khi rời trang.'); });
 document.querySelector('#list').addEventListener('play', event => { if (event.target instanceof HTMLAudioElement) stopScene('Đã dừng cảnh ghép để nghe file lẻ.'); }, true);
 const groups = {
-  'Nước': 'water_entry_skim water_entry_wash water_entry_heavy water_roll_shallow_loop water_roll_deep_loop water_exit_spray',
-  'Mưa · gió · mặt đường': 'rain_road_loop wind_road_loop wet_tire_loop wind_gust',
-  'Động cơ · xe': 'engine_bike_texture_loop engine_car_texture_loop engine_heavy_texture_loop vehicle_coast vehicle_stop driver_fall vehicle_switch',
-  'Va chạm · chướng ngại': 'pothole_light pothole_heavy collision_light collision_medium collision_heavy barrier_hit vendor_cart_hit ambulance_hit train_hit pedestrian_hit broken_car',
-  'Đồ rơi': 'cargo_release cargo_barrel_roll cargo_crate_roll cargo_barrel_hit cargo_crate_hit',
+  'Nước': 'water_entry_skim water_entry_skim_alt water_entry_skim_grit water_entry_wash water_entry_wash_alt water_entry_wash_ripple water_entry_heavy water_entry_heavy_alt water_entry_heavy_surge water_roll_shallow_loop water_roll_shallow_ripple_loop water_roll_shallow_grit_loop water_roll_deep_loop water_roll_deep_churn_loop water_roll_deep_surge_loop water_exit_spray',
+  'Mưa · gió · mặt đường': 'rain_road_loop wind_road_loop wind_road_soft_loop wet_tire_loop wind_gust',
+  'Động cơ · xe': 'engine_bike_texture_loop engine_car_texture_loop engine_heavy_texture_loop vehicle_coast vehicle_stop driver_fall driver_fall_alt vehicle_switch',
+  'Va chạm · chướng ngại': 'pothole_light pothole_light_alt pothole_heavy pothole_heavy_alt collision_light collision_light_alt collision_medium collision_medium_alt collision_heavy collision_heavy_alt barrier_hit barrier_hit_alt vendor_cart_hit vendor_cart_hit_alt ambulance_hit ambulance_hit_alt train_hit pedestrian_hit pedestrian_hit_alt broken_car',
+  'Đồ rơi': 'cargo_release cargo_barrel_roll cargo_crate_roll cargo_barrel_hit cargo_barrel_hit_alt cargo_crate_hit cargo_crate_hit_alt',
   'Vật phẩm · hành khách': 'fuel_pickup repair_pickup nitro_activate jump_launch jump_land star_activate grab_call passenger_pickup passenger_drop banana_use police_capture ambulance_pass',
   'Kết ván': 'result_failure result_fuel result_train result_police result_success',
 };
 const ui = 'menu_select menu_back help_open card_open card_dismiss pause resume restart shop_enter shop_category purchase_fail purchase_success shop_service shop_upgrade vehicle_purchase toggle_on toggle_off resource_gain resource_loss reward_small';
 groups['Động cơ · ramp tăng tốc theo 8 xe'] = 'motorcycle motorbike tricycle car4 car7 bus truck container'.split(' ').map(kind => `../procedural-auditions-2026-10-28/engine-v2/${kind}_ramp_preview.wav`).join(' ');
 groups['UI · bản gọn trong game'] = ui.split(' ').map(name => `../procedural-auditions-2026-10-28/ui-modern/${name}_a.wav`).join(' ');
+groups['Voice line · NPC'] = 'police_short_a police_short_b militia_short_a militia_short_b passenger_short_a passenger_short_b grab_short_a grab_short_b stranded_short_a stranded_short_b passenger_ignored_a passenger_ignored_b passenger_fall_a passenger_fall_b vendor_near_a vendor_near_b vendor_hit_a vendor_hit_b passenger_hit_short_a passenger_hit_short_b traffic_hit_short_a traffic_hit_short_b driver_pickup_short_a driver_pickup_short_b passenger_kick_scream_a passenger_kick_scream_b storm_crowd_a storm_crowd_b'.split(' ').map(name => `../voice-auditions-2026-10-26/${name}.mp3`).join(' ');
 const list = document.querySelector('#list');
 for (const [title, names] of Object.entries(groups)) {
   const heading = document.createElement('h2'); heading.textContent = title; list.append(heading);
