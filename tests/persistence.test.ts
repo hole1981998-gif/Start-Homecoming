@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { expect, it } from 'vitest';
-import { badges, leaderboard, recordResult, results, saveSeen, seenCards, showFlavor, saveFlavor } from '../src/persistence';
+import { expect, it, vi } from 'vitest';
+import { audioLevel, badges, leaderboard, recordResult, results, saveAudioLevel, saveSeen, seenCards, showFlavor, saveFlavor } from '../src/persistence';
 import type { RunResult } from '../src/survival';
 it('validates corrupt saves and records a terminal run once by runId', () => {
   localStorage.clear(); localStorage.setItem('dvn.results.v1', '{broken');
@@ -40,4 +40,20 @@ it('keeps legacy results while ranking the speed rules separately', () => {
   expect(results()).toHaveLength(2);
   expect(leaderboard('legacy-v1').map(r => r.runId)).toEqual(['legacy']);
   expect(leaderboard('speed-v1').map(r => r.runId)).toEqual(['speed']);
+});
+
+it('persists audio mute separately and continues safely when browser storage is blocked', () => {
+  localStorage.clear();
+  expect(audioLevel('sfx')).toBe(1);
+  expect(saveAudioLevel('sfx', 0)).toBe(true);
+  expect(saveAudioLevel('ambience', .35)).toBe(true);
+  expect(audioLevel('sfx')).toBe(0);
+  expect(audioLevel('ambience')).toBe(.35);
+  localStorage.setItem('dvn.audio.sfx', '{broken');
+  expect(audioLevel('sfx')).toBe(1);
+  const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+  const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+  expect(audioLevel('sfx')).toBe(1);
+  expect(saveAudioLevel('sfx', 0)).toBe(false);
+  read.mockRestore(); write.mockRestore();
 });

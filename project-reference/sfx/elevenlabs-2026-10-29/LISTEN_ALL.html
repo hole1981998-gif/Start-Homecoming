@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="vi">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đường Về Nhà · toàn bộ SFX</title>
+<style>
+  body{max-width:900px;margin:2rem auto;padding:0 1rem;background:#172126;color:#f2f4ed;font:15px system-ui,sans-serif}
+  h1{font-size:1.7rem}h2{margin:2rem 0 .5rem;color:#a6ded9;font-size:1.15rem}p{color:#c5d1cd;line-height:1.5}
+  .cue{display:grid;grid-template-columns:minmax(190px,1fr) minmax(250px,2fr);align-items:center;gap:1rem;padding:.6rem 0;border-bottom:1px solid #384c50}
+  audio{width:100%}@media(max-width:600px){.cue{grid-template-columns:1fr;gap:.3rem}}
+</style>
+<h1>Đường Về Nhà · nghe thử SFX đang dùng</h1>
+<p>Chọn từng tiếng. Các file có chữ “loop” tự lặp để kiểm tra điểm nối. Ramp động cơ dài 10 giây cho nghe các trạng thái nối nhau; file máy trong game còn có lớp texture ElevenLabs ở mức nhỏ. Nghe trong game với tiếng máy và mưa để đánh giá mức âm thực tế. Voice line và nhạc nằm ngoài bộ này.</p>
+<main id="list"></main>
+<script>
+const groups = {
+  'Nước': 'water_entry_skim water_entry_wash water_entry_heavy water_roll_shallow_loop water_roll_deep_loop water_exit_spray',
+  'Mưa · gió · mặt đường': 'rain_road_loop wind_road_loop wet_tire_loop wind_gust',
+  'Động cơ · xe': 'engine_bike_texture_loop engine_car_texture_loop engine_heavy_texture_loop vehicle_coast vehicle_stop driver_fall vehicle_switch',
+  'Va chạm · chướng ngại': 'pothole_light pothole_heavy collision_light collision_medium collision_heavy barrier_hit vendor_cart_hit ambulance_hit train_hit pedestrian_hit broken_car',
+  'Đồ rơi': 'cargo_release cargo_barrel_roll cargo_crate_roll cargo_barrel_hit cargo_crate_hit',
+  'Vật phẩm · hành khách': 'fuel_pickup repair_pickup nitro_activate jump_launch jump_land star_activate grab_call passenger_pickup passenger_drop banana_use police_capture ambulance_pass',
+  'Kết ván': 'result_failure result_fuel result_train result_police result_success',
+};
+const ui = 'menu_select menu_back help_open card_open card_dismiss pause resume restart shop_enter shop_category purchase_fail purchase_success shop_service shop_upgrade vehicle_purchase toggle_on toggle_off resource_gain resource_loss reward_small';
+groups['Động cơ · ramp tăng tốc theo 8 xe'] = 'motorcycle motorbike tricycle car4 car7 bus truck container'.split(' ').map(kind => `../procedural-auditions-2026-10-28/engine-v2/${kind}_ramp_preview.wav`).join(' ');
+groups['UI · bản gọn trong game'] = ui.split(' ').map(name => `../procedural-auditions-2026-10-28/ui-modern/${name}_a.wav`).join(' ');
+const list = document.querySelector('#list');
+for (const [title, names] of Object.entries(groups)) {
+  const heading = document.createElement('h2'); heading.textContent = title; list.append(heading);
+  for (const name of names.split(' ')) {
+    const path = name.includes('/') ? name : `${name}.mp3`;
+    const row = document.createElement('div'); row.className = 'cue';
+    const label = document.createElement('span'); label.textContent = name.split('/').pop().replace(/_a\.wav$/, '').replace(/_/g, ' ');
+    const player = document.createElement('audio'); player.controls = true; player.preload = 'metadata'; player.loop = name.includes('_loop'); player.src = path;
+    row.append(label, player); list.append(row);
+  }
+}
+</script>
+</html>

@@ -3,7 +3,7 @@ import { balance, shopBalance } from './config';
 import { FixedClock, noInput } from './simulation';
 import { activeVehicle, dropPassenger, initialRun, names, passengerDrive, pickUpPassenger, selectTurn, stepRun, switchVehicle } from './survival';
 import { canChoose, junction, junctionWindow } from './route';
-import { leaderboard, recordResult, saveSeen, seenCards, showFlavor, saveFlavor } from './persistence';
+import { audioLevel, leaderboard, recordResult, saveAudioLevel, saveSeen, seenCards, showFlavor, saveFlavor } from './persistence';
 import { RoadRenderer } from './render';
 import { warningDistance, type EntityKind } from './world';
 import { developmentScenario } from './development';
@@ -15,7 +15,7 @@ import { hasBoost, hasStar, itemNames, requestJump, usePowerItem } from './items
 import { ShopView } from './shop-view';
 import type { ForceIntegration } from './force-integration';
 import { runtimeMode } from './runtime-mode';
-import { AudioDirector } from './audio-director';
+import { AudioDirector, type UiCue } from './audio-director';
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound } });
 
 const version = runtimeMode(location.pathname);
@@ -66,16 +66,37 @@ let discovery: EntityKind | null = null, cardTimer: ReturnType<typeof setTimeout
 let savedRunId = '';
 const seen = seenCards(), clock = new FixedClock(), listeners = new AbortController();
 const flavorToggle = el<HTMLInputElement>('flavor-toggle'); flavorToggle.checked = showFlavor();
-flavorToggle.addEventListener('change', () => saveFlavor(flavorToggle.checked), { signal: listeners.signal });
+flavorToggle.addEventListener('change', () => { saveFlavor(flavorToggle.checked); audio.unlock(); audio.ui(flavorToggle.checked ? 'toggle_on' : 'toggle_off'); }, { signal: listeners.signal });
+const audioOptions = document.createElement('div'); audioOptions.className = 'audio-options';
+const audioTitle = document.createElement('strong'); audioTitle.textContent = 'Âm thanh'; audioOptions.append(audioTitle);
+const audioSlider = (label: string, bus: 'sfx' | 'ambience') => {
+  const row = document.createElement('label'), caption = document.createElement('span'), value = document.createElement('output'), slider = document.createElement('input');
+  caption.textContent = label; value.setAttribute('aria-hidden', 'true'); slider.setAttribute('aria-label', label);
+  slider.type = 'range'; slider.min = '0'; slider.max = '1'; slider.step = '0.05';
+  slider.value = String(audioLevel(bus));
+  const update = () => { value.textContent = `${Math.round(Number(slider.value) * 100)}%`; };
+  update(); slider.addEventListener('input', () => { update(); saveAudioLevel(bus, Number(slider.value));
+    audio.setLevels(Number(sfxSlider.value), Number(ambienceSlider.value)); }, { signal: listeners.signal });
+  row.append(caption, value, slider); audioOptions.append(row); return slider;
+};
+const sfxSlider = audioSlider('Hiệu ứng', 'sfx');
+const ambienceSlider = audioSlider('Mưa và gió', 'ambience');
+audio.setLevels(Number(sfxSlider.value), Number(ambienceSlider.value));
+el('modal-description').after(audioOptions);
+audioOptions.after(el('feedback-options'));
 const roadHud = new RoadHud(el('world-cues'));
 const shopView = new ShopView(el('shop-panel'), () => state, command => {
+  const sequence = state.economySequence;
   const result = transact(state, command); state = result.run; previous = state;
   text('shop-status', result.message);
-});
+  audio.ui(state.economySequence === sequence ? 'purchase_fail' : command.kind === 'vehicle' ? 'vehicle_purchase' :
+    command.kind === 'upgrade' ? 'shop_upgrade' : command.kind === 'service' ? 'shop_service' : 'purchase_success');
+}, cue => audio.ui(cue));
 function openShop(): void {
   const next = enterShop(state); if (next === state) return;
   state = next; shopView.reset();
   show('shop', 'Cửa hàng ven đường', 'Game tạm dừng. Tiền chỉ trừ khi giao dịch thành công.');
+  audio.ui('shop_enter');
   text('shop-status', 'Chọn danh mục. Esc hoặc Tiếp tục lái để rời cửa hàng.'); shopView.render();
 }
 let graphics: RoadRenderer;
@@ -98,21 +119,27 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
   el('panel-help').hidden = !['pause', 'result'].includes(view);
   el('panel-restart').hidden = view !== 'pause';
-  el('feedback-options').hidden = !['pause', 'help', 'result'].includes(view);
+  el('feedback-options').hidden = !['start', 'pause', 'help', 'result'].includes(view);
+  audioOptions.hidden = !['start', 'pause', 'help', 'result'].includes(view);
   play.textContent = view === 'card' ? 'Đã hiểu · tiếp tục' : view === 'result' ? 'Chơi lại' : view === 'start' ? 'Bắt đầu lái' : 'Tiếp tục lái';
   (view === 'help' ? closeHelp : play).focus({ preventScroll: true });
 }
-function pauseRun(): void {
+function pauseRun(silentUi = false): void {
   if (state.phase !== 'running') return;
   audio.pause();
   state = { ...state, phase: 'paused' };
   show('pause', 'Nghỉ một nhịp', 'Xe đã dừng an toàn. Xăng, điểm và tiền không thay đổi khi tạm dừng.');
+  if (!silentUi) audio.ui('pause');
 }
-function resume(): void {
+function resume(cue?: UiCue | null): void {
   if (document.hidden || state.phase === 'ended') return;
+  const previousScreen = screen;
   audio.unlock();
   state = { ...leaveShop(state), phase: 'running' }; screen = null; modal.hidden = true;
   versionLink.hidden = false; clearInput(); canvas.focus({ preventScroll: true });
+  void audio.update(state);
+  if (cue !== null) audio.ui(cue ?? (previousScreen === 'card' ? 'card_dismiss' : previousScreen === 'shop' || previousScreen === 'help' ?
+    'menu_back' : previousScreen === 'start' ? 'menu_select' : 'resume'));
 }
 function reset(): void {
   audio.reset();
@@ -159,10 +186,12 @@ function resultView(): void {
   }
 }
 function openHelp(): void {
+  audio.unlock();
   if (state.shopId) state = leaveShop(state);
-  pauseRun();
+  pauseRun(true);
   const vehicle = activeVehicle(state);
   show('help', 'Cách cầm lái', `Giữ W/S để nhanh/chậm; thả hồi về tốc độ trung vị của ${vehicle.name}. A/D lái; Q/E rẽ; F đón khách; G cho khách xuống. Tab đổi nhanh xe khi có xe dự phòng; khách và tài nguyên của từng xe được giữ nguyên. Xe hiện tại ${vehicle.name}: ${vehicle.capacity} chỗ tính cả tài xế, cruise ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h khi trống, bình ${formatter.format(vehicle.fuelCapacity)} L, hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Chở khách giảm cruise và quá tải tăng hao xăng. Nước hao xăng, ổ gà trừ HP theo thời gian, xe giao thông gây va/ngã; pha ngã/trôi/quay lại miễn tác động xấu. Hết xăng trôi ${balance.coastDistance} m; HP về 0 hoặc hết đà sẽ tự chuyển xe còn chạy được. R ghé cửa hàng đủ gần; Xăng/sửa chỉ tại chỗ. Phím 1/2 dùng nitro boost, star hoặc Grab (gọi khách phía trước rồi F đón); Space nhảy khi nitro đang bật; star không bỏ qua event, nitro không vượt xe cao.`);
+  audio.ui('help_open');
 }
 const cardDescriptions: Record<EntityKind, string> = {
   wind: 'Gió đẩy ngang trong vùng có màu. A/D lái ngược hướng để bù; star và lúc ngã miễn tác động. Rời vùng hoặc pause không tích lực.',
@@ -181,9 +210,9 @@ const cardDescriptions: Record<EntityKind, string> = {
   repair: `Hộp trắng có dấu cộng: lái chạm để phục hồi tới ${balance.repairPickup} HP, không vượt độ bền tối đa. Đây là nhặt trực tiếp; mua bộ sửa mang theo ở cửa hàng và dùng R.`,
   passenger: `Người đứng ven đường chờ đi nhờ. Lái tới gần cùng phía và nhấn F để đón; không tự lên xe khi chạm. Nhấn G cho một khách xuống ngay khi chạy. Tài xế chiếm một chỗ, khách thêm làm giảm tốc độ trung vị; quá tải còn giảm tốc tối đa và tăng hao xăng.`,
 };
-function dismissCard(): void {
+function dismissCard(silentUi = false): void {
   if (discovery) { seen.add(discovery); saveSeen(seen); } discovery = null; clearTimeout(cardTimer);
-  if (document.hidden || !document.hasFocus()) show('pause', 'Sẵn sàng tiếp tục?', 'Thẻ đã đóng. Chọn tiếp tục khi quay lại màn chơi.'); else resume();
+  if (document.hidden || !document.hasFocus()) show('pause', 'Sẵn sàng tiếp tục?', 'Thẻ đã đóng. Chọn tiếp tục khi quay lại màn chơi.'); else resume(silentUi ? null : undefined);
 }
 function discover(): void {
   if (state.phase !== 'running') return;
@@ -194,16 +223,17 @@ function discover(): void {
   discovery = candidate.kind; state = { ...state, phase: 'paused' };
   audio.pause();
   show('card', candidate.displayName ?? names[candidate.kind], candidate.help ?? cardDescriptions[candidate.kind]);
+  audio.ui('card_open');
   text('discovery-hint', `Game đang tạm dừng. Bấm nút hoặc chờ ${balance.discoverySeconds} giây để đóng thẻ.`);
-  cardTimer = setTimeout(dismissCard, balance.discoverySeconds * 1000);
+  cardTimer = setTimeout(() => dismissCard(true), balance.discoverySeconds * 1000);
 }
 play.addEventListener('click', () => {
   audio.unlock();
-  if (screen === 'card') dismissCard(); else if (screen === 'result') { reset(); resume(); } else resume();
+  if (screen === 'card') dismissCard(); else if (screen === 'result') { reset(); resume('restart'); } else resume();
 }, { signal: listeners.signal });
 pause.addEventListener('click', () => state.phase === 'running' ? pauseRun() : resume(), { signal: listeners.signal });
-restart.addEventListener('click', reset, { signal: listeners.signal });
-el('panel-restart').addEventListener('click', reset, { signal: listeners.signal });
+restart.addEventListener('click', () => { reset(); audio.ui('restart'); }, { signal: listeners.signal });
+el('panel-restart').addEventListener('click', () => { reset(); audio.ui('restart'); }, { signal: listeners.signal });
 el('help').addEventListener('click', openHelp, { signal: listeners.signal });
 el('panel-help').addEventListener('click', openHelp, { signal: listeners.signal });
 closeHelp.addEventListener('click', () => {
@@ -233,13 +263,16 @@ window.addEventListener('keydown', event => {
   if (!event.repeat && event.code === 'KeyF') { state = pickUpPassenger(state); return; }
   if (!event.repeat && event.code === 'KeyG') { state = dropPassenger(state); return; }
   if (!event.repeat && (event.code === 'KeyQ' || event.code === 'KeyE')) {
-    event.preventDefault(); state = selectTurn(state, event.code === 'KeyQ' ? 'left' : 'right'); return;
+    event.preventDefault(); const before = state;
+    state = selectTurn(state, event.code === 'KeyQ' ? 'left' : 'right');
+    if (state !== before) audio.ui('menu_select');
+    return;
   }
   if (event.code in mapping) { event.preventDefault(); input[mapping[event.code as keyof typeof mapping]] = true; }
 }, { signal: listeners.signal });
 window.addEventListener('keyup', event => { if (event.code in mapping) input[mapping[event.code as keyof typeof mapping]] = false; }, { signal: listeners.signal });
-window.addEventListener('blur', pauseRun, { signal: listeners.signal });
-document.addEventListener('visibilitychange', () => { if (document.hidden) pauseRun(); }, { signal: listeners.signal });
+window.addEventListener('blur', () => pauseRun(true), { signal: listeners.signal });
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseRun(true); }, { signal: listeners.signal });
 canvas.addEventListener('blur', event => {
   clearInput(); if (![pause, restart, el('help')].includes(event.relatedTarget as HTMLElement)) pauseRun();
 }, { signal: listeners.signal });

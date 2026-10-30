@@ -56,8 +56,10 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   tick(1); expect(el('speed').textContent).toBe('50,4');
   click('help'); expect(el('modal-title').textContent).toBe('Cách cầm lái');
   const helpDistance = el('distance').textContent; tick(3); expect(el('distance').textContent).toBe(helpDistance);
-  key('keydown', 'Tab'); expect(document.activeElement).toBe(el('close-help'));
-  el('flavor-toggle').focus(); key('keydown', 'Tab'); expect(document.activeElement).toBe(el('close-help'));
+  const firstAudioSlider = document.querySelector<HTMLInputElement>('.audio-options input');
+  expect(firstAudioSlider?.getAttribute('aria-label')).toBe('Hiệu ứng');
+  key('keydown', 'Tab'); expect(document.activeElement).toBe(firstAudioSlider);
+  key('keydown', 'Tab', { shiftKey: true }); expect(document.activeElement).toBe(el('close-help'));
   key('keydown', 'Escape'); expect(el('modal').hidden).toBe(false);
   key('keydown', 'Escape'); expect(el('modal').hidden).toBe(true);
   for (let i = 0; i < 10; i++) {

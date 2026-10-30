@@ -11,19 +11,20 @@ export class ShopView {
   private pending: VehicleKind | null = null;
   private upgradeTarget: string | null = null;
   constructor(private host: HTMLElement, private read: () => Run,
-    command: (command: ShopCommand) => void) {
+    command: (command: ShopCommand) => void,
+    private ui?: (cue: 'shop_category' | 'menu_select' | 'menu_back') => void) {
     host.addEventListener('change', event => {
       const select = event.target as HTMLSelectElement;
       if (select.id !== 'shop-upgrade-target') return;
-      this.upgradeTarget = select.value; this.render();
+      this.upgradeTarget = select.value; this.ui?.('shop_category'); this.render();
     });
     host.addEventListener('click', event => {
       const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
       if (!button || button.disabled) return;
       const run = read(), sequence = run.economySequence;
-      if (button.dataset.tab) { this.tab = button.dataset.tab as typeof this.tab; this.pending = null; this.render(); return; }
-      if (button.dataset.vehicle) { this.pending = button.dataset.vehicle as VehicleKind; this.render(); return; }
-      if (button.dataset.cancel) { this.pending = null; this.render(); return; }
+      if (button.dataset.tab) { if (this.tab !== button.dataset.tab) this.ui?.('shop_category'); this.tab = button.dataset.tab as typeof this.tab; this.pending = null; this.render(); return; }
+      if (button.dataset.vehicle) { this.pending = button.dataset.vehicle as VehicleKind; this.ui?.('menu_select'); this.render(); return; }
+      if (button.dataset.cancel) { this.pending = null; this.ui?.('menu_back'); this.render(); return; }
       if (button.dataset.confirm) {
         const discardId = host.querySelector<HTMLSelectElement>('#shop-discard')?.value;
         if (!this.pending) return;

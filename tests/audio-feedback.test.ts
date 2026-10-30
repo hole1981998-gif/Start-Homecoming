@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { AudioDirector, smoothWaterLoop } from '../src/audio-director';
+import { AudioDirector, taperLoopEdges } from '../src/audio-director';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
@@ -13,7 +13,7 @@ it('tapers both channels at compressed water-loop boundaries while preserving th
   const channels = [new Float32Array(4410).fill(.4), new Float32Array(4410).fill(-.3)];
   const buffer = { sampleRate: 44100, length: 4410, numberOfChannels: 2,
     getChannelData: (index: number) => channels[index] } as AudioBuffer;
-  smoothWaterLoop(buffer);
+  taperLoopEdges(buffer);
   for (const channel of channels) {
     expect(Math.abs(channel[0])).toBe(0);
     expect(Math.abs(channel.at(-1)!)).toBe(0);
@@ -107,6 +107,7 @@ it('sustains water only during contact, uses physical collision types, and leave
   const container = { ...entity('traffic', 'test-container', 0, 0), trafficKind: 'container' as const, lastHit: 0 };
   await director.update({ ...base, eventSequence: 3, feedbackKind: 'traffic', world: { ...base.world, entities: [container] } });
   expect(fetched.some(path => path.includes('pothole_light.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('resource_loss_a.wav'))).toBe(true);
   expect(fetched.some(path => path.includes('collision_light.mp3'))).toBe(true);
   FakeAudioContext.time = 3;
   await director.update({ ...base, speed: 25, eventSequence: 4, feedbackKind: 'traffic', world: { ...base.world, entities: [container] } });
@@ -128,8 +129,16 @@ it('sustains water only during contact, uses physical collision types, and leave
   expect(fetched.some(path => path.includes('ambulance_hit.mp3'))).toBe(true);
   expect(fetched.some(path => path.includes('skid.wav') || path.includes('police_warning'))).toBe(false);
   expect(fetched.some(path => path.includes('vehicle/accelerate.wav') || path.includes('vehicle/brake.wav'))).toBe(false);
+  FakeAudioContext.time = 6;
+  await director.update({ ...base, eventSequence: 7, feedbackKind: 'fuel' });
+  expect(fetched.some(path => path.includes('fuel_pickup.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('resource_gain_a.wav'))).toBe(true);
+  FakeAudioContext.time = 7;
+  await director.update({ ...base, eventSequence: 8, feedbackKind: 'passenger' });
+  expect(fetched.some(path => path.includes('passenger_pickup.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('reward_small_a.wav'))).toBe(true);
   const heavyBefore = sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length;
-  await director.update({ ...base, phase: 'ended', eventSequence: 7, feedbackKind: 'accident' });
+  await director.update({ ...base, phase: 'ended', eventSequence: 9, feedbackKind: 'accident' });
   await vi.waitFor(() => expect(sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length).toBeGreaterThan(heavyBefore));
   director.dispose();
 });

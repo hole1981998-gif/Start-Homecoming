@@ -41,3 +41,10 @@ export function seenCards(): Set<EntityKind> {
 export function saveSeen(seen: Set<EntityKind>): void { write(seenKey, [...seen]); }
 export function showFlavor(): boolean { return read('dvn.flavor.v1') !== false; }
 export function saveFlavor(enabled: boolean): void { write('dvn.flavor.v1', enabled); }
+export function audioLevel(bus: 'sfx' | 'ambience'): number {
+  const value = read(`dvn.audio.${bus}`);
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 1;
+}
+export function saveAudioLevel(bus: 'sfx' | 'ambience', level: number): boolean {
+  return write(`dvn.audio.${bus}`, Number.isFinite(level) ? Math.max(0, Math.min(1, level)) : 1);
+}

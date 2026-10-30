@@ -8,7 +8,8 @@ afterEach(() => vi.unstubAllGlobals());
 
 it('starts layered driving sound and cancels both active and fading stems on pause', async () => {
   const sources: Array<{ started: boolean; stopped: boolean; stopTimes: number[] }> = [];
-  const gain = () => ({ gain: { value: 0, setTargetAtTime() { /* audio parameter */ } }, connect() { return this; }, disconnect() { /* detached */ } });
+  const gains: Array<{ gain: { value: number; targets: number[] } }> = [], fetched: string[] = [];
+  const gain = () => { const node = { gain: { value: 0, targets: [] as number[], setTargetAtTime(value: number) { this.targets.push(value); } }, connect() { return this; }, disconnect() { /* detached */ } }; gains.push(node); return node; };
   class FakeAudioContext {
     state = 'running'; currentTime = 1; destination = {};
     createGain() { return gain(); }
@@ -24,17 +25,27 @@ it('starts layered driving sound and cancels both active and fading stems on pau
     close() { return Promise.resolve(); }
   }
   vi.stubGlobal('AudioContext', FakeAudioContext);
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) }));
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => { fetched.push(path); return { ok: !path.includes('engine_car_texture_loop.mp3'), arrayBuffer: async () => new ArrayBuffer(8) }; }));
   const director = new AudioDirector();
   const run = { ...initialRun(17, 'audio-test'), phase: 'running' as const };
   director.unlock();
+  director.setLevels(0, .5);
+  expect(gains[0].gain.targets.at(-1)).toBe(0);
+  expect(gains[1].gain.targets.at(-1)).toBeCloseTo(.11);
   await director.update(run);
-  await vi.waitFor(() => expect(sources.filter(s => s.started).length).toBeGreaterThanOrEqual(6));
+  await vi.waitFor(() => expect(sources.filter(s => s.started).length).toBeGreaterThanOrEqual(7));
+  expect(fetched.some(path => path.includes('engine_bike_texture_loop.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('rain_road_loop.mp3'))).toBe(true);
+  director.ui('menu_select');
+  expect(fetched.some(path => path.includes('menu_select_a.wav'))).toBe(true);
   const car = newVehicle('car4', 'audio-car');
   await director.update({ ...run, vehicleInstances: [...run.vehicleInstances, car], activeVehicleId: car.id });
-  await vi.waitFor(() => expect(sources.filter(s => s.started).length).toBeGreaterThanOrEqual(9));
+  await vi.waitFor(() => expect(sources.filter(s => s.started).length).toBeGreaterThanOrEqual(10));
+  expect(fetched.some(path => path.includes('engine_car_texture_loop.mp3'))).toBe(true);
   director.pause();
-  expect(sources.filter(s => s.stopTimes.length >= 2).length).toBeGreaterThanOrEqual(3);
+  director.ui('pause');
+  expect(fetched.some(path => path.includes('pause_a.wav'))).toBe(true);
+  expect(sources.filter(s => s.stopTimes.length >= 2).length).toBeGreaterThanOrEqual(4);
   director.reset();
   expect(sources.every(s => s.stopped)).toBe(true);
   director.dispose();
