@@ -7,6 +7,7 @@ Existing files are kept, so a partial run can be resumed safely.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
@@ -20,6 +21,12 @@ MODEL = "eleven_text_to_sound_v2"
 PROMPTS = {
     "water_roll_loop": (5.0, True, "Continuous close tire spray as a motorcycle rolls through a shallow puddle on wet asphalt, soft irregular splashes, no engine, no voices, no music."),
     "water_entry_splash": (1.2, False, "A motorcycle tire enters a shallow puddle on asphalt, brief close splash and gritty water spray, no engine, no voices."),
+    "water_entry_skim": (1.0, False, "A motorcycle tire slaps a shallow road puddle, crisp sharp splash and fast droplets hitting asphalt, close recording, no engine or voices."),
+    "water_entry_wash": (1.4, False, "Car tires cut into a broad road puddle, sharp front splash followed by a fuller rolling spray, close recording, no engine or voices."),
+    "water_entry_heavy": (1.7, False, "Heavy truck tires push through standing road water, deep forceful splash and thick uneven spray, close recording, no engine or voices."),
+    "water_roll_shallow_loop": (5.0, True, "Light tire hiss over a shallow wet road puddle, fine irregular droplets and gentle ripples, close recording, no engine or voices."),
+    "water_roll_deep_loop": (5.0, True, "Heavy tires rolling through standing road water, dense low rushing wash with uneven little splashes, close recording, no engine or voices."),
+    "water_exit_spray": (1.1, False, "Wet vehicle tires leave a road puddle, brief tapering spray and scattered droplets on asphalt, close recording, no engine or voices."),
     "pothole_light": (1.3, False, "Motorcycle tire drops into a pothole and rebounds, dull rubber thump followed by loose suspension and frame rattle, close dry recording."),
     "pothole_heavy": (1.7, False, "Heavy road truck crosses a pothole, deep tire thump and rough chassis rattle, a few irregular metallic knocks, close dry recording."),
     "collision_light": (1.5, False, "Two small motorcycles collide at low speed, short plastic crack and metal scrape, small loose pieces settling, close dry recording."),
@@ -36,6 +43,9 @@ PROMPTS = {
 
 
 def api_key() -> str:
+    key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
+    if key.startswith("sk_"):
+        return key
     env = ROOT / ".env"
     for line in env.read_text(encoding="utf-8-sig").splitlines():
         if line.startswith("ELEVENLABS_API_KEY="):
