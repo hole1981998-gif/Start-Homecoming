@@ -1,0 +1,68 @@
+$ vite build --configLoader native
+vite v7.1.12 building for production...
+transforming...
+✓ 1685 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/art-preview/blender-boat.html                   1.24 kB │ gzip:   0.74 kB
+dist/art-preview/blender-market.html                 1.25 kB │ gzip:   0.74 kB
+dist/art-preview/blender-skyline.html                1.25 kB │ gzip:   0.74 kB
+dist/art-preview/blender-shop.html                   1.35 kB │ gzip:   0.76 kB
+dist/art-preview/blender-midrise.html                1.36 kB │ gzip:   0.77 kB
+dist/art-preview/people.html                         2.62 kB │ gzip:   1.25 kB
+dist/art-preview/car4.html                           2.76 kB │ gzip:   1.11 kB
+dist/art-preview/vehicle-gallery.html                3.05 kB │ gzip:   1.25 kB
+dist/p61.html                                        3.29 kB │ gzip:   1.65 kB
+dist/art-preview/world-gallery.html                  3.75 kB │ gzip:   1.50 kB
+dist/physics.html                                    3.97 kB │ gzip:   1.88 kB
+dist/art-preview/scene.html                          6.54 kB │ gzip:   2.45 kB
+dist/ver.noforce.html                                8.31 kB │ gzip:   3.03 kB
+dist/ver.force.html                                  8.31 kB │ gzip:   3.03 kB
+dist/index.html                                      8.97 kB │ gzip:   3.19 kB
+dist/assets/coastal-fishing-boat-fIIszxJb.glb       87.11 kB
+dist/assets/driver-adjusted-delivery-BeSPUngJ.glb  131.52 kB
+dist/assets/roadside-shop-OtV_JmTS.glb             197.34 kB
+dist/assets/skyline-shophouse-C4AkM-TE.glb         197.98 kB
+dist/assets/roadside-midrise-Cb28NrGl.glb          214.94 kB
+dist/assets/corner-market-BsApuI_4.glb             352.36 kB
+dist/assets/main-D7Hj01-s.css                       26.71 kB │ gzip:   6.32 kB
+dist/assets/modulepreload-polyfill-B5Qt9EMX.js       0.71 kB │ gzip:   0.40 kB
+dist/assets/vehicle-catalog-DNw2TT81.js              1.09 kB │ gzip:   0.62 kB
+dist/assets/cross-motion-_-5e9DEH.js                 1.57 kB │ gzip:   0.74 kB
+dist/assets/vehicle-thumbnails-sGOOuk6F.js           1.59 kB │ gzip:   0.91 kB
+dist/assets/artBlenderBoat-CF65TFIP.js               1.68 kB │ gzip:   1.05 kB
+dist/assets/artBlenderMarket-fHwOW0Na.js             1.90 kB │ gzip:   1.13 kB
+dist/assets/artBlenderSkyline-CMTEJFn8.js            1.90 kB │ gzip:   1.14 kB
+dist/assets/artBlenderMidrise-CIey3g44.js            1.97 kB │ gzip:   1.15 kB
+dist/assets/artBlenderShop-BIPISLA_.js               1.98 kB │ gzip:   1.15 kB
+dist/assets/artCar4-DKA-pRIv.js                      2.12 kB │ gzip:   1.08 kB
+dist/assets/artVehicles-BxcaI4kP.js                  2.69 kB │ gzip:   1.35 kB
+dist/assets/special-hazards-C9w0a_6S.js              3.00 kB │ gzip:   1.50 kB
+dist/assets/situations-BAmNjLSI.js                   4.27 kB │ gzip:   1.89 kB
+dist/assets/storm-lighting--nTHSAOo.js               4.54 kB │ gzip:   2.07 kB
+dist/assets/artPeople-BrwJa9D2.js                    4.70 kB │ gzip:   2.21 kB
+dist/assets/vehicles-BqFuXq7w.js                     6.33 kB │ gzip:   2.00 kB
+dist/assets/artWorld-42NhH-CS.js                     7.05 kB │ gzip:   3.35 kB
+dist/assets/force-integration-CpX_NiwZ.js            7.32 kB │ gzip:   2.90 kB
+dist/assets/car7-Dp6jfMHj.js                         7.96 kB │ gzip:   3.34 kB
+dist/assets/artScene-DDkxCTmV.js                     8.34 kB │ gzip:   3.42 kB
+dist/assets/car4-CfjzIjfJ.js                         8.69 kB │ gzip:   3.62 kB
+dist/assets/physics-D9ckcmR7.js                      9.44 kB │ gzip:   4.16 kB
+dist/assets/config-xwNPFZdu.js                       9.73 kB │ gzip:   3.27 kB
+dist/assets/people-k5BFEFK8.js                      12.58 kB │ gzip:   4.70 kB
+dist/assets/road-shadows-B8WrhR4w.js                16.31 kB │ gzip:   5.48 kB
+dist/assets/OrbitControls-eb-iX8vM.js               19.11 kB │ gzip:   4.33 kB
+dist/assets/utility-vehicles-CeMrVtG1.js            21.27 kB │ gzip:   7.75 kB
+dist/assets/world-DNme7u80.js                       35.69 kB │ gzip:  12.89 kB
+dist/assets/survival-R4R-mcJ3.js                    39.90 kB │ gzip:  13.67 kB
+dist/assets/GLTFLoader-UNNj1wFL.js                  48.65 kB │ gzip:  14.14 kB
+dist/assets/road-kit-zJoVn6-z.js                    52.68 kB │ gzip:  21.07 kB
+dist/assets/cannon-es-BTjhOd_b.js                   83.07 kB │ gzip:  24.22 kB
+dist/assets/main-D02eQfVE.js                       105.29 kB │ gzip:  37.56 kB
+dist/assets/three.module-sfrP8wYF.js               568.03 kB │ gzip: 145.05 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.61s

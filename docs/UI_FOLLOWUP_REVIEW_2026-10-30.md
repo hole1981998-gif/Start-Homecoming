@@ -1,5 +1,7 @@
 # UI follow-up — 30/10/2026
 
+> Later cosmetic feedback supersedes the border/double-ring appearance described here: see `UI_BORDERLESS_REVIEW_2026-10-30.md`. Tags now have no borders; selected Q/E uses a teal fill and slight enlargement.
+
 Continuation of `feature/ui-flat-mobile` after `43cc585`, on the previously owner-selected VFX base. Existing unrelated untracked files remain untouched. No model, simulation, physics, spawn, prices, damage, route windows or balance configuration changed.
 
 ## Changes
