@@ -17,8 +17,11 @@ it('renders only supply tags and leaves hazards in the world without mutating si
   hud.update(run,{project:(x) => ({x:x>0?120:10,y:-20})},true);
   expect(document.querySelector('[data-kind="water"]')).toBeNull();
   expect(document.querySelector('[data-kind="traffic"]')).toBeNull();
+  expect(document.querySelector('[data-kind="fuel"] .supply-badge [data-icon="fuel"]')).not.toBeNull();
+  expect(document.querySelector('[data-kind="shop"] .shop-label')!.textContent).toBe('CỬA HÀNG');
+  expect(document.querySelector('[data-kind="shop"] [data-icon]')).toBeNull();
   const fuel=document.querySelector<HTMLElement>('[data-kind="fuel"]')!;
-  expect(fuel.hidden).toBe(false);expect(fuel.style.left).toBe('91%');expect(fuel.style.top).toBe('32%');
+  expect(fuel.hidden).toBe(false);expect(fuel.style.left).toBe('88%');expect(fuel.style.top).toBe('32%');
   expect([...document.querySelectorAll<HTMLElement>('.world-cue')].map(n=>n.dataset.kind)).toEqual(['fuel','repair','shop']);
   expect(run).toEqual(before);
   hud.update({...run,phase:'paused'},{project:()=>({x:50,y:40})},false);expect(fuel.hidden).toBe(true);
@@ -66,4 +69,15 @@ it('crash return cue shows remaining protection time and clears on restart', () 
   expect(cue.hidden).toBe(false); expect(cue.getAttribute('aria-label')).toContain('miễn nhiễm');
   hud.update(initialRun(), projection, true);
   expect(cue.hidden).toBe(true);
+});
+
+it('grows supply tags as the player approaches without mutating the run',()=>{
+ const hud=setup(),projection={project:()=>({x:50,y:40})};
+ const run:Run={...initialRun(),phase:'running',world:{...initialRun().world,entities:[entity('fuel','f',35,0)]}};
+ const cue=document.querySelector<HTMLElement>('[data-kind="fuel"]')!;
+ const before=structuredClone(run);hud.update(run,projection,false);
+ const far=Number(cue.style.getPropertyValue('--cue-scale'));
+ hud.update({...run,speed:25},projection,false);expect(Number(cue.style.getPropertyValue('--cue-scale'))).toBe(far);
+ hud.update({...run,distance:30},projection,false);const near=Number(cue.style.getPropertyValue('--cue-scale'));
+ expect(near).toBeGreaterThan(far);expect(near).toBeLessThanOrEqual(1);expect(run).toEqual(before);
 });

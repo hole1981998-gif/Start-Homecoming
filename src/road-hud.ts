@@ -1,3 +1,4 @@
+import { approachCueScale } from './cue-scale';
 import { trainClosed, bananaTarget } from './special-events';
 import { createElement, ChevronDown } from 'lucide';
 import { uiIcon } from './ui-icons';
@@ -18,7 +19,10 @@ export class RoadHud {
       const root = document.createElement('div'), value = document.createElement('span');
       root.className = `world-cue ${kind}`; root.hidden = true; root.dataset.kind = kind;
       root.setAttribute('role', 'img');
-      root.append(uiIcon(icon), value,
+      const badge = document.createElement('span');
+      if (kind === 'shop') { badge.className = 'shop-label'; badge.textContent = 'CỬA HÀNG'; }
+      else { badge.className = 'supply-badge'; badge.append(uiIcon(icon)); }
+      root.append(badge, value,
         createElement([ChevronDown[0], { ...ChevronDown[1], class: 'pointer', 'aria-hidden': 'true' }, ChevronDown[2]]));
       host.append(root); this.cues.set(kind, { root, value });
     }
@@ -35,7 +39,8 @@ export class RoadHud {
       for (const [kind, cue] of this.cues) {
         const e = kind === 'shop' ? reachableShop(s) ?? nearby.find(e => e.kind === kind) : nearby.find(e => e.kind === kind);
         if (!e) continue;
-        const p = projection.project(e.x, 1.1, -(e.distance-s.distance)), x = clamp(p.x,9,91), y = clamp(p.y,32,61);
+        const p = projection.project(e.x, 1.1, -(e.distance-s.distance)), x = clamp(p.x,kind === 'shop' ? 24 : 12,kind === 'shop' ? 76 : 88), y = clamp(p.y,32,61);
+        cue.root.style.setProperty('--cue-scale', String(approachCueScale(e.distance-s.distance)));
         cue.root.hidden = false; cue.root.style.left = `${x}%`; cue.root.style.top = `${y}%`;
         const distance = Math.max(0, Math.ceil(e.distance-s.distance));
         cue.value.textContent = kind === 'shop' && reachableShop(s)?.id === e.id ? 'R · GHÉ' : `${distance} m`;

@@ -1,6 +1,12 @@
 /** The force comparison/backup HTML entries also load main.ts. Upgrade their shared
  * UI shell in place, without changing their simulation or source HTML files. */
 export function prepareUiShell(): void {
+  document.getElementById('junction-cue')!.classList.add('sr-only');
+  for (const [id,key,label] of [['junction-left','Q','Rẽ trái'],['junction-right','E','Rẽ phải']]) {
+    const cue = document.getElementById(id)!;
+    cue.innerHTML = `<kbd>${key}</kbd>`;
+    cue.setAttribute('aria-label',`${key} · ${label}`);
+  }
   if (!document.getElementById('controls-menu')) {
     const footer = document.querySelector('footer')!;
     const menu = document.createElement('div'); menu.id = 'controls-menu';

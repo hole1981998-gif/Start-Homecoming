@@ -1,5 +1,7 @@
 # Đường Về Nhà — Roadmap
 
+> **UI follow-up 30/10/2026 — chờ review:** thumbnail shop/kho/xác nhận mua được render từ đúng tám model player hiện có; hai slot item chuyển xuống mép dưới. Tag xăng/sửa tròn lớn hơn, cửa hàng là nhãn đỏ dài có chữ; QTE chỉ còn Q/E tròn trắng hai bên. Các tag tăng kích thước theo khoảng cách, không phụ thuộc tăng/giảm tốc và không đổi cửa sổ QTE. Xem `UI_FOLLOWUP_REVIEW_2026-10-30.md`; không thay model, VFX, balance hoặc cơ chế.
+
 > **UI 29/10/2026 — đang chờ chủ dự án review:** feature `feature/ui-flat-mobile` dùng nền `1680b5e` theo lựa chọn trực tiếp của chủ dự án. Shop bố cục thẻ, HUD ưu tiên điểm, tag chỉ xăng/sửa/shop, menu hamburger và discovery theo nhóm. Feedback tiếp theo: bảng bo tròn, icon shade flat có màu (bỏ bản dựng khối nhiều chi tiết), nền gần trắng trung tính thay nền vàng; texture chỉ rất nhẹ. Xem `UI_REDESIGN_REVIEW_2026-10-29.md`. Chưa merge; không thay balance/VFX.
 
 > **Quyết định của chủ dự án 29/10/2026:** coi giai đoạn VFX hiện tại đã xong để chuyển sang UI. Nền chuyển tiếp là `1680b5e` (áo xanh đậm, gồm chuỗi VFX và sửa ngã xe đã push). Đây là chốt phạm vi giai đoạn, không phải bằng chứng đã merge hoặc nghiệm thu mọi thiết bị. UI bắt đầu bằng lượt làm rõ HUD/QTE/Help; tiếp theo rà onboarding, cửa hàng/kho và kết ván. Không tự mở lại polish VFX ngoài lỗi cản đọc hoặc thao tác.

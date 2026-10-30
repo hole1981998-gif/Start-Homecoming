@@ -31,6 +31,8 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   const click = (id: string) => { el(id).focus(); el(id).click(); };
   expect(el('release-help').textContent).toContain('Thả W/S');
   expect(document.getElementById('cruise')).toBeNull();
+  expect(el('junction-cue').classList.contains('sr-only')).toBe(true);
+  expect(el('junction-left').textContent).toBe('Q'); expect(el('junction-right').textContent).toBe('E');
   expect(document.querySelector('#game > .version-link')).toBeNull();
   expect(document.querySelector('#game > .version-badge')).toBeNull();
   expect(document.querySelector('.modal-version-link')).not.toBeNull();

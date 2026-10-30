@@ -1,3 +1,4 @@
+import { fillShopThumbnails } from './shop-thumbnails';
 import { uiIcon, type UiIcon } from './ui-icons';
 import { itemBalance, shopBalance } from './config';
 import type { Run } from './survival';
@@ -49,7 +50,7 @@ export class ShopView {
     const upgradeTarget = run.vehicleInstances.find(v => v.id === this.upgradeTarget) ?? instance;
     this.upgradeTarget = upgradeTarget.id;
       const icon = (name: UiIcon) => uiIcon(name).outerHTML;
-    const vehicleIcon = (kind: VehicleKind) => icon(kind === 'motorcycle' || kind === 'motorbike' ? 'motorcycle' : kind === 'bus' ? 'bus' : kind === 'truck' || kind === 'container' || kind === 'tricycle' ? 'truck' : 'car');
+    const vehicleIcon = (kind: VehicleKind) => `<img class="vehicle-thumbnail" data-vehicle-thumbnail="${kind}" alt="${vehicles[kind].name} — model 3D" width="360" height="240" />`;
     const button = (label: string, data: string, disabled = false) => `<button ${data}${disabled ? ' disabled' : ''}>${label}</button>`;
     const card = (image: string, title: string, detail: string, control: string, note = '') => `<article class="shop-card"><div class="shop-card-art">${image}</div><div class="shop-card-copy"><h3>${title}</h3><p>${detail}</p>${note}</div>${control}</article>`;
     const money = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(run.money);
@@ -89,6 +90,8 @@ export class ShopView {
     }).join('');
     const garage = `<details class="shop-garage" aria-label="Kho xe, tối đa hai xe"><summary><strong>${d.name}</strong><span>${run.fuel.toFixed(1)} L · ${Math.ceil(run.durability)} HP</span><b>Kho ${run.vehicleInstances.length}/2</b></summary>${run.vehicleInstances.map(v => `<div class="garage-vehicle${v.id === run.activeVehicleId ? ' is-active' : ''}">${vehicleIcon(v.kind)}<div><strong>${vehicles[v.kind].name}</strong><small>${v.id === run.activeVehicleId ? 'Đang lái' : 'Dự phòng'} · ${(v.id === run.activeVehicleId ? run.fuel : v.fuel).toFixed(1)} L · ${Math.ceil(v.id === run.activeVehicleId ? run.durability : v.durability)} HP</small></div></div>`).join('')}</details>`;
     this.host.innerHTML = `<div class="shop-wallet">${icon('coins')}<strong>${money}</strong><span>tiền</span></div>${garage}${this.tab === 'power-item' ? inventory : ''}<nav aria-label="Danh mục cửa hàng">${(['service','vehicle','upgrade','power-item'] as const).map((tab,i) => button(icon((['repair','car','engine','bag'] as const)[i])+`<span>${['Tiếp tế','Xe','Nâng cấp','Vật phẩm'][i]}</span>`,`data-tab="${tab}" aria-pressed="${tab === this.tab}"`)).join('')}</nav><div class="shop-content${this.pending ? ' confirming' : ''}">${content}</div>`;
+    fillShopThumbnails(this.host);
+    if (this.pending) this.host.scrollTop = 0;
     if (hadFocus) (this.host.querySelector<HTMLSelectElement>('#shop-discard, #shop-upgrade-target') ??
       this.host.querySelector<HTMLButtonElement>('nav button[aria-pressed="true"]'))?.focus({ preventScroll: true });
   }

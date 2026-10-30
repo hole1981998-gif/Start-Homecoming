@@ -1,4 +1,5 @@
 import './style.css';
+import { approachCueScale } from './cue-scale';
 import './ui-flat.css';
 import { prepareContentIcons, renderItemSlots } from './ui-icons';
 import { prepareUiShell } from './ui-shell';
@@ -283,6 +284,7 @@ function updateHud(): void {
   if (!junctionCue.hidden) {
     const activeChoice = canChoose(state.distance, state.speed, nextJunction, vehicle.kind, state.route.window);
     junctionCue.classList.toggle('active', activeChoice);
+    el('junction-branches').classList.toggle('active', activeChoice);
     junctionCue.classList.toggle('forced', nextJunction.blockedStraight);
     const closeDistance = state.route.window?.index === nextJunction.index ? state.route.window.closeDistance :
       junctionWindow(nextJunction, state.speed, vehicle.kind).closeDistance;
@@ -295,6 +297,7 @@ function updateHud(): void {
     for (const [id, side] of [['junction-left', -1], ['junction-right', 1]] as const) {
       const target = graphics.project(side * 5.2, 0.6, -(approach + 2));
       const cue = el<HTMLElement>(id);
+      cue.style.setProperty('--cue-scale', String(approachCueScale(approach)));
       cue.style.left = `${Math.max(side < 0 ? 12 : 64, Math.min(side < 0 ? 36 : 88, target.x))}%`;
       cue.style.top = `${Math.max(40, Math.min(52, target.y))}%`;
     }

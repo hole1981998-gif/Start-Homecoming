@@ -1,12 +1,17 @@
 // @vitest-environment jsdom
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { ShopView } from '../src/shop-view';
 import { enterShop, transact } from '../src/shop';
 import { initialRun } from '../src/survival';
 import { developmentScenario } from '../src/development';
 import { vehicles } from '../src/vehicles';
 
-it('shop UI lists the full catalog, locks owned kinds and upgrades a selected spare without switching', () => {
+vi.mock('../src/vehicle-thumbnails', async () => {
+  const { vehicles } = await import('../src/vehicles');
+  return { vehicleThumbnailSources: () => Object.fromEntries(Object.keys(vehicles).map(kind => [kind, 'data:image/png;base64,' + btoa(kind)])) };
+});
+
+it('shop UI lists the full catalog, locks owned kinds and upgrades a selected spare without switching', async () => {
   document.body.innerHTML = '<div id="shop"></div>';
   const host = document.getElementById('shop')!;
   let run = enterShop({ ...developmentScenario(initialRun(17), 'shop-third'), phase: 'running' });
@@ -14,6 +19,10 @@ it('shop UI lists the full catalog, locks owned kinds and upgrades a selected sp
   view.reset(); view.render();
   const click = (selector: string) => host.querySelector<HTMLButtonElement>(selector)!.click();
   click('[data-tab="vehicle"]');
+  await vi.dynamicImportSettled();
+  const thumbs = [...host.querySelectorAll<HTMLImageElement>('.shop-card img[data-vehicle-thumbnail]')];
+  expect(thumbs).toHaveLength(8); expect(new Set(thumbs.map(image => image.src)).size).toBe(8);
+  for (const image of thumbs) expect(image.src).toBe('data:image/png;base64,' + btoa(image.dataset.vehicleThumbnail!));
   expect(host.querySelectorAll('[data-vehicle]')).toHaveLength(Object.keys(vehicles).length);
   expect(host.querySelector<HTMLButtonElement>('[data-vehicle="motorcycle"]')!.disabled).toBe(true);
   expect(host.querySelector<HTMLButtonElement>('[data-vehicle="car7"]')!.disabled).toBe(true);
@@ -36,6 +45,7 @@ it('requires an explicit discard for a third vehicle, supports cancel, and prese
  const view=new ShopView(host,()=>run,command=>{run=transact(run,command).run;});view.reset();view.render();
  const click=(selector:string)=>host.querySelector<HTMLButtonElement>(selector)!.click();
  const before=structuredClone(run);click('[data-tab="vehicle"]');click('[data-vehicle="tricycle"]');
+ expect(host.querySelector<HTMLImageElement>('.shop-confirm img')!.dataset.vehicleThumbnail).toBe('tricycle');
  expect(host.querySelector<HTMLButtonElement>('[data-confirm]')!.disabled).toBe(true);
  click('[data-confirm]');expect(run).toEqual(before);
  click('[data-cancel]');expect(run).toEqual(before);expect(host.querySelector('[data-confirm]')).toBeNull();

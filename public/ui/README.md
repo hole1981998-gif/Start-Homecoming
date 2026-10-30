@@ -15,7 +15,7 @@ Atlas order, left to right, top to bottom:
 4. Economy / passenger / wind / train
 5. Coins / bag / barrier / parcel
 
-Functional symbols (hamburger, pause, restart, Help and directional arrows) remain simple controls. Illustrative content uses the colored atlas. Some vehicle families share a generic icon; vehicle names and full specifications remain authoritative.
+Functional symbols (hamburger, pause, restart and Help) remain simple controls. Illustrative content uses the colored atlas. Shop vehicle cards, the garage and purchase confirmation now use thumbnails rendered from each actual player model in `src/art/vehicle-catalog.ts`, via `src/vehicle-thumbnails.ts`. The atlas vehicle cells are category symbols rather than vehicle thumbnails. QTE shows only the circular Q/E labels, with no visible straight-ahead arrow or central text.
 
 ## Generation prompts
 
