@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="vi">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đường Về Nhà · nghe thử SFX ElevenLabs</title>
+<style>
+  body { margin: 2rem auto; max-width: 850px; padding: 0 1rem; background: #151b1e; color: #f1f3ef; font: 16px system-ui, sans-serif; }
+  h1 { font-size: 1.65rem; } h2 { margin-top: 2rem; font-size: 1.1rem; color: #a8dfdb; }
+  p { color: #b9c5c4; line-height: 1.5; }
+  .cue { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(250px, 2fr); gap: 1rem; align-items: center; padding: .8rem 0; border-bottom: 1px solid #354044; }
+  audio { width: 100%; } @media (max-width: 600px) { .cue { grid-template-columns: 1fr; gap: .3rem; } }
+</style>
+<h1>Nghe thử SFX ElevenLabs</h1>
+<p>Mẫu mới đang dùng trong bản chơi thử. Tiếng nước dài được đặt lặp để nghe chỗ nối. Hãy nghe ở âm lượng vừa và ghi lại tên tiếng nào cần sửa.</p>
+<h2>Nước và mặt đường</h2>
+<div class="cue"><span>Chạy trong vũng nước</span><audio controls loop preload="metadata" src="water_roll_loop.mp3"></audio></div>
+<div class="cue"><span>Vừa vào vũng nước</span><audio controls preload="metadata" src="water_entry_splash.mp3"></audio></div>
+<div class="cue"><span>Ổ gà · xe nhẹ</span><audio controls preload="metadata" src="pothole_light.mp3"></audio></div>
+<div class="cue"><span>Ổ gà · xe nặng</span><audio controls preload="metadata" src="pothole_heavy.mp3"></audio></div>
+<h2>Va xe</h2>
+<div class="cue"><span>Va nhẹ · xe hai bánh</span><audio controls preload="metadata" src="collision_light.mp3"></audio></div>
+<div class="cue"><span>Va vừa · ô tô</span><audio controls preload="metadata" src="collision_medium.mp3"></audio></div>
+<div class="cue"><span>Va nặng · xe tải</span><audio controls preload="metadata" src="collision_heavy.mp3"></audio></div>
+<h2>Chướng ngại khác</h2>
+<div class="cue"><span>Rào kim loại</span><audio controls preload="metadata" src="barrier_hit.mp3"></audio></div>
+<div class="cue"><span>Thùng gỗ</span><audio controls preload="metadata" src="cargo_crate_hit.mp3"></audio></div>
+<div class="cue"><span>Thùng phuy</span><audio controls preload="metadata" src="cargo_barrel_hit.mp3"></audio></div>
+<div class="cue"><span>Xe hàng rong</span><audio controls preload="metadata" src="vendor_cart_hit.mp3"></audio></div>
+<div class="cue"><span>Xe cứu thương</span><audio controls preload="metadata" src="ambulance_hit.mp3"></audio></div>
+<div class="cue"><span>Tàu</span><audio controls preload="metadata" src="train_hit.mp3"></audio></div>
+<div class="cue"><span>Người đi đường</span><audio controls preload="metadata" src="pedestrian_hit.mp3"></audio></div>
+</html>

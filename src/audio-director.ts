@@ -4,24 +4,20 @@ import { activeVehicle } from './survival';
 import { itemBalance } from './config';
 
 const files = import.meta.glob([
+  '../project-reference/sfx/elevenlabs-2026-10-29/*.mp3',
   '../project-reference/sfx/procedural-auditions-2026-10-28/ambience/rain_light_loop.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/ambience/wind_loop.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/ambience/wet_road_loop.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/engine-v2/*_loop.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/collision_*.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/cargo_*.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/passenger_hit.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/vendor_hit.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/cargo_release.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/cargo_barrel_roll.wav',
+  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/cargo_crate_roll.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/ambulance_pass.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/wind_gust.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/police_capture.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/banana_use.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/train_pass.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/interaction-v2/broken_car.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/item/*.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/road/water_splash.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/road/water_roll_loop.wav',
-  '../project-reference/sfx/procedural-auditions-2026-10-28/road/pothole_rattle_*.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/coast.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/driver_fall.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/vehicle/stop.wav',
@@ -31,7 +27,25 @@ const files = import.meta.glob([
   '../project-reference/sfx/procedural-auditions-2026-10-28/kick_01.wav',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const root = '../project-reference/sfx/procedural-auditions-2026-10-28/';
-const url = (name: string): string | undefined => files[root + name];
+const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
+const generated: Record<string, string> = {
+  'road/water_splash.wav': 'water_entry_splash.mp3',
+  'road/water_roll_loop.wav': 'water_roll_loop.mp3',
+  'road/pothole_rattle_light.wav': 'pothole_light.mp3',
+  'road/pothole_rattle_heavy.wav': 'pothole_heavy.mp3',
+  'interaction-v2/collision_light.wav': 'collision_light.mp3',
+  'interaction-v2/collision_medium.wav': 'collision_medium.mp3',
+  'interaction-v2/collision_heavy.wav': 'collision_heavy.mp3',
+  'interaction-v2/cargo_crate_hit.wav': 'cargo_crate_hit.mp3',
+  'interaction-v2/cargo_barrel_hit.wav': 'cargo_barrel_hit.mp3',
+  'interaction-v2/vendor_hit.wav': 'vendor_cart_hit.mp3',
+  'interaction-v2/passenger_hit.wav': 'pedestrian_hit.mp3',
+  'interaction-v2/train_pass.wav': 'train_hit.mp3',
+  'interaction-v2/barrier_hit.wav': 'barrier_hit.mp3',
+  'interaction-v2/ambulance_hit.wav': 'ambulance_hit.mp3',
+};
+const url = (name: string): string | undefined =>
+  files[generatedRoot + generated[name]] ?? files[root + name];
 
 type Bus = 'sfx' | 'ambience';
 type Stem = { sources: AudioBufferSourceNode[]; gains: GainNode[]; kind: VehicleKind };
@@ -203,7 +217,7 @@ export class AudioDirector {
       const hitEntity = run.world.entities.find(e => e.consumed && !this.entityState.get(e.id)?.consumed && e.kind === kind);
       const hitTraffic = run.world.entities.find(e => e.kind === 'traffic' && e.lastHit >= 0 && Math.abs(e.lastHit - run.activeSeconds) < .1);
       const impactSpeed = run.crash?.impactSpeed ?? run.speed;
-      const cue: Record<string, string> = { water: 'road/water_splash.wav', pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind, impactSpeed), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: run.feedback.startsWith('Gọi Grab') ? 'item/grab_call.wav' : 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind, undefined, impactSpeed), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : collisionCue(vehicle.kind, undefined, impactSpeed), accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
+      const cue: Record<string, string> = { water: 'road/water_splash.wav', pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind, impactSpeed), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: run.feedback.startsWith('Gọi Grab') ? 'item/grab_call.wav' : 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind, undefined, impactSpeed), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : hitEntity?.serviceRole === 'ambulance' ? 'interaction-v2/ambulance_hit.wav' : 'interaction-v2/barrier_hit.wav', accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
       if (kind && cue[kind]) void this.play(cue[kind], `event-${kind}`, .2, kind === 'water' ? .4 : 1);
     }
     if (run.phase !== 'running') {
