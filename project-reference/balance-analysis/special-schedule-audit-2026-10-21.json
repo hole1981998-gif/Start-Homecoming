@@ -1,0 +1,24 @@
+{
+  "seeds": 1000,
+  "horizonMetres": 3500,
+  "scheduledOccurrences": {
+    "train": 334,
+    "barrier": 108,
+    "police": 333,
+    "militia": 332,
+    "broken": 334,
+    "vendor": 115,
+    "accident": 330,
+    "ambulance": 114
+  },
+  "seedsWithType": {
+    "train": 304,
+    "barrier": 107,
+    "police": 293,
+    "militia": 301,
+    "broken": 315,
+    "vendor": 114,
+    "accident": 289,
+    "ambulance": 111
+  }
+}
