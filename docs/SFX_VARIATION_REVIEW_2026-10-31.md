@@ -9,6 +9,16 @@ Status: owner rejected the voice lines after listening, so all voice playback an
 - Fuel/repair and passenger pickups no longer stack the generic resource/reward UI sound on top. Shop service, upgrade, item purchase and vehicle purchase retain their existing event routing; only their successful sounds change. Failed purchases keep their separate failure cue.
 - These are mix decisions for owner audition, not a claim that the sounds are final. No gameplay/economy values or visual cues changed.
 
+## Nitro, star and traffic sound pass, 31 October
+
+- Nitro and star activation cues are raised from their previously quiet mix. Each now has a separate quiet loop that follows the existing simulation timer, fades on expiry/pause and does not alter duration or effects.
+- Traffic vehicles get three horn timbres by size and two passing textures. A horn is eligible once per vehicle only while it is closing from 9–42 m in or near the player's lane; a passing texture plays once only when the vehicle actually crosses from ahead to behind without a crash. A shared horn cooldown prevents dense traffic from honking continuously. Stereo placement follows the vehicle's lateral position.
+- Existing impact SFX for traffic, potholes, barriers, vendors and other hazards remain. No new warning is required to understand a hazard; the visual cues remain primary. Sound files in `power-traffic-2026-10-31` are generated locally with a reproducible script and require no API key.
+- Focused audio test: activation and loop start, loop fade after power expires, distant traffic silent, close car/truck horn, one pass per vehicle and right-side stereo placement all pass. The full test suite and build are recorded below after the final diff.
+- In-app Chromium, `?scenario=items&seed=17`: start, press 1 then 2; HUD showed Nitro 3.8 s, then Nitro 1.6 s plus Star 4.8 s; no console error. `?scenario=traffic-gallery&seed=17`: start, hold W past the first adjacent vehicle and into a traffic contact, reaching 38 m / 107 HP; restart restored 0 m / 123 HP. A longer exploratory run reached 329 m through multiple contacts before the final loop gain adjustment. `?scenario=coast&seed=17`: ran out of fuel, ended at 26 m and restarted; no console error. Browser checks prove input/event flow, not whether the sound feels natural by ear.
+- Self-review, game designer: proximity and per-vehicle gating keep sound density tied to actual encounters without adding difficulty or consuming seeded gameplay RNG. The horn is flavor, not a new mandatory warning. Self-review, UI/UX: the existing world cue still identifies the car and lane; the horn and pass pan add a secondary position cue. Owner listening is needed to judge loudness against engine and rain.
+- Final gates on Windows / Node 24 / pnpm 11: `pnpm lint` exit 0; `pnpm typecheck` exit 0; `pnpm test --maxWorkers=2 --reporter=dot` exit 0 (40 files, 272 tests); `pnpm build` exit 0 (1739 modules). `git diff --check` is run before commit. CI and human review remain pending.
+
 ### Verification of follow-up mix
 
 - Windows / Node 24 / pnpm 11, final audio diff: `pnpm lint` exit 0, `pnpm typecheck` exit 0, `pnpm test --maxWorkers=2 --reporter=dot` exit 0 (40 files, 272 tests), `pnpm build` exit 0. Three superseded pickup MP3s are excluded from the production bundle.

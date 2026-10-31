@@ -31,6 +31,7 @@ const old = '../procedural-auditions-2026-10-28/';
 const engine = kind => `${old}engine-v2/${kind}_ramp_preview.wav`;
 const uiFile = name => `${old}ui-modern/${name}_a.wav`;
 const reward = name => `../reward-pickups-2026-10-31/${name}.wav`;
+const powerTraffic = name => `../power-traffic-2026-10-31/${name}.wav`;
 const track = (file, volume, at = 0, until = null, loop = false) => ({ file, volume, at, until, loop });
 const road = [track('rain_road_loop.mp3', .44, 0, null, true), track('wind_road_loop.mp3', .04, 0, null, true),
   track('wet_tire_loop.mp3', .022, 0, null, true)];
@@ -58,6 +59,11 @@ const scenes = [
     tracks: [track(engine('bus'), .208, 0, 4), track('engine_heavy_texture_loop.mp3', .085, 0, 4, true),
       ...road.map(t => ({ ...t, until: 4 })), track('train_hit.mp3', .65, 3.8),
       track('result_train.mp3', .312, 4.1)] },
+  { title: 'Nitro · star · giao thông', detail: 'Nitro tăng tốc → xe bóp còi và lướt qua → star bật', seconds: 10,
+    tracks: [track(engine('motorcycle'), .208), ...road,
+      track('nitro_activate.mp3', .42, 1), track(powerTraffic('nitro_run_loop'), .208, 1.3, 5, true),
+      track(powerTraffic('horn_car'), .22, 3), track(powerTraffic('pass_light'), .17, 3.6),
+      track('star_activate.mp3', .55, 6), track(powerTraffic('star_run_loop'), .156, 6.3, 9, true)] },
 ];
 let playing = [], timers = [];
 const status = document.querySelector('#mix-status');
@@ -101,6 +107,7 @@ const groups = {
   'Đồ rơi': 'cargo_release cargo_barrel_roll cargo_crate_roll cargo_barrel_hit cargo_barrel_hit_alt cargo_crate_hit cargo_crate_hit_alt',
   'Vật phẩm · hành khách': 'nitro_activate jump_launch jump_land star_activate passenger_drop banana_use police_capture ambulance_pass',
   'Nhận thưởng mới · tăng dần': 'fuel_gain repair_gain passenger_pickup shop_success vehicle_purchase'.split(' ').map(reward).join(' '),
+  'Nitro · star · xe giao thông mới': 'nitro_run_loop star_run_loop horn_light horn_car horn_heavy pass_light pass_heavy'.split(' ').map(powerTraffic).join(' '),
   'Kết ván': 'result_failure result_fuel result_train result_police result_success',
 };
 const ui = 'menu_select menu_back help_open card_open card_dismiss pause resume restart shop_enter shop_category purchase_fail toggle_on toggle_off resource_loss';

@@ -36,6 +36,7 @@ it('sustains water only during contact, uses physical collision types, and leave
   const sources: Array<{ buffer?: { path: string }; gain?: { gain: { value: number; targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean }> = [];
   const fetched: string[] = [];
   const waterFilters: Array<{ type: string; frequency: { value: number } }> = [];
+  const stereoPans: Array<{ value: number }> = [];
   class FakeAudioContext {
     static time = 1;
     state = 'running'; get currentTime() { return FakeAudioContext.time; } destination = {};
@@ -47,6 +48,10 @@ it('sustains water only during contact, uses physical collision types, and leave
       const filter = { type: '', frequency: { value: 0 }, connect(gain: ReturnType<FakeAudioContext['createGain']>) { return gain; },
         disconnect() { /* detached */ } };
       waterFilters.push(filter); return filter;
+    }
+    createStereoPanner() {
+      const panner = { pan: { value: 0 }, connect() { return this; }, disconnect() { /* detached */ } };
+      stereoPans.push(panner.pan); return panner;
     }
     createBufferSource() {
       const source = { buffer: undefined as { path: string } | undefined, gain: undefined as ReturnType<FakeAudioContext['createGain']> | undefined,
@@ -187,6 +192,38 @@ it('sustains water only during contact, uses physical collision types, and leave
   await director.update({ ...base, eventSequence: 10, feedbackKind: 'jam', world: { ...base.world, entities: [vendorHit] } });
   expect(fetched.some(path => path.includes('vendor_cart_hit.mp3'))).toBe(true);
   expect(fetched.some(path => path.includes('voice-auditions'))).toBe(false);
+  const powers = { ...base.powers, boostUntil: 30, starUntil: 30 };
+  await director.update({ ...base, powers });
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.loop &&
+    source.buffer?.path.includes('nitro_run_loop.wav'))).toBe(true));
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.loop &&
+    source.buffer?.path.includes('star_run_loop.wav'))).toBe(true));
+  expect(fetched.some(path => path.includes('nitro_activate.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('star_activate.mp3'))).toBe(true);
+  const nitroBed = sources.find(source => source.buffer?.path.includes('nitro_run_loop.wav'))!;
+  await director.update(base);
+  expect(nitroBed.gain?.gain.targets.at(-1)).toBe(0);
+
+  FakeAudioContext.time = 13;
+  const farCar = { ...entity('traffic', 'far-car', 80, 0), trafficKind: 'car4' as const, speed: -6 };
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [farCar] } });
+  expect(fetched.some(path => path.includes('horn_car.wav'))).toBe(false);
+  const closeCar = { ...farCar, distance: 35 };
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [closeCar] } });
+  expect(fetched.some(path => path.includes('horn_car.wav'))).toBe(true);
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [{ ...closeCar, distance: -2 }] } });
+  expect(fetched.some(path => path.includes('pass_light.wav'))).toBe(true);
+  expect(fetched.filter(path => path.includes('horn_car.wav'))).toHaveLength(1);
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [{ ...closeCar, distance: -3 }] } });
+  expect(fetched.filter(path => path.includes('pass_light.wav'))).toHaveLength(1);
+  FakeAudioContext.time = 17;
+  const truckTraffic = { ...entity('traffic', 'near-truck', 32, 3.2), trafficKind: 'truck' as const, speed: -7 };
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [truckTraffic] } });
+  expect(fetched.some(path => path.includes('horn_heavy.wav'))).toBe(true);
+  await vi.waitFor(() => expect(stereoPans.at(-1)?.value).toBeGreaterThan(0));
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [{ ...truckTraffic, distance: -1 }] } });
+  expect(fetched.some(path => path.includes('pass_heavy.wav'))).toBe(true);
+
   const heavyBefore = sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length;
   await director.update({ ...base, phase: 'ended', eventSequence: 11, feedbackKind: 'accident' });
   await vi.waitFor(() => expect(sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length).toBeGreaterThan(heavyBefore));
