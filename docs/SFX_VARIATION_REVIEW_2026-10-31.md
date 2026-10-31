@@ -2,6 +2,20 @@
 
 Status: owner rejected the voice lines after listening, so all voice playback and voice assets have been removed from this branch. Road SFX remain a trial mix. No simulation, balance, visual warning, or UI layout change is intended.
 
+## Follow-up mix after owner feedback, 31 October
+
+- Water entry was too abrupt and sounded like a door slam. All light, medium and heavy entry takes now enter at roughly one third of their former level, rise over about 0.3 seconds and pass through a 1.8 kHz low-pass filter. The sustained rotating water loops are unchanged.
+- Fuel, repair, passenger pickup and successful shop interactions use new short local WAV cues with three or four ascending notes. Fuel has a soft liquid texture, repair a small metallic edge, passenger a friendly pluck, and shop a longer resolution. The generator is reproducible and uses no external API.
+- Fuel/repair and passenger pickups no longer stack the generic resource/reward UI sound on top. Shop service, upgrade, item purchase and vehicle purchase retain their existing event routing; only their successful sounds change. Failed purchases keep their separate failure cue.
+- These are mix decisions for owner audition, not a claim that the sounds are final. No gameplay/economy values or visual cues changed.
+
+### Verification of follow-up mix
+
+- Windows / Node 24 / pnpm 11, final audio diff: `pnpm lint` exit 0, `pnpm typecheck` exit 0, `pnpm test --maxWorkers=2 --reporter=dot` exit 0 (40 files, 272 tests), `pnpm build` exit 0. Three superseded pickup MP3s are excluded from the production bundle.
+- In-app browser, seed 17: `p62-water-baseline` start, hold W through water, reached 130 m, fuel 7.2→4.8 L, restart restored 0 m and 7.2 L; no console error. `supplies` start and hold W: fuel 0→4.2 L and HP 30→56, proving both pickups triggered; no claim about subjective sound quality.
+- `shop`: start, press R near the shop, bought fuel (1→5 L, 4000→3880 money) and repair (30→50 HP, 3880→3740 money); no console error. `passenger`: start and press F, riders 1/2→2/2 with +1 cue; no console error. `coast`: started, reached fuel end at 26 m, result modal appeared and restart returned to active play; no console error.
+- Self-review, game design: the rising reward motif reinforces successful actions without changing reward size or adding pressure. Self-review, UI/UX: the distinct fuel/repair/passenger/shop timbres and existing HUD resource change keep outcomes legible; the sound itself needs owner audition to judge timing and satisfaction.
+
 ## Changes
 
 - Water: three entry takes for each light, medium and heavy tire class. Each wet contact rotates takes. Shallow and deep water each have three five-second loop-enabled source files. During a continuous puddle the active loop rotates every 3.5 seconds with a gain crossfade; the next puddle starts on a different layer. Wet contact still controls start and fade-out.

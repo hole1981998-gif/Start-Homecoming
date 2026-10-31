@@ -16,7 +16,7 @@
   audio{width:100%}@media(max-width:600px){.cue{grid-template-columns:1fr;gap:.3rem}}
 </style>
 <h1>Đường Về Nhà · nghe thử SFX đang dùng</h1>
-<p>Nghe các cảnh đã ghép trước, rồi so từng tiếng ở dưới. Cảnh dùng chính file và mức âm gần với game; ramp động cơ mô phỏng tăng tốc trong 10 giây. Bản nghe này là ví dụ được sắp thời điểm sẵn, chưa thay thế việc chơi game để đánh giá phản hồi.</p>
+<p>Nghe các cảnh đã ghép trước, rồi so từng tiếng ở dưới. Nước vào vũng được làm mềm thêm bằng bộ lọc và tăng âm từ từ trong game; file lẻ phía dưới là bản gốc. Bản nghe này chưa thay thế việc chơi game để đánh giá phản hồi.</p>
 <section aria-labelledby="mix-title">
   <h2 id="mix-title">Nghe cảnh đã ghép</h2>
   <div id="mix-grid" class="mix-grid"></div>
@@ -30,14 +30,15 @@
 const old = '../procedural-auditions-2026-10-28/';
 const engine = kind => `${old}engine-v2/${kind}_ramp_preview.wav`;
 const uiFile = name => `${old}ui-modern/${name}_a.wav`;
+const reward = name => `../reward-pickups-2026-10-31/${name}.wav`;
 const track = (file, volume, at = 0, until = null, loop = false) => ({ file, volume, at, until, loop });
 const road = [track('rain_road_loop.mp3', .44, 0, null, true), track('wind_road_loop.mp3', .04, 0, null, true),
   track('wet_tire_loop.mp3', .022, 0, null, true)];
 const scenes = [
   { title: 'Xe máy · mưa, nước, ổ gà', detail: 'Máy tăng tốc → qua vũng nước → nhặt xăng → xóc ổ gà', seconds: 11,
     tracks: [track(engine('motorcycle'), .208), track('engine_bike_texture_loop.mp3', .059, 0, 10, true), ...road,
-      track('water_entry_skim.mp3', .34, 2), track('water_roll_shallow_loop.mp3', .22, 2.2, 6, true),
-      track('water_exit_spray.mp3', .17, 6), track('fuel_pickup.mp3', .42, 7), track(uiFile('resource_gain'), .156, 7),
+      track('water_entry_skim.mp3', .10, 2), track('water_roll_shallow_loop.mp3', .22, 2, 6, true),
+      track('water_exit_spray.mp3', .17, 6), track(reward('fuel_gain'), .48, 7),
       track('pothole_light.mp3', .65, 8.4), track(uiFile('resource_loss'), .156, 8.4)] },
   { title: 'Ô tô · nitro, va chạm kết ván', detail: 'Máy tăng tốc → nitro → va xe → dừng → kết ván', seconds: 9,
     tracks: [track(engine('car4'), .208, 0, 5.5), track('engine_car_texture_loop.mp3', .085, 0, 5.5, true),
@@ -49,10 +50,10 @@ const scenes = [
       track('cargo_release.mp3', .32, 1.5), track('cargo_barrel_roll.mp3', .19, 2),
       track('cargo_barrel_hit.mp3', .65, 5), track('pothole_heavy.mp3', .65, 7),
       track(uiFile('resource_loss'), .156, 7)] },
-  { title: 'Cửa hàng · nhận thưởng · UI', detail: 'Mở menu → chuyển mục → mua thành công → nhận thưởng → đóng', seconds: 8,
+  { title: 'Cửa hàng · mua đồ · UI', detail: 'Mở menu → chuyển mục → mua thành công → đóng', seconds: 8,
     tracks: [track(uiFile('menu_select'), .247), track(uiFile('shop_enter'), .247, .7),
-      track(uiFile('shop_category'), .247, 1.8), track(uiFile('purchase_success'), .247, 3),
-      track(uiFile('reward_small'), .156, 4), track(uiFile('menu_back'), .247, 5.5)] },
+      track(uiFile('shop_category'), .247, 1.8), track(reward('shop_success'), .47, 3),
+      track(uiFile('menu_back'), .247, 5.5)] },
   { title: 'Xe buýt · tàu kết ván', detail: 'Máy xe buýt trong mưa → va tàu → âm kết ván', seconds: 9,
     tracks: [track(engine('bus'), .208, 0, 4), track('engine_heavy_texture_loop.mp3', .085, 0, 4, true),
       ...road.map(t => ({ ...t, until: 4 })), track('train_hit.mp3', .65, 3.8),
@@ -98,10 +99,11 @@ const groups = {
   'Động cơ · xe': 'engine_bike_texture_loop engine_car_texture_loop engine_heavy_texture_loop vehicle_coast vehicle_stop driver_fall driver_fall_alt vehicle_switch',
   'Va chạm · chướng ngại': 'pothole_light pothole_light_alt pothole_heavy pothole_heavy_alt collision_light collision_light_alt collision_medium collision_medium_alt collision_heavy collision_heavy_alt barrier_hit barrier_hit_alt vendor_cart_hit vendor_cart_hit_alt ambulance_hit ambulance_hit_alt train_hit pedestrian_hit pedestrian_hit_alt broken_car',
   'Đồ rơi': 'cargo_release cargo_barrel_roll cargo_crate_roll cargo_barrel_hit cargo_barrel_hit_alt cargo_crate_hit cargo_crate_hit_alt',
-  'Vật phẩm · hành khách': 'fuel_pickup repair_pickup nitro_activate jump_launch jump_land star_activate grab_call passenger_pickup passenger_drop banana_use police_capture ambulance_pass',
+  'Vật phẩm · hành khách': 'nitro_activate jump_launch jump_land star_activate passenger_drop banana_use police_capture ambulance_pass',
+  'Nhận thưởng mới · tăng dần': 'fuel_gain repair_gain passenger_pickup shop_success vehicle_purchase'.split(' ').map(reward).join(' '),
   'Kết ván': 'result_failure result_fuel result_train result_police result_success',
 };
-const ui = 'menu_select menu_back help_open card_open card_dismiss pause resume restart shop_enter shop_category purchase_fail purchase_success shop_service shop_upgrade vehicle_purchase toggle_on toggle_off resource_gain resource_loss reward_small';
+const ui = 'menu_select menu_back help_open card_open card_dismiss pause resume restart shop_enter shop_category purchase_fail toggle_on toggle_off resource_loss';
 groups['Động cơ · ramp tăng tốc theo 8 xe'] = 'motorcycle motorbike tricycle car4 car7 bus truck container'.split(' ').map(kind => `../procedural-auditions-2026-10-28/engine-v2/${kind}_ramp_preview.wav`).join(' ');
 groups['UI · bản gọn trong game'] = ui.split(' ').map(name => `../procedural-auditions-2026-10-28/ui-modern/${name}_a.wav`).join(' ');
 const list = document.querySelector('#list');

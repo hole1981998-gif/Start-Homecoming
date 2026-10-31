@@ -33,8 +33,9 @@ it('the water contact flag remains active across ticks of a long puddle', () => 
 });
 
 it('sustains water only during contact, uses physical collision types, and leaves steering and warning cues silent', async () => {
-  const sources: Array<{ buffer?: { path: string }; gain?: { gain: { targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean }> = [];
+  const sources: Array<{ buffer?: { path: string }; gain?: { gain: { value: number; targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean }> = [];
   const fetched: string[] = [];
+  const waterFilters: Array<{ type: string; frequency: { value: number } }> = [];
   class FakeAudioContext {
     static time = 1;
     state = 'running'; get currentTime() { return FakeAudioContext.time; } destination = {};
@@ -42,10 +43,18 @@ it('sustains water only during contact, uses physical collision types, and leave
       return { gain: { value: 0, targets: [] as number[], setTargetAtTime(value: number) { this.targets.push(value); } },
         connect() { return this; }, disconnect() { /* detached */ } };
     }
+    createBiquadFilter() {
+      const filter = { type: '', frequency: { value: 0 }, connect(gain: ReturnType<FakeAudioContext['createGain']>) { return gain; },
+        disconnect() { /* detached */ } };
+      waterFilters.push(filter); return filter;
+    }
     createBufferSource() {
       const source = { buffer: undefined as { path: string } | undefined, gain: undefined as ReturnType<FakeAudioContext['createGain']> | undefined,
         started: false, stopped: false, loop: false, playbackRate: { targets: [] as number[], setTargetAtTime(value: number) { this.targets.push(value); } },
-        connect(gain: ReturnType<FakeAudioContext['createGain']>) { this.gain = gain; return gain; },
+        connect(gain: ReturnType<FakeAudioContext['createGain']> | ReturnType<FakeAudioContext['createBiquadFilter']>) {
+          if ('gain' in gain) this.gain = gain;
+          return gain;
+        },
         disconnect() { /* detached */ }, start() { this.started = true; }, stop() { this.stopped = true; } };
       sources.push(source); return source;
     }
@@ -74,6 +83,7 @@ it('sustains water only during contact, uses physical collision types, and leave
   await director.update({ ...base, eventSequence: 1, feedbackKind: 'water', world: { ...base.world, entities: [water] } });
   await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('water_roll_shallow_loop'))).toBe(true));
   expect(fetched.some(path => path.includes('water_entry_skim.mp3'))).toBe(true);
+  expect(waterFilters.at(-1)).toMatchObject({ type: 'lowpass', frequency: { value: 1800 } });
   const waterSource = sources.find(source => source.buffer?.path.includes('water_roll_shallow_loop'))!;
   expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
   await director.update({ ...base, speed: 20, world: { ...base.world, entities: [water] } });
@@ -153,23 +163,32 @@ it('sustains water only during contact, uses physical collision types, and leave
   expect(fetched.some(path => path.includes('vehicle/accelerate.wav') || path.includes('vehicle/brake.wav'))).toBe(false);
   FakeAudioContext.time = 7;
   await director.update({ ...base, eventSequence: 7, feedbackKind: 'fuel' });
-  expect(fetched.some(path => path.includes('fuel_pickup.mp3'))).toBe(true);
-  expect(fetched.some(path => path.includes('resource_gain_a.wav'))).toBe(true);
+  expect(fetched.some(path => path.includes('fuel_gain.wav'))).toBe(true);
+  expect(fetched.some(path => path.includes('resource_gain_a.wav'))).toBe(false);
+  FakeAudioContext.time = 7.5;
+  await director.update({ ...base, eventSequence: 8, feedbackKind: 'repair' });
+  expect(fetched.some(path => path.includes('repair_gain.wav'))).toBe(true);
   FakeAudioContext.time = 8;
-  await director.update({ ...base, eventSequence: 8, feedbackKind: 'passenger' });
-  expect(fetched.some(path => path.includes('passenger_pickup.mp3'))).toBe(true);
-  expect(fetched.some(path => path.includes('reward_small_a.wav'))).toBe(true);
+  await director.update({ ...base, eventSequence: 9, feedbackKind: 'passenger' });
+  expect(fetched.some(path => path.includes('passenger_pickup.wav'))).toBe(true);
+  expect(fetched.some(path => path.includes('reward_small_a.wav'))).toBe(false);
+  director.ui('purchase_success');
+  director.ui('shop_upgrade');
+  director.ui('shop_service');
+  director.ui('vehicle_purchase');
+  expect(fetched.filter(path => path.includes('shop_success.wav'))).toHaveLength(3);
+  expect(fetched.some(path => path.includes('vehicle_purchase.wav'))).toBe(true);
   FakeAudioContext.time = 11;
   const roadside = entity('passenger', 'roadside-silent', 12, 0);
   await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [roadside] } });
   await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: -9 }] } });
   FakeAudioContext.time = 12;
   const vendorHit = { ...entity('jam', 'vendor-hit', 0, 0), crossingRole: 'vendor' as const, consumed: true };
-  await director.update({ ...base, eventSequence: 9, feedbackKind: 'jam', world: { ...base.world, entities: [vendorHit] } });
+  await director.update({ ...base, eventSequence: 10, feedbackKind: 'jam', world: { ...base.world, entities: [vendorHit] } });
   expect(fetched.some(path => path.includes('vendor_cart_hit.mp3'))).toBe(true);
   expect(fetched.some(path => path.includes('voice-auditions'))).toBe(false);
   const heavyBefore = sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length;
-  await director.update({ ...base, phase: 'ended', eventSequence: 10, feedbackKind: 'accident' });
+  await director.update({ ...base, phase: 'ended', eventSequence: 11, feedbackKind: 'accident' });
   await vi.waitFor(() => expect(sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length).toBeGreaterThan(heavyBefore));
   director.dispose();
 });

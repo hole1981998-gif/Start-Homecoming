@@ -7,11 +7,25 @@ const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-2026-10-29/*.mp3',
   '!../project-reference/sfx/elevenlabs-2026-10-29/water_entry_splash.mp3',
   '!../project-reference/sfx/elevenlabs-2026-10-29/water_roll_loop.mp3',
+  '!../project-reference/sfx/elevenlabs-2026-10-29/fuel_pickup.mp3',
+  '!../project-reference/sfx/elevenlabs-2026-10-29/repair_pickup.mp3',
+  '!../project-reference/sfx/elevenlabs-2026-10-29/passenger_pickup.mp3',
   '../project-reference/sfx/procedural-auditions-2026-10-28/engine-v2/*_loop.wav',
   '../project-reference/sfx/procedural-auditions-2026-10-28/ui-modern/*_a.wav',
+  '../project-reference/sfx/reward-pickups-2026-10-31/*.wav',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const root = '../project-reference/sfx/procedural-auditions-2026-10-28/';
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
+const rewardRoot = '../project-reference/sfx/reward-pickups-2026-10-31/';
+const rewardCues: Record<string, string> = {
+  'item/fuel_pickup.wav': 'fuel_gain.wav',
+  'item/repair_pickup.wav': 'repair_gain.wav',
+  'pickup_01.wav': 'passenger_pickup.wav',
+  'ui-modern/purchase_success_a.wav': 'shop_success.wav',
+  'ui-modern/shop_service_a.wav': 'shop_success.wav',
+  'ui-modern/shop_upgrade_a.wav': 'shop_success.wav',
+  'ui-modern/vehicle_purchase_a.wav': 'vehicle_purchase.wav',
+};
 const generated: Record<string, string> = {
   'road/water_entry_skim.wav': 'water_entry_skim.mp3',
   'road/water_entry_wash.wav': 'water_entry_wash.mp3',
@@ -88,7 +102,7 @@ const generated: Record<string, string> = {
   'result/result_secret.wav': 'result_success.mp3',
 };
 const url = (name: string): string | undefined =>
-  files[generatedRoot + generated[name]] ?? files[root + name];
+  files[rewardRoot + rewardCues[name]] ?? files[generatedRoot + generated[name]] ?? files[root + name];
 
 const oneShotVariants: Record<string, string[]> = {
   'road/water_entry_skim.wav': ['road/water_entry_skim.wav', 'road/water_entry_skim_alt.wav', 'road/water_entry_skim_grit.wav'],
@@ -132,10 +146,9 @@ const cueTrim: Record<string, number> = {
   'interaction-v2/cargo_barrel_roll.wav': .65, 'interaction-v2/cargo_crate_roll.wav': .65,
   'interaction-v2/ambulance_pass.wav': .4, 'interaction-v2/wind_gust.wav': .3,
   'interaction-v2/police_capture.wav': 1.1, 'interaction-v2/banana_use.wav': .7,
-  'interaction-v2/broken_car.wav': .55, 'item/fuel_pickup.wav': .65,
-  'item/repair_pickup.wav': .8, 'item/nitro_activate.wav': .26,
+  'interaction-v2/broken_car.wav': .55, 'item/nitro_activate.wav': .26,
   'item/jump.wav': 1.5, 'item/landing.wav': .65, 'item/star_activate.wav': .7,
-  'item/grab_call.wav': 1.3, 'pickup_01.wav': .55, 'kick_01.wav': .55,
+  'item/grab_call.wav': 1.3, 'kick_01.wav': .55,
   'result/result_damage.wav': .55, 'result/result_fuel.wav': 1.5,
   'result/result_train.wav': .6, 'result/result_police.wav': 1.4,
   'result/result_secret.wav': .35,
@@ -250,10 +263,22 @@ export class AudioDirector {
     const buffer = await this.buffer(name);
     if (!buffer || generation !== this.generation || !this.context || this.context.state !== 'running') return;
     const source = ctx.createBufferSource(), gain = ctx.createGain();
-    source.buffer = buffer; gain.gain.value = volume * trim;
-    source.connect(gain).connect(bus); source.start();
+    const waterEntry = name.startsWith('road/water_entry_');
+    source.buffer = buffer;
+    gain.gain.value = waterEntry ? 0 : volume * trim;
+    if (waterEntry) {
+      // The raw splash has a hard first transient; let the rolling water lead in.
+      gain.gain.setTargetAtTime(volume * trim, ctx.currentTime, .12);
+      const soften = ctx.createBiquadFilter();
+      soften.type = 'lowpass'; soften.frequency.value = 1800;
+      source.connect(soften).connect(gain).connect(bus);
+      source.onended = () => { this.oneShots.delete(source); source.disconnect(); soften.disconnect(); gain.disconnect(); };
+    } else {
+      source.connect(gain).connect(bus);
+      source.onended = () => { this.oneShots.delete(source); source.disconnect(); gain.disconnect(); };
+    }
+    source.start();
     this.oneShots.add(source);
-    source.onended = () => { this.oneShots.delete(source); source.disconnect(); gain.disconnect(); };
   }
 
   private async loop(name: string, bus: Bus, volume: number): Promise<void> {
@@ -344,7 +369,8 @@ export class AudioDirector {
     if (!ctx) return;
     const request = ++this.uiRequest, generation = this.generation;
     const play = () => { void this.play(`ui-modern/${name}_a.wav`, `ui-${name}`, .09,
-      name === 'resource_gain' || name === 'resource_loss' || name === 'reward_small' ? .24 : .38); };
+      name === 'resource_gain' || name === 'resource_loss' || name === 'reward_small' ? .24 :
+        name === 'purchase_success' || name === 'shop_service' || name === 'shop_upgrade' || name === 'vehicle_purchase' ? .72 : .38); };
     if (ctx.state === 'running') play(); else void ctx.resume().then(() => {
       if (request === this.uiRequest && generation === this.generation) play();
     }).catch(() => { /* blocked until a gesture */ });
@@ -361,11 +387,9 @@ export class AudioDirector {
       const hitEntity = run.world.entities.find(e => e.consumed && !this.entityState.get(e.id)?.consumed && e.kind === kind);
       const hitTraffic = run.world.entities.find(e => e.kind === 'traffic' && e.lastHit >= 0 && Math.abs(e.lastHit - run.activeSeconds) < .1);
       const impactSpeed = run.crash?.impactSpeed ?? run.speed;
-      const cue: Record<string, string> = { pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind, impactSpeed), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: run.feedback.startsWith('Gọi Grab') ? 'item/grab_call.wav' : 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind, undefined, impactSpeed), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : hitEntity?.serviceRole === 'ambulance' ? 'interaction-v2/ambulance_hit.wav' : 'interaction-v2/barrier_hit.wav', accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
+      const cue: Record<string, string> = { pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind, impactSpeed), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind, undefined, impactSpeed), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : hitEntity?.serviceRole === 'ambulance' ? 'interaction-v2/ambulance_hit.wav' : 'interaction-v2/barrier_hit.wav', accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
       if (kind && cue[kind]) void this.play(cue[kind], `event-${kind}`);
-      if (kind === 'fuel' || kind === 'repair') this.ui('resource_gain');
-      else if (kind === 'passenger') this.ui('reward_small');
-      else if (kind === 'pothole' || kind === 'police' || kind === 'militia') this.ui('resource_loss');
+      if (kind === 'pothole' || kind === 'police' || kind === 'militia') this.ui('resource_loss');
     }
     if (run.phase !== 'running') {
       this.running = false;
@@ -388,7 +412,7 @@ export class AudioDirector {
       const entry = newContacts.reduce((best, current) => current.width * current.length > best.width * best.length ? current : best);
       const entryCue = waterEntryCue(vehicle.kind, entry.width, entry.length);
       const speedLevel = .35 + .65 * Math.min(1, run.speed / Math.max(1, vehicle.maxSpeed * .7));
-      const entryLevel = (entryCue.includes('skim') ? .65 : entryCue.includes('heavy') ? .45 : .4) * speedLevel;
+      const entryLevel = (entryCue.includes('skim') ? .24 : entryCue.includes('heavy') ? .2 : .18) * speedLevel;
       void this.play(entryCue, 'water-entry', .28, entryLevel);
     }
     if (this.waterActive && !inWater) void this.play('road/water_exit_spray.wav', 'water-exit', .35, .26);
