@@ -156,3 +156,15 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 #junction-branches span.selected{background:#216b62;color:#fff;border:0;--selection-scale:1.08;font-weight:900}
 .world-cue{transform:translate(-50%,-100%) scale(var(--cue-scale,1));transform-origin:50% 100%}
 #junction-branches span{transform:translate(-50%,-100%) scale(var(--cue-scale,1)) scale(var(--selection-scale,1));transform-origin:50% 100%}
+
+/* Storm palette: menu surfaces sit in the scene's muted blue-green range. */
+.panel,#controls-panel{--ink:#e4ece8;--paper:#293d42;--line:#566b6d;background-color:var(--paper);background-image:linear-gradient(#293d42f5,#293d42f5),url('/ui/ivory-paper-v1.png');border-color:#617575;box-shadow:0 8px 24px #08191c66;color:var(--ink);color-scheme:dark}
+.panel p,.panel label,.panel .eyebrow,.panel #help-details p,#feedback-options,.panel>label,.modal-version-link,.garage-vehicle small,.garage-count,.shop-inventory kbd,.shop-card p,.shop-level,.shop-stock,#shop-status,#result-summary dt,.leaderboard h2,.leaderboard ol,#discovery-hint{color:#bdcfca!important}
+.panel button,#shop-panel nav button,#shop-upgrade-target,.shop-confirm select{background:#354e53;color:#e4ece8;border-color:#617575}
+.panel button:hover{background:#456268}
+.panel .primary,#close-help,.shop-card button,.shop-confirm-actions [data-confirm],#shop-panel nav button[aria-pressed=true],#controls-panel .actions button{background:#99bbb1;color:#142e32;border-color:#99bbb1}
+.panel .primary:hover,.shop-card button:hover,.shop-confirm-actions [data-confirm]:hover,#close-help:hover,#controls-panel .actions button:hover{background:#b3d0c7}
+.shop-card,.garage-vehicle,.shop-confirm,#discovery-art{background:#31484d;border-color:var(--line)}
+#shop-panel .shop-wallet,.result-badge{background:#203338;color:#e4ece8!important}
+#controls-toggle{background:#293d42;color:#e4ece8;border-color:#617575}
+.panel :focus-visible,#controls-panel :focus-visible,#controls-toggle:focus-visible{outline-color:#c5dfd5}
