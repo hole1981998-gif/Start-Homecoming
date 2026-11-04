@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { AudioDirector, spatialVoiceVolume, speechPlaybackRate, taperLoopEdges } from '../src/audio-director';
+import { AudioDirector, spatialVoiceVolume, speechPlaybackRate, sweptPassengerContact, taperLoopEdges } from '../src/audio-director';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
@@ -23,6 +23,12 @@ it('makes a roadside call grow louder on approach and fade after passing', () =>
   expect(spatialVoiceVolume(-13, 0)).toBe(0);
   expect(spatialVoiceVolume(-20, 0, 65, 65)).toBeGreaterThan(0);
   expect(spatialVoiceVolume(10, 8)).toBeLessThan(spatialVoiceVolume(10, 0));
+});
+
+it('hears a moving vehicle cross a roadside rider, without a stationary repeat or a nearby miss', () => {
+  expect(sweptPassengerContact(8, 0, -8, 0, 2, 1)).toBe(true);
+  expect(sweptPassengerContact(8, 3, -8, 3, 2, 1)).toBe(false);
+  expect(sweptPassengerContact(0, 0, 0, 0, 2, 1)).toBe(false);
 });
 
 it('tapers both channels at compressed water-loop boundaries while preserving the body', () => {
@@ -52,6 +58,7 @@ it('sustains water only during contact, uses physical collision types, and leave
   const sources: Array<{ buffer?: { path: string }; gain?: { gain: { value: number; targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean }> = [];
   const fetched: string[] = [];
   const voicePaths: string[] = [];
+  const voiceAudios: Array<{ src: string; paused: boolean }> = [];
   const voiceGains: Array<ReturnType<FakeAudioContext['createGain']>> = [];
   const waterFilters: Array<{ type: string; frequency: { value: number } }> = [];
   const stereoPans: Array<{ value: number }> = [];
@@ -92,10 +99,11 @@ it('sustains water only during contact, uses physical collision types, and leave
   }
   class FakeAudio {
     duration = 2; playbackRate = 1; preservesPitch = false;
+    paused = false;
     onloadedmetadata?: () => void; onended?: () => void; onerror?: () => void;
-    constructor(public src: string) { voicePaths.push(src); }
+    constructor(public src: string) { voicePaths.push(src); voiceAudios.push(this); }
     play() { this.onloadedmetadata?.(); return Promise.resolve(); }
-    pause() { /* paused */ }
+    pause() { this.paused = true; }
   }
   vi.stubGlobal('AudioContext', FakeAudioContext);
   vi.stubGlobal('Audio', FakeAudio);
@@ -256,6 +264,39 @@ it('sustains water only during contact, uses physical collision types, and leave
   await vi.waitFor(() => expect(stereoPans.at(-1)?.value).toBeGreaterThan(0));
   await director.update({ ...base, speed: 15, world: { ...base.world, entities: [{ ...truckTraffic, distance: -1 }] } });
   expect(fetched.some(path => path.includes('pass_heavy.wav'))).toBe(true);
+
+  FakeAudioContext.time = 18;
+  const crash = { elapsed: 0, side: 1 as const, originDistance: 0, originX: 0, impactSpeed: 15,
+    returningRiderIds: ['return-a', 'return-b'], strandedRiderIds: ['left-c'] };
+  const fallen = { ...entity('passenger', 'fallen-c', -20, 0), riderId: 'left-c', pickupable: false,
+    passengerMotion: { homeX: 0, homeDistance: -20, startedAt: 18, phase: 0, idle: false,
+      ejectedAt: 18, fromX: 0, fromDistance: 0, crashRecovery: true } };
+  const beforeCrashVoices = voicePaths.length;
+  await director.update({ ...base, crash, riderIds: [], world: { ...base.world, entities: [fallen] } });
+  expect(voicePaths.length - beforeCrashVoices).toBe(3);
+  expect(voicePaths.slice(beforeCrashVoices).every(path => path.includes('scream') || path.includes('kick_short'))).toBe(true);
+  expect(voicePaths.some(path => path.includes('_return_') || path.includes('_abandon_'))).toBe(false);
+  FakeAudioContext.time = 20;
+  await director.update({ ...base, crash: null, riderIds: ['return-a', 'return-b'],
+    world: { ...base.world, entities: [fallen] } });
+  expect(voicePaths.slice(beforeCrashVoices).filter(path => path.includes('_return_'))).toHaveLength(2);
+  expect(voicePaths.slice(beforeCrashVoices).filter(path => path.includes('_abandon_'))).toHaveLength(1);
+  expect(voiceAudios.slice(beforeCrashVoices, beforeCrashVoices + 3).every(audio => audio.paused)).toBe(true);
+
+  FakeAudioContext.time = 23;
+  const roadsideHit = entity('passenger', 'hit-rider', 8, 0);
+  await director.update({ ...base, world: { ...base.world, entities: [roadsideHit] } });
+  const beforeHit = voicePaths.length;
+  await director.update({ ...base, distance: 16, world: { ...base.world, entities: [roadsideHit] } });
+  expect(voicePaths.length - beforeHit).toBe(1);
+  await director.update({ ...base, distance: 17, world: { ...base.world, entities: [roadsideHit] } });
+  expect(voicePaths.length - beforeHit).toBe(1);
+
+  FakeAudioContext.time = 25;
+  const wreckRiders = [0, 1, 2].map(i => entity('passenger', `wreck-rider:bus:${i}`, 0, i * 2));
+  const beforeWreck = voicePaths.length;
+  await director.update({ ...base, world: { ...base.world, entities: wreckRiders } });
+  expect(voicePaths.length - beforeWreck).toBe(3);
 
   const heavyBefore = sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length;
   await director.update({ ...base, phase: 'ended', eventSequence: 11, feedbackKind: 'accident' });

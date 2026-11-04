@@ -44,3 +44,16 @@ for (const [stamp, suffix, target] of takes) {
   await copyFile(join(downloads, matches[0]), join(here, `${target}.mp3`));
   console.log(`${matches[0]} -> ${target}.mp3`);
 }
+const newScreams = [
+  ['13_37_13', 'tram_scream'],
+  ['13_38_04', 'quang_toan_scream'],
+  ['13_38_44', 'anh_thu_scream_a'],
+  ['13_39_25', 'anh_thu_scream_b'],
+  ['13_39_54', 'anh_minh_scream'],
+];
+for (const [stamp, target] of newScreams) {
+  const matches = available.filter(name => name.startsWith(`ElevenLabs_2026-11-04T${stamp}_`) && name.endsWith('.mp3'));
+  if (matches.length !== 1) throw new Error(`${stamp}: expected one source, got ${matches.length}`);
+  await copyFile(join(downloads, matches[0]), join(here, `${target}.mp3`));
+  console.log(`${matches[0]} -> ${target}.mp3`);
+}
