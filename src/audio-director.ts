@@ -122,18 +122,18 @@ const url = (name: string): string | undefined =>
     files[generatedRoot + generated[name]] ?? files[root + name];
 
 const actors = ['nam', 'thanh'] as const;
-type VoiceEvent = 'call' | 'thanks' | 'return' | 'abandon' | 'kick' | 'fall' | 'hit' | 'laugh' | 'traffic' | 'driver';
+type VoiceEvent = 'call' | 'thanks' | 'kick' | 'fall' | 'playerFall' | 'hit' | 'laugh' | 'traffic' | 'driver';
 const screamClips = ['tram_scream', 'quang_toan_scream', 'anh_thu_scream_a', 'anh_thu_scream_b',
   'anh_minh_scream', 'nam_kick_scream', 'nam_kick_scream_alt', 'thanh_kick_scream',
   'huy_kick_scream', 'huy_kick_short', 'huy_kick_scream_alt'];
-const isScream = (event: VoiceEvent): boolean => event === 'kick' || event === 'fall' || event === 'hit';
+const playerScreamClips = ['anh_minh_scream', 'quang_toan_scream', 'huy_kick_scream'];
+const isScream = (event: VoiceEvent): boolean => event === 'kick' || event === 'fall' || event === 'playerFall' || event === 'hit';
 const voiceClips: Record<VoiceEvent, Record<string, string[]>> = {
   call: { nam: ['nam_call_here', 'nam_call_wait'], thanh: ['thanh_call_shout', 'thanh_call_ride'] },
   thanks: { nam: ['nam_onboard_chatter'], thanh: ['thanh_thanks_sing', 'thanh_thanks_cry'] },
-  return: { nam: ['nam_return_mutter'], thanh: ['thanh_return_warning', 'thanh_return_pain'] },
-  abandon: { nam: ['nam_abandon_insult'], thanh: ['thanh_abandon_judge', 'thanh_abandon_problem', 'thanh_abandon_plead'] },
   kick: { nam: ['nam_kick_scream', 'nam_kick_scream_alt'], thanh: ['thanh_kick_scream'] },
   fall: { nam: ['huy_kick_scream', 'huy_kick_short'], thanh: ['huy_kick_scream_alt'] },
+  playerFall: { nam: playerScreamClips, thanh: playerScreamClips },
   hit: { nam: screamClips, thanh: screamClips },
   laugh: { nam: ['thanh_laugh'], thanh: ['thanh_laugh'] },
   traffic: { nam: ['nam_traffic_carcry'], thanh: ['thanh_traffic_surprise'] },
@@ -227,7 +227,7 @@ export type UiCue = 'menu_select' | 'menu_back' | 'help_open' | 'card_open' | 'c
   'pause' | 'resume' | 'restart' | 'shop_enter' | 'shop_category' | 'purchase_fail' |
   'purchase_success' | 'shop_service' | 'shop_upgrade' | 'vehicle_purchase' |
   'toggle_on' | 'toggle_off' | 'resource_gain' | 'resource_loss' | 'reward_small';
-const rainLevel = 2.7;
+const rainLevel = 4.5;
 
 /** Taper loop endpoints to zero so compressed MP3 boundary samples cannot click. */
 export function taperLoopEdges(buffer: AudioBuffer): void {
@@ -261,7 +261,6 @@ export class AudioDirector {
   private spoken = new Set<string>();
   private lastRiders = new Set<string>();
   private returningRiders: string[] = [];
-  private pendingAbandon = new Set<string>();
   private cooldown = new Map<string, number>();
   private variantCount = new Map<string, number>();
   private waterVisit = -1;
@@ -366,8 +365,10 @@ export class AudioDirector {
     spatial?: { entityId: string; range: number; level: number }): void {
     const ctx = this.context, bus = this.buses?.sfx;
     if (!ctx || !bus || ctx.state !== 'running') return;
-    const actor = voiceActor(riderId), clips = isScream(event) ? screamClips : voiceClips[event][actor];
-    const countKey = isScream(event) ? 'voice-variant-scream' : `voice-variant-${event}-${riderId}`;
+    const actor = voiceActor(riderId);
+    const clips = event === 'playerFall' ? playerScreamClips : isScream(event) ? screamClips : voiceClips[event][actor];
+    const countKey = event === 'playerFall' ? 'voice-variant-player-fall' :
+      isScream(event) ? 'voice-variant-scream' : `voice-variant-${event}-${riderId}`;
     const count = this.variantCount.get(countKey) ?? 0;
     const name = `voice/${clips[count % clips.length]}`;
     const path = url(name), key = `voice-${event}-${riderId}`;
@@ -463,7 +464,7 @@ export class AudioDirector {
     this.stopEngine();
     this.clearRetiring();
     for (const { source, gain } of this.ambience.values()) { try { source.stop(); } catch { /* already stopped */ } source.disconnect(); gain.disconnect(); }
-    this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.pendingAbandon.clear(); this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0;
+    this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0;
     this.waterVisit = -1; this.waterStart = 0; this.windStart = 0;
     this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.vehicleId = ''; this.requestedKind = undefined; this.running = false;
   }
@@ -532,15 +533,10 @@ export class AudioDirector {
       node.gain.gain.setTargetAtTime(node.spatial.level * 1.25 * spatialVoiceVolume(ahead, lateral, node.spatial.range), ctx.currentTime, .12);
       if (node.panner) node.panner.pan.setTargetAtTime(Math.max(-.8, Math.min(.8, lateral / 8)), ctx.currentTime, .12);
     }
-    for (const riderId of run.riderIds) if (!this.lastRiders.has(riderId)) {
-      this.voice(this.returningRiders.includes(riderId) ? 'return' : 'thanks', riderId, .9);
-      this.pendingAbandon.delete(riderId);
-    }
+    for (const riderId of run.riderIds) if (!this.lastRiders.has(riderId) && !this.returningRiders.includes(riderId))
+      this.voice('thanks', riderId, .9);
     this.lastRiders = new Set(run.riderIds);
-    if (run.crash) {
-      this.returningRiders = run.crash.returningRiderIds;
-      for (const id of run.crash.strandedRiderIds) this.pendingAbandon.add(id);
-    } else this.returningRiders = [];
+    this.returningRiders = run.crash?.returningRiderIds ?? [];
     const touchingWater = run.world.entities.filter(e => e.kind === 'water' && e.touching && !e.consumed);
     const inWater = touchingWater.length > 0;
     if (inWater && !this.waterActive) { this.waterVisit++; this.waterStart = ctx.currentTime; }
@@ -590,7 +586,9 @@ export class AudioDirector {
     if (run.crash && !this.crashed) {
       void this.play('vehicle/driver_fall.wav', 'driver-fall', .5, .32);
       const fallen = [...run.crash.returningRiderIds, ...run.crash.strandedRiderIds];
-      for (const id of fallen) this.voice('fall', id, 1 / Math.sqrt(fallen.length));
+      const level = 1 / Math.sqrt(fallen.length + 1);
+      this.voice('playerFall', run.runId, level);
+      for (const id of fallen) this.voice('fall', id, level);
     }
     this.crashed = !!run.crash;
     if (run.motion === 'coasting' && this.lastMotion !== 'coasting') void this.play('vehicle/coast.wav');
@@ -667,12 +665,8 @@ export class AudioDirector {
           Math.abs(ahead) < 65) {
           this.spoken.add(e.id); this.voice('traffic', e.riderId ?? e.id,
             .8 * spatialVoiceVolume(ahead, e.x - run.x, 65, 65), (e.x - run.x) / 8);
-        } else if (e.id.startsWith('fallen-') && !run.crash && this.pendingAbandon.has(e.riderId ?? '') &&
-          e.pickupable === false && ahead < -14 && !this.spoken.has(e.id)) {
-          this.spoken.add(e.id); this.voice('abandon', e.riderId ?? e.id,
-            .9 * spatialVoiceVolume(ahead, e.x - run.x, 65, 65), (e.x - run.x) / 8);
-          this.pendingAbandon.delete(e.riderId ?? '');
-        } else if (!this.spoken.has(`road-hit:${e.id}`) && e.pickupable !== false && ahead > 0 && ahead < 58 && Math.abs(e.x - run.x) < 9) {
+        } else if (!e.id.startsWith('fallen-') && !this.spoken.has(`road-hit:${e.id}`) &&
+          e.pickupable !== false && ahead > 0 && ahead < 58 && Math.abs(e.x - run.x) < 9) {
           const volume = .62 * spatialVoiceVolume(ahead, e.x - run.x);
           this.voice(e.passengerType === 'grab' ? 'laugh' : 'call', e.riderId ?? e.id,
             volume, (e.x - run.x) / 8, 4.2, { entityId: e.id, range: 58, level: .62 });

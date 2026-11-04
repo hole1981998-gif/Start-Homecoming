@@ -4,8 +4,8 @@ The MP3s here are copies of the ElevenLabs takes the owner supplied from Downloa
 `import.mjs` records the exact timestamp and version chosen for each cue and leaves the original files untouched.
 `LISTEN.html` is an audition page; the game uses the event mapping in `src/audio-director.ts`.
 
-Events: roadside call, boarding, fall, reboarding, abandonment, kick, Grab laugh, traffic ejection, and nearby driver collision.
-The five owner-supplied November 4 screams join the existing scream pool. A crash emits one scream per ejected rider; each nearby wreck passenger also screams once. A vehicle crossing a roadside passenger's collider emits one scream for that passenger. Return and abandonment dialogue waits for crash recovery, and a new dialogue line cuts off that rider's lingering scream.
+Events: roadside call, boarding, player fall, passenger fall/kick, Grab laugh, traffic ejection, and nearby driver collision. Return and abandonment recordings are retained for audition but are not triggered after a fall from the player's vehicle.
+The five owner-supplied November 4 screams join the existing scream pool. A player crash emits a player scream even without riders, plus one scream per ejected rider; each nearby wreck passenger also screams once. A vehicle crossing a roadside passenger's collider emits one scream for that passenger. Only screams play for passengers falling from the player's vehicle; traffic wreck dialogue still follows its passengers' screams.
 Owner voice gain is raised by 25% before the SFX bus. Concurrent crash screams are scaled by the square root of rider count to avoid a large spike.
 Roadside calls change level during playback as player distance changes. Abandonment and traffic ejection use their own wider rear hearing range. All voices use the SFX volume control and retain pitch when sped up.
 
