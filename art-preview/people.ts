@@ -1,0 +1,159 @@
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createPersonArt, type EssentialPose, type PersonArchetype } from '../src/art/people';
+
+let adjustedDriver: THREE.Group | null = null;
+const driverRest = new WeakMap<THREE.Group,
+  Map<THREE.Object3D, { position: THREE.Vector3; quaternion: THREE.Quaternion }>>();
+function poseAdjustedDriver(root: THREE.Group, pose: EssentialPose, phase: number) {
+  const nodes: THREE.Object3D[] = [];
+  root.traverse(object => nodes.push(object));
+  let rest = driverRest.get(root);
+  if (!rest) {
+    rest = new Map(nodes.map(object => [object,
+      { position: object.position.clone(), quaternion: object.quaternion.clone() }]));
+    driverRest.set(root, rest);
+  }
+  for (const object of nodes) {
+    const transform = rest.get(object)!;
+    object.position.copy(transform.position);
+    object.quaternion.copy(transform.quaternion);
+  }
+  const named = (prefix: string) => nodes.find(object => object.name.startsWith(prefix));
+  const pair = (prefix: string) => nodes.filter(object => object.name.startsWith(prefix))
+    .sort((a, b) => a.position.x - b.position.x);
+  const hips = named('hip_pivot')!, torso = named('torso_pivot')!, head = named('head_pivot')!;
+  const arms = pair('shoulder_'), legs = pair('hip_leg_');
+  const elbows = arms.map(arm => arm.children.find(child => child.name.startsWith('elbow_'))!);
+  const knees = legs.map(leg => leg.children.find(child => child.name.startsWith('knee_'))!);
+  const turn = (object: THREE.Object3D, axis: THREE.Vector3, radians: number) =>
+    object.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, radians));
+  const x = new THREE.Vector3(1, 0, 0), y = new THREE.Vector3(0, 1, 0), z = new THREE.Vector3(0, 0, 1);
+  const t = Math.max(0, Math.min(1, phase));
+  if (pose === 'walk') {
+    const stride = Math.sin(t * Math.PI * 2);
+    hips.position.y += Math.abs(stride) * .018;
+    turn(legs[0], x, stride * .54); turn(legs[1], x, -stride * .54);
+    turn(knees[0], x, Math.max(0, -stride) * .56);
+    turn(knees[1], x, Math.max(0, stride) * .56);
+    turn(arms[0], x, -stride * .43 - .13); turn(arms[1], x, stride * .43 - .13);
+    turn(elbows[0], x, -.22); turn(elbows[1], x, -.22);
+    turn(torso, z, stride * .045); turn(head, z, -stride * .025);
+  } else if (pose === 'seated' || pose === 'riding') {
+    if (pose === 'seated') torso.position.y -= .19;
+    for (const leg of legs) turn(leg, x, pose === 'riding' ? -.77 : -1.25);
+    for (const knee of knees) turn(knee, x, pose === 'riding' ? 1.0 : 1.33);
+    if (pose === 'riding') {
+      turn(torso, x, .22);
+      for (const arm of arms) turn(arm, x, -.92);
+      for (const elbow of elbows) turn(elbow, x, -.35);
+    }
+    torso.position.y += Math.sin(t * Math.PI * 2) * .024;
+    turn(torso, z, Math.sin(t * Math.PI * 2) * .043);
+    turn(head, y, Math.sin(t * Math.PI * 2 + .8) * .09);
+  } else if (pose === 'hail') {
+    const wave = Math.sin(t * Math.PI * 2);
+    turn(arms[1], z, 2.22 + wave * .27);
+    turn(elbows[1], z, -.45 + wave * .21); turn(head, y, -.15 + wave * .045);
+  } else if (pose === 'stand') {
+    const breath = Math.sin(t * Math.PI * 2);
+    torso.position.y += breath * .018;
+    turn(torso, z, breath * .034); turn(head, y, breath * .085);
+  } else if (pose === 'refuse') {
+    turn(arms[1], z, 1.18); turn(elbows[1], x, -1);
+    turn(head, y, -.42 + Math.sin(t * Math.PI * 4) * .17);
+    turn(torso, y, -.24 + Math.sin(t * Math.PI * 2) * .05);
+  } else if (pose === 'ejected') {
+    turn(torso, x, -.25 - .36 * t); turn(torso, z, .10 + .20 * t);
+    turn(arms[0], z, -.5 - .6 * t); turn(arms[1], z, .5 + .5 * t);
+    turn(legs[0], x, -.16 - .19 * t); turn(legs[1], x, .19 + .23 * t);
+  } else if (pose === 'grounded' || pose === 'recover') {
+    hips.position.y = pose === 'grounded' ? .33 : .33 + (.85 - .33) * t;
+    const drop = pose === 'grounded' ? 1 : 1 - t;
+    turn(torso, x, -1.25 * drop);
+    for (const arm of arms) turn(arm, x, -1.12 * drop);
+    if (pose === 'grounded') {
+      turn(legs[0], z, -.32); turn(legs[1], z, .30);
+    } else for (const knee of knees) turn(knee, x, .52 * drop);
+  }
+}
+const views = (['rear', 'front'] as const).map(name => {
+  const canvas = document.getElementById(name) as HTMLCanvasElement;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.06;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const scene = new THREE.Scene(); scene.background = new THREE.Color('#eceee8');
+  scene.add(new THREE.HemisphereLight('#ffffff', '#aeb9b4', 1.35));
+  const light = new THREE.DirectionalLight('#fff4dc', 2.25);
+  light.position.set(-3, 7, 5); light.castShadow = true; light.shadow.mapSize.set(2048, 2048);
+  light.shadow.camera.left = -4; light.shadow.camera.right = 4;
+  light.shadow.camera.top = 4; light.shadow.camera.bottom = -4;
+  light.shadow.bias = -.0003; scene.add(light);
+  const fill = new THREE.DirectionalLight('#d5e8e4', .65); fill.position.set(4, 5, -3); scene.add(fill);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20),
+    new THREE.MeshLambertMaterial({ color: '#e9e9df' }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -.02;
+  ground.receiveShadow = true; scene.add(ground);
+  const camera = new THREE.PerspectiveCamera(35, 1, .1, 40);
+  camera.position.set(name === 'rear' ? -.3 : 3.1, 2.0, name === 'rear' ? -5.3 : 4.7);
+  camera.lookAt(0, .9, 0);
+  let person = createPersonArt('driver'); scene.add(person.root);
+  let delivered: THREE.Group | null = null;
+  let lastWidth = 0, lastHeight = 0;
+  return { canvas, renderer, scene, camera, setPerson(next: typeof person) {
+    scene.remove(person.root); person.dispose(); person = next;
+    person.root.traverse(object => { if (object instanceof THREE.Mesh) object.castShadow = true; });
+    scene.add(person.root);
+  }, showAdjustedDriver(show: boolean) {
+    if (delivered) scene.remove(delivered);
+    delivered = show && adjustedDriver ? adjustedDriver.clone(true) : null;
+    if (delivered) {
+      delivered.traverse(object => { if (object instanceof THREE.Mesh) object.castShadow = true; });
+      scene.add(delivered);
+    }
+    person.root.visible = !delivered;
+  }, render(pose: EssentialPose, phase: number) {
+    person.setPose(pose, phase);
+    if (delivered) poseAdjustedDriver(delivered, pose, phase);
+    const { width, height } = canvas.getBoundingClientRect();
+    if (width <= 0 || height <= 0) return;
+    if (width !== lastWidth || height !== lastHeight) {
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height; camera.updateProjectionMatrix();
+      lastWidth = width; lastHeight = height;
+    }
+    renderer.render(scene, camera);
+  } };
+});
+function refreshSelection() {
+  const archetype = (document.getElementById('person') as HTMLSelectElement).value as PersonArchetype;
+  const pose = (document.getElementById('pose') as HTMLSelectElement).value as EssentialPose;
+  const showAdjusted = archetype === 'driver' && !!adjustedDriver;
+  (document.getElementById('source-note') as HTMLElement).textContent = showAdjusted
+    ? 'Tài xế: mesh Blender driver.adjusted; pose preview theo pivot'
+    : 'NPC: mesh procedural; chưa ghép asset Blender vào gameplay';
+  for (const view of views) {
+    view.setPerson(createPersonArt(archetype));
+    view.showAdjustedDriver(showAdjusted);
+    view.render(pose, .25);
+  }
+}
+for (const id of ['person', 'pose']) document.getElementById(id)?.addEventListener('change', refreshSelection);
+refreshSelection();
+const started = performance.now();
+function animate(now: number) {
+  const pose = (document.getElementById('pose') as HTMLSelectElement).value as EssentialPose;
+  const elapsed = Math.max(0, (now - started) / 1000);
+  const cycle = pose === 'walk' ? .8 : pose === 'hail' ? .5 : .4;
+  const phase = elapsed * cycle % 1;
+  for (const view of views) view.render(pose, phase);
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+new GLTFLoader().load(new URL('../assets/art/driver-adjusted-delivery.glb', import.meta.url).href,
+  gltf => { adjustedDriver = gltf.scene; refreshSelection(); }, undefined,
+  () => { (document.getElementById('source-note') as HTMLElement).textContent = 'Không tải được mesh Blender'; });

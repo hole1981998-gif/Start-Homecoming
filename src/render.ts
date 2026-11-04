@@ -1,45 +1,110 @@
 import { isSpecial, trainClosed } from './special-events';
 import * as THREE from 'three';
-import { balance } from './config';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { balance, movingBalance } from './config';
 import { jumpHeight, hasStar, hasBoost } from './items';
 import { activeVehicle, type Run } from './survival';
-import { passengerPose, trafficTypes, type EntityKind, type TrafficKind } from './world';
+import { passengerPose, trafficTypes, warningDistance, type EntityKind, type TrafficKind } from './world';
 import { junction, pathPose } from './route';
 import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep';
-import { LANDSCAPE_REGION_METRES, landscapeColors, landscapeWindow, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
+import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
+import { attachArticulatedContainerArt, attachVehicleArtToPrototype } from './art/prototype-adapter';
+import { createVehicleArt, setTrafficDriverSeated, type VehicleArt } from './art/vehicle-catalog';
+import { bikeLiftSeconds, trafficBikeWreckPose, twoWheelCrashPose } from './art/vehicle-recovery';
+import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './art/hazards';
+import { createOfficerArt, createTrainArt, createVendorArt, crossingVisualYaw,
+  type MovingArt } from './art/moving-events';
+import { createAccidentArt, createShopArt } from './art/special-hazards';
+import { createRoadTileArt } from './art/road-kit';
+import { createJunctionAsphaltMaterial, createJunctionTurnArt, type JunctionTurnArt } from './art/junction-turn';
+import { configureStormRenderer, createStormLighting, gameplayAccentLayer, gradeStormCityBuilding, shadePlacedStormCityFacades } from './art/storm-lighting';
+import { createBendSceneryStrip, createSceneryCluster, mountBlenderCityMarket, mountBlenderCityMidrise, mountBlenderCityShop, mountBlenderCitySkyline, mountBlenderCoastalBoat, optimizeNearScenery, scenerySectionCrossesTurn, type SceneryArt } from './art/scenery';
+import { createRainArt, createRainSplashArt, type RainArt } from './art/weather';
+import { createCloudShadowArt, type CloudShadowArt } from './art/cloud-shadows';
+import { createStormPostProcessing } from './art/storm-post';
+import { createRoadContactShadows } from './art/road-contact-shadows';
+import { passengerWindowPoses } from './art/passenger-windows';
+import { createWindStreakArt, type WindStreakArt } from './art/wind-streaks';
+import { createRoadEffects } from './art/road-effects';
+import { playerIndicatorTurn, vehicleEffectState } from './art/vehicle-effects';
+import { createVehicleLightBeams } from './art/vehicle-light-beams';
+import { bindVehicleLampMaterials } from './art/vehicle-light-materials';
+import { createStarAura } from './art/star-aura';
+import { createNitroJet } from './art/nitro-jet';
+import { createPersonArt, mountPersonOnSeat, type PersonArt, type PersonArchetype } from './art/people';
+import { colorPlayerHelmet, colorPlayerJacket, playerHelmetColor } from './art/player-appearance';
+import { openPassengerSeat } from './art/open-passengers';
+import { roadsideArchetype, roadsidePose, roadsideWalkingYaw } from './art/runtime-people';
+import { driverCrashPose, driverVisualReturnProgress, passengerVisualReturnProgress,
+  returningPassengerPose } from './art/timing';
+import { createCrashBlenderDriver, createRidingBlenderDriver, type AnimatedBlenderDriver,
+  type CrashBlenderDriver } from './art/blender-driver';
+import type { VehicleKind } from './vehicles';
 
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
-  landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] }
+  turnRoad: JunctionTurnArt;
+  landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial>[] }
 
 export class RoadRenderer {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(52, 9 / 16, 0.1, 180);
+  private stormLighting: ReturnType<typeof createStormLighting>;
+  private stormPost: ReturnType<typeof createStormPostProcessing>;
+  private contactShadows = createRoadContactShadows();
+  private effects = createRoadEffects();
+  private lightBeams = createVehicleLightBeams();
+  private lampMaterials = new WeakMap<VehicleArt, ReturnType<typeof bindVehicleLampMaterials>>();
+  private starAura = createStarAura();
+  private nitroJet = createNitroJet();
+  private reducedMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  private lowEffects = false;
+  private playerShadow!: THREE.Mesh;
+  private trailerShadow!: THREE.Mesh;
   private bike = new THREE.Group();
-  private powerRing!: THREE.Mesh;
+  private playerArt = new Map<VehicleKind, VehicleArt>();
+  private playerDrivers = new Map<VehicleKind, PersonArt>();
+  private openPassengerModels = new Map<VehicleKind, Map<string, PersonArt>>();
+  private playerBlenderDrivers = new Map<VehicleKind, AnimatedBlenderDriver>();
+  private driverTemplate: THREE.Group | null = null;
   private openFrame = new THREE.Group();
   private tricycleFrame = new THREE.Group();
   private closedFrame = new THREE.Group();
+  private windowPassengerFrame = new THREE.Group();
   private tractorFrame = new THREE.Group();
   private trailerFrame = new THREE.Group();
+  private tractorPlaceholder = new THREE.Group();
+  private trailerPlaceholder = new THREE.Group();
   private windowPassengers: THREE.Group[] = [];
   private tractorPassengers: THREE.Group[] = [];
   private rider!: THREE.Mesh;
   private helmet!: THREE.Mesh;
   private fallenDriver = new THREE.Group();
+  private fallenDriverArt!: PersonArt;
+  private fallenBlenderDriver: CrashBlenderDriver | null = null;
   private bikePassengers: THREE.Group[] = [];
-  private fallenPassengers: THREE.Group[] = [];
+  private fallenPassengerModels = new Map<string, PersonArt>();
   private roadPieces: THREE.Group[] = [];
   private roadSurface!: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   private ground!: THREE.Mesh;
-  private landscapeTiles: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] = [];
-  private landscapeBands: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> | null = null;
-  private landscapeMaterials: Record<LandscapeKind, THREE.MeshBasicMaterial> | null = null;
-  private landscapeCell = { x: NaN, z: NaN, seed: NaN };
+  private landscapeBands: THREE.Mesh<THREE.BufferGeometry, THREE.MeshLambertMaterial> | null = null;
+  private landscapeMaterials: Record<LandscapeKind, THREE.MeshLambertMaterial> | null = null;
+  private cloudShadows: CloudShadowArt | null = null;
+  private scenery = new Map<string, SceneryArt>();
+  private cityMidriseTemplate: THREE.Object3D | null = null;
+  private citySkylineTemplate: THREE.Object3D | null = null;
+  private cityShopTemplate: THREE.Object3D | null = null;
+  private cityMarketTemplate: THREE.Object3D | null = null;
+  private coastalBoatTemplate: THREE.Object3D | null = null;
+  private disposed = false;
+  private rainSeed = NaN;
+  private rain?: RainArt;
+  private rainSplashes?: RainArt;
   private viewState!: Run;
   private entityMeshes = new Map<string, { kind: EntityKind; trafficKind?: TrafficKind; mesh: THREE.Group }>();
   private pools: Record<EntityKind, THREE.Group[]> = { wind: [], water: [], pothole: [], traffic: [], cargo: [], fuel: [], repair: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
   private trafficPools = new Map<TrafficKind, THREE.Group[]>();
+  private passengerPools = new Map<PersonArchetype, THREE.Group[]>();
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
   private observer: ResizeObserver;
   private host: HTMLElement;
@@ -47,97 +112,155 @@ export class RoadRenderer {
   private crossings: JunctionView[] = [];
   constructor(canvas: HTMLCanvasElement, host: HTMLElement, private forceMode = false) {
     this.host = host;
+    this.scene.add(this.effects.root);
+    this.scene.add(this.lightBeams.root);
+    this.scene.add(this.starAura.root);
+    this.scene.add(this.nitroJet.root);
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    this.scene.background = new THREE.Color('#566770');
-    this.scene.fog = new THREE.Fog('#566770', 45, 120);
-    this.scene.add(new THREE.HemisphereLight('#dae5e5', '#444b49', 2.4));
-    const sun = new THREE.DirectionalLight('#f9e5c3', 2); sun.position.set(-8, 15, 10); this.scene.add(sun);
+    configureStormRenderer(this.renderer);
+    this.stormLighting = createStormLighting(this.scene);
+    this.stormPost = createStormPostProcessing(this.renderer, this.scene, this.camera);
+    new GLTFLoader().load(new URL('../assets/art/driver-adjusted-delivery.glb', import.meta.url).href,
+      gltf => {
+        if (this.disposed) return;
+        this.driverTemplate = gltf.scene;
+        colorPlayerHelmet(this.driverTemplate);
+        colorPlayerJacket(this.driverTemplate);
+        for (const kind of this.playerDrivers.keys()) this.attachBlenderDriver(kind);
+        try {
+          this.fallenBlenderDriver = createCrashBlenderDriver(gltf.scene);
+          this.fallenDriver.add(this.fallenBlenderDriver);
+          this.fallenDriverArt.root.visible = false;
+        } catch { /* Keep the procedural crash driver if pose pivots are unavailable. */ }
+      });
+    if (this.forceMode) new GLTFLoader().load(
+      new URL('../assets/art/roadside-midrise.glb', import.meta.url).href,
+      gltf => {
+        if (this.disposed) return;
+        gradeStormCityBuilding(gltf.scene);
+        this.cityMidriseTemplate = gltf.scene;
+        this.refreshNearCityScenery();
+      });
+    if (this.forceMode) new GLTFLoader().load(
+      new URL('../assets/art/skyline-shophouse.glb', import.meta.url).href,
+      gltf => {
+        if (this.disposed) return;
+        gradeStormCityBuilding(gltf.scene);
+        this.citySkylineTemplate = gltf.scene;
+        this.refreshNearCityScenery();
+      });
+    if (this.forceMode) new GLTFLoader().load(
+      new URL('../assets/art/roadside-shop.glb', import.meta.url).href,
+      gltf => {
+        if (this.disposed) return;
+        gradeStormCityBuilding(gltf.scene);
+        this.cityShopTemplate = gltf.scene;
+        this.refreshNearCityScenery();
+      });
+    if (this.forceMode) new GLTFLoader().load(
+      new URL('../assets/art/corner-market.glb', import.meta.url).href,
+      gltf => {
+        if (this.disposed) return;
+        gradeStormCityBuilding(gltf.scene);
+        this.cityMarketTemplate = gltf.scene;
+        this.refreshNearCityScenery();
+      });
+    if (this.forceMode) new GLTFLoader().load(
+      new URL('../assets/art/coastal-fishing-boat.glb', import.meta.url).href,
+      gltf => {
+        if (this.disposed) return;
+        this.coastalBoatTemplate = gltf.scene;
+        this.refreshNearSeaScenery();
+      });
+    this.stormLighting.sun.shadow.mapSize.set(1024, 1024);
+    this.stormLighting.sun.shadow.blurSamples = 8;
+    this.camera.layers.enable(gameplayAccentLayer);
     const box = (w: number, h: number, d: number, color: string, parent: THREE.Object3D = this.scene) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
       parent.add(mesh); return mesh;
     };
     this.makeBox = box;
-    this.ground = box(260, 0.1, 260, '#425951'); this.ground.position.y = -.15;
+    this.ground = box(600, 0.1, 600, '#425951'); this.ground.position.y = -.15;
     if (this.forceMode) {
-      const geometry = new THREE.PlaneGeometry(LANDSCAPE_REGION_METRES, LANDSCAPE_REGION_METRES);
       this.landscapeMaterials = Object.fromEntries(Object.entries(landscapeColors).map(([kind, color]) =>
-        [kind, new THREE.MeshBasicMaterial({ color })])) as Record<keyof typeof landscapeColors, THREE.MeshBasicMaterial>;
-      for (let i = 0; i < 25; i++) {
-        const tile = new THREE.Mesh(geometry, this.landscapeMaterials.city);
-        tile.rotation.x = -Math.PI / 2;
-        tile.position.y = -.095;
-        this.scene.add(tile);
-        this.landscapeTiles.push(tile);
-      }
+        [kind, new THREE.MeshLambertMaterial({ color })])) as Record<keyof typeof landscapeColors, THREE.MeshLambertMaterial>;
       // Flat color shoulders follow the centerline; the road covers their shared seam.
       const bandGeometry = new THREE.BufferGeometry();
       const bandValues = 52 * 2 * 6 * 3;
       bandGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(bandValues), 3));
       bandGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(bandValues), 3));
-      this.landscapeBands = new THREE.Mesh(bandGeometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+      this.landscapeBands = new THREE.Mesh(bandGeometry, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+      this.landscapeBands.receiveShadow = true;
       this.scene.add(this.landscapeBands);
+      this.cloudShadows = createCloudShadowArt();
+      this.scene.add(this.cloudShadows.root);
     }
     const roadGeometry = new THREE.BufferGeometry();
     roadGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(53 * 2 * 3), 3));
     const roadIndices: number[] = [];
     for (let i = 0; i < 52; i++) roadIndices.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
     roadGeometry.setIndex(roadIndices);
-    this.roadSurface = new THREE.Mesh(roadGeometry, new THREE.MeshBasicMaterial({ color: '#303e46', side: THREE.DoubleSide }));
+    this.roadSurface = new THREE.Mesh(roadGeometry, new THREE.MeshBasicMaterial({ color: '#525b54', side: THREE.DoubleSide }));
     this.scene.add(this.roadSurface);
     for (let i = 0; i < 52; i++) {
       const piece = new THREE.Group(); this.scene.add(piece); this.roadPieces.push(piece);
-      for (const side of [-1, 1]) {
-        const edge = box(.12, .03, 4.5, '#d3d4bc', piece); edge.position.set(side * 4.9, .02, 0);
-        const stripe = box(.09, .02, 1.8, '#9caeae', piece); stripe.position.set(side * balance.laneWidth / 2, .02, 0);
-        const post = box(.18, .7, .18, '#b0b7ab', piece); post.position.set(side * 5.3, .35, 0);
-      }
+      const art = createRoadTileArt(i < 14 ? 'near' : 'far');
+      art.setWetness(.7);
+      art.root.traverse(object => { if (object instanceof THREE.Mesh) object.receiveShadow = true; });
+      piece.add(art.root);
     }
     for (let i = 0; i < 2; i++) {
       const group = new THREE.Group(), straightStub = new THREE.Group();
       this.scene.add(group); group.add(straightStub);
-      // The cross street meets the outgoing road at the end of the quarter turn.
-      const crossStreet = box(90, .07, 9.6, '#33454b', group); crossStreet.position.set(0, -.055, -10.2);
-      const oldRoad = box(9.6, .04, 190, '#303e46', straightStub); oldRoad.position.set(0, -.08, -95);
-      for (const side of [-1, 1]) {
-        const edge = box(.12, .025, 150, '#d3d4bc', straightStub); edge.position.set(side * 4.9, -.035, -95);
-        const stripe = box(.09, .025, 150, '#9caeae', straightStub); stripe.position.set(side * balance.laneWidth / 2, -.035, -95);
-      }
-      const landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] = [];
+      // Continuous asphalt follows the chosen quarter turn and joins the cross street.
+      const turnRoad = createJunctionTurnArt(); group.add(turnRoad.root);
+      const oldRoad = new THREE.Mesh(new THREE.BoxGeometry(9.6, .04, 190),
+        createJunctionAsphaltMaterial());
+      oldRoad.position.set(0, -.08, -95);
+      oldRoad.receiveShadow = true;
+      straightStub.add(oldRoad);
+      const landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial>[] = [];
       if (this.landscapeMaterials) {
         const shoulderGeometry = new THREE.PlaneGeometry(30, 1);
         for (let i = 0; i < 8; i++) {
           const shoulder = new THREE.Mesh(shoulderGeometry, this.landscapeMaterials.city);
           shoulder.rotation.x = -Math.PI / 2;
           shoulder.position.y = -.09;
+          shoulder.receiveShadow = true;
           straightStub.add(shoulder);
           landscapeStub.push(shoulder);
         }
       }
       const barrier = box(9.2, .7, .35, '#d39468', group); barrier.position.set(0, .36, -12);
-      this.crossings.push({ group, straightStub, barrier, landscapeStub });
+      this.crossings.push({ group, straightStub, barrier, turnRoad, landscapeStub });
     }
     this.scene.add(this.bike);
-    this.bike.add(this.openFrame, this.tricycleFrame, this.closedFrame, this.tractorFrame);
+    this.playerShadow = this.contactShadows.create();
+    this.trailerShadow = this.contactShadows.create();
+    this.trailerShadow.visible = false;
+    this.scene.add(this.playerShadow, this.trailerShadow);
+    this.bike.add(this.openFrame, this.tricycleFrame, this.closedFrame,
+      this.windowPassengerFrame, this.tractorFrame);
     this.scene.add(this.trailerFrame);
-    this.powerRing = new THREE.Mesh(new THREE.TorusGeometry(1.5, .06, 4, 20), new THREE.MeshBasicMaterial({ color: '#f7df85' }));
-    this.powerRing.rotation.x = Math.PI / 2; this.powerRing.position.y = .15; this.bike.add(this.powerRing);
+    this.tractorFrame.add(this.tractorPlaceholder);
+    this.trailerFrame.add(this.trailerPlaceholder);
     const body = box(0.65, 0.42, 1.5, '#dbb55c', this.openFrame); body.position.y = 0.65;
     for (const z of [-0.68, 0.68]) { const wheel = box(0.22, 0.48, 0.46, '#172126', this.openFrame); wheel.position.set(0, 0.25, z); }
     const shell = box(1, .8, 2, '#d0ad68', this.closedFrame); shell.position.y = .75;
     const cabin = box(.82, .48, 1.05, '#7a9a9e', this.closedFrame); cabin.position.set(0, 1.36, -.12);
-    this.windowPassengers = this.addWindowPassengers(this.closedFrame, 1, 2, balance.riderLimit, 1.24);
-    const tractorBase = box(1.65, .8, 4.1, '#d0ad68', this.tractorFrame); tractorBase.position.y = .8;
-    const tractorCab = box(1.55, 1.15, 2.5, '#d0ad68', this.tractorFrame); tractorCab.position.set(0, 1.55, -.65);
-    const tractorGlass = box(1.4, .55, .08, '#7a9a9e', this.tractorFrame); tractorGlass.position.set(0, 1.75, -1.94);
+    this.windowPassengers = this.addWindowPassengers(this.windowPassengerFrame, 1, 2, balance.riderLimit, 1.24);
+    const tractorBase = box(1.65, .8, 4.1, '#d0ad68', this.tractorPlaceholder); tractorBase.position.y = .8;
+    const tractorCab = box(1.55, 1.15, 2.5, '#d0ad68', this.tractorPlaceholder); tractorCab.position.set(0, 1.55, -.65);
+    const tractorGlass = box(1.4, .55, .08, '#7a9a9e', this.tractorPlaceholder); tractorGlass.position.set(0, 1.75, -1.94);
     this.tractorPassengers = this.addWindowPassengers(this.tractorFrame, 1.55, 2.5, 1, 1.85);
     this.tractorPassengers[0].position.z = -.65;
     for (const side of [-1, 1]) for (const z of [-1.55, 1.35]) {
-      const wheel = box(.35, .63, .7, '#172126', this.tractorFrame); wheel.position.set(side * .89, .32, z);
+      const wheel = box(.35, .63, .7, '#172126', this.tractorPlaceholder); wheel.position.set(side * .89, .32, z);
     }
-    const trailerBox = box(1.8, 1.55, 9.4, '#a98d66', this.trailerFrame); trailerBox.position.y = 1.38;
+    const trailerBox = box(1.8, 1.55, 9.4, '#a98d66', this.trailerPlaceholder); trailerBox.position.y = 1.38;
     for (const side of [-1, 1]) for (const z of [2.8, 3.7]) {
-      const wheel = box(.35, .64, .7, '#172126', this.trailerFrame); wheel.position.set(side * 1.02, .32, z);
+      const wheel = box(.35, .64, .7, '#172126', this.trailerPlaceholder); wheel.position.set(side * 1.02, .32, z);
     }
     const fork = box(.48, .35, 1.25, '#dbb55c', this.tricycleFrame); fork.position.set(0, .66, -.68);
     const cargoBed = box(1.5, .17, 1.65, '#b38d59', this.tricycleFrame); cargoBed.position.set(0, .73, .62);
@@ -148,31 +271,36 @@ export class RoadRenderer {
     const frontWheel = box(.25, .56, .44, '#172126', this.tricycleFrame); frontWheel.position.set(0, .28, -1.17);
     const frontLamp = box(.3, .16, .08, '#fff0ba', this.tricycleFrame); frontLamp.position.set(0, .82, -1.31);
     this.rider = box(0.5, 0.75, 0.45, '#7dabb3', this.bike); this.rider.position.set(0, 1.2, 0.1);
-    this.helmet = box(0.4, 0.35, 0.4, '#e4d9c2', this.bike); this.helmet.position.set(0, 1.75, 0.06);
+    this.helmet = box(0.4, 0.35, 0.4, playerHelmetColor, this.bike); this.helmet.position.set(0, 1.75, 0.06);
     for (let i = 0; i < balance.riderLimit; i++) {
       const onBike = new THREE.Group(); this.bike.add(onBike);
       const color = i % 2 ? '#d59b79' : '#9cb7a6';
       const body = box(.45, .65, .4, color, onBike); body.position.y = .34;
       const head = box(.34, .34, .34, '#e6d8bd', onBike); head.position.y = .82;
       this.bikePassengers.push(onBike);
-      const fallen = new THREE.Group(); this.scene.add(fallen);
-      const fallenBody = box(.45, .65, .4, color, fallen); fallenBody.position.y = .34;
-      const fallenHead = box(.34, .34, .34, '#e6d8bd', fallen); fallenHead.position.y = .82;
-      this.fallenPassengers.push(fallen);
     }
     this.scene.add(this.fallenDriver);
-    const fallenBody = box(0.5, 0.75, 0.45, '#7dabb3', this.fallenDriver); fallenBody.position.y = .55;
-    const fallenHelmet = box(.4, .35, .4, '#e4d9c2', this.fallenDriver); fallenHelmet.position.y = 1.15;
+    this.fallenDriverArt = createPersonArt('driver');
+    colorPlayerHelmet(this.fallenDriverArt.root);
+    colorPlayerJacket(this.fallenDriverArt.root);
+    this.fallenDriver.add(this.fallenDriverArt.root);
     const lamp = box(0.3, 0.16, 0.05, '#fff0ba', this.openFrame); lamp.position.set(0, 0.72, -0.77);
     this.observer = new ResizeObserver(() => {
       const { width, height } = host.getBoundingClientRect();
-      this.renderer.setSize(width, height, false); this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
+      this.renderer.setSize(width, height, false);
+      this.stormPost.setSize(width, height);
+      this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
     });
     this.observer.observe(host);
   }
   /** Small upper bodies lean beyond each side window; the driver is never included. */
   private addWindowPassengers(parent: THREE.Group, width: number, length: number, count: number, height: number): THREE.Group[] {
     const passengers: THREE.Group[] = [];
+    const torsoGeometry = new THREE.CylinderGeometry(.12, .16, .27, 5);
+    const headGeometry = new THREE.IcosahedronGeometry(.145, 1);
+    const coats = ['#9cb7a6', '#d59b79'].map(color =>
+      new THREE.MeshLambertMaterial({ color, flatShading: true }));
+    const skin = new THREE.MeshLambertMaterial({ color: '#e6d8bd', flatShading: true });
     for (let i = 0; i < count; i++) {
       const side = i % 2 ? 1 : -1;
       const row = Math.floor(i / 2);
@@ -181,128 +309,197 @@ export class RoadRenderer {
       const person = new THREE.Group(); parent.add(person);
       person.position.set(side * (width * .5 + .08), height, z);
       person.rotation.z = -side * .22;
-      const color = i % 2 ? '#d59b79' : '#9cb7a6';
-      const torso = this.makeBox(.3, .32, .28, color, person); torso.position.y = -.12;
-      const head = this.makeBox(.3, .3, .3, '#e6d8bd', person); head.position.y = .17;
+      const torso = new THREE.Mesh(torsoGeometry, coats[i % coats.length]);
+      torso.position.y = -.11; person.add(torso);
+      const head = new THREE.Mesh(headGeometry, skin);
+      head.name = 'window_head';
+      head.position.y = .13; person.add(head);
       person.visible = false; passengers.push(person);
     }
     return passengers;
   }
-  private entityMesh(kind: EntityKind, trafficKind: TrafficKind = 'car4'): THREE.Group {
-    const pool = kind === 'traffic' ? this.trafficPools.get(trafficKind) ?? [] : this.pools[kind];
+  private attachBlenderDriver(kind: VehicleKind): void {
+    if (!this.driverTemplate || this.playerBlenderDrivers.has(kind)) return;
+    const driver = this.playerDrivers.get(kind);
+    const seat = driver?.root.parent;
+    if (!driver || !seat) return;
+    try {
+      const model = createRidingBlenderDriver(this.driverTemplate);
+      seat.add(model);
+      model.position.copy(driver.root.position);
+      model.visible = driver.root.visible;
+      driver.root.visible = false;
+      this.playerBlenderDrivers.set(kind, model);
+    } catch { /* Keep the procedural driver if the delivered GLB has incompatible pivots. */ }
+  }
+  private syncOpenPassengers(kind: VehicleKind, art: VehicleArt, riderIds: string[], visualTime: number): number {
+    const visibleIds = riderIds;
+    let models = this.openPassengerModels.get(kind);
+    if (!models) { models = new Map(); this.openPassengerModels.set(kind, models); }
+    for (const [id, person] of models) if (!visibleIds.includes(id)) {
+      person.root.removeFromParent(); person.dispose(); models.delete(id);
+    }
+    visibleIds.forEach((id, index) => {
+      let person = models!.get(id);
+      if (!person) {
+        person = createPersonArt(roadsideArchetype(id), 'near');
+        models!.set(id, person);
+      }
+      mountPersonOnSeat(person, openPassengerSeat(art, kind, index),
+        kind === 'tricycle' ? 'seated' : 'riding');
+      person.setPose(kind === 'tricycle' ? 'seated' : 'riding', visualTime * .4 % 1);
+      person.root.visible = true;
+    });
+    return visibleIds.length;
+  }
+  private entityMesh(kind: EntityKind, trafficKind: TrafficKind = 'car4', width = 1, length = 1,
+    passengerCast?: PersonArchetype): THREE.Group {
+    const pool = kind === 'traffic' ? this.trafficPools.get(trafficKind) ?? [] :
+      kind === 'passenger' && passengerCast ? this.passengerPools.get(passengerCast) ?? [] : this.pools[kind];
     const pooled = pool.pop(); if (pooled) return pooled;
     const g = new THREE.Group(), box = this.makeBox;
     const part = (w: number, h: number, d: number, color: string, x: number, y: number, z: number) => {
       const m = box(w, h, d, color, g); m.position.set(x, y, z); return m;
     };
     if (kind === 'train') {
-      for (const x of [-.135, .135]) part(.05, .15, .4, '#35434a', x, .55, 0);
-      for (const x of [-.27, 0, .27]) {
-        part(.25, 1.65, .8, '#bc9368', x, .9, 0);
-        for (const z of [-.41, .41]) part(.2, .38, .02, '#91abb0', x, 1.24, z);
-        part(.24, .18, .5, '#303e45', x, .14, 0);
-      }
+      const art = createTrainArt(1, 'far');
+      g.add(art.root); g.userData.movingArt = art;
     } else if (kind === 'police' || kind === 'militia') {
-      const color = kind === 'police' ? '#698da8' : '#85906b';
-      const legacy = part(.8, 1.1, .8, color, 0, .55, 0);
-      const human = new THREE.Group(); g.add(human); g.userData.human = human; g.userData.legacy = legacy;
-      const torso = box(.5, .65, .3, color, human); torso.position.y = .9; g.userData.torso = torso;
-      const head = box(.36, .36, .36, '#e8d9b7', human); head.position.y = 1.45;
-      const hat = box(.45, .12, .43, color, human); hat.position.y = 1.68;
-      for (const x of [-.15, .15]) { const leg = box(.16, .55, .2, '#354d5a', human); leg.position.set(x, .3, 0); }
-      const mark = box(.22, .16, .2, '#f1d27d', human); mark.position.y = 2; g.userData.stunMark = mark;
+      const art = createOfficerArt(kind);
+      g.add(art.root); g.userData.movingArt = art;
     } else if (isSpecial(kind)) {
-      const color = kind === 'accident' ? '#ad655d' : '#9a8e78';
-      part(.8, 1.1, .8, color, 0, .55, 0);
-      part(.8, .1, .15, '#eee3bc', 0, .7, .42);
-    } else if (kind === 'shop') {
-      part(1.8, 1.6, 3, '#688e88', 0, .8, 0); part(2.2, .2, 3.4, '#cdb376', 0, 1.7, 0);
-      part(.6, .8, .12, '#e1d9af', 0, 1.05, 1.55);
-    }
-    else if (kind === 'wind') { part(9.6, .025, 65, '#809c91', 0, .02, 0); }
-    else if (kind === 'water') { part(3.2, .05, 7, '#5799aa', 0, .035, 0); part(2.5, .01, .1, '#abd1d5', 0, .065, -1.5); }
-    else if (kind === 'pothole') {
-      part(1.5, .03, 1.8, '#191d23', 0, .025, 0);
-      for (const x of [-.85, .85]) part(.15, .08, 2, '#dfb357', x, .05, 0);
-    } else if (kind === 'cargo') {
-      g.userData.cargoBody = part(.8, .8, .8, '#b38b61', 0, .42, 0);
-      part(.84, .08, .84, '#e5ca8f', 0, .82, 0);
-      part(.08, .84, .84, '#e5ca8f', 0, .42, 0);
-    } else if (kind === 'traffic') {
-      const d = trafficTypes[trafficKind], w = d.width, l = d.length;
-      const open = trafficKind === 'motorcycle' || trafficKind === 'motorbike' || trafficKind === 'tricycle';
-      const tall = trafficKind === 'bus' || trafficKind === 'container';
-      const bodyHeight = open ? .35 : tall ? 1.65 : trafficKind === 'truck' ? 1.25 : .82;
-      const body = part(trafficKind === 'tricycle' ? w * .35 : w * .9,
-        bodyHeight, trafficKind === 'tricycle' ? l * .43 : l * .88,
-        d.color, 0, .42 + bodyHeight / 2, trafficKind === 'tricycle' ? -l * .23 : 0);
-      g.userData.body = body;
-      if (open) {
-        const wheelZ = l * .36;
-        for (const z of [-wheelZ, wheelZ]) part(.21, .48, .36, '#202a30', 0, .25, z);
-        if (trafficKind === 'tricycle') for (const x of [-w * .35, w * .35])
-          part(.22, .46, .38, '#202a30', x, .25, wheelZ);
-        part(.34, .65, .4, '#698c91', 0, 1.05, 0);
-        part(.36, .36, .36, '#e8d9bf', 0, 1.53, -.04);
-        if (trafficKind === 'tricycle') {
-          part(w * .84, .18, l * .48, '#9a7a4f', 0, .8, l * .21);
-          for (const x of [-w * .39, w * .39]) part(.13, .4, l * .48, '#6d6561', x, 1.02, l * .21);
-          part(w * .84, .4, .12, '#6d6561', 0, 1.02, l * .44);
-        }
-      } else if (trafficKind === 'truck' || trafficKind === 'container') {
-        part(w * .75, .8, l * .24, '#a9c6cb', 0, 1.24, -l * .32);
-        part(w * .82, trafficKind === 'container' ? 1.8 : .85, l * .58,
-          trafficKind === 'container' ? '#8b8179' : '#726f72', 0, trafficKind === 'container' ? 1.54 : 1.13, l * .16);
+      if (kind === 'accident') {
+        const art = createAccidentArt('far'); g.add(art.root);
+      } else if (kind === 'jam') {
+        const barrier = createPropHazardArt('barrier', 'far');
+        const vendor = createVendorArt('far');
+        g.add(barrier.root, vendor.root);
+        g.userData.barrierArt = barrier; g.userData.vendorArt = vendor;
       } else {
-        part(w * .78, trafficKind === 'bus' ? .5 : .46, l * (trafficKind === 'bus' ? .8 : .48),
-          '#a9c6cb', 0, tall ? 1.75 : 1.18, -.05);
+        part(.8, 1.1, .8, '#9a8e78', 0, .55, 0);
+        part(.8, .1, .15, '#eee3bc', 0, .7, .42);
       }
-      if (!open) for (const x of [-w * .42, w * .42]) for (const z of [-l * .32, l * .32])
-        part(.2, .42, .42, '#202a30', x, .27, z);
-      for (const x of [-w * .3, w * .3]) {
-        part(.2, .13, .06, '#fa9d80', x, .63, l * .45);
-        part(.2, .13, .06, '#fff0ba', x, .63, -l * .45);
-      }
+    } else if (kind === 'shop') {
+      const art = createShopArt('far'); g.add(art.root);
+    }
+    else if (kind === 'wind') {
+      const art = createWindStreakArt(width, length);
+      g.add(art.root); g.userData.windArt = art;
+    }
+    else if (kind === 'water' || kind === 'pothole') {
+      // Explicit sky binding gives water its own reflection exposure instead of
+      // the deliberately dim global environment used by buildings and asphalt.
+      const art = createSurfaceHazardArt(kind, width, length, 'near', this.scene.environment);
+      g.add(art.root); g.userData.hazardArt = art;
+    } else if (kind === 'cargo') {
+      const crate = createPropHazardArt('cargo_crate');
+      const barrel = createPropHazardArt('cargo_barrel');
+      g.add(crate.root, barrel.root);
+      g.userData.cargoCrate = crate; g.userData.cargoBarrel = barrel;
+    } else if (kind === 'traffic') {
+      const d = trafficTypes[trafficKind], w = d.width;
       const service = new THREE.Group(); g.add(service); g.userData.service = service;
       const serviceX = box(.65, .12, .22, '#ba625e', service); serviceX.position.y = 1.7;
       const serviceZ = box(.22, .12, .65, '#ba625e', service); serviceZ.position.y = 1.7;
       const hpBack = part(w, .09, .04, '#29373e', 0, 2.6, 0);
       const hpFill = part(w, .1, .045, '#a0d2ae', 0, 2.6, 0);
       g.userData.hpBack = hpBack; g.userData.hpFill = hpFill;
+      const art = createVehicleArt(trafficKind, 'traffic', 'far', d.color);
+      art.root.rotation.y = Math.PI;
+      g.add(art.root);
+      g.userData.trafficArt = art;
     } else if (kind === 'passenger') {
-      part(.38, .7, .28, '#e2c486', 0, .92, 0);
-      part(.38, .38, .38, '#e6dbc4', 0, 1.47, 0);
+      const person = createPersonArt(passengerCast ?? 'commuter', 'far');
+      g.add(person.root); g.userData.personArt = person;
+      g.userData.passengerCast = passengerCast ?? 'commuter';
       const marker = new THREE.Mesh(new THREE.OctahedronGeometry(.22), new THREE.MeshBasicMaterial({ color: '#8fd3a5' }));
       marker.position.y = 2; g.add(marker); g.userData.grabMarker = marker;
-      for (const x of [-.12, .12]) part(.13, .55, .16, '#344d5a', x, .3, 0);
     } else {
-      const color = kind === 'fuel' ? '#82c5a0' : '#e1ded0';
-      part(.8, .8, .8, color, 0, .6, 0);
-      if (kind === 'fuel') { part(.5, .12, .2, '#e6d18f', 0, 1.1, 0); part(.18, .16, .18, '#e6d18f', .22, 1.05, .15); }
-      else { part(.48, .14, .03, '#a8423d', 0, .65, .415); part(.14, .48, .03, '#a8423d', 0, .65, .415); }
+      const art = createPropHazardArt(kind === 'fuel' ? 'fuel' : 'repair');
+      g.add(art.root); g.userData.hazardArt = art;
+    }
+    if (kind === 'traffic' || kind === 'cargo' || kind === 'accident' || kind === 'jam' ||
+      kind === 'police' || kind === 'militia' || kind === 'broken' ||
+      kind === 'fuel' || kind === 'repair' || kind === 'passenger') {
+      const shadow = this.contactShadows.create();
+      this.scene.add(shadow);
+      g.userData.roadContactShadow = shadow;
     }
     this.scene.add(g); return g;
   }
-  draw(s: Run, previous: Run, alpha: number): void {
+  draw(s: Run, previous: Run, alpha: number, steering = { left: false, right: false }): void {
     this.viewState = s;
+    // Character gestures communicate movement and pickup state; they stay
+    // visible even when optional screen motion is reduced by the OS.
+    const visualTime = s.activeSeconds;
+    const lowFx = this.lowEffects || !!this.reducedMotion?.matches;
+    // Density is reduced, never the clock: static rain looks like suspended scratches.
+    const weatherTime = visualTime;
     const vehicle = activeVehicle(s);
-    this.powerRing.visible = hasStar(s) || hasBoost(s);
-    (this.powerRing.material as THREE.MeshBasicMaterial).color.set(hasStar(s) ? '#f7df85' : '#86d6ec');
     const tricycle = vehicle.kind === 'tricycle';
     const open = ['motorcycle', 'motorbike', 'tricycle'].includes(vehicle.kind);
-    this.openFrame.visible = open && !tricycle; this.tricycleFrame.visible = tricycle;
     const articulated = this.forceMode && vehicle.kind === 'container';
-    this.closedFrame.visible = !open && !articulated;
+    const useSourceArt = true;
+    if (useSourceArt && !this.playerArt.has(vehicle.kind)) {
+      const art = createVehicleArt(vehicle.kind, 'player', 'near');
+      if (open) {
+        const driver = createPersonArt('driver');
+        colorPlayerHelmet(driver.root);
+        colorPlayerJacket(driver.root);
+        const seat = Array.isArray(art.seats) ? art.seats[0] : art.seats.driver;
+        mountPersonOnSeat(driver, seat, 'riding');
+        this.playerDrivers.set(vehicle.kind, driver);
+        this.attachBlenderDriver(vehicle.kind);
+      }
+      if (this.forceMode && vehicle.kind === 'container' && 'trailer' in art && art.trailer)
+        attachArticulatedContainerArt(this.tractorFrame, this.trailerFrame, art);
+      else attachVehicleArtToPrototype(this.bike, art);
+      this.playerArt.set(vehicle.kind, art);
+    }
+    for (const [kind, art] of this.playerArt) art.root.visible = useSourceArt && kind === vehicle.kind;
+    if (useSourceArt) {
+      const ratio = s.durability / vehicle.durabilityCapacity;
+      this.playerArt.get(vehicle.kind)!.setCondition(ratio <= 0 ? 'destroyed' :
+        ratio < .45 ? 'damaged' : ratio < .8 ? 'used' : 'clean');
+    }
+    this.openFrame.visible = !useSourceArt && open && !tricycle;
+    this.tricycleFrame.visible = !useSourceArt && tricycle;
+    this.closedFrame.visible = !useSourceArt && !open && !articulated;
+    this.windowPassengerFrame.visible = !s.crash && !open && !articulated;
+    this.windowPassengerFrame.rotation.y = useSourceArt ? Math.PI : 0;
     this.tractorFrame.visible = articulated;
     this.trailerFrame.visible = articulated;
+    this.tractorPlaceholder.visible = !useSourceArt;
+    this.trailerPlaceholder.visible = !useSourceArt;
     const scaleX = articulated ? 1 : tricycle ? 1 : vehicle.width / (open ? balance.vehicleWidth : 1);
     const scaleZ = articulated ? 1 : tricycle ? 1 : vehicle.length / (open ? balance.vehicleLength : 2);
-    this.bike.scale.set(scaleX, 1, scaleZ);
+    this.bike.scale.set(useSourceArt ? 1 : scaleX, 1, useSourceArt ? 1 : scaleZ);
     const x = THREE.MathUtils.lerp(previous.x, s.x, alpha);
     const distance = THREE.MathUtils.lerp(previous.distance, s.distance, alpha);
     const playerPose = pathPose(distance, s.route, s.seed);
+    this.cloudShadows?.update(s.seed, distance, s.route);
     const playerX = playerPose.x + Math.cos(playerPose.heading) * x;
     const playerZ = playerPose.z + Math.sin(playerPose.heading) * x;
+    this.stormLighting.setAnchor(playerX, playerZ);
+    if (this.rainSeed !== s.seed) {
+      for (const art of [this.rain, this.rainSplashes]) if (art) {
+        this.scene.remove(art.root); art.dispose();
+      }
+      this.rainSeed = s.seed;
+      this.rain = createRainArt(s.seed, 300);
+      this.rainSplashes = createRainSplashArt(s.seed, 110);
+      this.rain.setIntensity(.34);
+      this.rainSplashes.setIntensity(.20);
+      this.scene.add(this.rain.root, this.rainSplashes.root);
+    }
+    this.rain!.setIntensity(lowFx ? .10 : .34);
+    this.rainSplashes!.setIntensity(lowFx ? .04 : .20);
+    this.rain!.update(weatherTime, playerX, playerZ - 18);
+    this.rainSplashes!.update(weatherTime, playerX, playerZ - 18, (lateral, longitudinal) => {
+      const pose = pathPose(s.distance + 18 - longitudinal, s.route, s.seed);
+      return { x: pose.x + Math.cos(pose.heading) * lateral,
+        z: pose.z + Math.sin(pose.heading) * lateral };
+    });
     const yaw = THREE.MathUtils.lerp(previous.forceYaw, s.forceYaw, alpha);
     const bodyX = !this.forceMode ? x : vehicle.kind === 'car7' ?
       car7BodyCenterX(x, vehicle.length, yaw) : vehicle.kind === 'bus' || vehicle.kind === 'truck' ?
@@ -310,40 +507,82 @@ export class RoadRenderer {
     const parts = articulated ? containerParts(x, distance, yaw,
       THREE.MathUtils.lerp(previous.forceTrailerRearX, s.forceTrailerRearX, alpha)) : null;
     const bodyPose = parts ? pathPose(parts.tractorDistance, s.route, s.seed) : playerPose;
+    const recovery = twoWheelCrashPose(vehicle.kind, s.crash);
     this.bike.position.set(bodyPose.x + Math.cos(bodyPose.heading) * bodyX,
-      jumpHeight(s), bodyPose.z + Math.sin(bodyPose.heading) * bodyX);
+      jumpHeight(s) + recovery.height, bodyPose.z + Math.sin(bodyPose.heading) * bodyX);
     if (parts) {
       const trailerPose = pathPose(parts.trailerDistance, s.route, s.seed);
       this.trailerFrame.position.set(trailerPose.x + Math.cos(trailerPose.heading) * parts.trailerX,
         jumpHeight(s), trailerPose.z + Math.sin(trailerPose.heading) * parts.trailerX);
       this.trailerFrame.rotation.set(0, -trailerPose.heading - parts.trailerYaw, 0, 'YXZ');
+      this.contactShadows.place(this.trailerShadow, this.trailerFrame.position.x,
+        this.trailerFrame.position.z, this.trailerFrame.rotation.y, vehicle.width * 1.18, 10.8);
     }
+    this.trailerShadow.visible = !!parts;
     const lateralAcceleration = (s.lateralVelocity - previous.lateralVelocity) / balance.fixedStep;
     const lean = THREE.MathUtils.clamp(-(s.lateralVelocity * .035 + lateralAcceleration * .012) * vehicle.leanFactor,
       -.34, .34);
-    this.bike.rotation.set(0, -bodyPose.heading - yaw, lean, 'YXZ');
-    this.rider.visible = !s.crash && open; this.helmet.visible = !s.crash && open;
+    this.bike.rotation.set(0, -bodyPose.heading - yaw,
+      s.crash && (vehicle.kind === 'motorcycle' || vehicle.kind === 'motorbike') ? recovery.roll : lean, 'YXZ');
+    this.contactShadows.place(this.playerShadow, this.bike.position.x,
+      this.bike.position.z, this.bike.rotation.y, vehicle.width * 1.5,
+      articulated ? 5.8 : vehicle.length * 1.4);
+    this.rider.visible = !useSourceArt && !s.crash && open;
+    this.helmet.visible = !useSourceArt && !s.crash && open;
+    for (const [kind, driver] of this.playerDrivers) {
+      const visible = kind === vehicle.kind && !s.crash;
+      driver.root.visible = visible && !this.playerBlenderDrivers.has(kind);
+      if (visible) driver.setPose('riding', visualTime * .4 % 1);
+      const model = this.playerBlenderDrivers.get(kind);
+      if (model) { model.visible = visible; if (visible) model.setVisualTime(visualTime); }
+    }
+    const windowPoses = useSourceArt ? passengerWindowPoses(vehicle.kind, s.riderIds.length) : [];
     this.windowPassengers.forEach((person, i) => {
-      person.visible = !s.crash && !open && !articulated && i < s.riderIds.length;
-      // Vehicle footprint stretches for bus/container; people keep human-sized proportions.
-      person.scale.set(1 / scaleX, 1, 1 / scaleZ);
-      const rows = Math.ceil(s.riderIds.length / 2);
-      person.position.z = vehicle.kind === 'truck' || vehicle.kind === 'container' ? -.36 + Math.floor(i / 2) * .18 :
-        rows <= 1 ? 0 : -.58 + Math.floor(i / 2) * 1.16 / (rows - 1);
+      person.visible = i < s.riderIds.length && (!useSourceArt || i < windowPoses.length);
+      if (useSourceArt && windowPoses[i]) {
+        const pose = windowPoses[i];
+        person.position.set(pose.x, pose.y, pose.z);
+        person.rotation.z = -Math.sign(pose.x) * .22 + Math.sin(visualTime * 2.2 + i) * .025;
+        person.scale.setScalar(1);
+      } else {
+        // Prototype bodies stretch for large vehicles; the people do not.
+        person.scale.set(1 / scaleX, 1, 1 / scaleZ);
+        const rows = Math.ceil(s.riderIds.length / 2);
+        person.position.z = vehicle.kind === 'truck' || vehicle.kind === 'container' ? -.36 + Math.floor(i / 2) * .18 :
+          rows <= 1 ? 0 : -.58 + Math.floor(i / 2) * 1.16 / (rows - 1);
+      }
+      person.getObjectByName('window_head')!.rotation.y = Math.sin(visualTime * 1.6 + i) * .08;
     });
-    this.tractorPassengers.forEach((person, i) => { person.visible = articulated && !s.crash && i < s.riderIds.length; });
+    this.tractorPassengers.forEach((person, i) => {
+      person.visible = articulated && !s.crash && i < s.riderIds.length;
+      if (useSourceArt) person.position.set(-1.20, 2.19, -.78);
+      person.rotation.z = Math.sin(visualTime * 2.2 + i) * .025;
+    });
+    const modeledPassengers = useSourceArt && open ?
+      this.syncOpenPassengers(vehicle.kind, this.playerArt.get(vehicle.kind)!, s.riderIds, visualTime) : 0;
     this.bikePassengers.forEach((person, i) => {
-      person.visible = !s.crash && open && i < s.riderIds.length;
+      person.visible = !s.crash && open && i < s.riderIds.length && (!useSourceArt || i >= modeledPassengers);
       person.position.set((i % 2 ? 1 : -1) * (.15 + Math.floor(i / 2) * .09),
         1.15 + Math.floor(i / 2) * .38, .65 + Math.floor(i / 2) * .32);
-      person.rotation.z = (i % 2 ? -1 : 1) * .16;
+      person.rotation.z = (i % 2 ? -1 : 1) * .16 + Math.sin(visualTime * 2.2 + i) * .025;
     });
     this.fallenDriver.visible = !!s.crash;
-    this.fallenPassengers.forEach(person => { person.visible = false; });
+    if (s.crash) {
+      const crashPose = recovery.lifting ? { pose: 'recover' as const, phase: .4 + .6 * recovery.liftProgress } :
+        driverCrashPose(s.crash.elapsed);
+      if (this.fallenBlenderDriver) this.fallenBlenderDriver.setTimedPose(crashPose);
+      else this.fallenDriverArt.setPose(crashPose.pose, crashPose.phase);
+    }
+    if (!s.crash) for (const [id, person] of this.fallenPassengerModels) {
+      person.root.removeFromParent(); person.dispose(); this.fallenPassengerModels.delete(id);
+    }
     if (s.crash) {
       const { elapsed, side, originDistance, impactSpeed, returningRiderIds } = s.crash;
+      const crashPose = recovery.lifting ? { pose: 'recover' as const, phase: .4 + .6 * recovery.liftProgress } :
+        driverCrashPose(elapsed);
       const ejection = Math.min(1, elapsed / balance.driverFallSeconds);
-      const returnProgress = Math.max(0, Math.min(1, (elapsed - balance.driverFallSeconds - balance.driverPauseSeconds) / balance.driverReturnSeconds));
+      const returnProgress = driverVisualReturnProgress(elapsed +
+        (vehicle.kind === 'motorcycle' || vehicle.kind === 'motorbike' ? bikeLiftSeconds : 0));
       const away = ejection * (1 - returnProgress);
       const ejectedDistance = originDistance + impactSpeed * balance.driverEjectionSpeedFactor *
         Math.min(elapsed, balance.driverFallSeconds);
@@ -352,20 +591,33 @@ export class RoadRenderer {
       const driverX = x + side * (.65 + balance.driverEjectionLateralMetres * away);
       this.fallenDriver.position.set(fallenPose.x + Math.cos(fallenPose.heading) * driverX, 0,
         fallenPose.z + Math.sin(fallenPose.heading) * driverX);
-      this.fallenDriver.rotation.set(0, -fallenPose.heading, side * 1.25 * away, 'YXZ');
+      const driverRise = crashPose.pose === 'recover' ? 1 - crashPose.phase :
+        crashPose.pose === 'run' ? 0 : 1;
+      const driverYaw = crashPose.pose === 'run' || recovery.lifting ? Math.atan2(playerX - this.fallenDriver.position.x,
+        playerZ - this.fallenDriver.position.z) : -fallenPose.heading;
+      this.fallenDriver.rotation.set(0, driverYaw, recovery.lifting ? 0 : side * 1.25 * ejection * driverRise, 'YXZ');
       // Lost passengers already exist as roadside entities; only animate those returning to the vehicle.
-      for (let i = 0; i < returningRiderIds.length && i < this.fallenPassengers.length; i++) {
-        const person = this.fallenPassengers[i];
-        person.visible = true;
-        const passengerReturn = returnProgress;
+      for (let i = 0; i < returningRiderIds.length; i++) {
+        const id = returningRiderIds[i];
+        let person = this.fallenPassengerModels.get(id);
+        if (!person) {
+          person = createPersonArt(roadsideArchetype(id), 'far');
+          this.scene.add(person.root); this.fallenPassengerModels.set(id, person);
+        }
+        const timed = returningPassengerPose(elapsed);
+        person.setPose(timed.pose, timed.phase);
+        const passengerReturn = passengerVisualReturnProgress(elapsed);
         const passengerDistance = THREE.MathUtils.lerp(ejectedDistance + .7 + i * .8, distance,
           passengerReturn);
         const pose = pathPose(passengerDistance, s.route, s.seed);
         const lateral = x + side * (1.3 + i * .45) * (1 - passengerReturn);
-        person.position.set(pose.x + Math.cos(pose.heading) * lateral, 0,
+        person.root.position.set(pose.x + Math.cos(pose.heading) * lateral, 0,
           pose.z + Math.sin(pose.heading) * lateral);
-        const topple = 1 - passengerReturn;
-        person.rotation.set(0, -pose.heading, -side * .85 * Math.min(1, ejection) * topple, 'YXZ');
+        const passengerRise = timed.pose === 'recover' ? 1 - timed.phase :
+          timed.pose === 'run' || timed.pose === 'stand' ? 0 : 1;
+        const passengerYaw = timed.pose === 'run' ? Math.atan2(playerX - person.root.position.x,
+          playerZ - person.root.position.z) : -pose.heading;
+        person.root.rotation.set(0, passengerYaw, -side * .85 * ejection * passengerRise, 'YXZ');
       }
     }
     // Camera follows the centerline tangent, so Q/E visibly bends the road and the bike.
@@ -375,19 +627,6 @@ export class RoadRenderer {
     this.camera.lookAt(playerX + Math.sin(playerPose.heading) * 12, 0,
       playerZ - Math.cos(playerPose.heading) * 12);
     this.ground.position.set(playerPose.x, -.15, playerPose.z);
-    if (this.landscapeTiles.length) {
-      const cellX = Math.floor(playerPose.x / LANDSCAPE_REGION_METRES);
-      const cellZ = Math.floor(playerPose.z / LANDSCAPE_REGION_METRES);
-      if (cellX !== this.landscapeCell.x || cellZ !== this.landscapeCell.z || s.seed !== this.landscapeCell.seed) {
-        this.landscapeCell = { x: cellX, z: cellZ, seed: s.seed };
-        for (const [i, region] of landscapeWindow(s.seed, playerPose.x, playerPose.z).entries()) {
-          const tile = this.landscapeTiles[i];
-          tile.position.x = region.x;
-          tile.position.z = region.z;
-          tile.material = this.landscapeMaterials![region.kind];
-        }
-      }
-    }
     const firstRoad = Math.floor((distance - 32) / 4) * 4;
     const roadPositions = this.roadSurface.geometry.getAttribute('position') as THREE.BufferAttribute;
     const roadSamples: ReturnType<typeof pathPose>[] = [];
@@ -403,22 +642,34 @@ export class RoadRenderer {
     if (this.landscapeBands) {
       const positions = this.landscapeBands.geometry.getAttribute('position') as THREE.BufferAttribute;
       const colors = this.landscapeBands.geometry.getAttribute('color') as THREE.BufferAttribute;
+      const colorAt = (metres: number, side: -1 | 1): THREE.Color => {
+        const boundary = Math.round(metres / LANDSCAPE_REGION_METRES) * LANDSCAPE_REGION_METRES;
+        const pick = (at: number) => {
+          const pair = roadsideRegions(s.seed, at);
+          return this.landscapeMaterials![side < 0 ? pair.left : pair.right].color;
+        };
+        if (Math.abs(metres - boundary) >= 8) return pick(metres);
+        return pick(boundary - .01).clone().lerp(pick(boundary + .01),
+          (metres - boundary + 8) / 16);
+      };
       for (let i = 0; i < this.roadPieces.length; i++) {
         const start = roadSamples[i], end = roadSamples[i + 1];
-        const regions = roadsideRegions(s.seed, firstRoad + i * 4);
         for (const [sideIndex, side] of ([-1, 1] as const).entries()) {
-          const color = this.landscapeMaterials![side < 0 ? regions.left : regions.right].color;
+          const startColor = colorAt(firstRoad - 2 + i * 4, side);
+          const endColor = colorAt(firstRoad + 2 + i * 4, side);
           const vertex = (i * 2 + sideIndex) * 6;
           const a = roadsidePoint(start, side, 0), b = roadsidePoint(start, side, 30);
           const c = roadsidePoint(end, side, 0), d = roadsidePoint(end, side, 30);
           for (const [j, xy] of [a, b, c, b, d, c].entries()) {
             positions.setXYZ(vertex + j, xy[0], -.08, xy[1]);
+            const color = j === 0 || j === 1 || j === 3 ? startColor : endColor;
             colors.setXYZ(vertex + j, color.r, color.g, color.b);
           }
         }
       }
       positions.needsUpdate = true;
       colors.needsUpdate = true;
+      this.landscapeBands.geometry.computeVertexNormals();
       this.landscapeBands.geometry.computeBoundingSphere();
     }
     for (let i = 0; i < this.roadPieces.length; i++) {
@@ -426,9 +677,80 @@ export class RoadRenderer {
       const roadPose = pathPose(roadDistance, s.route, s.seed);
       this.roadPieces[i].position.set(roadPose.x, 0, roadPose.z);
       this.roadPieces[i].rotation.y = -roadPose.heading;
+      // Both roadside rows now place a pair every 8 m rather than every tile.
+      const posts = this.roadPieces[i].getObjectByName('roadside_posts');
+      if (posts) posts.visible = Math.round(roadDistance / 4) % 2 === 0;
       // No dashed lane markers or roadside posts across the middle of a junction.
       this.roadPieces[i].visible = [s.route.index - 1, s.route.index].every(index =>
         index < 0 || Math.abs(roadDistance - junction(s.seed, index).distance) >= 13);
+    }
+    const visibleScenery = new Set<string>();
+    const firstRegion = Math.floor((distance - 40) / LANDSCAPE_REGION_METRES);
+    const lastRegion = Math.floor((distance + 170) / LANDSCAPE_REGION_METRES);
+    const turns = s.route.history.map(turn => turn.distance);
+    // The cross street exists while Q/E is pending, so reserve its apron then too.
+    turns.push(junction(s.seed, s.route.index).distance);
+    for (let section = firstRegion; section <= lastRegion; section++) {
+      const center = (section + .5) * LANDSCAPE_REGION_METRES;
+      const bend = scenerySectionCrossesTurn(section, turns);
+      const bendPoses = bend ? Array.from({ length: 24 }, (_, i) =>
+        pathPose(section * LANDSCAPE_REGION_METRES + i * 4 + 2, s.route, s.seed)) : null;
+      const regions = roadsideRegions(s.seed, center);
+      const pose = pathPose(center, s.route, s.seed);
+      const lod = Math.abs(center - distance) < 80 ? 'near' : 'far';
+      for (const side of [-1, 1] as const) {
+        const kind = side < 0 ? regions.left : regions.right;
+        const previous = roadsideRegions(s.seed, center - LANDSCAPE_REGION_METRES);
+        const next = roadsideRegions(s.seed, center + LANDSCAPE_REGION_METRES);
+        const seaEdges = { start: (side < 0 ? previous.left : previous.right) !== kind,
+          end: (side < 0 ? next.left : next.right) !== kind };
+        const key = `${s.seed}:${section}:${side}:${kind}:${lod}:${bend ?
+          `bend:${s.route.choice ?? 'pending'}:${s.route.history.length}` : 'rigid'}`;
+        visibleScenery.add(key);
+        let art = this.scenery.get(key);
+        if (!art) {
+          const variantSeed = (s.seed ^ Math.imul(section, 0x9e3779b1) ^ (side < 0 ? 0x63c6 : 0x487d)) >>> 0;
+          art = bend ? createBendSceneryStrip(kind, side, bendPoses!, lod,
+            section * LANDSCAPE_REGION_METRES, turns) :
+            createSceneryCluster(kind, (side * -1) as -1 | 1, lod, variantSeed, seaEdges);
+          if (!bend && kind === 'city' && lod === 'near') {
+            const localSide = (side * -1) as -1 | 1;
+            if (this.cityMidriseTemplate)
+              mountBlenderCityMidrise(art, this.cityMidriseTemplate, localSide);
+            if (this.citySkylineTemplate)
+              mountBlenderCitySkyline(art, this.citySkylineTemplate, localSide);
+            if (this.cityShopTemplate)
+              mountBlenderCityShop(art, this.cityShopTemplate, localSide);
+            if (this.cityMarketTemplate)
+              mountBlenderCityMarket(art, this.cityMarketTemplate, localSide);
+          }
+          if (!bend && kind === 'sea' && lod === 'near' && this.coastalBoatTemplate)
+            mountBlenderCoastalBoat(art, this.coastalBoatTemplate, (side * -1) as -1 | 1);
+          if (!bend) {
+            art.root.position.set(pose.x, 0, pose.z);
+            art.root.rotation.y = Math.PI - pose.heading;
+          }
+          if (!bend && kind === 'city' && lod === 'near')
+            shadePlacedStormCityFacades(art.root, side > 0);
+          if (lod === 'near') optimizeNearScenery(art.root);
+          art.root.traverse(object => { if (object instanceof THREE.Mesh) {
+            object.receiveShadow = true;
+            object.castShadow = lod === 'near' &&
+              new THREE.Box3().setFromObject(object).max.y > 1.6;
+          } });
+          this.scene.add(art.root);
+          this.scenery.set(key, art);
+        }
+        // A junction choice can change pathPose while the same region stays cached.
+        if (!bend) {
+          art.root.position.set(pose.x, 0, pose.z);
+          art.root.rotation.y = Math.PI - pose.heading;
+        }
+        art.setVisualTime?.(weatherTime);
+      }
+    }
+    for (const [key, art] of this.scenery) if (!visibleScenery.has(key)) {
+      this.scene.remove(art.root); art.dispose(); this.scenery.delete(key);
     }
     for (let slot = 0; slot < this.crossings.length; slot++) {
       const index = s.route.index - 1 + slot, view = this.crossings[slot];
@@ -439,6 +761,8 @@ export class RoadRenderer {
       const crossingPose = pathPose(cross.distance - 8, s.route, s.seed);
       view.group.position.set(crossingPose.x, 0, crossingPose.z);
       view.group.rotation.y = -crossingPose.heading;
+      view.turnRoad.setTurn(index === s.route.index ? s.route.choice :
+        s.route.history.find(turn => turn.distance === cross.distance)?.turn ?? null);
       view.barrier.visible = cross.blockedStraight;
       view.straightStub.visible = index === s.route.index ? s.route.choice !== null :
         s.route.history.some(turn => turn.distance === cross.distance);
@@ -468,7 +792,9 @@ export class RoadRenderer {
       live.add(e.id);
       let entry = this.entityMeshes.get(e.id);
       if (!entry) { entry = { kind: e.kind, trafficKind: e.trafficKind,
-        mesh: this.entityMesh(e.kind, e.trafficKind) }; this.entityMeshes.set(e.id, entry); }
+        mesh: this.entityMesh(e.kind, e.trafficKind, e.width, e.length,
+          e.kind === 'passenger' ? roadsideArchetype(e.riderId ?? e.id) : undefined) };
+        this.entityMeshes.set(e.id, entry); }
       const entityPose = pathPose(e.distance, route, s.seed);
       const pose = passengerPose(e, s.activeSeconds);
       const entityX = e.x + (e.kind === 'shop' ? Math.sign(e.x) * 2.8 : 0);
@@ -476,42 +802,93 @@ export class RoadRenderer {
         entityPose.z + Math.sin(entityPose.heading) * entityX);
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
+      const contactShadow = entry.mesh.userData.roadContactShadow as THREE.Mesh | undefined;
+      if (contactShadow) this.contactShadows.place(contactShadow, entry.mesh.position.x,
+        entry.mesh.position.z, entry.mesh.rotation.y, e.width * 1.5, e.length * 1.4);
       if (e.kind === 'cargo') {
-        (entry.mesh.userData.cargoBody as THREE.Mesh<THREE.BoxGeometry, THREE.MeshLambertMaterial>).material.color.set(e.cargoType === 'barrel' ? '#797f86' : '#b38b61');
+        (entry.mesh.userData.cargoCrate as HazardArt).root.visible = e.cargoType !== 'barrel';
+        (entry.mesh.userData.cargoBarrel as HazardArt).root.visible = e.cargoType === 'barrel';
         entry.mesh.rotation.z = (e.cargoVelocityX ?? 0) * s.activeSeconds * 1.5;
       }
+      if (e.kind === 'water') (entry.mesh.userData.hazardArt as HazardArt).setVisualTime?.(weatherTime);
+      if (e.kind === 'wind') (entry.mesh.userData.windArt as WindStreakArt)
+        .setVisualTime(weatherTime, e.lateralPush ?? 1, lowFx);
+      if (e.kind === 'jam') {
+        const vendor = e.crossingRole === 'vendor' || e.width === movingBalance.vendorWidth;
+        (entry.mesh.userData.barrierArt as HazardArt).root.visible = !vendor;
+        const vendorArt = entry.mesh.userData.vendorArt as MovingArt;
+        vendorArt.root.visible = vendor;
+        if (vendor) {
+          vendorArt.root.rotation.y = e.crossMotion ? crossingVisualYaw(e.crossMotion, s.activeSeconds) : 0;
+          vendorArt.setState(e.stunned ? 'stunned' : 'normal');
+          vendorArt.setVisualTime?.(visualTime, !!e.crossMotion);
+        }
+      }
+      if (e.kind === 'shop') entry.mesh.rotation.y += e.x > 0 ? -Math.PI / 2 : Math.PI / 2;
       if (e.kind === 'traffic') {
         (entry.mesh.userData.service as THREE.Group).visible = e.serviceRole === 'ambulance';
         const hpFill = entry.mesh.userData.hpFill as THREE.Mesh, hpBack = entry.mesh.userData.hpBack as THREE.Mesh;
         hpFill.visible = hpBack.visible = !!s.world.prototype;
         hpFill.scale.x = Math.max(0, (e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp);
         hpFill.position.x = -(1 - hpFill.scale.x) * e.width / 2;
-        const body = entry.mesh.userData.body as THREE.Mesh;
-        (body.material as THREE.MeshLambertMaterial).color.set(e.wrecked ? '#4e5558' : e.serviceRole === 'ambulance' ? '#d2dedd' :
-          trafficTypes[e.trafficKind ?? 'car4'].color);
+        const art = entry.mesh.userData.trafficArt as VehicleArt;
+        art.setPaint(e.serviceRole === 'ambulance' ? '#d2dedd' : trafficTypes[e.trafficKind ?? 'car4'].color);
+        const hpRatio = (e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp;
+        art.setCondition(e.wrecked ? 'destroyed' : hpRatio < .45 ? 'damaged' : hpRatio < .8 ? 'used' : 'clean');
+        setTrafficDriverSeated(art, !e.wrecked && !e.wreckPassengersSpawned);
+        const wreckPose = trafficBikeWreckPose(e.trafficKind ?? 'car4', !!e.wrecked, e.wreckAge ?? 0, e.id);
+        art.root.rotation.set(0, Math.PI, wreckPose.roll, 'YXZ');
+        art.root.position.y = wreckPose.height;
       }
-      if (e.kind === 'train') entry.mesh.visible = !!e.crossMotion || trainClosed(e, s.activeSeconds);
+      if (e.kind === 'train') {
+        entry.mesh.visible = !!e.crossMotion || trainClosed(e, s.activeSeconds);
+        (entry.mesh.userData.movingArt as MovingArt).root.scale.x = (e.crossMotion?.velocity ?? 1) < 0 ? -1 : 1;
+      }
       if (e.kind === 'police' || e.kind === 'militia') {
-        (entry.mesh.userData.human as THREE.Group).visible = !!e.groupId;
-        (entry.mesh.userData.legacy as THREE.Mesh).visible = !e.groupId;
-        (entry.mesh.userData.stunMark as THREE.Mesh).visible = e.stunned === true;
-        ((entry.mesh.userData.torso as THREE.Mesh).material as THREE.MeshLambertMaterial).color.set(e.stunned ? '#d3b66a' : e.kind === 'police' ? '#698da8' : '#85906b');
+        const movingArt = entry.mesh.userData.movingArt as MovingArt;
+        movingArt.root.rotation.y = e.crossMotion ? crossingVisualYaw(e.crossMotion, s.activeSeconds) : 0;
+        movingArt.setState(e.stunned ? 'stunned' : 'normal');
+        movingArt.setVisualTime?.(visualTime, !!e.crossMotion);
       }
-      if (e.kind === 'passenger') (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
+      if (e.kind === 'passenger') {
+        entry.mesh.rotation.y += roadsideWalkingYaw(e, s.activeSeconds);
+        (entry.mesh.userData.grabMarker as THREE.Mesh).visible = e.passengerType === 'grab';
+        const person = entry.mesh.userData.personArt as PersonArt;
+        const visualPose = roadsidePose(e, s.activeSeconds);
+        person.setPose(visualPose.pose, visualPose.phase);
+      }
       const baseWidth = e.kind === 'wind' ? 9.6 : e.kind === 'water' ? 3.2 : e.kind === 'pothole' ? 1.5 : e.kind === 'traffic' ? 1.9 : e.kind === 'passenger' ? .7 : .8;
       const baseLength = e.kind === 'wind' ? 65 : e.kind === 'water' ? 7 : e.kind === 'pothole' ? 1.8 : e.kind === 'traffic' ? 3.6 : e.kind === 'passenger' ? .7 : .8;
-      entry.mesh.scale.set(e.kind === 'traffic' || e.kind === 'shop' ? 1 : e.width / baseWidth, 1,
-        e.kind === 'traffic' || e.kind === 'shop' ? 1 : e.length / baseLength);
+      const sizedArt = e.kind === 'wind' || e.kind === 'water' || e.kind === 'pothole' || e.kind === 'train' ||
+        e.kind === 'police' || e.kind === 'militia' || e.kind === 'accident' ||
+        e.kind === 'jam';
+      entry.mesh.scale.set(e.kind === 'traffic' || e.kind === 'shop' || sizedArt ? 1 : e.width / baseWidth, 1,
+        e.kind === 'traffic' || e.kind === 'shop' || sizedArt ? 1 : e.length / baseLength);
     }
     for (const [id, entry] of this.entityMeshes) if (!live.has(id)) {
       entry.mesh.visible = false;
-      if (entry.kind === 'traffic') {
+      const contactShadow = entry.mesh.userData.roadContactShadow as THREE.Mesh | undefined;
+      if (contactShadow) contactShadow.visible = false;
+      if (entry.kind === 'water' || entry.kind === 'pothole') {
+        this.scene.remove(entry.mesh);
+        (entry.mesh.userData.hazardArt as HazardArt).dispose();
+      } else if (entry.kind === 'traffic') {
         const kind = entry.trafficKind ?? 'car4';
         const pool = this.trafficPools.get(kind) ?? []; pool.push(entry.mesh); this.trafficPools.set(kind, pool);
+      } else if (entry.kind === 'passenger') {
+        const cast = entry.mesh.userData.passengerCast as PersonArchetype;
+        const pool = this.passengerPools.get(cast) ?? []; pool.push(entry.mesh); this.passengerPools.set(cast, pool);
       } else this.pools[entry.kind].push(entry.mesh);
       this.entityMeshes.delete(id);
     }
-    this.renderer.render(this.scene, this.camera);
+    this.syncRoadEffects(s, previous, lowFx, steering);
+    this.starAura.update([this.bike, this.tractorFrame, this.trailerFrame],
+      s.phase !== 'ready' && s.phase !== 'ended' && hasStar(s), visualTime, lowFx);
+    this.camera.updateMatrixWorld();
+    const lightSide = new THREE.Vector3(-23, 0, 22)
+      .dot(new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0));
+    this.stormPost.setVisualTime(visualTime, lowFx, lightSide);
+    this.stormPost.render();
     const tail = this.project(x, 0, vehicle.length / 2 + .45);
     this.host.style.setProperty('--bike-x', `${Math.max(30, Math.min(70, tail.x))}%`);
     this.host.style.setProperty('--bike-tail-y', `${Math.max(76, Math.min(86, tail.y))}%`);
@@ -521,8 +898,220 @@ export class RoadRenderer {
     this.projected.set(p.x + Math.cos(p.heading) * x, y, p.z + Math.sin(p.heading) * x).project(this.camera);
     return { x: (this.projected.x + 1) * 50, y: (1 - this.projected.y) * 50 };
   }
+  renderStats(): { drawCalls: number; triangles: number; fxParticles: number; fxSignals: number; lightWashes: number } {
+    return { drawCalls: this.renderer.info.render.calls,
+      triangles: this.renderer.info.render.triangles,
+      fxParticles: this.effects.activeCount, fxSignals: this.effects.signalCount, lightWashes: this.lightBeams.root.count };
+  }
+  setLowEffects(enabled: boolean): void { this.lowEffects = enabled; }
+
+  private syncRoadEffects(s: Run, previous: Run, low: boolean, steering: { left: boolean; right: boolean }): void {
+    this.effects.begin(s.activeSeconds, s.runId, low);
+    this.lightBeams.reset();
+    this.nitroJet.root.visible = false;
+    if (s.phase === 'ready' || s.phase === 'ended') { this.effects.reset(); return; }
+    if (s.phase === 'running' || s.phase === 'paused') {
+      const emitting = s.phase === 'running';
+      const heading = pathPose(s.distance, s.route, s.seed).heading;
+      const direction = new THREE.Vector3(-Math.sin(heading) + Math.cos(heading) * s.lateralVelocity * .15,
+        0, Math.cos(heading) + Math.sin(heading) * s.lateralVelocity * .15);
+      const vehicle = activeVehicle(s), player = this.playerArt.get(vehicle.kind);
+      this.effects.retainOwners(new Set([s.activeVehicleId,
+        ...s.world.entities.filter(entity => !entity.consumed && !entity.motionWaiting).map(entity => entity.id)]));
+      const position = new THREE.Vector3(), local = new THREE.Vector3();
+      player?.root.updateWorldMatrix(true, true);
+      // Lower particle count once in the pool; lowering rate as well made the
+      // reduced-motion exhaust and spray almost disappear (12% of normal).
+      const bucket = Math.floor(s.activeSeconds * 10);
+      const lights = (art: VehicleArt, brake: boolean, turn: 'left' | 'right' | null,
+        wrecked: boolean, hazard = false, beams = true) => {
+        let lenses = this.lampMaterials.get(art);
+        if (!lenses) { lenses = bindVehicleLampMaterials(art); this.lampMaterials.set(art, lenses); }
+        lenses.update(brake, turn, s.activeSeconds, low, hazard, wrecked);
+        if (wrecked || !beams) return;
+        for (const [name, socket] of Object.entries(art.sockets)) {
+          if (!name.startsWith('headlamp')) continue;
+          socket.getWorldPosition(position);
+          this.lightBeams.add(position, new THREE.Vector3(0, 0, 1).transformDirection(socket.matrixWorld));
+        }
+      };
+      if (player) {
+        const routeTurn = s.route.choice ?? (s.activeSeconds - s.route.turnAt < 1.2 && s.route.lastTurn !== 'straight'
+          ? s.route.lastTurn : null);
+        const turn = playerIndicatorTurn(!s.crash && steering.left, !s.crash && steering.right, routeTurn);
+        lights(player, s.speed < previous.speed - .001, turn, false,
+          !!s.crash || s.fuel <= 0 && s.speed < .5, !s.crash && jumpHeight(s) < .08);
+        const smokeSocket = player.sockets.engine_smoke_fire;
+        if (emitting && smokeSocket && !low && !s.crash) {
+          smokeSocket.getWorldPosition(position);
+          this.effects.burst(`rain-body:${Math.floor(s.activeSeconds * 2)}`, position,
+            new THREE.Vector3(0, 0, .15), 'water', 2);
+        }
+        if (emitting && smokeSocket && s.durability / vehicle.durabilityCapacity < .35) {
+          smokeSocket.getWorldPosition(position);
+          position.y += .35;
+          this.effects.burst(`player-smoke:${s.activeVehicleId}:${bucket}`, position, direction, 'smoke', 2, s.activeVehicleId);
+        }
+        const exhaust = player.sockets.exhaust ?? player.sockets.wheel_spray_rear;
+        if (exhaust) this.nitroJet.update(exhaust, hasBoost(s) && !s.crash, s.activeSeconds, low);
+        if (emitting && hasBoost(s) && !s.crash) {
+          if (exhaust) exhaust.getWorldPosition(position);
+          else position.set(0, .4, -vehicle.length * .5).applyMatrix4(player.root.matrixWorld);
+          // Use the actual model's rear axis, including curves and steering.
+          const jet = new THREE.Vector3(0, 0, -1).transformDirection(player.root.matrixWorld);
+          const carrier = jet.clone().multiplyScalar(-s.speed * .88);
+          position.addScaledVector(jet, .2);
+          position.y += .22;
+          this.effects.burst(`boost:${s.activeVehicleId}:${bucket}`, position, jet, 'nitro', 5, s.activeVehicleId, carrier);
+          this.effects.burst(`boost-fire:${s.activeVehicleId}:${bucket}`, position, jet, 'fire', 3, s.activeVehicleId, carrier);
+          this.effects.burst(`boost-smoke:${s.activeVehicleId}:${bucket}`, position, jet, 'smoke', 1, s.activeVehicleId, carrier);
+        }
+      }
+      for (const e of s.world.entities) {
+        const entry = this.entityMeshes.get(e.id);
+        if (e.motionWaiting && !e.consumed && !e.stunned && e.crossMotion &&
+          (e.kind === 'train' || e.kind === 'traffic') && e.distance + e.length / 2 >= s.distance &&
+          e.distance - s.distance <= warningDistance(s.speed, e, vehicle.length)) {
+          // Same visibility window as RoadHud. Indicate the source verge without
+          // displaying a train early or inventing a second event clock.
+          const pose = pathPose(e.distance, s.route, s.seed), side = Math.sign(e.crossMotion.velocity);
+          for (let i = 0; i < 3; i++) {
+            const x = -side * (5.7 - i * .22);
+            position.set(pose.x + Math.cos(pose.heading) * x, .18,
+              pose.z + Math.sin(pose.heading) * x);
+            this.effects.signal(position, '#b5ac78', .05 + i * .02);
+          }
+        }
+        const consumedContact = e.consumed && previous.world.entities.some(old => old.id === e.id && !old.consumed) &&
+          s.feedbackKind === e.kind && s.activeSeconds - s.feedbackAt < .15;
+        const recentContact = s.activeSeconds - e.lastHit >= 0 && s.activeSeconds - e.lastHit < .15;
+        if (emitting && (recentContact || consumedContact) &&
+          ['traffic', 'cargo', 'pothole', 'police', 'militia', 'jam', 'accident', 'broken', 'train', 'passenger'].includes(e.kind)) {
+          const pose = pathPose(e.distance, s.route, s.seed);
+          position.set(pose.x + Math.cos(pose.heading) * e.x, .28,
+            pose.z + Math.sin(pose.heading) * e.x);
+          const offset = this.bike.position.clone().sub(position);
+          offset.clampLength(0, Math.min(e.width, e.length) * .5);
+          position.add(offset); position.y = .28;
+          this.effects.burst(`hit:${e.id}:${recentContact ? e.lastHit : `feedback-${s.eventSequence}`}`,
+            position, direction, e.kind === 'traffic' || e.kind === 'train' || e.cargoType === 'barrel'
+              ? 'spark' : 'impact', 10);
+        }
+        if (!entry || e.consumed || e.motionWaiting) continue;
+        if (emitting && e.kind === 'water' && player && !s.crash && s.speed > 1 && jumpHeight(s) < .08) {
+          const sockets = Object.entries(player.sockets).filter(([name]) => name.startsWith('wheel_spray'));
+          const spraySources = sockets.length ? sockets : 'wheels' in player
+            ? Object.values(player.wheels).map((wheel: THREE.Object3D, i) => [`axle-${i}`, wheel] as const) : [];
+          entry.mesh.updateWorldMatrix(true, false);
+          for (const [name, socket] of spraySources) {
+            socket.getWorldPosition(position);
+            local.copy(position); entry.mesh.worldToLocal(local);
+            if (Math.abs(local.x) <= e.width * .5 && Math.abs(local.z) <= e.length * .5) {
+              position.y = .12;
+              const fan = direction.clone();
+              fan.x += Math.cos(heading) * Math.sign(local.x || 1) * 1.2;
+              fan.z += Math.sin(heading) * Math.sign(local.x || 1) * 1.2;
+              this.effects.burst(`spray:${e.id}:${name}:${bucket}`, position, fan, 'water', 5);
+            }
+          }
+        }
+        if (e.kind === 'traffic') {
+          const art = entry.mesh.userData.trafficArt as VehicleArt;
+          art.root.updateWorldMatrix(true, true);
+          const state = vehicleEffectState((e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp,
+            !!e.wrecked, e.wreckAge ?? 0);
+          const old = previous.world.entities.find(other => other.id === e.id);
+          lights(art, Math.abs(e.speed) < Math.abs(old?.speed ?? e.speed) - .01, null, !!e.wrecked,
+            e.fuel === 0 && Math.abs(e.speed) < .5 || !!e.trafficStoppedByCollision,
+            Math.abs(e.distance - s.distance) < (low ? 25 : 45));
+          if (emitting && !e.wrecked && Math.abs(e.speed) > 1 && e.trafficContacts?.length) {
+            for (const patchId of e.trafficContacts) {
+              const patch = s.world.entities.find(other => other.id === patchId && other.kind === 'water');
+              const patchMesh = this.entityMeshes.get(patchId)?.mesh;
+              if (!patch || !patchMesh) continue;
+              patchMesh.updateWorldMatrix(true, false);
+              const sockets = Object.entries(art.sockets).filter(([name]) => name.startsWith('wheel_spray'));
+              const sources = sockets.length ? sockets : 'wheels' in art
+                ? Object.values(art.wheels).map((wheel: THREE.Object3D, i) => [`axle-${i}`, wheel] as const) : [];
+              for (const [name, socket] of sources) {
+                socket.getWorldPosition(position); local.copy(position); patchMesh.worldToLocal(local);
+                if (Math.abs(local.x) > patch.width / 2 || Math.abs(local.z) > patch.length / 2) continue;
+                position.y = .12;
+                const behind = new THREE.Vector3(-Math.sin(heading) * Math.sign(e.speed), 0,
+                  Math.cos(heading) * Math.sign(e.speed));
+                this.effects.burst(`spray:${e.id}:${patchId}:${name}:${bucket}`, position, behind, 'water', 2);
+              }
+            }
+          }
+          const socket = art.sockets.engine_smoke_fire;
+          if (emitting && state.smoke && socket) {
+            socket.getWorldPosition(position);
+            position.y += .4;
+            this.effects.burst(`smoke:${e.id}:${bucket}`, position, direction, 'smoke', 2, e.id);
+            if (state.fire) this.effects.burst(`fire:${e.id}:${bucket}`, position, direction, 'fire', 2, e.id);
+          }
+        }
+        // Existing crossMotion supplies direction and schedule; no new warning timer.
+        if (e.crossMotion && !e.stunned && (e.kind === 'train' || e.kind === 'traffic')) {
+          position.copy(entry.mesh.position);
+          const side = Math.sign(e.crossMotion.velocity);
+          position.x += Math.cos(entry.mesh.rotation.y) * side * (e.width * .5 + .35);
+          position.y += .4;
+          for (let i = 0; i < 3; i++) {
+            this.effects.signal(position, '#b5ac78', .05 + i * .02);
+            position.x += Math.cos(entry.mesh.rotation.y) * side * .22;
+            position.z -= Math.sin(entry.mesh.rotation.y) * side * .22;
+          }
+        }
+        if (e.passengerType === 'grab') {
+          const marker = entry.mesh.userData.grabMarker as THREE.Mesh | undefined;
+          if (marker) marker.scale.setScalar(low ? 1 : 1 + Math.sin(s.activeSeconds * 2) * .09);
+        }
+      }
+    }
+    this.effects.update();
+  }
+  private refreshNearCityScenery(): void {
+    // Visible lots created while the GLBs were loading fall back to native
+    // geometry. Rebuild only those lots at the next render tick.
+    for (const [key, art] of this.scenery) if (key.includes(':city:near:rigid')) {
+      this.scene.remove(art.root); art.dispose(); this.scenery.delete(key);
+    }
+  }
+  private refreshNearSeaScenery(): void {
+    for (const [key, art] of this.scenery) if (key.includes(':sea:near:rigid')) {
+      this.scene.remove(art.root); art.dispose(); this.scenery.delete(key);
+    }
+  }
   dispose(): void {
+    this.disposed = true;
     this.observer.disconnect();
+    this.stormLighting.dispose();
+    this.stormPost.dispose();
+    this.contactShadows.dispose();
+    this.effects.dispose();
+    this.lightBeams.dispose();
+    this.starAura.dispose();
+    this.nitroJet.dispose();
+    if (this.cloudShadows) { this.scene.remove(this.cloudShadows.root); this.cloudShadows.dispose(); }
+    for (const art of [this.rain, this.rainSplashes]) if (art) { this.scene.remove(art.root); art.dispose(); }
+    for (const art of this.scenery.values()) { this.scene.remove(art.root); art.dispose(); }
+    this.scenery.clear();
+    for (const template of [this.cityMidriseTemplate, this.citySkylineTemplate,
+      this.cityShopTemplate, this.cityMarketTemplate, this.coastalBoatTemplate])
+      template?.traverse(object => { if (object instanceof THREE.Mesh) {
+        object.geometry.dispose();
+        (Array.isArray(object.material) ? object.material : [object.material])
+          .forEach(material => material.dispose());
+      } });
+    this.driverTemplate?.traverse(object => { if (object instanceof THREE.Mesh) {
+      object.geometry.dispose();
+      (Array.isArray(object.material) ? object.material : [object.material]).forEach(material => material.dispose());
+    } });
+    for (const entry of this.entityMeshes.values()) if (entry.kind === 'water' || entry.kind === 'pothole') {
+      this.scene.remove(entry.mesh);
+      (entry.mesh.userData.hazardArt as HazardArt).dispose();
+    }
     this.scene.traverse(object => { if (object instanceof THREE.Mesh) {
       object.geometry.dispose();
       const materials = Array.isArray(object.material) ? object.material : [object.material];

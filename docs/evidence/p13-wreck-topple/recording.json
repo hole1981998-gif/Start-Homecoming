@@ -1,0 +1,10 @@
+{
+  "frames": 60,
+  "size": [
+    1000,
+    563
+  ],
+  "durationMs": 2437,
+  "pausedFramesIdentical": true,
+  "note": "Real variable-interval browser screenshots, no resizing; not native video/60 FPS."
+}

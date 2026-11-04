@@ -4,12 +4,62 @@ import { movingScenario } from './moving-scenarios';
 import { movingEvent } from './moving-events';
 import type { Run } from './survival';
 import { entity, fillWorld, initialWorld, passengerMotion, trafficTypes } from './world';
-import { junction } from './route';
+import { junction, junctionWindow } from './route';
 import { newVehicle, vehicles, type VehicleKind } from './vehicles';
 import { balance, itemBalance, movingBalance, stressBalance } from './config';
 import { secretPickup, secretVehicle } from './secret';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
+  if (scenario === 'recovery-motorcycle' || scenario === 'recovery-motorbike' || scenario === 'wreck-open-drivers') {
+    const kind = scenario === 'recovery-motorbike' ? 'motorbike' : 'motorcycle';
+    const bike = newVehicle(kind, 'qa-recovery-bike');
+    const entities = scenario === 'wreck-open-drivers' ?
+      (['motorcycle', 'motorbike', 'tricycle'] as const).map((trafficKind, i) => ({
+        ...entity('traffic', `qa-open-wreck-${i}`, 18 + i * 5, (i - 1) * 3.2), trafficKind,
+        width: trafficTypes[trafficKind].width, length: trafficTypes[trafficKind].length,
+        speed: 0, baseSpeed: 0, hp: 0, wrecked: true, wreckAge: 0,
+      })) : [{ ...entity('traffic', 'qa-recovery-hit', 8, 0), speed: 0, baseSpeed: 0 }];
+    return { ...run, vehicleInstances: [bike], activeVehicleId: bike.id, speed: vehicles[kind].cruiseSpeed,
+      fuel: bike.fuel, durability: bike.durability,
+      world: { ...initialWorld(run.seed), entities, nextHazard: 1e9, nextSpecial: 1e9, nextFuel: 1e9,
+        nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9,
+        prototype: { version: 'bike-recovery-qa-1', title: scenario === 'wreck-open-drivers' ? 'Xe hỏng không còn tài xế ngồi' : 'Ngã xe và dựng xe',
+          description: 'Fixture DEV: quan sát trạng thái hình ảnh, không thay luật tai nạn hay cân bằng. Start để xem va chạm/ngã/quay lại/dựng xe.' } } };
+  }
+  if (scenario?.startsWith('lights-')) {
+    const requested = scenario.slice(7);
+    const kind = requested in vehicles ? requested as VehicleKind : 'car4';
+    const car = newVehicle(kind, 'qa-lights-player');
+    const start = junctionWindow(junction(run.seed, 0), vehicles[kind].cruiseSpeed, kind).openDistance + 1;
+    const oncoming = entity('traffic', 'qa-lights-oncoming', start + 28, -3.2);
+    Object.assign(oncoming, { speed: -6, baseSpeed: -6, hp: trafficTypes.car4.hp });
+    const stopped = entity('traffic', 'qa-lights-stopped', start + 16, 3.2);
+    Object.assign(stopped, { speed: 0, baseSpeed: 0, hp: trafficTypes.car4.hp, fuel: 0, trafficMotion: 'stopped' });
+    return { ...run, distance: start, vehicleInstances: [car], activeVehicleId: car.id,
+      fuel: car.fuel, durability: car.durability, speed: vehicles[kind].cruiseSpeed,
+      world: { ...initialWorld(run.seed), entities: [oncoming, stopped], nextHazard: 1e9,
+        nextSpecial: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9,
+        prototype: { version: 'vehicle-lights-qa-1', title: `Đèn xe · ${vehicles[kind].name}`,
+          description: 'Q/E chọn rẽ thật để xem xi nhan, S phanh. Xe đối diện có pha; xe hết xăng bật cảnh báo hai bên. Fixture DEV, không dùng cân bằng.' } } };
+  }
+  if (scenario === 'vfx-state-check') {
+    // DEV-only visual comparison. Real HP/wreck/fuel states drive the renderer;
+    // no new production timer, collision rule or balance profile is introduced.
+    const car = newVehicle('car4', 'qa-vfx-player');
+    const wreck = entity('traffic', 'qa-vfx-wreck', 8, 3.2);
+    Object.assign(wreck, { trafficKind: 'truck', width: trafficTypes.truck.width,
+      length: trafficTypes.truck.length, hp: 0, wrecked: true, wreckAge: 0, speed: 0, baseSpeed: 0,
+      wreckPassengersSpawned: true });
+    const stopped = entity('traffic', 'qa-vfx-fuel-stop', 8, -3.2);
+    Object.assign(stopped, { hp: trafficTypes.car4.hp, fuel: 0, trafficMotion: 'stopped', speed: 0, baseSpeed: 0 });
+    return { ...run, vehicleInstances: [car], activeVehicleId: car.id,
+      fuel: car.fuel, durability: car.durability, speed: vehicles.car4.cruiseSpeed,
+      inventory: ['star', 'nitro'],
+      world: { ...initialWorld(run.seed), entities: [wreck, stopped], nextHazard: 1e9,
+        nextSpecial: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9,
+        prototype: { version: 'vfx-state-check', title: 'Kiểm trạng thái VFX · DEV',
+          description: 'Bên phải là xe tải đã hỏng; bên trái là ô tô còn nguyên HP nhưng hết xăng. Quan sát khói/lửa, đèn và thu hồi khi wreck hết hạn. 1 bật star, 2 bật nitro; Space nhảy. Chỉ là fixture kiểm hình, không dùng để cân bằng.' } } };
+  }
   if (scenario === 'force-tail-bus' || scenario === 'force-tail-truck' || scenario === 'force-tail-container') {
     const kind = scenario === 'force-tail-bus' ? 'bus' : scenario === 'force-tail-truck' ? 'truck' : 'container';
     const vehicle = newVehicle(kind, `qa-tail-${kind}`);

@@ -1,0 +1,49 @@
+import { createCar4Art } from './car4';
+import { createCar7Art } from './car7';
+import { createTwoWheelerArt } from './two-wheelers';
+import { createUtilityVehicleArt, type VehicleRole } from './utility-vehicles';
+import { createPersonArt, mountPersonOnSeat } from './people';
+import type { VehicleKind } from '../vehicles';
+import * as THREE from 'three';
+import { markGameplayAccentTarget } from './storm-lighting';
+
+export type VehicleArt = ReturnType<typeof createCar4Art> | ReturnType<typeof createCar7Art> |
+  ReturnType<typeof createTwoWheelerArt> | ReturnType<typeof createUtilityVehicleArt>;
+
+/** Reapply on pooled traffic too: an ejected NPC must not leave a seated duplicate. */
+export function setTrafficDriverSeated(art: VehicleArt, seated: boolean): void {
+  const driver = art.root.getObjectByName('chr_driver_root');
+  if (driver) driver.visible = seated;
+}
+
+/** Distinct player identities against the cyan storm environment. One finish per family. */
+export const playerVehiclePaint: Record<VehicleKind, string> = {
+  motorcycle: '#22b9a1', motorbike: '#d55583', car4: '#e96b45',
+  car7: '#9373c5', tricycle: '#e0ad43', bus: '#568ed2',
+  truck: '#c57b4b', container: '#3a9a71',
+};
+
+/** One family master per kind; the traffic role reuses it without external passenger meshes. */
+export function createVehicleArt(kind: VehicleKind, role: VehicleRole = 'player',
+  lod: 'near' | 'far' = 'near', trafficColor?: string): VehicleArt {
+  const asset = kind === 'car4' ? createCar4Art(lod) :
+    kind === 'car7' ? createCar7Art(lod) :
+      kind === 'motorcycle' || kind === 'motorbike' ? createTwoWheelerArt(kind, lod) :
+        createUtilityVehicleArt(kind, role, lod);
+  if (role === 'traffic' && (kind === 'motorcycle' || kind === 'motorbike')) {
+    const bike = asset as ReturnType<typeof createTwoWheelerArt>;
+    mountPersonOnSeat(createPersonArt('driver', lod), bike.seats.driver, 'riding');
+  } else if (role === 'traffic' && kind === 'tricycle') {
+    const tricycle = asset as ReturnType<typeof createUtilityVehicleArt>;
+    mountPersonOnSeat(createPersonArt('driver', lod), tricycle.seats[0], 'riding');
+  }
+  asset.root.name = `veh_${kind}_${role}_${lod}`;
+  asset.root.userData.id = `veh_${kind}_${role}_A`;
+  asset.root.userData.role = role;
+  const paintColor = role === 'player' ? playerVehiclePaint[kind] : trafficColor
+    ? new THREE.Color(trafficColor).offsetHSL(0, .13, .035).getStyle() : undefined;
+  if (paintColor) asset.setPaint(paintColor);
+  asset.root.userData.paintColor = paintColor;
+  markGameplayAccentTarget(asset.root);
+  return asset;
+}

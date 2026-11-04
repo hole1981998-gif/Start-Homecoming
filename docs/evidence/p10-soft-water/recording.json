@@ -1,0 +1,12 @@
+{
+  "file": "water-bloom.webp",
+  "frames": 174,
+  "size": [
+    568,
+    634
+  ],
+  "durationMs": 6948,
+  "startUnixMs": 1793201279442,
+  "pausedFramesIdentical": true,
+  "note": "Real variable-interval browser screenshots, not native video or 60-FPS capture."
+}

@@ -1,0 +1,9 @@
+# A/D turn indicators — 29 October 2026
+
+Branch `codex/steering-turn-signals`, visual dependency `b12e437`; preserves the requested visual stack, not a fresh-main claim. Actual held A/D input is passed read-only to the renderer. A selects left, D right; release clears the manual signal, both keys cancel manual direction. Existing junction Q/E intent remains the fallback. Wind drift and lateral inertia never invent an indicator. Crash ignores steering signals and retains hazards. No simulation state/balance change.
+
+Windows / Node 24.22.1 / pnpm 11.25.0: `pnpm lint`, `pnpm typecheck`, `pnpm test --maxWorkers=2`, `pnpm build` all exit 0. Tests 70 files / 407 passed, 108.69 s; build 3.29 s, existing >500 kB warning. New behavioral test covers A/D, release, opposed keys and junction fallback.
+
+Manual in-app browser seed 7: actual Start, A then D holds on `visual-vehicles-car4`, corresponding movement and lamp captures. `evidence/p13-feedback/steering.webp` is a real screenshot sequence during a D hold; metadata records native dimensions/timing. Earlier `lights-car4` test hit oncoming traffic during steering: crash HUD/HP appeared and hazards took over; this is an observed collision, not a clean signal comparison. Final comparison uses the opening visual-vehicles road. Console error query empty. Focus/pause input clearing has existing UI regression coverage; not a complete manual keyboard/device matrix.
+
+Codex game-designer self review: communicates steering intent without changing handling or timing. UI/UX self review: no new overlay, existing amber lenses blink; small lenses remain subtle at narrow canvas size (current screenshots). This is self review, not independent approval. Human review pending; no merge. CI not verified, PR creation unavailable under previously observed integration 403.

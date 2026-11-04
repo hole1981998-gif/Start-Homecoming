@@ -1,0 +1,15 @@
+from pathlib import Path
+from PIL import Image, ImageChops
+import json
+
+root = Path(__file__).parent
+times = json.loads((root / 'motion/times.json').read_text())[6:]
+frames = [Image.open(p).convert('RGB') for p in sorted((root / 'motion').glob('*.png'))[6:]]
+durations = [max(10, times[i + 1] - times[i]) for i in range(len(times) - 1)]
+durations.append(durations[-1])
+frames[0].save(root / 'rain-ground.webp', save_all=True, append_images=frames[1:], duration=durations, loop=0, quality=78)
+equal = ImageChops.difference(Image.open(root / 'pause-a.png').convert('RGB'), Image.open(root / 'pause-b.png').convert('RGB')).getbbox() is None
+data = dict(frames=len(frames), size=frames[0].size, durationMs=sum(durations), pausedFramesIdentical=equal,
+            note='Real variable-interval browser captures; not native video or 60-FPS capture.')
+(root / 'recording.json').write_text(json.dumps(data, indent=2))
+print(json.dumps(data))

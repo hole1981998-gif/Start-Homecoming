@@ -8,8 +8,9 @@ vi.mock('../src/world', async importOriginal => {
   return { ...actual, fillWorld: (world: World) => ({ ...world, entities: [] }) };
 });
 
-const renderer = vi.hoisted(() => ({ draws: 0, instances: 0 }));
+const renderer = vi.hoisted(() => ({ draws: 0, instances: 0, lowEffects: false }));
 vi.mock('../src/render', () => ({ RoadRenderer: class {
+  setLowEffects(enabled: boolean) { renderer.lowEffects = enabled; }
   constructor() { renderer.instances++; }
   draw() { renderer.draws++; }
   project() { return { x: 50, y: 40 }; }
@@ -30,9 +31,33 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   const click = (id: string) => { el(id).focus(); el(id).click(); };
   expect(el('release-help').textContent).toContain('Thả W/S');
   expect(document.getElementById('cruise')).toBeNull();
+  expect(el('junction-cue').classList.contains('sr-only')).toBe(true);
+  expect(el('junction-left').textContent).toBe('Q'); expect(el('junction-right').textContent).toBe('E');
+  expect(document.querySelector('#game > .version-link')).toBeNull();
+  expect(document.querySelector('#game > .version-badge')).toBeNull();
+  expect(document.querySelector('.modal-version-link')).not.toBeNull();
   expect(el('release-help').textContent).not.toContain('50,4');
+  const effects = el('effects-toggle') as HTMLInputElement;
+  effects.checked = true; effects.dispatchEvent(new Event('change'));
+  expect(renderer.lowEffects).toBe(true);
+  expect(localStorage.getItem('homecoming-low-effects')).toBe('true');
   click('play'); tick(1); expect(el('distance').textContent).toBe('14');
   expect(el('speed').textContent).toBe('50,4');
+  const menu = el('controls-menu'), toggle = el('controls-toggle'), menuPanel = el('controls-panel');
+  const hover = (type: string, pointerType: string) => {
+    const event = new Event(type); Object.defineProperty(event, 'pointerType', {value:pointerType}); menu.dispatchEvent(event);
+  };
+  expect(menuPanel.hidden).toBe(true);
+  hover('pointerenter','mouse');expect(menuPanel.hidden).toBe(false);
+  hover('pointerleave','mouse');expect(menuPanel.hidden).toBe(true);
+  hover('pointerenter','touch');expect(menuPanel.hidden).toBe(true);
+  click('controls-toggle');expect(menuPanel.hidden).toBe(false);expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  click('controls-toggle');expect(menuPanel.hidden).toBe(true);
+  el('scene').focus(); key('keydown','KeyM');expect(menuPanel.hidden).toBe(false);
+  toggle.dispatchEvent(new KeyboardEvent('keydown',{code:'Escape',bubbles:true}));
+  expect(menuPanel.hidden).toBe(true);expect(el('modal').hidden).toBe(true);
+  el('scene').focus();
+
   const fuel = el('fuel') as HTMLProgressElement;
   const fuelArc = el('fuel-arc') as unknown as SVGPathElement;
   const hpArc = el('hp-arc') as unknown as SVGPathElement;
@@ -55,12 +80,18 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   click('play'); tick(1); expect(el('speed').textContent).toBe('57,6');
   tick(1); expect(el('speed').textContent).toBe('50,4');
   click('help'); expect(el('modal-title').textContent).toBe('Cách cầm lái');
+  expect(el('help-details').hidden).toBe(false);
+  expect(el('help-details').textContent).toContain('tài xế');
+  expect(el('modal-title').nextElementSibling).toBe(el('close-help'));
   const helpDistance = el('distance').textContent; tick(3); expect(el('distance').textContent).toBe(helpDistance);
   const firstAudioSlider = document.querySelector<HTMLInputElement>('.audio-options input');
   expect(firstAudioSlider?.getAttribute('aria-label')).toBe('Hiệu ứng');
-  key('keydown', 'Tab'); expect(document.activeElement).toBe(firstAudioSlider);
-  key('keydown', 'Tab', { shiftKey: true }); expect(document.activeElement).toBe(el('close-help'));
+  const focusables = [...el('modal').querySelectorAll<HTMLElement>('button,input,select,a[href],summary')]
+    .filter(node => !node.closest('[hidden]') && !(node instanceof HTMLButtonElement && node.disabled));
+  focusables.at(-1)!.focus(); key('keydown', 'Tab'); expect(document.activeElement).toBe(focusables[0]);
+  key('keydown', 'Tab', { shiftKey: true }); expect(document.activeElement).toBe(focusables.at(-1));
   key('keydown', 'Escape'); expect(el('modal').hidden).toBe(false);
+  expect(el('help-details').hidden).toBe(true);
   key('keydown', 'Escape'); expect(el('modal').hidden).toBe(true);
   for (let i = 0; i < 10; i++) {
     click('restart'); tick(1); expect(el('distance').textContent).toBe('0');

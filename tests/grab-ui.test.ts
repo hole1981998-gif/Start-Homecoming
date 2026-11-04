@@ -4,6 +4,7 @@ import { expect, it, vi } from 'vitest';
 import type { Run } from '../src/survival';
 const drawn = vi.hoisted(() => ({ run: undefined as Run | undefined }));
 vi.mock('../src/render', () => ({ RoadRenderer: class {
+  setLowEffects() { /* Presentation preference; no WebGL in DOM tests. */ }
   draw(run: Run) { drawn.run = run; }
   project() { return { x: 50, y: 40 }; }
   dispose() { /* no WebGL resources */ }
@@ -12,6 +13,7 @@ it('real input calls Grab once, shows charges/type, requires F, keeps riders thr
   document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
   history.replaceState({}, '', '/?scenario=grab&seed=17');
   localStorage.setItem('dvn.cards.v1', JSON.stringify(['passenger', 'water', 'traffic', 'pothole', 'shop']));
+  localStorage.setItem('dvn.discovery.v2', '["grab"]');
   let now = 0, frame: FrameRequestCallback = () => {};
   vi.stubGlobal('performance', { now: () => now });
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { frame = cb; return 1; });
@@ -23,7 +25,7 @@ it('real input calls Grab once, shows charges/type, requires F, keeps riders thr
   expect(el('item-cue').textContent).toContain('Grab×3');
   key('Digit1'); tick(.1); expect(el('item-cue').textContent).toContain('Grab×2');
   expect(drawn.run!.riderIds).toEqual([]);
-  expect(el('world-cues').querySelector('[data-kind="passenger"]')?.getAttribute('aria-label')).toContain('Khách Grab');
+  expect(el('world-cues').querySelector('[data-kind="passenger"]')).toBeNull(); // Passenger labels removed; F action cue only when reachable.
   key('Digit1'); tick(.1); expect(drawn.run!.grabSequence).toBe(1);
   const npc = drawn.run!.world.entities.find(e => e.passengerType === 'grab')!;
   const steer = npc.x > 0 ? 'KeyD' : 'KeyA';

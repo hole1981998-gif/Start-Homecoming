@@ -1,0 +1,42 @@
+[
+  {
+    "kind": "car4",
+    "turnSelected": true,
+    "errors": []
+  },
+  {
+    "kind": "motorcycle",
+    "turnSelected": true,
+    "errors": []
+  },
+  {
+    "kind": "motorbike",
+    "turnSelected": true,
+    "errors": []
+  },
+  {
+    "kind": "car7",
+    "turnSelected": true,
+    "errors": []
+  },
+  {
+    "kind": "tricycle",
+    "turnSelected": true,
+    "errors": []
+  },
+  {
+    "kind": "bus",
+    "turnSelected": true,
+    "errors": []
+  },
+  {
+    "kind": "truck",
+    "turnSelected": true,
+    "errors": []
+  },
+  {
+    "kind": "container",
+    "turnSelected": true,
+    "errors": []
+  }
+]

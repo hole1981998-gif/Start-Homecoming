@@ -2,10 +2,16 @@
 import { expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 vi.mock('../src/render', () => ({ RoadRenderer: class {
+  setLowEffects() { /* Presentation preference; no WebGL in DOM tests. */ }
   draw() { /* real UI/simulation; WebGL replaced only in DOM integration */ }
   project() { return { x: 50, y: 40 }; }
   dispose() { /* no graphics resources */ }
 } }));
+vi.mock('../src/vehicle-thumbnails', async () => {
+  const { vehicles } = await import('../src/vehicles');
+  return { vehicleThumbnailSources: () => Object.fromEntries(Object.keys(vehicles).map(kind => [kind, 'data:image/png;base64,' + btoa(kind)])) };
+});
+
 it('R opens shop without fuel/repair packs, empty item keys do not heal, and services apply immediately', async () => {
   document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
   history.replaceState({}, '', '/?scenario=shop&seed=17');

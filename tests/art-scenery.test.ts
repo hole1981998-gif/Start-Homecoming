@@ -1,0 +1,352 @@
+import { describe, expect, it } from 'vitest';
+import * as THREE from 'three';
+import { balance } from '../src/config';
+import { landscapeColors, type LandscapeKind } from '../src/landscape';
+import { initialRoute, pathPose } from '../src/route';
+import { createBendSceneryStrip, createSceneryCluster, optimizeNearScenery, scenerySectionCrossesTurn } from '../src/art/scenery';
+import { shadePlacedStormCityFacades } from '../src/art/storm-lighting';
+
+describe('essential roadside scenery', () => {
+  it('shades broad code-native walls on the sunny roadside while leaving shop trim and opposite row alone', () => {
+    const right = createSceneryCluster('city', -1, 'near', 14);
+    const left = createSceneryCluster('city', 1, 'near', 14);
+    right.root.rotation.y = Math.PI;
+    left.root.rotation.y = Math.PI;
+    const rightWall = right.root.getObjectByName('plaster') as THREE.Mesh;
+    const leftWall = left.root.getObjectByName('plaster') as THREE.Mesh;
+    const trim = right.root.getObjectByName('plinth') as THREE.Mesh;
+    expect(rightWall).toBeDefined();
+    expect(trim).toBeDefined();
+    expect(shadePlacedStormCityFacades(right.root, true)).toBeGreaterThan(0);
+    expect(shadePlacedStormCityFacades(left.root, false)).toBe(0);
+    expect(rightWall.geometry.getAttribute('color')).toBeDefined();
+    expect(leftWall.geometry.getAttribute('color')).toBeUndefined();
+    expect(trim.geometry.getAttribute('color')).toBeUndefined();
+    right.dispose(); left.dispose();
+  });
+  it('keeps rigid 96 m clusters off a chosen turn while retaining straight sections', () => {
+    expect(scenerySectionCrossesTurn(8, [])).toBe(false);
+    expect(scenerySectionCrossesTurn(8, [800])).toBe(true);
+    expect(scenerySectionCrossesTurn(7, [800])).toBe(false);
+    expect(scenerySectionCrossesTurn(9, [800])).toBe(false);
+  });
+  it('leaves the cross street clear before selection and after either turn', () => {
+    for (const turn of [null, 'left', 'right'] as const) {
+      const route = turn ? { ...initialRoute(), history: [{ distance: 800, turn }] } : initialRoute();
+      const samples = Array.from({ length: 24 }, (_, i) => pathPose(770 + i * 4, route, 14));
+      for (const side of [-1, 1] as const) {
+        const art = createBendSceneryStrip('city', side, samples, 'near', 768, [800]);
+        art.root.updateMatrixWorld(true);
+        expect(art.root.getObjectByName('bend_ground_2')).toBeDefined();
+        expect(art.root.getObjectByName('bend_ground_8')).toBeUndefined();
+        expect(art.root.getObjectByName('bend_ground_14')).toBeDefined();
+        // The cross street is 90 m wide and 9.6 m deep, centred 10.2 m
+        // beyond the junction's 8 m lead-in.
+        const crossing = pathPose(792, route, 14);
+        art.root.traverse(object => {
+          if (!(object instanceof THREE.Mesh)) return;
+          const bounds = new THREE.Box3().setFromObject(object, true);
+          const crossesX = bounds.min.x < crossing.x + 45 && bounds.max.x > crossing.x - 45;
+          const crossesZ = bounds.min.z < crossing.z - 10.2 + 4.8 &&
+            bounds.max.z > crossing.z - 10.2 - 4.8;
+          expect(crossesX && crossesZ, object.name).toBe(false);
+        });
+        art.dispose();
+      }
+    }
+  });
+  it('follows either bend with continuous ground outside the driving corridor', () => {
+    const halfRoad = balance.laneWidth * balance.laneCount / 2;
+    for (const turn of ['left', 'right'] as const) {
+      const route = { ...initialRoute(), history: [{ distance: 800, turn }] };
+      const road = Array.from({ length: 105 }, (_, i) => pathPose(764 + i, route, 14));
+      const samples = Array.from({ length: 24 }, (_, i) => pathPose(770 + i * 4, route, 14));
+      for (const side of [-1, 1] as const) {
+        const art = createBendSceneryStrip('cliffs', side, samples, 'near');
+        art.root.updateMatrixWorld(true);
+        expect(art.root.children).toHaveLength(24);
+        for (let i = 0; i < 24; i++) {
+          const ground = art.root.getObjectByName(`bend_ground_${i}`)!;
+          for (const x of [-3.05, 3.05]) for (const z of [-2.1, 2.1]) {
+            const point = ground.localToWorld(new THREE.Vector3(x, 0, z));
+            const clearance = Math.min(...road.map(pose =>
+              Math.hypot(point.x - pose.x, point.z - pose.z)));
+            expect(clearance).toBeGreaterThan(halfRoad);
+          }
+        }
+        art.dispose();
+      }
+    }
+  });
+  it('keeps city frontages on both turns without obscuring the driving corridor', () => {
+    const halfRoad = balance.laneWidth * balance.laneCount / 2;
+    for (const turn of ['left', 'right'] as const) {
+      const route = { ...initialRoute(), history: [{ distance: 800, turn }] };
+      const road = Array.from({ length: 105 }, (_, i) => pathPose(764 + i, route, 14));
+      for (const side of [-1, 1] as const) {
+        const samples = Array.from({ length: 24 }, (_, i) =>
+          pathPose(770 + i * 4, route, 14));
+        const art = createBendSceneryStrip('city', side, samples, 'near');
+        art.root.updateMatrixWorld(true);
+        expect(art.root.getObjectByName('bend_corner_shop')).toBeDefined();
+        expect(art.root.getObjectByName('midrise_apartments')).toBeDefined();
+        expect(art.root.getObjectByName('pocket_park')).toBeDefined();
+        art.root.traverse(object => {
+          if (!(object instanceof THREE.Mesh)) return;
+          const bounds = object.geometry.boundingBox ??
+            (object.geometry.computeBoundingBox(), object.geometry.boundingBox!);
+          for (const x of [bounds.min.x, bounds.max.x])
+            for (const z of [bounds.min.z, bounds.max.z]) {
+              const point = object.localToWorld(new THREE.Vector3(x, 0, z));
+              const clearance = Math.min(...road.map(pose =>
+                Math.hypot(point.x - pose.x, point.z - pose.z)));
+              expect(clearance).toBeGreaterThan(halfRoad);
+            }
+        });
+        const before = new THREE.Box3().setFromObject(art.root, true);
+        const meshCount = () => {
+          let count = 0;
+          art.root.traverse(object => { if (object instanceof THREE.Mesh) count++; });
+          return count;
+        };
+        const originalCount = meshCount();
+        const groundMaterial = (art.root.getObjectByName('bend_ground_0') as THREE.Mesh).material;
+        optimizeNearScenery(art.root);
+        expect(meshCount()).toBeLessThan(originalCount / 2);
+        let groundDrawables = 0;
+        art.root.traverse(object => {
+          if (object instanceof THREE.Mesh && object.material === groundMaterial) groundDrawables++;
+        });
+        expect(groundDrawables).toBe(1);
+        const after = new THREE.Box3().setFromObject(art.root, true);
+        expect(after.min.distanceTo(before.min)).toBeLessThan(.001);
+        expect(after.max.distanceTo(before.max)).toBeLessThan(.001);
+        art.dispose();
+      }
+    }
+  });
+  it('covers each 96 m section with continuous roadside ground', () => {
+    const groundName: Record<LandscapeKind, string> = {
+      city: 'sidewalk_base', trees: 'green_verge', cliffs: 'cliff_toe',
+      rice: 'field_soil_continuity', sea: 'water_plane',
+    };
+    for (const kind of Object.keys(groundName) as LandscapeKind[]) {
+      const art = createSceneryCluster(kind, 1, 'near');
+      const ground = art.root.getObjectByName(groundName[kind]);
+      expect(ground).toBeDefined();
+      const bounds = new THREE.Box3().setFromObject(ground!);
+      expect(bounds.min.z).toBeLessThanOrEqual(-47.99);
+      expect(bounds.max.z).toBeGreaterThanOrEqual(47.99);
+      art.dispose();
+    }
+  });
+  it('tapers the sea at biome changes while preserving full sea-to-sea joins', () => {
+    const continuous = createSceneryCluster('sea', 1, 'near');
+    const transition = createSceneryCluster('sea', 1, 'near', 0,
+      { start: true, end: true });
+    const wallBounds = (art: ReturnType<typeof createSceneryCluster>) =>
+      new THREE.Box3().setFromObject(art.root.getObjectByName('seawall')!);
+    expect(wallBounds(continuous).max.z - wallBounds(continuous).min.z).toBeCloseTo(96);
+    expect(wallBounds(transition).max.z - wallBounds(transition).min.z).toBeCloseTo(80);
+    const water = transition.root.getObjectByName('water_plane') as THREE.Mesh;
+    const vertices = water.geometry.getAttribute('position');
+    const endXs: number[] = [];
+    for (let i = 0; i < vertices.count; i++)
+      if (Math.abs(vertices.getZ(i)) > 47.99) endXs.push(vertices.getX(i));
+    expect(endXs.length).toBeGreaterThan(0);
+    expect(Math.max(...endXs) - Math.min(...endXs)).toBeLessThan(.001);
+    continuous.dispose(); transition.dispose();
+  });
+  it('covers every existing 96 m landscape family and stays out of the driving corridor', () => {
+    for (const kind of Object.keys(landscapeColors) as LandscapeKind[]) {
+      for (const side of [-1, 1] as const) for (const lod of ['near', 'far'] as const) {
+        const art = createSceneryCluster(kind, side, lod);
+        const bounds = new THREE.Box3().setFromObject(art.root);
+        const roadHalfWidth = balance.laneWidth * balance.laneCount / 2;
+        if (side < 0) expect(bounds.max.x).toBeLessThan(-roadHalfWidth);
+        else expect(bounds.min.x).toBeGreaterThan(roadHalfWidth);
+        expect(art.root.userData.collisionRole).toBe('decorative-only');
+        expect(art.root.userData.regionLengthM).toBe(96);
+        art.dispose();
+      }
+    }
+  });
+  it('gives the city roof, awning and balcony shapes beyond ordinary box facades', () => {
+    const art = createSceneryCluster('city', 1);
+    expect(art.root.getObjectByName('pitched_sheet_roof')).toBeDefined();
+    expect(art.root.getObjectByName('corner_shop')?.getObjectByName('shop_roof_terrace')).toBeDefined();
+    expect(art.root.getObjectByName('front_awning')).toBeDefined();
+    expect(art.root.getObjectByName('balcony_rail')).toBeDefined();
+    expect(art.root.getObjectByName('courtyard_shed_pitched_roof')).toBeDefined();
+    art.dispose();
+  });
+  it('gives code-native city masses a shaded side while keeping shop accents brighter', () => {
+    const color = (root: THREE.Object3D, name: string) =>
+      ((root.getObjectByName(name) as THREE.Mesh).material as THREE.MeshStandardMaterial).color;
+    const brightness = (value: THREE.Color) => value.r * .2126 + value.g * .7152 + value.b * .0722;
+    for (const roadsideSide of [-1, 1] as const) {
+      const art = createSceneryCluster('city', roadsideSide, 'near', 14);
+      for (const [rootName, body, shade] of [
+        ['narrow_two_storey', 'plaster', 'plaster_ambient_side'],
+        ['midrise_apartments', 'midrise_main_mass', 'midrise_ambient_side'],
+        ['wide_storefront', 'store_wide_mass', 'store_ambient_side'],
+      ]) {
+        const building = art.root.getObjectByName(rootName)!;
+        const shadeMesh = building.getObjectByName(shade) as THREE.Mesh;
+        // RoadRenderer rotates each rigid cluster by PI on a straight road.
+        expect(Math.sign(shadeMesh.position.x)).toBe(-roadsideSide);
+        expect(brightness(color(building, shade)))
+          .toBeLessThan(brightness(color(building, body)) * .8);
+      }
+      const house = art.root.getObjectByName('narrow_two_storey')!;
+      expect(brightness(color(house, 'plaster_upper_ambient')))
+        .toBeLessThan(brightness(color(house, 'plaster')) * .8);
+      const shop = art.root.getObjectByName('wide_storefront')!;
+      expect(brightness(color(shop, 'store_sign_inset')))
+        .toBeGreaterThan(brightness(color(shop, 'store_wide_mass')) * 1.5);
+      art.dispose();
+    }
+  });
+  it('keeps seeded city variations deterministic and safely roadside', () => {
+    const roadHalfWidth = balance.laneWidth * balance.laneCount / 2;
+    const positions: number[] = [];
+    for (const seed of [0, 0, 1, 2]) {
+      const art = createSceneryCluster('city', -1, 'near', seed);
+      const bounds = new THREE.Box3().setFromObject(art.root);
+      expect(bounds.max.x).toBeLessThan(-roadHalfWidth);
+      for (const name of ['midrise_apartments', 'wide_storefront', 'pocket_park'])
+        expect(art.root.getObjectByName(name)).toBeDefined();
+      positions.push(art.root.getObjectByName('midrise_apartments')!.position.z);
+      art.dispose();
+    }
+    expect(positions[0]).toBe(positions[1]);
+    expect(Math.abs(positions[0] - positions[2])).toBeGreaterThan(5);
+  });
+  it('keeps distant city detail while reducing individual drawables', () => {
+    const near = createSceneryCluster('city', 1, 'near', 0);
+    const far = createSceneryCluster('city', 1, 'far', 0);
+    let nearMeshes = 0, farMeshes = 0;
+    near.root.traverse(object => { if (object instanceof THREE.Mesh) nearMeshes++; });
+    far.root.traverse(object => { if (object instanceof THREE.Mesh) farMeshes++; });
+    expect(farMeshes).toBeLessThan(nearMeshes / 3);
+    expect(new THREE.Box3().setFromObject(far.root).min.x)
+      .toBeGreaterThan(balance.laneWidth * balance.laneCount / 2);
+    near.dispose(); far.dispose();
+  });
+  it('batches near static detail while preserving building placement and bounds', () => {
+    const art = createSceneryCluster('city', 1, 'near', 2);
+    const before = new THREE.Box3().setFromObject(art.root, true);
+    const countMeshes = () => {
+      let count = 0;
+      art.root.traverse(object => { if (object instanceof THREE.Mesh) count++; });
+      return count;
+    };
+    const countBefore = countMeshes();
+    const shop = art.root.getObjectByName('corner_shop')!;
+    const shopPosition = shop.position.clone();
+    optimizeNearScenery(art.root);
+    const countAfter = countMeshes();
+    expect(countAfter).toBeLessThan(countBefore * .7);
+    expect(art.root.getObjectByName('corner_shop')).toBe(shop);
+    expect(shop.position).toEqual(shopPosition);
+    const after = new THREE.Box3().setFromObject(art.root, true);
+    expect(after.min.distanceTo(before.min)).toBeLessThan(.001);
+    expect(after.max.distanceTo(before.max)).toBeLessThan(.001);
+    optimizeNearScenery(art.root);
+    expect(countMeshes()).toBe(countAfter);
+    art.dispose();
+  });
+  it('varies city frontage depth by seed without crossing the road', () => {
+    const names = ['narrow_two_storey', 'midrise_apartments', 'porch_house',
+      'wide_storefront', 'corner_shop'];
+    for (const seed of [0, 1, 2]) {
+      const art = createSceneryCluster('city', 1, 'near', seed);
+      const frontages = names.map(name => art.root.getObjectByName(name)!.position.x);
+      expect(Math.max(...frontages) - Math.min(...frontages)).toBeGreaterThan(.55);
+      expect(new THREE.Box3().setFromObject(art.root).min.x)
+        .toBeGreaterThan(balance.laneWidth * balance.laneCount / 2);
+      art.dispose();
+    }
+  });
+  it('gives seeded frontages uneven spacing without overlapping adjacent buildings', () => {
+    const names = ['narrow_two_storey', 'midrise_apartments', 'porch_house',
+      'wide_storefront', 'pocket_park', 'corner_shop'];
+    for (const seed of [1, 2, 3, 7]) {
+      const art = createSceneryCluster('city', 1, 'near', seed);
+      const buildings = names.map(name => art.root.getObjectByName(name)!)
+        .sort((a, b) => a.position.z - b.position.z);
+      const gaps = buildings.slice(1).map((building, i) => {
+        const before = new THREE.Box3().setFromObject(buildings[i]);
+        const after = new THREE.Box3().setFromObject(building);
+        return after.min.z - before.max.z;
+      });
+      expect(Math.min(...gaps)).toBeGreaterThan(.15);
+      expect(Math.max(...gaps) - Math.min(...gaps)).toBeGreaterThan(1.5);
+      art.dispose();
+    }
+  });
+  it('keeps backlot facades detailed from the rear at both LODs', () => {
+    for (const lod of ['near', 'far'] as const) {
+      const art = createSceneryCluster('city', -1, lod, 2);
+      const rear = art.root.getObjectByName('backlot_rear_windows') as THREE.InstancedMesh;
+      expect(rear).toBeInstanceOf(THREE.InstancedMesh);
+      expect(rear.count).toBeGreaterThanOrEqual(4);
+      if (lod === 'near')
+        expect(art.root.getObjectByName('backlot_rear_service_door')).toBeDefined();
+      art.dispose();
+    }
+  });
+  it('keeps seeded vegetation stable and reduces distant rice and verge detail', () => {
+    const treeA = createSceneryCluster('trees', 1, 'near', 4);
+    const treeB = createSceneryCluster('trees', 1, 'near', 4);
+    const treeC = createSceneryCluster('trees', 1, 'near', 5);
+    const instance = (art: ReturnType<typeof createSceneryCluster>, name: string) =>
+      art.root.getObjectByName(name) as THREE.InstancedMesh;
+    const matrix = new THREE.Matrix4();
+    const first = (art: ReturnType<typeof createSceneryCluster>) => {
+      instance(art, 'seeded_verge_grass').getMatrixAt(0, matrix);
+      return matrix.toArray();
+    };
+    expect(first(treeA)).toEqual(first(treeB));
+    expect(first(treeA)).not.toEqual(first(treeC));
+    const treeFar = createSceneryCluster('trees', 1, 'far', 4);
+    expect(instance(treeFar, 'seeded_verge_grass').count)
+      .toBeLessThan(instance(treeA, 'seeded_verge_grass').count);
+    const riceNear = createSceneryCluster('rice', 1, 'near');
+    const riceFar = createSceneryCluster('rice', 1, 'far');
+    expect(instance(riceFar, 'rice_tufts').count).toBeLessThan(instance(riceNear, 'rice_tufts').count);
+    for (const art of [treeA, treeB, treeC, treeFar, riceNear, riceFar]) art.dispose();
+  });
+  it('keeps the near harbor jetty on the water side of the road', () => {
+    const roadHalfWidth = balance.laneWidth * balance.laneCount / 2;
+    for (const side of [-1, 1] as const) {
+      const art = createSceneryCluster('sea', side, 'near');
+      const jetty = art.root.getObjectByName('harbor_jetty')!;
+      expect(jetty).toBeDefined();
+      const bounds = new THREE.Box3().setFromObject(jetty);
+      if (side < 0) expect(bounds.max.x).toBeLessThan(-roadHalfWidth);
+      else expect(bounds.min.x).toBeGreaterThan(roadHalfWidth);
+      art.dispose();
+    }
+  });
+  it('animates sea and rice surfaces without shifting the roadside bounds', () => {
+    for (const kind of ['sea', 'rice'] as const) {
+      const art = createSceneryCluster(kind, 1, 'near', 2);
+      const surface = art.root.getObjectByName(kind === 'sea' ? 'water_plane' : 'paddy_water_0') as THREE.Mesh;
+      const position = surface.geometry.getAttribute('position');
+      expect(position.count).toBeGreaterThan(200);
+      const before = Array.from(position.array);
+      const bounds = new THREE.Box3().setFromObject(art.root);
+      art.setVisualTime?.(2.5);
+      const animated = Array.from(position.array);
+      expect(animated).not.toEqual(before);
+      art.setVisualTime?.(5);
+      art.setVisualTime?.(2.5);
+      expect(Array.from(position.array)).toEqual(animated);
+      const afterBounds = new THREE.Box3().setFromObject(art.root);
+      expect(afterBounds.min.x).toBeCloseTo(bounds.min.x);
+      expect(afterBounds.max.x).toBeCloseTo(bounds.max.x);
+      art.dispose();
+    }
+  });
+});

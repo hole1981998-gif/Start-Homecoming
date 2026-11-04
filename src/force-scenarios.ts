@@ -14,7 +14,7 @@ export function forceScenario(run:Run,name:string):Run {
  zone.width=c.windWidth;zone.length=c.zoneLength;
  if(!water)zone.lateralPush=sign*c.windPush;
  zone.displayName=spec[1];zone.help=water?'Vũng nước chỉ có hao xăng và giảm tốc như trước; lực đẩy ngang của nước đang tạm dừng.':
-  'Vùng gió màu xanh có ranh giới; mũi tên báo hướng. A/D bù lực; xe đang chạy cũng bị gió đẩy. Khi tài xế trở lại xe, gió tiếp tục đẩy nếu xe vẫn còn trong vùng.';
+  'Các vệt gió bay báo vùng gió; mũi tên báo hướng. A/D bù lực; xe đang chạy cũng bị gió đẩy. Khi tài xế trở lại xe, gió tiếp tục đẩy nếu xe vẫn còn trong vùng.';
  const entities:Entity[]=[zone];
  if(name==='p62-mixed') {const next={...zone,id:'p62-opposite',distance:zone.distance+80,lateralPush:-c.windPush,displayName:'Gió ngược hướng'};entities.push(next);}
  if(name==='p62-crash') {const car=entity('traffic','p62-hit',58,1.2);car.speed=0;car.baseSpeed=0;entities.push(car);}
