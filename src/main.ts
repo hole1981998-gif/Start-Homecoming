@@ -118,7 +118,7 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
   el('panel-help').hidden = !['pause', 'result', 'start'].includes(view);
   el('panel-restart').hidden = view !== 'pause';
-  el('feedback-options').hidden = !['pause', 'help', 'result'].includes(view);
+  el('feedback-options').hidden = true;
   play.textContent = view === 'card' ? 'Đã hiểu · tiếp tục' : view === 'result' ? 'Chơi lại' : view === 'start' ? 'Bắt đầu lái' : 'Tiếp tục lái';
   (view === 'help' ? closeHelp : play).focus({ preventScroll: true });
 }
@@ -328,7 +328,7 @@ function updateHud(): void {
     state.recovering ? 'Đang tăng tốc lại' :
     state.motion === 'coasting' ? `Hết xăng · trôi ${Math.ceil(state.coastRemaining)} m` : input.brake ? 'Giữ S · hãm' : hasBoost(state) ? 'Nitro boost' : input.accelerate ? 'Giữ W · tăng' :
       Math.abs(state.speed - passengerDrive(state.riderIds.length, vehicle).cruiseSpeed) > 1e-8 ? 'Đang hồi về trung vị' : 'Tự chạy trung vị');
-  roadHud.update(state, graphics, flavorToggle.checked);
+  roadHud.update(state, graphics);
   pause.disabled = state.phase === 'ready' || state.phase === 'ended'; restart.disabled = state.phase === 'ready';
   pause.setAttribute('aria-label', state.phase === 'paused' ? 'Tiếp tục' : 'Tạm dừng');
   pause.title = state.phase === 'paused' ? 'Tiếp tục · Esc' : 'Tạm dừng · Esc';

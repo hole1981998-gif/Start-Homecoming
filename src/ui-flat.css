@@ -44,7 +44,6 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 .discovery-illustration{width:64px;height:64px;stroke-width:1.7;color:var(--ink)}
 #modal[data-view=card] #modal-description{font-size:15px;line-height:1.6}
 #discovery-hint{font-size:10px!important;color:#4e666a!important}
-#road-action{position:absolute;left:50%;top:36%;transform:translateX(-50%);max-width:90%;background:var(--paper);color:var(--ink);border:2px solid var(--ink);padding:7px 12px;font-size:12px;font-weight:850;white-space:nowrap}
 .world-cue>svg:first-child{background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:3px}
 .world-cue span{background:#192e33e8;color:var(--paper);padding:3px 5px;border-radius:2px}
 #shop-panel{position:relative}
@@ -88,7 +87,7 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 #controls-panel{border-radius:14px;box-shadow:0 5px 14px #192e3340}
 .shop-card,.shop-confirm,.garage-vehicle,#discovery-art{border-radius:12px}
 .shop-card-art,#shop-panel .shop-wallet,.shop-inventory>div,#shop-panel nav button{border-radius:8px}
-#shop-upgrade-target,.shop-confirm select,#road-action,.world-cue>svg:first-child{border-radius:8px}
+#shop-upgrade-target,.shop-confirm select,.world-cue>svg:first-child{border-radius:8px}
 #modal[data-view=shop] .panel{height:100%;display:flex;flex-direction:column;overflow:hidden}
 #modal[data-view=shop] #shop-panel{min-height:0;overflow:auto;flex:1;scrollbar-width:thin;padding-right:4px}
 #modal[data-view=shop] #shop-panel nav{position:sticky;top:0;z-index:1;background:var(--paper);padding:5px 0}
@@ -168,3 +167,10 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 #shop-panel .shop-wallet,.result-badge{background:#203338;color:#e4ece8!important}
 #controls-toggle{background:#293d42;color:#e4ece8;border-color:#617575}
 .panel :focus-visible,#controls-panel :focus-visible,#controls-toggle:focus-visible{outline-color:#c5dfd5}
+
+/* QTE brightness communicates the actual acceptance window. */
+#junction-branches span{background:#53676a;color:#c8d2ce;--qte-brightness:.65;filter:brightness(var(--qte-brightness))}
+#junction-branches.active span{background:#fff;color:#1b353b;--qte-brightness:1}
+#junction-branches span.selected{background:#216b62;color:#fff;--qte-pulse-low:.55;animation:qte-selected-pulse 1.2s ease-in-out infinite}
+@keyframes qte-selected-pulse{0%,100%{filter:brightness(var(--qte-brightness))}50%{filter:brightness(calc(var(--qte-brightness) * var(--qte-pulse-low)))}}
+@media(prefers-reduced-motion:reduce){#junction-branches span.selected{animation-duration:2.4s;--qte-pulse-low:.8}}
