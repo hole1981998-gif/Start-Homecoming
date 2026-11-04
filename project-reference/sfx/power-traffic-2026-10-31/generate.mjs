@@ -30,15 +30,43 @@ function wav(name, seconds, sample) {
 
 // Both beds have whole-number cycles at their loop boundaries. The game fades
 // them in and out with the actual power timer, so they never become a UI cue.
-let nitroNoise = 0;
-wav('nitro_run_loop', 1.2, t => {
-  nitroNoise += .055 * (random() - nitroNoise);
-  const growl = Math.sin(2 * Math.PI * 90 * t) + .22 * Math.sin(2 * Math.PI * 180 * t);
-  return .065 * growl + .04 * nitroNoise * (1 + .18 * Math.sin(2 * Math.PI * 5 * t));
+let nitroNoise = 0, nitroAir = 0;
+wav('nitro_run_loop', 2.4, t => {
+  nitroNoise += .12 * (random() - nitroNoise);
+  nitroAir += .035 * (random() - nitroAir);
+  const pulse = .78 + .22 * Math.sin(2 * Math.PI * 7.5 * t);
+  const growl = .18 * Math.sin(2 * Math.PI * 85 * t) +
+    .065 * Math.sin(2 * Math.PI * 170 * t) + .035 * Math.sin(2 * Math.PI * 255 * t);
+  return pulse * (growl + .46 * nitroNoise + .24 * nitroAir);
 });
-wav('star_run_loop', 1.6, t => {
-  const shimmer = .018 * Math.sin(2 * Math.PI * 660 * t) + .012 * Math.sin(2 * Math.PI * 990 * t);
-  return shimmer * (1 + .25 * Math.sin(2 * Math.PI * 2.5 * t));
+
+// Short bouncy major-pentatonic phrase with a 2.4 s phrase length.
+const starNotes = [523.25, 659.25, 783.99, 1046.5, 783.99, 659.25, 587.33, 783.99];
+wav('star_run_loop', 2.4, t => {
+  const note = Math.floor(t / .3) % starNotes.length;
+  const phase = t % .3, frequency = starNotes[note];
+  const envelope = Math.min(1, phase / .012) * Math.exp(-phase * 10);
+  const fundamental = Math.sin(2 * Math.PI * frequency * phase);
+  const mallet = fundamental + .34 * Math.sin(2 * Math.PI * frequency * 2 * phase);
+  const bass = .11 * Math.sin(2 * Math.PI * 130.81 * t) * (1 + Math.sin(2 * Math.PI * 2.5 * t));
+  const tick = phase < .025 ? (1 - phase / .025) * .035 * random() : 0;
+  return .18 * envelope * mallet + bass + tick;
+});
+
+let jumpAir = 0;
+wav('jump_launch_punch', .86, t => {
+  jumpAir += .14 * (random() - jumpAir);
+  const rise = Math.min(1, t / .08) * Math.max(0, 1 - t / .86);
+  const sweep = Math.sin(2 * Math.PI * (190 * t + 370 * t * t));
+  const takeoff = Math.exp(-t * 17) * Math.sin(2 * Math.PI * (110 * t - 32 * t * t));
+  return .22 * rise * sweep + .38 * rise * jumpAir + .25 * takeoff;
+});
+let landNoise = 0;
+wav('jump_land_punch', .52, t => {
+  landNoise += .1 * (random() - landNoise);
+  const thud = Math.exp(-t * 13) * Math.sin(2 * Math.PI * (100 * t - 45 * t * t));
+  const rattle = Math.exp(-t * 9) * landNoise;
+  return .44 * thud + .2 * rattle;
 });
 
 function horn(name, low, high, length, loudness) {

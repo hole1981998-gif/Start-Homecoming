@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { AudioDirector, taperLoopEdges } from '../src/audio-director';
+import { AudioDirector, spatialVoiceVolume, speechPlaybackRate, taperLoopEdges } from '../src/audio-director';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
@@ -8,6 +8,22 @@ import { noInput } from '../src/simulation';
 import { newVehicle } from '../src/vehicles';
 
 afterEach(() => vi.unstubAllGlobals());
+
+it('keeps a short line natural and brings a long take near 1.5 seconds without extreme speeding', () => {
+  expect(speechPlaybackRate(1.2)).toBe(1);
+  expect(2.08 / speechPlaybackRate(2.08)).toBeCloseTo(1.45);
+  expect(speechPlaybackRate(3)).toBe(1.5);
+  expect(2.72 / speechPlaybackRate(2.72, true)).toBeCloseTo(1.45);
+});
+
+it('makes a roadside call grow louder on approach and fade after passing', () => {
+  expect(spatialVoiceVolume(58, 0)).toBe(0);
+  expect(spatialVoiceVolume(40, 2)).toBeLessThan(spatialVoiceVolume(15, 2));
+  expect(spatialVoiceVolume(5, 0)).toBeGreaterThan(.8);
+  expect(spatialVoiceVolume(-13, 0)).toBe(0);
+  expect(spatialVoiceVolume(-20, 0, 65, 65)).toBeGreaterThan(0);
+  expect(spatialVoiceVolume(10, 8)).toBeLessThan(spatialVoiceVolume(10, 0));
+});
 
 it('tapers both channels at compressed water-loop boundaries while preserving the body', () => {
   const channels = [new Float32Array(4410).fill(.4), new Float32Array(4410).fill(-.3)];
@@ -35,6 +51,8 @@ it('the water contact flag remains active across ticks of a long puddle', () => 
 it('sustains water only during contact, uses physical collision types, and leaves steering and warning cues silent', async () => {
   const sources: Array<{ buffer?: { path: string }; gain?: { gain: { value: number; targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean }> = [];
   const fetched: string[] = [];
+  const voicePaths: string[] = [];
+  const voiceGains: Array<ReturnType<FakeAudioContext['createGain']>> = [];
   const waterFilters: Array<{ type: string; frequency: { value: number } }> = [];
   const stereoPans: Array<{ value: number }> = [];
   class FakeAudioContext {
@@ -44,13 +62,18 @@ it('sustains water only during contact, uses physical collision types, and leave
       return { gain: { value: 0, targets: [] as number[], setTargetAtTime(value: number) { this.targets.push(value); } },
         connect() { return this; }, disconnect() { /* detached */ } };
     }
+    createMediaElementSource() {
+      return { connect(gain: ReturnType<FakeAudioContext['createGain']>) { voiceGains.push(gain); return gain; },
+        disconnect() { /* detached */ } };
+    }
     createBiquadFilter() {
       const filter = { type: '', frequency: { value: 0 }, connect(gain: ReturnType<FakeAudioContext['createGain']>) { return gain; },
         disconnect() { /* detached */ } };
       waterFilters.push(filter); return filter;
     }
     createStereoPanner() {
-      const panner = { pan: { value: 0 }, connect() { return this; }, disconnect() { /* detached */ } };
+      const panner = { pan: { value: 0, setTargetAtTime(value: number) { this.value = value; } },
+        connect() { return this; }, disconnect() { /* detached */ } };
       stereoPans.push(panner.pan); return panner;
     }
     createBufferSource() {
@@ -67,7 +90,15 @@ it('sustains water only during contact, uses physical collision types, and leave
     resume() { return Promise.resolve(); }
     close() { return Promise.resolve(); }
   }
+  class FakeAudio {
+    duration = 2; playbackRate = 1; preservesPitch = false;
+    onloadedmetadata?: () => void; onended?: () => void; onerror?: () => void;
+    constructor(public src: string) { voicePaths.push(src); }
+    play() { this.onloadedmetadata?.(); return Promise.resolve(); }
+    pause() { /* paused */ }
+  }
   vi.stubGlobal('AudioContext', FakeAudioContext);
+  vi.stubGlobal('Audio', FakeAudio);
   vi.stubGlobal('fetch', vi.fn(async (path: string) => {
     fetched.push(path);
     return { ok: true, arrayBuffer: async () => Object.assign(new ArrayBuffer(8), { path }) };
@@ -184,9 +215,11 @@ it('sustains water only during contact, uses physical collision types, and leave
   expect(fetched.filter(path => path.includes('shop_success.wav'))).toHaveLength(3);
   expect(fetched.some(path => path.includes('vehicle_purchase.wav'))).toBe(true);
   FakeAudioContext.time = 11;
-  const roadside = entity('passenger', 'roadside-silent', 12, 0);
+  const roadside = entity('passenger', 'roadside-caller', 12, 0);
   await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [roadside] } });
-  await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: -9 }] } });
+  expect(voicePaths.some(path => path.includes('owner-voices-2026-11-04') && path.includes('_call_'))).toBe(true);
+  await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: -14 }] } });
+  expect(voiceGains.at(-1)?.gain.targets.at(-1)).toBe(0);
   FakeAudioContext.time = 12;
   const vendorHit = { ...entity('jam', 'vendor-hit', 0, 0), crossingRole: 'vendor' as const, consumed: true };
   await director.update({ ...base, eventSequence: 10, feedbackKind: 'jam', world: { ...base.world, entities: [vendorHit] } });
