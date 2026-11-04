@@ -256,7 +256,8 @@ export class AudioDirector {
   private near = new Set<string>();
   private trafficPairs = new Set<string>();
   private trafficHoles = new Set<string>();
-  private entityState = new Map<string, { lastHit: number; cargoDropped: boolean; consumed: boolean; ahead: number; lateral: number }>();
+  private entityState = new Map<string, { lastHit: number; cargoDropped: boolean; consumed: boolean;
+    ahead: number; lateral: number; distance: number; x: number }>();
   private trafficHorned = new Set<string>();
   private trafficPassed = new Set<string>();
   private spoken = new Set<string>();
@@ -279,8 +280,6 @@ export class AudioDirector {
   private lastStar = 0;
   private lastMotion = '';
   private lastSpeed = 0;
-  private lastPlayerDistance = Number.NaN;
-  private lastPlayerX = Number.NaN;
   private ended = false;
   private airborne = false;
   private crashed = false;
@@ -467,7 +466,7 @@ export class AudioDirector {
     this.stopEngine();
     this.clearRetiring();
     for (const { source, gain } of this.ambience.values()) { try { source.stop(); } catch { /* already stopped */ } source.disconnect(); gain.disconnect(); }
-    this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.pendingAbandon.clear(); this.waterContacts.clear(); this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0; this.lastPlayerDistance = Number.NaN; this.lastPlayerX = Number.NaN;
+    this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.pendingAbandon.clear(); this.waterContacts.clear(); this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0;
     this.waterVisit = -1; this.waterStart = 0; this.windStart = 0;
     this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.vehicleId = ''; this.requestedKind = undefined; this.running = false;
   }
@@ -659,7 +658,7 @@ export class AudioDirector {
         void this.play('interaction-v2/passenger_hit.wav', 'passenger-hit', .35, .75);
       if (e.kind === 'passenger' && !e.consumed) {
         const lateral = e.x - run.x;
-        if (prior && run.speed > 2 && Math.hypot(run.distance - this.lastPlayerDistance, run.x - this.lastPlayerX) > .25 &&
+        if (prior && run.speed > .5 && Math.hypot(e.distance - prior.distance, e.x - prior.x) < 3 &&
           e.passengerMotion?.ejectedAt === undefined &&
           !this.spoken.has(`road-hit:${e.id}`) && sweptPassengerContact(prior.ahead, prior.lateral,
             ahead, lateral, (vehicle.length + e.length) / 2, (vehicle.width + e.width) / 2)) {
@@ -698,10 +697,10 @@ export class AudioDirector {
       if (!e.consumed && ahead > 0 && ahead < 18 && e.serviceRole === 'ambulance' && !this.near.has(e.id)) {
         this.near.add(e.id); void this.play('interaction-v2/ambulance_pass.wav', 'ambulance-pass', 2, .6);
       }
-      this.entityState.set(e.id, { lastHit: e.lastHit, cargoDropped: !!e.cargoDropped, consumed: e.consumed, ahead, lateral: e.x - run.x });
+      this.entityState.set(e.id, { lastHit: e.lastHit, cargoDropped: !!e.cargoDropped, consumed: e.consumed,
+        ahead, lateral: e.x - run.x, distance: e.distance, x: e.x });
     }
     this.trafficPairs = nextPairs; this.trafficHoles = nextHoles;
-    this.lastPlayerDistance = run.distance; this.lastPlayerX = run.x;
     if (++this.sweepTick % 300 === 0) {
       const ids = new Set(run.world.entities.map(e => e.id));
       for (const id of this.entityState.keys()) if (!ids.has(id)) this.entityState.delete(id);

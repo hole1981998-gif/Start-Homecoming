@@ -284,12 +284,13 @@ it('sustains water only during contact, uses physical collision types, and leave
   expect(voiceAudios.slice(beforeCrashVoices, beforeCrashVoices + 3).every(audio => audio.paused)).toBe(true);
 
   FakeAudioContext.time = 23;
-  const roadsideHit = entity('passenger', 'hit-rider', 8, 0);
+  const roadsideHit = entity('passenger', 'hit-rider', 3, 0);
   await director.update({ ...base, world: { ...base.world, entities: [roadsideHit] } });
   const beforeHit = voicePaths.length;
-  await director.update({ ...base, distance: 16, world: { ...base.world, entities: [roadsideHit] } });
+  for (let tick = 1; tick <= 60; tick++)
+    await director.update({ ...base, distance: tick * .05, world: { ...base.world, entities: [roadsideHit] } });
   expect(voicePaths.length - beforeHit).toBe(1);
-  await director.update({ ...base, distance: 17, world: { ...base.world, entities: [roadsideHit] } });
+  await director.update({ ...base, distance: 3.1, world: { ...base.world, entities: [roadsideHit] } });
   expect(voicePaths.length - beforeHit).toBe(1);
 
   FakeAudioContext.time = 25;
@@ -302,4 +303,19 @@ it('sustains water only during contact, uses physical collision types, and leave
   await director.update({ ...base, phase: 'ended', eventSequence: 11, feedbackKind: 'accident' });
   await vi.waitFor(() => expect(sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length).toBeGreaterThan(heavyBefore));
   director.dispose();
+
+  const roadsideDirector = new AudioDirector();
+  roadsideDirector.unlock();
+  let roadsideRun: Run = { ...developmentScenario(initialRun(17, 'roadside-audio-test'), 'passenger'),
+    phase: 'running' };
+  FakeAudioContext.time = 30;
+  await roadsideDirector.update(roadsideRun);
+  const beforeDriveBy = voicePaths.length;
+  for (let tick = 0; tick < 45; tick++) {
+    roadsideRun = stepRun(roadsideRun, noInput());
+    await roadsideDirector.update(roadsideRun);
+  }
+  expect(roadsideRun.distance).toBeGreaterThan(5);
+  expect(voicePaths.slice(beforeDriveBy).filter(path => path.includes('_scream') || path.includes('kick_short'))).toHaveLength(1);
+  roadsideDirector.dispose();
 });
