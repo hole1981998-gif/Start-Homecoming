@@ -1,5 +1,5 @@
 import './style.css';
-import { approachCueScale } from './cue-scale';
+import { approachCueScale, roadCueDistance } from './cue-scale';
 import './ui-flat.css';
 import { prepareContentIcons, renderItemSlots } from './ui-icons';
 import { prepareUiShell } from './ui-shell';
@@ -279,7 +279,7 @@ function updateHud(): void {
   const nextJunction = junction(state.seed, state.route.index);
   const approach = nextJunction.distance - state.distance;
   const junctionCue = el('junction-cue');
-  junctionCue.hidden = state.phase !== 'running' || !!state.crash || approach < 0 || approach > Math.max(70, state.speed * 4);
+  junctionCue.hidden = state.phase !== 'running' || !!state.crash || approach < 0 || approach > roadCueDistance;
   el('junction-branches').hidden = junctionCue.hidden;
   if (!junctionCue.hidden) {
     const activeChoice = canChoose(state.distance, state.speed, nextJunction, vehicle.kind, state.route.window);
@@ -295,11 +295,11 @@ function updateHud(): void {
     el('junction-left').classList.toggle('selected', state.route.choice === 'left');
     el('junction-right').classList.toggle('selected', state.route.choice === 'right');
     for (const [id, side] of [['junction-left', -1], ['junction-right', 1]] as const) {
-      const target = graphics.project(side * 5.2, 0.6, -(approach + 2));
+      const target = graphics.project(side * 5.2, .15, -(approach + 2), true);
       const cue = el<HTMLElement>(id);
       cue.style.setProperty('--cue-scale', String(approachCueScale(approach)));
-      cue.style.left = `${Math.max(side < 0 ? 12 : 64, Math.min(side < 0 ? 36 : 88, target.x))}%`;
-      cue.style.top = `${Math.max(40, Math.min(52, target.y))}%`;
+      cue.style.left = `${Math.max(8, Math.min(92, target.x))}%`;
+      cue.style.top = `${target.y}%`;
     }
   }
   text('speed', speedText(state.phase === 'running' ? state.speed : 0)); text('distance', `${Math.floor(state.distance + 1e-8)}`);

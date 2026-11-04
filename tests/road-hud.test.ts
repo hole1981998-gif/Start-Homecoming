@@ -21,7 +21,7 @@ it('renders only supply tags and leaves hazards in the world without mutating si
   expect(document.querySelector('[data-kind="shop"] .shop-label')!.textContent).toBe('CỬA HÀNG');
   expect(document.querySelector('[data-kind="shop"] [data-icon]')).toBeNull();
   const fuel=document.querySelector<HTMLElement>('[data-kind="fuel"]')!;
-  expect(fuel.hidden).toBe(false);expect(fuel.style.left).toBe('88%');expect(fuel.style.top).toBe('32%');
+  expect(fuel.hidden).toBe(false);expect(fuel.style.left).toBe('120%');expect(fuel.style.top).toBe('-20%');
   expect([...document.querySelectorAll<HTMLElement>('.world-cue')].map(n=>n.dataset.kind)).toEqual(['fuel','repair','shop']);
   expect(run).toEqual(before);
   hud.update({...run,phase:'paused'},{project:()=>({x:50,y:40})},false);expect(fuel.hidden).toBe(true);
@@ -80,4 +80,17 @@ it('grows supply tags as the player approaches without mutating the run',()=>{
  hud.update({...run,speed:25},projection,false);expect(Number(cue.style.getPropertyValue('--cue-scale'))).toBe(far);
  hud.update({...run,distance:30},projection,false);const near=Number(cue.style.getPropertyValue('--cue-scale'));
  expect(near).toBeGreaterThan(far);expect(near).toBeLessThanOrEqual(1);expect(run).toEqual(before);
+});
+
+it('shows distant tags and follows the road projection continuously regardless of speed',()=>{
+ const hud=setup(),run:Run={...initialRun(),phase:'running',speed:0,
+  world:{...initialRun().world,entities:[entity('fuel','far-fuel',110,0)]}};
+ const cue=document.querySelector<HTMLElement>('[data-kind="fuel"]')!;
+ const projection={project:(_x:number,_y:number,z:number)=>({x:50,y:70+z/3})};
+ hud.update(run,projection,false);expect(cue.hidden).toBe(false);
+ const farY=parseFloat(cue.style.top),farScale=Number(cue.style.getPropertyValue('--cue-scale'));
+ hud.update({...run,distance:50},projection,false);
+ expect(parseFloat(cue.style.top)).toBeGreaterThan(farY);
+ expect(Number(cue.style.getPropertyValue('--cue-scale'))).toBeGreaterThan(farScale);
+ hud.update({...run,speed:30},projection,false);expect(parseFloat(cue.style.top)).toBe(farY);
 });

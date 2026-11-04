@@ -1,4 +1,4 @@
-import { approachCueScale } from './cue-scale';
+import { approachCueScale, roadCueDistance } from './cue-scale';
 import { trainClosed, bananaTarget } from './special-events';
 import { createElement, ChevronDown } from 'lucide';
 import { uiIcon } from './ui-icons';
@@ -9,7 +9,6 @@ import { warningDistance } from './world';
 
 interface Projection { project(x: number, y: number, z: number): { x: number; y: number } }
 const icons = { fuel: 'fuel', repair: 'repair', shop: 'bag' } as const;
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 /** Supply tags only. Essential actions are a single fixed cue, never an obstacle label. */
 export class RoadHud {
   private cues = new Map<string, { root: HTMLDivElement; value: HTMLSpanElement }>();
@@ -37,11 +36,13 @@ export class RoadHud {
         e.distance + (e.kind === 'shop' ? shopBalance.reach : e.length / 2) >= s.distance &&
         e.distance - s.distance <= warningDistance(s.speed, e, activeVehicle(s).length)).sort((a,b) => a.distance-b.distance);
       for (const [kind, cue] of this.cues) {
-        const e = kind === 'shop' ? reachableShop(s) ?? nearby.find(e => e.kind === kind) : nearby.find(e => e.kind === kind);
+        const e = s.world.entities.filter(e => e.kind === kind && !e.consumed && !e.wrecked &&
+          e.distance + (kind === 'shop' ? shopBalance.reach : e.length / 2) >= s.distance &&
+          e.distance - s.distance <= roadCueDistance).sort((a,b) => a.distance-b.distance)[0];
         if (!e) continue;
-        const p = projection.project(e.x, 1.1, -(e.distance-s.distance)), x = clamp(p.x,kind === 'shop' ? 24 : 12,kind === 'shop' ? 76 : 88), y = clamp(p.y,32,61);
+        const p = projection.project(e.x, .15, -(e.distance-s.distance));
         cue.root.style.setProperty('--cue-scale', String(approachCueScale(e.distance-s.distance)));
-        cue.root.hidden = false; cue.root.style.left = `${x}%`; cue.root.style.top = `${y}%`;
+        cue.root.hidden = false; cue.root.style.left = `${p.x}%`; cue.root.style.top = `${p.y}%`;
         const distance = Math.max(0, Math.ceil(e.distance-s.distance));
         cue.value.textContent = kind === 'shop' && reachableShop(s)?.id === e.id ? 'R · GHÉ' : `${distance} m`;
         cue.root.setAttribute('aria-label', `${kind === 'fuel' ? 'Xăng' : kind === 'repair' ? 'Sửa chữa' : 'Cửa hàng'} · ${distance} m`);

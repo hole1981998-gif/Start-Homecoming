@@ -1,7 +1,12 @@
-/** Presentation only: half-size at 80 m or farther, full-size at contact.
- * Keep this visual ramp independent of speed and actual warning/decision
- * windows, so braking cannot make an approaching tag shrink. */
+import { pathPose, type RouteState } from './route';
+/** Presentation range matches the visible road; interaction windows are unchanged. */
+export const roadCueDistance = 120;
+/** Perspective-like growth independent of speed. */
 export function approachCueScale(distance: number): number {
-  const progress = Math.max(0,Math.min(1,1-Math.max(0,distance)/80));
-  return .5 + .5*progress;
+  return 32 / (32 + Math.max(0, distance));
+}
+
+/** Q/E describes the junction itself, so choosing an exit must not relocate its anchors. */
+export function roadCuePose(distance: number, route: RouteState, seed: number, junctionAnchor = false) {
+  return pathPose(distance, junctionAnchor ? { ...route, choice: null } : route, seed);
 }

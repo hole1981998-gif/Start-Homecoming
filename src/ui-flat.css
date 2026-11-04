@@ -155,4 +155,4 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 #junction-branches kbd{font-size:22px;line-height:1;margin:0;color:inherit}
 #junction-branches span.selected{background:#216b62;color:#fff;border:0;--selection-scale:1.08;font-weight:900}
 .world-cue{transform:translate(-50%,-100%) scale(var(--cue-scale,1));transform-origin:50% 100%}
-#junction-branches span{transform:translate(-50%,-50%) scale(var(--cue-scale,1)) scale(var(--selection-scale,1));transform-origin:50% 50%}
+#junction-branches span{transform:translate(-50%,-100%) scale(var(--cue-scale,1)) scale(var(--selection-scale,1));transform-origin:50% 100%}

@@ -1,3 +1,4 @@
+import { roadCuePose } from './cue-scale';
 import { isSpecial, trainClosed } from './special-events';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -893,8 +894,8 @@ export class RoadRenderer {
     this.host.style.setProperty('--bike-x', `${Math.max(30, Math.min(70, tail.x))}%`);
     this.host.style.setProperty('--bike-tail-y', `${Math.max(76, Math.min(86, tail.y))}%`);
   }
-  project(x: number, y: number, z: number): { x: number; y: number } {
-    const p = pathPose(this.viewState.distance - z, this.viewState.route, this.viewState.seed);
+  project(x: number, y: number, z: number, junctionAnchor = false): { x: number; y: number } {
+    const p = roadCuePose(this.viewState.distance - z, this.viewState.route, this.viewState.seed, junctionAnchor);
     this.projected.set(p.x + Math.cos(p.heading) * x, y, p.z + Math.sin(p.heading) * x).project(this.camera);
     return { x: (this.projected.x + 1) * 50, y: (1 - this.projected.y) * 50 };
   }
