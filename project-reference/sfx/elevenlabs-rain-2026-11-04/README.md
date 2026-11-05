@@ -5,3 +5,5 @@ Owner requested a dense rain shower in place of the old close, ticking rain laye
 The game maps `ambience/rain_light_loop.wav` to this file, decodes it once, tapers 5 ms at each edge to guard against MP3 boundary clicks, and loops it on the ambience bus. The existing Mưa và gió slider still controls it. The old `rain_road_loop.mp3` remains in the audition archive but is no longer requested by the game.
 
 The sound director's listening intent: broad, steady rain wash with body in the middle frequencies, without close isolated drip or roof taps. Browser automation can verify playback and looping, but the final tonal and mix judgment needs owner listening.
+
+On 5 November 2026 the owner asked for a small reduction in rain level; the runtime target was reduced from 4.5 to 3.6. The source MP3 itself was not changed.

@@ -16,6 +16,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/power-traffic-2026-10-31/*.wav',
   '../project-reference/sfx/owner-voices-2026-11-04/*.mp3',
   '../project-reference/sfx/elevenlabs-rain-2026-11-04/*.mp3',
+  '../project-reference/sfx/elevenlabs-storm-2026-11-05/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const root = '../project-reference/sfx/procedural-auditions-2026-10-28/';
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
@@ -23,6 +24,7 @@ const rewardRoot = '../project-reference/sfx/reward-pickups-2026-10-31/';
 const powerTrafficRoot = '../project-reference/sfx/power-traffic-2026-10-31/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
 const rainRoot = '../project-reference/sfx/elevenlabs-rain-2026-11-04/';
+const stormRoot = '../project-reference/sfx/elevenlabs-storm-2026-11-05/';
 const powerTrafficCues: Record<string, string> = {
   'item/nitro_run_loop.wav': 'nitro_run_loop.wav',
   'item/star_run_loop.wav': 'star_run_loop.wav',
@@ -120,6 +122,9 @@ const generated: Record<string, string> = {
 const url = (name: string): string | undefined =>
   name.startsWith('voice/') ? files[voiceRoot + name.slice(6) + '.mp3'] :
   name === 'ambience/rain_light_loop.wav' ? files[rainRoot + 'rain_shower_loop.mp3'] :
+  name === 'ambience/distant_thunder_loop.wav' ? files[stormRoot + 'distant_thunder_loop.mp3'] :
+  name === 'ambience/lightning_distant_a.wav' ? files[stormRoot + 'lightning_distant_a.mp3'] :
+  name === 'ambience/lightning_distant_b.wav' ? files[stormRoot + 'lightning_distant_b.mp3'] :
   files[powerTrafficRoot + powerTrafficCues[name]] ?? files[rewardRoot + rewardCues[name]] ??
     files[generatedRoot + generated[name]] ?? files[root + name];
 
@@ -229,7 +234,17 @@ export type UiCue = 'menu_select' | 'menu_back' | 'help_open' | 'card_open' | 'c
   'pause' | 'resume' | 'restart' | 'shop_enter' | 'shop_category' | 'purchase_fail' |
   'purchase_success' | 'shop_service' | 'shop_upgrade' | 'vehicle_purchase' |
   'toggle_on' | 'toggle_off' | 'resource_gain' | 'resource_loss' | 'reward_small';
-const rainLevel = 4.5;
+const rainLevel = 3.6;
+const thunderLevel = .42;
+const thunderLoop = 'ambience/distant_thunder_loop.wav';
+const lightningCues = ['ambience/lightning_distant_a.wav', 'ambience/lightning_distant_b.wav'];
+
+/** Deterministic, irregular spacing so lightning is occasional without a clocklike repeat. */
+export function stormStrikeDelay(seed: number, strikeIndex: number): number {
+  let hash = 2166136261;
+  for (const char of `${seed}:${strikeIndex}`) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
+  return (strikeIndex === 0 ? 14 : 27) + (hash >>> 0) % (strikeIndex === 0 ? 9 : 17);
+}
 
 /** Taper loop endpoints to zero so compressed MP3 boundary samples cannot click. */
 export function taperLoopEdges(buffer: AudioBuffer): void {
@@ -268,6 +283,8 @@ export class AudioDirector {
   private waterVisit = -1;
   private waterStart = 0;
   private windStart = 0;
+  private nextLightningAt = 0;
+  private lightningCount = 0;
   private oneShots = new Set<AudioBufferSourceNode>();
   private voices = new Set<{ audio: HTMLAudioElement; source: MediaElementAudioSourceNode; gain: GainNode;
     panner?: StereoPannerNode; spatial?: { entityId: string; range: number; level: number };
@@ -318,15 +335,16 @@ export class AudioDirector {
     if (!ctx || !path) return null;
     if (!this.buffers.has(name)) this.buffers.set(name, fetch(path).then(r => r.ok ? r.arrayBuffer() : Promise.reject(new Error('audio fetch')))
       .then(data => ctx.decodeAudioData(data)).then(buffer => {
-        if (name.includes('_loop') && (generated[name] || powerTrafficCues[name] || name === 'ambience/rain_light_loop.wav') && buffer.length > 0)
+        if (name.includes('_loop') && (generated[name] || powerTrafficCues[name] ||
+          name === 'ambience/rain_light_loop.wav' || name === thunderLoop) && buffer.length > 0)
           taperLoopEdges(buffer);
         return buffer;
       }).catch(() => null));
     return this.buffers.get(name)!;
   }
 
-  private async play(name: string, key = name, gap = .18, volume = 1, pan = 0): Promise<void> {
-    const ctx = this.context, bus = this.buses?.sfx;
+  private async play(name: string, key = name, gap = .18, volume = 1, pan = 0, busKind: Bus = 'sfx'): Promise<void> {
+    const ctx = this.context, bus = this.buses?.[busKind];
     if (!ctx || !bus || ctx.state !== 'running') return;
     const now = ctx.currentTime;
     if (now - (this.cooldown.get(key) ?? -100) < gap) return;
@@ -468,7 +486,7 @@ export class AudioDirector {
     this.clearRetiring();
     for (const { source, gain } of this.ambience.values()) { try { source.stop(); } catch { /* already stopped */ } source.disconnect(); gain.disconnect(); }
     this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0;
-    this.waterVisit = -1; this.waterStart = 0; this.windStart = 0;
+    this.waterVisit = -1; this.waterStart = 0; this.windStart = 0; this.nextLightningAt = 0; this.lightningCount = 0;
     this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.vehicleId = ''; this.requestedKind = undefined; this.running = false;
   }
 
@@ -511,8 +529,6 @@ export class AudioDirector {
       const impactSpeed = run.crash?.impactSpeed ?? run.speed;
       const cue: Record<string, string> = { pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind, impactSpeed), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind, undefined, impactSpeed), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : hitEntity?.serviceRole === 'ambulance' ? 'interaction-v2/ambulance_hit.wav' : 'interaction-v2/barrier_hit.wav', accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
       if (kind && cue[kind]) void this.play(cue[kind], `event-${kind}`);
-      if (kind === 'traffic' && hitTraffic)
-        this.voice('driver', hitTraffic.id, .7, (hitTraffic.x - run.x) / 8, 1.5);
       if (kind === 'pothole' || kind === 'police' || kind === 'militia') this.ui('resource_loss');
     }
     if (run.phase !== 'running') {
@@ -546,6 +562,13 @@ export class AudioDirector {
     if (this.waterActive && !inWater) void this.play('road/water_exit_spray.wav', 'water-exit', .35, .26);
     this.waterActive = inWater;
     void this.loop('ambience/rain_light_loop.wav', 'ambience', rainLevel);
+    void this.loop(thunderLoop, 'ambience', thunderLevel);
+    if (!this.nextLightningAt) this.nextLightningAt = stormStrikeDelay(run.seed, 0);
+    if (run.activeSeconds >= this.nextLightningAt) {
+      void this.play(lightningCues[this.lightningCount % lightningCues.length], 'storm-lightning', .25, .75, 0, 'ambience');
+      this.lightningCount++;
+      this.nextLightningAt = run.activeSeconds + stormStrikeDelay(run.seed, this.lightningCount);
+    }
     if (!this.windStart) this.windStart = ctx.currentTime;
     const windIndex = Math.floor(Math.max(0, ctx.currentTime - this.windStart) / 9) % windLoops.length;
     for (const name of windLoops) void this.loop(name, 'ambience', name === windLoops[windIndex] ? .18 : 0);
@@ -567,7 +590,8 @@ export class AudioDirector {
       const windTarget = name === windLoops[windIndex] ? .18 : 0;
       const powerTarget = name === 'item/nitro_run_loop.wav' ? boostActive ? .5 : 0 :
         name === 'item/star_run_loop.wav' ? starActive ? .36 : 0 : undefined;
-      node.gain.gain.setTargetAtTime(powerTarget ?? (waterRoll ? waterTarget : windLoops.includes(name) ? windTarget : name.includes('rain') ? rainLevel : .1),
+      node.gain.gain.setTargetAtTime(powerTarget ?? (waterRoll ? waterTarget : windLoops.includes(name) ? windTarget :
+        name === thunderLoop ? thunderLevel : name.includes('rain') ? rainLevel : .1),
         ctx.currentTime, waterRoll || windLoops.includes(name) ? .22 : .15);
       if (waterRoll) node.source.playbackRate.setTargetAtTime(.92 + .16 * waterSpeed, ctx.currentTime, .18);
     }
