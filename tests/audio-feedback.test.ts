@@ -128,8 +128,10 @@ it('sustains water only during contact, uses physical collision types, and leave
   await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('water_roll_shallow_loop'))).toBe(true));
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
   expect(waterFilters).toHaveLength(0);
-  const rainSource = sources.find(source => source.buffer?.path.includes('rain_road_loop.mp3'))!;
+  const rainSource = sources.find(source => source.buffer?.path.includes('rain_shower_loop.mp3'))!;
+  expect(rainSource.loop).toBe(true);
   expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(4.5);
+  expect(fetched.some(path => path.includes('rain_road_loop.mp3'))).toBe(false);
   const waterSource = sources.find(source => source.buffer?.path.includes('water_roll_shallow_loop'))!;
   expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
   await director.update({ ...base, speed: 20, world: { ...base.world, entities: [water] } });

@@ -35,7 +35,7 @@ it('starts layered driving sound and cancels both active and fading stems on pau
   await director.update(run);
   await vi.waitFor(() => expect(sources.filter(s => s.started).length).toBeGreaterThanOrEqual(7));
   expect(fetched.some(path => path.includes('engine_bike_texture_loop.mp3'))).toBe(true);
-  expect(fetched.some(path => path.includes('rain_road_loop.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('rain_shower_loop.mp3'))).toBe(true);
   director.ui('menu_select');
   expect(fetched.some(path => path.includes('menu_select_a.wav'))).toBe(true);
   const car = newVehicle('car4', 'audio-car');

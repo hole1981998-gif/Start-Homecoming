@@ -15,12 +15,14 @@ const files = import.meta.glob([
   '../project-reference/sfx/reward-pickups-2026-10-31/*.wav',
   '../project-reference/sfx/power-traffic-2026-10-31/*.wav',
   '../project-reference/sfx/owner-voices-2026-11-04/*.mp3',
+  '../project-reference/sfx/elevenlabs-rain-2026-11-04/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const root = '../project-reference/sfx/procedural-auditions-2026-10-28/';
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const rewardRoot = '../project-reference/sfx/reward-pickups-2026-10-31/';
 const powerTrafficRoot = '../project-reference/sfx/power-traffic-2026-10-31/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
+const rainRoot = '../project-reference/sfx/elevenlabs-rain-2026-11-04/';
 const powerTrafficCues: Record<string, string> = {
   'item/nitro_run_loop.wav': 'nitro_run_loop.wav',
   'item/star_run_loop.wav': 'star_run_loop.wav',
@@ -81,7 +83,6 @@ const generated: Record<string, string> = {
   'interaction-v2/barrier_hit_alt.wav': 'barrier_hit_alt.mp3',
   'interaction-v2/ambulance_hit.wav': 'ambulance_hit.mp3',
   'interaction-v2/ambulance_hit_alt.wav': 'ambulance_hit_alt.mp3',
-  'ambience/rain_light_loop.wav': 'rain_road_loop.mp3',
   'ambience/wind_loop.wav': 'wind_road_loop.mp3',
   'ambience/wind_soft_loop.wav': 'wind_road_soft_loop.mp3',
   'ambience/wet_road_loop.wav': 'wet_tire_loop.mp3',
@@ -118,6 +119,7 @@ const generated: Record<string, string> = {
 };
 const url = (name: string): string | undefined =>
   name.startsWith('voice/') ? files[voiceRoot + name.slice(6) + '.mp3'] :
+  name === 'ambience/rain_light_loop.wav' ? files[rainRoot + 'rain_shower_loop.mp3'] :
   files[powerTrafficRoot + powerTrafficCues[name]] ?? files[rewardRoot + rewardCues[name]] ??
     files[generatedRoot + generated[name]] ?? files[root + name];
 
@@ -316,7 +318,8 @@ export class AudioDirector {
     if (!ctx || !path) return null;
     if (!this.buffers.has(name)) this.buffers.set(name, fetch(path).then(r => r.ok ? r.arrayBuffer() : Promise.reject(new Error('audio fetch')))
       .then(data => ctx.decodeAudioData(data)).then(buffer => {
-        if (name.includes('_loop') && (generated[name] || powerTrafficCues[name]) && buffer.length > 0) taperLoopEdges(buffer);
+        if (name.includes('_loop') && (generated[name] || powerTrafficCues[name] || name === 'ambience/rain_light_loop.wav') && buffer.length > 0)
+          taperLoopEdges(buffer);
         return buffer;
       }).catch(() => null));
     return this.buffers.get(name)!;
