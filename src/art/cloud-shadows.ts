@@ -85,7 +85,15 @@ export function createCloudShadowArt(): CloudShadowArt {
         shader.uniforms.cloudMask = { value: texture };
         shader.vertexShader = 'varying vec3 vCloudWorld;\n' + shader.vertexShader;
         shader.vertexShader = shader.vertexShader.replace('#include <worldpos_vertex>',
-          '#include <worldpos_vertex>\nvCloudWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+          `#include <worldpos_vertex>
+          vec4 cloudPosition = vec4(transformed, 1.0);
+          #ifdef USE_BATCHING
+            cloudPosition = batchingMatrix * cloudPosition;
+          #endif
+          #ifdef USE_INSTANCING
+            cloudPosition = instanceMatrix * cloudPosition;
+          #endif
+          vCloudWorld = (modelMatrix * cloudPosition).xyz;`);
         shader.fragmentShader = 'varying vec3 vCloudWorld; uniform vec4 cloudBounds[8]; uniform vec2 cloudRotations[8]; uniform sampler2D cloudMask;\n' + shader.fragmentShader;
         shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
           float cloudTransmission = 1.0;
@@ -94,13 +102,15 @@ export function createCloudShadowArt(): CloudShadowArt {
             vec2 r = cloudRotations[i];
             vec2 uv = vec2(r.x*delta.x-r.y*delta.y, r.y*delta.x+r.x*delta.y) / cloudBounds[i].zw + 0.5;
             uv.y = 1.0 - uv.y;
-            if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0)
+            if (vCloudWorld.y > 0.08 && uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0)
               cloudTransmission *= 1.0 - texture2D(cloudMask, uv).g * 0.72;
           }
-          outgoingLight *= mix(vec3(0.30,0.42,0.47), vec3(1.0), cloudTransmission);
+          // Shade reflected light only. Lamps keep their emitted radiance in every cloud.
+          vec3 cloudTint = mix(vec3(0.30,0.42,0.47), vec3(1.0), cloudTransmission);
+          outgoingLight = (outgoingLight - totalEmissiveRadiance) * cloudTint + totalEmissiveRadiance;
           #include <opaque_fragment>`);
       };
-      material.customProgramCacheKey = () => cacheKey + '|cloud-receiver-v1';
+      material.customProgramCacheKey = () => cacheKey + '|cloud-receiver-v2';
       material.needsUpdate = true;
     }
   });

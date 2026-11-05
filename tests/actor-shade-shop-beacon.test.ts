@@ -38,3 +38,16 @@ it('chains the shop emissive shader with cloud shade and updates its bounded red
  expect(shop.root.children.some(child=>child instanceof THREE.Light)).toBe(false);
  shop.dispose();clouds.dispose();
 });
+
+it('preserves emissive radiance and projects shade per instance in roadside scenery',()=>{
+ const clouds=createCloudShadowArt(),material=new THREE.MeshStandardMaterial({emissive:'#ffb060',emissiveIntensity:2});
+ const mesh=new THREE.InstancedMesh(new THREE.BoxGeometry(),material,2);
+ mesh.setMatrixAt(0,new THREE.Matrix4().makeTranslation(-8,2,-20));
+ mesh.setMatrixAt(1,new THREE.Matrix4().makeTranslation(8,2,-60));
+ const before=material.emissive.clone();clouds.applyTo(mesh);const shader=compile(material);
+ expect(shader.vertexShader).toContain('cloudPosition = instanceMatrix * cloudPosition');
+ expect(shader.vertexShader).toContain('cloudPosition = batchingMatrix * cloudPosition');
+ expect(shader.fragmentShader).toContain('(outgoingLight - totalEmissiveRadiance) * cloudTint + totalEmissiveRadiance');
+ expect(material.emissive.equals(before)).toBe(true);expect(material.emissiveIntensity).toBe(2);
+ clouds.dispose();mesh.geometry.dispose();material.dispose();
+});

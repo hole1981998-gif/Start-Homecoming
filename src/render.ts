@@ -742,6 +742,7 @@ export class RoadRenderer {
             object.castShadow = lod === 'near' &&
               new THREE.Box3().setFromObject(object).max.y > 1.6;
           } });
+          this.cloudShadows?.applyTo(art.root);
           this.scene.add(art.root);
           this.scenery.set(key, art);
         }
