@@ -75,19 +75,20 @@ const flavorToggle = el<HTMLInputElement>('flavor-toggle'); flavorToggle.checked
 flavorToggle.addEventListener('change', () => { saveFlavor(flavorToggle.checked); audio.unlock(); audio.ui(flavorToggle.checked ? 'toggle_on' : 'toggle_off'); }, { signal: listeners.signal });
 const audioOptions = document.createElement('div'); audioOptions.className = 'audio-options';
 const audioTitle = document.createElement('strong'); audioTitle.textContent = 'Âm thanh'; audioOptions.append(audioTitle);
-const audioSlider = (label: string, bus: 'sfx' | 'ambience') => {
+const audioSlider = (label: string, bus: 'sfx' | 'ambience' | 'music') => {
   const row = document.createElement('label'), caption = document.createElement('span'), value = document.createElement('output'), slider = document.createElement('input');
   caption.textContent = label; value.setAttribute('aria-hidden', 'true'); slider.setAttribute('aria-label', label);
   slider.type = 'range'; slider.min = '0'; slider.max = '1'; slider.step = '0.05';
   slider.value = String(audioLevel(bus));
   const update = () => { value.textContent = `${Math.round(Number(slider.value) * 100)}%`; };
   update(); slider.addEventListener('input', () => { update(); saveAudioLevel(bus, Number(slider.value));
-    audio.setLevels(Number(sfxSlider.value), Number(ambienceSlider.value)); }, { signal: listeners.signal });
+    audio.setLevels(Number(sfxSlider.value), Number(ambienceSlider.value), Number(musicSlider.value)); }, { signal: listeners.signal });
   row.append(caption, value, slider); audioOptions.append(row); return slider;
 };
 const sfxSlider = audioSlider('Hiệu ứng', 'sfx');
 const ambienceSlider = audioSlider('Mưa và gió', 'ambience');
-audio.setLevels(Number(sfxSlider.value), Number(ambienceSlider.value));
+const musicSlider = audioSlider('Nhạc nền', 'music');
+audio.setLevels(Number(sfxSlider.value), Number(ambienceSlider.value), Number(musicSlider.value));
 el('modal-description').after(audioOptions);
 audioOptions.after(el('feedback-options'));
 const effectsToggle = document.querySelector<HTMLInputElement>('#effects-toggle');

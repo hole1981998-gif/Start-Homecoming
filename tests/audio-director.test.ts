@@ -8,11 +8,13 @@ afterEach(() => vi.unstubAllGlobals());
 
 it('starts layered driving sound and cancels both active and fading stems on pause', async () => {
   const sources: Array<{ started: boolean; stopped: boolean; stopTimes: number[] }> = [];
+  const tracks: Array<{ src: string; loop: boolean; paused: boolean }> = [];
   const gains: Array<{ gain: { value: number; targets: number[] } }> = [], fetched: string[] = [];
   const gain = () => { const node = { gain: { value: 0, targets: [] as number[], setTargetAtTime(value: number) { this.targets.push(value); } }, connect() { return this; }, disconnect() { /* detached */ } }; gains.push(node); return node; };
   class FakeAudioContext {
     state = 'running'; currentTime = 1; destination = {};
     createGain() { return gain(); }
+    createMediaElementSource() { return { connect() { return this; }, disconnect() { /* detached */ } }; }
     createBufferSource() {
       const source = { started: false, stopped: false, stopTimes: [] as number[], buffer: null, loop: false,
         playbackRate: { setTargetAtTime() { /* audio parameter */ } },
@@ -24,15 +26,27 @@ it('starts layered driving sound and cancels both active and fading stems on pau
     resume() { return Promise.resolve(); }
     close() { return Promise.resolve(); }
   }
+  class FakeMusic {
+    loop = false; preload = ''; paused = true;
+    constructor(public src: string) { tracks.push(this); }
+    play() { this.paused = false; return Promise.resolve(); }
+    pause() { this.paused = true; }
+  }
   vi.stubGlobal('AudioContext', FakeAudioContext);
+  vi.stubGlobal('Audio', FakeMusic);
   vi.stubGlobal('fetch', vi.fn(async (path: string) => { fetched.push(path); return { ok: !path.includes('engine_car_texture_loop.mp3'), arrayBuffer: async () => new ArrayBuffer(8) }; }));
   const director = new AudioDirector();
   const run = { ...initialRun(17, 'audio-test'), phase: 'running' as const };
   director.unlock();
-  director.setLevels(0, .5);
+  director.setLevels(0, .5, .25);
   expect(gains[0].gain.targets.at(-1)).toBe(0);
   expect(gains[1].gain.targets.at(-1)).toBeCloseTo(.11);
+  expect(gains[2].gain.targets.at(-1)).toBeCloseTo(.045);
   await director.update(run);
+  expect(tracks).toHaveLength(1);
+  expect(tracks[0].src).toContain('nimble_pursuit.mp3');
+  expect(tracks[0].loop).toBe(true);
+  expect(tracks[0].paused).toBe(false);
   await vi.waitFor(() => expect(sources.filter(s => s.started).length).toBeGreaterThanOrEqual(7));
   expect(fetched.some(path => path.includes('engine_bike_texture_loop.mp3'))).toBe(true);
   expect(fetched.some(path => path.includes('rain_shower_loop.mp3'))).toBe(true);
@@ -43,6 +57,7 @@ it('starts layered driving sound and cancels both active and fading stems on pau
   await vi.waitFor(() => expect(sources.filter(s => s.started).length).toBeGreaterThanOrEqual(10));
   expect(fetched.some(path => path.includes('engine_car_texture_loop.mp3'))).toBe(true);
   director.pause();
+  expect(tracks[0].paused).toBe(true);
   director.ui('pause');
   expect(fetched.some(path => path.includes('pause_a.wav'))).toBe(true);
   expect(sources.filter(s => s.stopTimes.length >= 2).length).toBeGreaterThanOrEqual(4);
@@ -58,12 +73,20 @@ it('does not start pending engine or ambience buffers after the run ends', async
   class FakeAudioContext {
     state = 'running'; currentTime = 1; destination = {};
     createGain() { return { gain: { value: 0, setTargetAtTime() { /* audio parameter */ } }, connect() { return this; }, disconnect() { /* detached */ } }; }
+    createMediaElementSource() { return { connect() { return this; }, disconnect() { /* detached */ } }; }
     createBufferSource() { const source = { started: false, loop: false, buffer: null, connect() { return this; }, start() { this.started = true; }, stop() { /* stopped */ }, disconnect() { /* detached */ }, playbackRate: { setTargetAtTime() { /* audio parameter */ } } }; sources.push(source); return source; }
     decodeAudioData() { return Promise.resolve({}); }
     resume() { return Promise.resolve(); }
     close() { return Promise.resolve(); }
   }
+  class FakeMusic {
+    loop = false; preload = ''; paused = true;
+    constructor(public src: string) { /* media path */ }
+    play() { this.paused = false; return Promise.resolve(); }
+    pause() { this.paused = true; }
+  }
   vi.stubGlobal('AudioContext', FakeAudioContext);
+  vi.stubGlobal('Audio', FakeMusic);
   vi.stubGlobal('fetch', vi.fn(() => pending));
   const director = new AudioDirector();
   const run = { ...initialRun(17, 'audio-loading'), phase: 'running' as const };

@@ -86,6 +86,8 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   const helpDistance = el('distance').textContent; tick(3); expect(el('distance').textContent).toBe(helpDistance);
   const firstAudioSlider = document.querySelector<HTMLInputElement>('.audio-options input');
   expect(firstAudioSlider?.getAttribute('aria-label')).toBe('Hiệu ứng');
+  expect([...document.querySelectorAll('.audio-options input')].map(node => node.getAttribute('aria-label')))
+    .toEqual(['Hiệu ứng', 'Mưa và gió', 'Nhạc nền']);
   const focusables = [...el('modal').querySelectorAll<HTMLElement>('button,input,select,a[href],summary')]
     .filter(node => !node.closest('[hidden]') && !(node instanceof HTMLButtonElement && node.disabled));
   focusables.at(-1)!.focus(); key('keydown', 'Tab'); expect(document.activeElement).toBe(focusables[0]);

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { AudioDirector, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, sweptPassengerContact, taperLoopEdges } from '../src/audio-director';
+import { AudioDirector, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, sweptPassengerContact, taperLoopEdges } from '../src/audio-director';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
@@ -22,7 +22,10 @@ it('makes a roadside call grow louder on approach and fade after passing', () =>
   expect(spatialVoiceVolume(5, 0)).toBeGreaterThan(.8);
   expect(spatialVoiceVolume(-13, 0)).toBe(0);
   expect(spatialVoiceVolume(-20, 0, 65, 65)).toBeGreaterThan(0);
+  expect(spatialVoiceVolume(-6, 0)).toBeLessThan(spatialVoiceVolume(0, 0));
   expect(spatialVoiceVolume(10, 8)).toBeLessThan(spatialVoiceVolume(10, 0));
+  expect(roadsideCallRange(4)).toBe(30);
+  expect(roadsideCallRange(25)).toBe(45);
 });
 
 it('spaces storm strikes across a run and keeps each seed reproducible', () => {
@@ -107,11 +110,11 @@ it('sustains water only during contact, uses physical collision types, and leave
     close() { return Promise.resolve(); }
   }
   class FakeAudio {
-    duration = 2; playbackRate = 1; preservesPitch = false;
-    paused = false;
+    duration = 2; playbackRate = 1; preservesPitch = false; loop = false; preload = '';
+    paused = true;
     onloadedmetadata?: () => void; onended?: () => void; onerror?: () => void;
     constructor(public src: string) { voicePaths.push(src); voiceAudios.push(this); }
-    play() { this.onloadedmetadata?.(); return Promise.resolve(); }
+    play() { this.paused = false; this.onloadedmetadata?.(); return Promise.resolve(); }
     pause() { this.paused = true; }
   }
   vi.stubGlobal('AudioContext', FakeAudioContext);
@@ -142,7 +145,7 @@ it('sustains water only during contact, uses physical collision types, and leave
   expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(3.6);
   const thunderSource = sources.find(source => source.buffer?.path.includes('distant_thunder_loop.mp3'))!;
   expect(thunderSource.loop).toBe(true);
-  expect(thunderSource.gain?.gain.targets.at(-1)).toBeCloseTo(.42);
+  expect(thunderSource.gain?.gain.targets.at(-1)).toBeCloseTo(.72);
   expect(fetched.some(path => path.includes('rain_road_loop.mp3'))).toBe(false);
   const waterSource = sources.find(source => source.buffer?.path.includes('water_roll_shallow_loop'))!;
   expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
@@ -242,10 +245,16 @@ it('sustains water only during contact, uses physical collision types, and leave
   expect(fetched.filter(path => path.includes('shop_success.wav'))).toHaveLength(3);
   expect(fetched.some(path => path.includes('vehicle_purchase.wav'))).toBe(true);
   FakeAudioContext.time = 11;
-  const roadside = entity('passenger', 'roadside-caller', 12, 0);
-  await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [roadside] } });
+  const roadside = entity('passenger', 'roadside-caller', 50, 0);
+  const beforeApproach = voicePaths.length;
+  await director.update({ ...base, speed: 20, eventSequence: 8, world: { ...base.world, entities: [roadside] } });
+  expect(voicePaths.length).toBe(beforeApproach);
+  await director.update({ ...base, speed: 20, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: 35 }] } });
   expect(voicePaths.some(path => path.includes('owner-voices-2026-11-04') && path.includes('_call_'))).toBe(true);
-  await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: -14 }] } });
+  const callGain = voiceGains.at(-1)!.gain.value;
+  await director.update({ ...base, speed: 20, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: 12 }] } });
+  expect(voiceGains.at(-1)?.gain.targets.at(-1)).toBeGreaterThan(callGain);
+  await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: -25 }] } });
   expect(voiceGains.at(-1)?.gain.targets.at(-1)).toBe(0);
   FakeAudioContext.time = 12;
   const vendorHit = { ...entity('jam', 'vendor-hit', 0, 0), crossingRole: 'vendor' as const, consumed: true };

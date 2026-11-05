@@ -8,3 +8,7 @@ Generated from the owner-approved ElevenLabs Sound Effects API with `generate.mj
 - The driver's collision voice is triggered by traffic versus traffic contacts only. Player crashes still use the separately requested scream pool; passenger ejection screams remain unchanged.
 
 `LISTEN.html` presents the three source files for owner listening. Browser automation can verify loading and looping but cannot judge their combined tone or loudness through speakers.
+
+On 5 November 2026, after owner feedback, the distant thunder target gain rose from 0.42 to 0.58. The source MP3 itself remains unchanged.
+
+Later the same day, the owner requested slightly clearer distant thunder; the target gain rose from 0.58 to 0.72 without changing the MP3.

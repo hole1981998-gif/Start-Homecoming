@@ -17,6 +17,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/owner-voices-2026-11-04/*.mp3',
   '../project-reference/sfx/elevenlabs-rain-2026-11-04/*.mp3',
   '../project-reference/sfx/elevenlabs-storm-2026-11-05/*.mp3',
+  '../project-reference/sfx/owner-music-2026-11-05/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const root = '../project-reference/sfx/procedural-auditions-2026-10-28/';
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
@@ -25,6 +26,7 @@ const powerTrafficRoot = '../project-reference/sfx/power-traffic-2026-10-31/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
 const rainRoot = '../project-reference/sfx/elevenlabs-rain-2026-11-04/';
 const stormRoot = '../project-reference/sfx/elevenlabs-storm-2026-11-05/';
+const musicRoot = '../project-reference/sfx/owner-music-2026-11-05/';
 const powerTrafficCues: Record<string, string> = {
   'item/nitro_run_loop.wav': 'nitro_run_loop.wav',
   'item/star_run_loop.wav': 'star_run_loop.wav',
@@ -160,8 +162,12 @@ export const speechPlaybackRate = (duration: number, chuckle = false): number =>
 export const spatialVoiceVolume = (ahead: number, lateral: number, range = 58, rearCutoff = 12): number => {
   if (ahead < -rearCutoff) return 0;
   const distance = Math.hypot(ahead, lateral);
-  return Math.max(0, Math.min(1, 1 - distance / range)) ** 1.35;
+  const distanceGain = Math.max(0, Math.min(1, 1 - distance / range)) ** 1.35;
+  return distanceGain * (ahead < 0 ? Math.max(0, 1 + ahead / rearCutoff) : 1);
 };
+
+/** Start a short call roughly two seconds before a fast vehicle reaches the caller. */
+export const roadsideCallRange = (speed: number): number => Math.max(30, Math.min(46, speed * 1.8));
 
 /** Detect a moving vehicle crossing a passenger's small rectangle between audio frames. */
 export const sweptPassengerContact = (fromAhead: number, fromLateral: number, ahead: number,
@@ -204,7 +210,7 @@ const hornCue = (kind?: VehicleKind): string =>
   `traffic/horn_${heavyVehicle(kind) ? 'heavy' : lightVehicle(kind) ? 'light' : 'car'}.wav`;
 const passCue = (kind?: VehicleKind): string => `traffic/pass_${heavyVehicle(kind) ? 'heavy' : 'light'}.wav`;
 
-type Bus = 'sfx' | 'ambience';
+type Bus = 'sfx' | 'ambience' | 'music';
 type Stem = { sources: AudioBufferSourceNode[]; gains: GainNode[]; kind: VehicleKind };
 const heavyVehicle = (kind?: VehicleKind): boolean => kind === 'bus' || kind === 'truck' || kind === 'container';
 const lightVehicle = (kind?: VehicleKind): boolean => kind === 'motorcycle' || kind === 'motorbike' || kind === 'tricycle';
@@ -235,7 +241,7 @@ export type UiCue = 'menu_select' | 'menu_back' | 'help_open' | 'card_open' | 'c
   'purchase_success' | 'shop_service' | 'shop_upgrade' | 'vehicle_purchase' |
   'toggle_on' | 'toggle_off' | 'resource_gain' | 'resource_loss' | 'reward_small';
 const rainLevel = 3.6;
-const thunderLevel = .42;
+const thunderLevel = .72;
 const thunderLoop = 'ambience/distant_thunder_loop.wav';
 const lightningCues = ['ambience/lightning_distant_a.wav', 'ambience/lightning_distant_b.wav'];
 
@@ -268,6 +274,8 @@ export class AudioDirector {
   private stem?: Stem;
   private retiring = new Set<Stem>();
   private ambience = new Map<string, { source: AudioBufferSourceNode; gain: GainNode }>();
+  private music?: { audio: HTMLAudioElement; source: MediaElementAudioSourceNode };
+  private musicPending = false;
   private near = new Set<string>();
   private trafficPairs = new Set<string>();
   private trafficHoles = new Set<string>();
@@ -287,7 +295,7 @@ export class AudioDirector {
   private lightningCount = 0;
   private oneShots = new Set<AudioBufferSourceNode>();
   private voices = new Set<{ audio: HTMLAudioElement; source: MediaElementAudioSourceNode; gain: GainNode;
-    panner?: StereoPannerNode; spatial?: { entityId: string; range: number; level: number };
+    panner?: StereoPannerNode; spatial?: { entityId: string; range: number; rearCutoff?: number; level: number };
     event: VoiceEvent; riderId: string; stop: () => void }>();
   private runId = '';
   private lastSequence = -1;
@@ -307,14 +315,16 @@ export class AudioDirector {
   private generation = 0;
   private uiRequest = 0;
   private sweepTick = 0;
-  private levels = { sfx: 1, ambience: 1 };
+  private levels = { sfx: 1, ambience: 1, music: 1 };
 
-  setLevels(sfx: number, ambience: number): void {
-    this.levels = { sfx: Math.max(0, Math.min(1, sfx)), ambience: Math.max(0, Math.min(1, ambience)) };
+  setLevels(sfx: number, ambience: number, music = 1): void {
+    this.levels = { sfx: Math.max(0, Math.min(1, sfx)), ambience: Math.max(0, Math.min(1, ambience)),
+      music: Math.max(0, Math.min(1, music)) };
     if (this.buses) {
       const now = this.context?.currentTime ?? 0;
       this.buses.sfx.gain.setTargetAtTime(.65 * this.levels.sfx, now, .025);
       this.buses.ambience.gain.setTargetAtTime(.22 * this.levels.ambience, now, .025);
+      this.buses.music.gain.setTargetAtTime(.18 * this.levels.music, now, .025);
     }
   }
 
@@ -322,10 +332,11 @@ export class AudioDirector {
     if (typeof AudioContext === 'undefined') return;
     if (!this.context) {
       this.context = new AudioContext();
-      const sfx = this.context.createGain(), ambience = this.context.createGain();
+      const sfx = this.context.createGain(), ambience = this.context.createGain(), music = this.context.createGain();
       sfx.gain.value = .65 * this.levels.sfx; ambience.gain.value = .22 * this.levels.ambience;
-      sfx.connect(this.context.destination); ambience.connect(this.context.destination);
-      this.buses = { sfx, ambience };
+      music.gain.value = .18 * this.levels.music;
+      sfx.connect(this.context.destination); ambience.connect(this.context.destination); music.connect(this.context.destination);
+      this.buses = { sfx, ambience, music };
     }
     void this.context.resume();
   }
@@ -383,7 +394,7 @@ export class AudioDirector {
   }
 
   private voice(event: VoiceEvent, riderId: string, volume = .6, pan = 0, gap = 0,
-    spatial?: { entityId: string; range: number; level: number }): void {
+    spatial?: { entityId: string; range: number; rearCutoff?: number; level: number }): void {
     const ctx = this.context, bus = this.buses?.sfx;
     if (!ctx || !bus || ctx.state !== 'running') return;
     const actor = voiceActor(riderId);
@@ -407,7 +418,7 @@ export class AudioDirector {
     if (panner) { panner.pan.value = Math.max(-.8, Math.min(.8, pan)); source.connect(gain).connect(panner).connect(bus); }
     else source.connect(gain).connect(bus);
     const node: { audio: HTMLAudioElement; source: MediaElementAudioSourceNode; gain: GainNode;
-      panner?: StereoPannerNode; spatial?: { entityId: string; range: number; level: number };
+      panner?: StereoPannerNode; spatial?: { entityId: string; range: number; rearCutoff?: number; level: number };
       event: VoiceEvent; riderId: string; stop: () => void } =
       { audio, source, gain, panner, spatial, event, riderId, stop: () => undefined };
     const clear = () => { if (!this.voices.delete(node)) return; audio.pause(); source.disconnect(); gain.disconnect(); panner?.disconnect(); };
@@ -426,6 +437,27 @@ export class AudioDirector {
     source.connect(gain).connect(this.buses[bus]); source.start();
     this.ambience.set(name, { source, gain });
     gain.gain.setTargetAtTime(volume, ctx.currentTime, .15);
+  }
+
+  private startMusic(): void {
+    const ctx = this.context, bus = this.buses?.music, path = files[musicRoot + 'nimble_pursuit.mp3'];
+    if (!ctx || !bus || !path || !this.running || ctx.state !== 'running' || typeof Audio === 'undefined') return;
+    if (!this.music) {
+      const audio = new Audio(path);
+      audio.loop = true;
+      audio.preload = 'auto';
+      const source = ctx.createMediaElementSource(audio);
+      source.connect(bus);
+      this.music = { audio, source };
+    }
+    if (!this.music.audio.paused || this.musicPending) return;
+    const audio = this.music.audio;
+    this.musicPending = true;
+    void audio.play().then(() => {
+      if (this.music?.audio !== audio || !this.running) audio.pause();
+    }).catch(() => { /* Retry after the next user gesture. */ }).finally(() => {
+      if (this.music?.audio === audio) this.musicPending = false;
+    });
   }
 
   private async engine(kind: VehicleKind): Promise<void> {
@@ -485,6 +517,8 @@ export class AudioDirector {
     this.stopEngine();
     this.clearRetiring();
     for (const { source, gain } of this.ambience.values()) { try { source.stop(); } catch { /* already stopped */ } source.disconnect(); gain.disconnect(); }
+    if (this.music) { this.music.audio.pause(); this.music.source.disconnect(); this.music = undefined; }
+    this.musicPending = false;
     this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0;
     this.waterVisit = -1; this.waterStart = 0; this.windStart = 0; this.nextLightningAt = 0; this.lightningCount = 0;
     this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.vehicleId = ''; this.requestedKind = undefined; this.running = false;
@@ -501,6 +535,7 @@ export class AudioDirector {
     for (const source of this.oneShots) { try { source.stop(); } catch { /* already stopped */ } }
     for (const { audio, source, gain, panner } of this.voices) { audio.pause(); source.disconnect(); gain.disconnect(); panner?.disconnect(); }
     this.voices.clear();
+    this.music?.audio.pause();
     for (const { gain } of this.ambience.values()) gain.gain.setTargetAtTime(0, this.context?.currentTime ?? 0, .08);
   }
 
@@ -535,6 +570,7 @@ export class AudioDirector {
       this.running = false;
       this.requestedKind = undefined;
       this.stopEngine(.12);
+      this.music?.audio.pause();
       for (const { gain } of this.ambience.values()) gain.gain.setTargetAtTime(0, ctx.currentTime, .1);
       if (run.phase === 'ended' && !this.ended) {
         this.ended = true;
@@ -544,12 +580,14 @@ export class AudioDirector {
       return;
     }
     this.running = true;
+    this.startMusic();
     for (const node of this.voices) {
       if (!node.spatial) continue;
       const entity = run.world.entities.find(e => e.id === node.spatial?.entityId && !e.consumed);
       const ahead = entity ? entity.distance - run.distance : -100;
       const lateral = entity ? entity.x - run.x : 0;
-      node.gain.gain.setTargetAtTime(node.spatial.level * 1.25 * spatialVoiceVolume(ahead, lateral, node.spatial.range), ctx.currentTime, .12);
+      node.gain.gain.setTargetAtTime(node.spatial.level * 1.25 * spatialVoiceVolume(ahead, lateral,
+        node.spatial.range, node.spatial.rearCutoff), ctx.currentTime, .08);
       if (node.panner) node.panner.pan.setTargetAtTime(Math.max(-.8, Math.min(.8, lateral / 8)), ctx.currentTime, .12);
     }
     for (const riderId of run.riderIds) if (!this.lastRiders.has(riderId) && !this.returningRiders.includes(riderId))
@@ -693,10 +731,10 @@ export class AudioDirector {
           this.spoken.add(e.id); this.voice('traffic', e.riderId ?? e.id,
             .8 * spatialVoiceVolume(ahead, e.x - run.x, 65, 65), (e.x - run.x) / 8);
         } else if (!e.id.startsWith('fallen-') && !this.spoken.has(`road-hit:${e.id}`) &&
-          e.pickupable !== false && ahead > 0 && ahead < 58 && Math.abs(e.x - run.x) < 9) {
+          e.pickupable !== false && ahead > 0 && ahead < roadsideCallRange(run.speed) && Math.abs(e.x - run.x) < 9) {
           const volume = .62 * spatialVoiceVolume(ahead, e.x - run.x);
           this.voice(e.passengerType === 'grab' ? 'laugh' : 'call', e.riderId ?? e.id,
-            volume, (e.x - run.x) / 8, 4.2, { entityId: e.id, range: 58, level: .62 });
+            volume, (e.x - run.x) / 8, 4.2, { entityId: e.id, range: 58, rearCutoff: 24, level: .62 });
         }
       }
       if (e.kind === 'traffic' && e.cargoDropped && prior && !prior.cargoDropped && run.world.entities.some(c => c.cargoSourceId === e.id))

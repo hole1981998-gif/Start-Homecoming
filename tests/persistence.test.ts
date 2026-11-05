@@ -47,8 +47,10 @@ it('persists audio mute separately and continues safely when browser storage is 
   expect(audioLevel('sfx')).toBe(1);
   expect(saveAudioLevel('sfx', 0)).toBe(true);
   expect(saveAudioLevel('ambience', .35)).toBe(true);
+  expect(saveAudioLevel('music', 0)).toBe(true);
   expect(audioLevel('sfx')).toBe(0);
   expect(audioLevel('ambience')).toBe(.35);
+  expect(audioLevel('music')).toBe(0);
   localStorage.setItem('dvn.audio.sfx', '{broken');
   expect(audioLevel('sfx')).toBe(1);
   const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
