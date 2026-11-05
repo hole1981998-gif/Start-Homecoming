@@ -48,10 +48,16 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
     const event = new Event(type); Object.defineProperty(event, 'pointerType', {value:pointerType}); menu.dispatchEvent(event);
   };
   expect(menuPanel.hidden).toBe(true);
-  hover('pointerenter','mouse');expect(menuPanel.hidden).toBe(false);
+  hover('pointerenter','mouse');expect(menuPanel.hidden).toBe(true);
   hover('pointerleave','mouse');expect(menuPanel.hidden).toBe(true);
   hover('pointerenter','touch');expect(menuPanel.hidden).toBe(true);
   click('controls-toggle');expect(menuPanel.hidden).toBe(false);expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  hover('pointerleave','mouse');expect(menuPanel.hidden).toBe(false);
+  el('scene').focus();expect(menuPanel.hidden).toBe(false);
+  key('keydown','Escape');expect(menuPanel.hidden).toBe(true);expect(el('modal').hidden).toBe(true);
+  click('controls-toggle');
+  document.body.dispatchEvent(new Event('pointerdown',{bubbles:true}));expect(menuPanel.hidden).toBe(true);
+  click('controls-toggle');expect(menuPanel.hidden).toBe(false);
   click('controls-toggle');expect(menuPanel.hidden).toBe(true);
   el('scene').focus(); key('keydown','KeyM');expect(menuPanel.hidden).toBe(false);
   toggle.dispatchEvent(new KeyboardEvent('keydown',{code:'Escape',bubbles:true}));
@@ -79,7 +85,8 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   window.dispatchEvent(new Event('blur')); tick(5); expect(el('modal').hidden).toBe(false);
   click('play'); tick(1); expect(el('speed').textContent).toBe('57,6');
   tick(1); expect(el('speed').textContent).toBe('50,4');
-  click('help'); expect(el('modal-title').textContent).toBe('Cách cầm lái');
+  click('controls-toggle');hover('pointerleave','mouse');expect(menuPanel.hidden).toBe(false);
+  click('help'); expect(menuPanel.hidden).toBe(true); expect(el('modal-title').textContent).toBe('Cách cầm lái');
   expect(el('help-details').hidden).toBe(false);
   expect(el('help-details').textContent).toContain('tài xế');
   expect(el('modal-title').nextElementSibling).toBe(el('close-help'));

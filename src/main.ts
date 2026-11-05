@@ -229,10 +229,8 @@ function setMenu(open: boolean): void {
 menuToggle.setAttribute('aria-keyshortcuts', 'M');
 menuToggle.title = 'Điều khiển và menu · M';
 menuToggle.addEventListener('click', () => { const open = menuPanel.hidden; setMenu(open); if (!open && state.phase === 'running') canvas.focus({preventScroll:true}); }, { signal: listeners.signal });
-menu.addEventListener('pointerenter', event => { if (event.pointerType === 'mouse') setMenu(true); }, { signal: listeners.signal });
-menu.addEventListener('pointerleave', event => { if (event.pointerType === 'mouse') setMenu(false); }, { signal: listeners.signal });
+menuPanel.addEventListener('click', event => { if ((event.target as Element).closest('button')) setMenu(false); }, { signal: listeners.signal });
 menu.addEventListener('focusin', event => { if (event.target !== menuToggle) setMenu(true); }, { signal: listeners.signal });
-menu.addEventListener('focusout', event => { if (!menu.contains(event.relatedTarget as Node)) setMenu(false); }, { signal: listeners.signal });
 document.addEventListener('pointerdown', event => { if (!menu.contains(event.target as Node)) setMenu(false); }, { signal: listeners.signal });
 menu.addEventListener('keydown', event => {
   if (event.code === 'Escape') { event.stopPropagation(); setMenu(false); if (state.phase === 'running') canvas.focus({preventScroll:true}); else menuToggle.focus(); setMenu(false); }
@@ -242,6 +240,7 @@ window.addEventListener('keydown', event => {
   if (event.code === 'KeyM' && modal.hidden && !event.repeat) { event.preventDefault(); const open = menuPanel.hidden; if (open) menuToggle.focus(); else canvas.focus({preventScroll:true}); setMenu(open); return; }
   if (event.code === 'Escape' && !event.repeat) {
     event.preventDefault();
+    if (!menuPanel.hidden) { setMenu(false); if (state.phase === 'running') canvas.focus({preventScroll:true}); return; }
     if (screen === 'card') dismissCard(); else if (screen === 'help') closeHelp.click(); else if (state.phase === 'running') pauseRun(); else if (state.phase === 'paused') resume();
     return;
   }
