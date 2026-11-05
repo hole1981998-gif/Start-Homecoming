@@ -1,3 +1,4 @@
+import { updateWindowPassenger } from './art/window-passengers';
 import { roadCuePose } from './cue-scale';
 import { isSpecial, trainClosed } from './special-events';
 import * as THREE from 'three';
@@ -297,11 +298,6 @@ export class RoadRenderer {
   /** Small upper bodies lean beyond each side window; the driver is never included. */
   private addWindowPassengers(parent: THREE.Group, width: number, length: number, count: number, height: number): THREE.Group[] {
     const passengers: THREE.Group[] = [];
-    const torsoGeometry = new THREE.CylinderGeometry(.12, .16, .27, 5);
-    const headGeometry = new THREE.IcosahedronGeometry(.145, 1);
-    const coats = ['#9cb7a6', '#d59b79'].map(color =>
-      new THREE.MeshLambertMaterial({ color, flatShading: true }));
-    const skin = new THREE.MeshLambertMaterial({ color: '#e6d8bd', flatShading: true });
     for (let i = 0; i < count; i++) {
       const side = i % 2 ? 1 : -1;
       const row = Math.floor(i / 2);
@@ -310,11 +306,6 @@ export class RoadRenderer {
       const person = new THREE.Group(); parent.add(person);
       person.position.set(side * (width * .5 + .08), height, z);
       person.rotation.z = -side * .22;
-      const torso = new THREE.Mesh(torsoGeometry, coats[i % coats.length]);
-      torso.position.y = -.11; person.add(torso);
-      const head = new THREE.Mesh(headGeometry, skin);
-      head.name = 'window_head';
-      head.position.y = .13; person.add(head);
       person.visible = false; passengers.push(person);
     }
     return passengers;
@@ -555,11 +546,12 @@ export class RoadRenderer {
         person.position.z = vehicle.kind === 'truck' || vehicle.kind === 'container' ? -.36 + Math.floor(i / 2) * .18 :
           rows <= 1 ? 0 : -.58 + Math.floor(i / 2) * 1.16 / (rows - 1);
       }
-      person.getObjectByName('window_head')!.rotation.y = Math.sin(visualTime * 1.6 + i) * .08;
+      if (person.visible) updateWindowPassenger(person, s.riderIds[i], visualTime);
     });
     this.tractorPassengers.forEach((person, i) => {
       person.visible = articulated && !s.crash && i < s.riderIds.length;
       if (useSourceArt) person.position.set(-1.20, 2.19, -.78);
+      if (person.visible) updateWindowPassenger(person, s.riderIds[i], visualTime);
       person.rotation.z = Math.sin(visualTime * 2.2 + i) * .025;
     });
     const modeledPassengers = useSourceArt && open ?

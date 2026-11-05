@@ -1,0 +1,11 @@
+
+ RUN  v3.2.4 C:/Users/Admin/Documents/Codex/2026-10-17/c-to-n-b-b-t/outputs/duong-ve-nha
+
+ ✓ tests/art-vehicle-lights.test.ts (4 tests) 77ms
+ ✓ tests/lamps-window-passengers.test.ts (2 tests) 59ms
+ ✓ tests/art-passenger-windows.test.ts (3 tests) 6ms
+
+ Test Files  3 passed (3)
+      Tests  9 passed (9)
+   Start at  23:23:52
+   Duration  1.44s (transform 217ms, setup 0ms, collect 419ms, tests 142ms, environment 1ms, prepare 318ms)

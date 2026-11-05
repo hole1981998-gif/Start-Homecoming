@@ -72,8 +72,10 @@ export function createCloudShadowArt(): CloudShadowArt {
   const applied = new WeakSet<THREE.Material>();
   const applyTo = (target: THREE.Object3D) => target.traverse(object => {
     if (!(object instanceof THREE.Mesh)) return;
-    object.receiveShadow = true;
-    for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    // Unlit lenses must not enter Three's Basic-material shadow-mask path.
+    object.receiveShadow = !materials.every(material => material instanceof THREE.MeshBasicMaterial);
+    for (const material of materials) {
       if (!(material instanceof THREE.MeshStandardMaterial) || applied.has(material)) continue;
       applied.add(material);
       const previous = material.onBeforeCompile.bind(material);
