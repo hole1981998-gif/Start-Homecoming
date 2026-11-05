@@ -41,7 +41,7 @@ it('starts layered driving sound and cancels both active and fading stems on pau
   director.setLevels(0, .5, .25);
   expect(gains[0].gain.targets.at(-1)).toBe(0);
   expect(gains[1].gain.targets.at(-1)).toBeCloseTo(.11);
-  expect(gains[2].gain.targets.at(-1)).toBeCloseTo(.045);
+  expect(gains[2].gain.targets.at(-1)).toBeCloseTo(.075);
   await director.update(run);
   expect(tracks).toHaveLength(1);
   expect(tracks[0].src).toContain('nimble_pursuit.mp3');

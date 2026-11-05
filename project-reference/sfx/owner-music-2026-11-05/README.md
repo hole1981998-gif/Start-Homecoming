@@ -5,3 +5,5 @@
 The game streams the track through its own music volume bus and loops it during an active run. It pauses when gameplay pauses or ends and starts from the beginning on a new run. The separate Nhạc nền slider can mute it without changing SFX or weather ambience.
 
 `LISTEN.html` plays the source track on repeat for audition. The final transition between the end and start of this owner-supplied MP3 should be judged by listening; no editing was applied to the source.
+
+On 5 November 2026 the owner requested a louder mix. The music bus level rose from 0.18 to 0.30 at full slider value, with temporary ducking while NPCs speak.

@@ -12,3 +12,5 @@ Generated from the owner-approved ElevenLabs Sound Effects API with `generate.mj
 On 5 November 2026, after owner feedback, the distant thunder target gain rose from 0.42 to 0.58. The source MP3 itself remains unchanged.
 
 Later the same day, the owner requested slightly clearer distant thunder; the target gain rose from 0.58 to 0.72 without changing the MP3.
+
+On further owner feedback the thunder target rose from 0.72 to 1.00. The ambience bus ducks briefly while NPC voices play, so the louder storm does not bury them.

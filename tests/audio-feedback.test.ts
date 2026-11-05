@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { AudioDirector, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, sweptPassengerContact, taperLoopEdges } from '../src/audio-director';
+import { AudioDirector, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges } from '../src/audio-director';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
@@ -35,12 +35,6 @@ it('spaces storm strikes across a run and keeps each seed reproducible', () => {
   expect(stormStrikeDelay(17, 0)).toBe(first);
   expect(stormStrikeDelay(17, 1)).toBeGreaterThanOrEqual(27);
   expect(stormStrikeDelay(17, 1)).toBeLessThanOrEqual(43);
-});
-
-it('hears a moving vehicle cross a roadside rider, without a stationary repeat or a nearby miss', () => {
-  expect(sweptPassengerContact(8, 0, -8, 0, 2, 1)).toBe(true);
-  expect(sweptPassengerContact(8, 3, -8, 3, 2, 1)).toBe(false);
-  expect(sweptPassengerContact(0, 0, 0, 0, 2, 1)).toBe(false);
 });
 
 it('tapers both channels at compressed water-loop boundaries while preserving the body', () => {
@@ -110,11 +104,18 @@ it('sustains water only during contact, uses physical collision types, and leave
     close() { return Promise.resolve(); }
   }
   class FakeAudio {
+    static rejectNextCall = false;
     duration = 2; playbackRate = 1; preservesPitch = false; loop = false; preload = '';
     paused = true;
     onloadedmetadata?: () => void; onended?: () => void; onerror?: () => void;
     constructor(public src: string) { voicePaths.push(src); voiceAudios.push(this); }
-    play() { this.paused = false; this.onloadedmetadata?.(); return Promise.resolve(); }
+    play() {
+      if (this.src.includes('_call_') && FakeAudio.rejectNextCall) {
+        FakeAudio.rejectNextCall = false;
+        return Promise.reject(new Error('temporary media rejection'));
+      }
+      this.paused = false; this.onloadedmetadata?.(); return Promise.resolve();
+    }
     pause() { this.paused = true; }
   }
   vi.stubGlobal('AudioContext', FakeAudioContext);
@@ -145,7 +146,7 @@ it('sustains water only during contact, uses physical collision types, and leave
   expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(3.6);
   const thunderSource = sources.find(source => source.buffer?.path.includes('distant_thunder_loop.mp3'))!;
   expect(thunderSource.loop).toBe(true);
-  expect(thunderSource.gain?.gain.targets.at(-1)).toBeCloseTo(.72);
+  expect(thunderSource.gain?.gain.targets.at(-1)).toBeCloseTo(1);
   expect(fetched.some(path => path.includes('rain_road_loop.mp3'))).toBe(false);
   const waterSource = sources.find(source => source.buffer?.path.includes('water_roll_shallow_loop'))!;
   expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
@@ -252,10 +253,26 @@ it('sustains water only during contact, uses physical collision types, and leave
   await director.update({ ...base, speed: 20, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: 35 }] } });
   expect(voicePaths.some(path => path.includes('owner-voices-2026-11-04') && path.includes('_call_'))).toBe(true);
   const callGain = voiceGains.at(-1)!.gain.value;
+  expect(callGain).toBeGreaterThan(.5);
   await director.update({ ...base, speed: 20, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: 12 }] } });
   expect(voiceGains.at(-1)?.gain.targets.at(-1)).toBeGreaterThan(callGain);
   await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: -25 }] } });
   expect(voiceGains.at(-1)?.gain.targets.at(-1)).toBe(0);
+  FakeAudio.rejectNextCall = true;
+  const retryRider = entity('passenger', 'retry-caller', 29, 0);
+  const callsBeforeRetry = voicePaths.filter(path => path.includes('_call_')).length;
+  await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [retryRider] } });
+  await vi.waitFor(() => expect(voiceAudios.at(-1)?.paused).toBe(true));
+  FakeAudioContext.time = 11.7;
+  await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [{ ...retryRider, distance: 20 }] } });
+  expect(voicePaths.filter(path => path.includes('_call_')).length - callsBeforeRetry).toBe(2);
+  expect(voiceAudios.at(-1)?.paused).toBe(false);
+  const callsBeforeVariation = voicePaths.filter(path => path.includes('_call_')).length;
+  await director.update({ ...base, world: { ...base.world, entities: [entity('passenger', 'caller-a', 22, 0)] } });
+  await director.update({ ...base, world: { ...base.world, entities: [entity('passenger', 'caller-c', 22, 0)] } });
+  const variants = voicePaths.filter(path => path.includes('_call_')).slice(callsBeforeVariation);
+  expect(variants).toHaveLength(2);
+  expect(variants[0]).not.toBe(variants[1]);
   FakeAudioContext.time = 12;
   const vendorHit = { ...entity('jam', 'vendor-hit', 0, 0), crossingRole: 'vendor' as const, consumed: true };
   await director.update({ ...base, eventSequence: 10, feedbackKind: 'jam', world: { ...base.world, entities: [vendorHit] } });
@@ -307,8 +324,11 @@ it('sustains water only during contact, uses physical collision types, and leave
   FakeAudioContext.time = 20;
   await director.update({ ...base, crash: null, riderIds: ['return-a', 'return-b'],
     world: { ...base.world, entities: [fallen] } });
-  expect(voicePaths.slice(beforeCrashVoices).filter(path => path.includes('_return_') || path.includes('_abandon_'))).toHaveLength(0);
-  expect(voicePaths.length - beforeCrashVoices).toBe(4);
+  expect(voicePaths.slice(beforeCrashVoices).filter(path => path.includes('_return_'))).toHaveLength(2);
+  expect(voicePaths.slice(beforeCrashVoices).filter(path => path.includes('_abandon_'))).toHaveLength(1);
+  const afterReboard = voicePaths.length;
+  await director.update({ ...base, crash: null, riderIds: ['return-a', 'return-b'] });
+  expect(voicePaths).toHaveLength(afterReboard);
 
   FakeAudioContext.time = 21;
   const beforeSoloCrash = voicePaths.length;
@@ -322,6 +342,11 @@ it('sustains water only during contact, uses physical collision types, and leave
   const beforeHit = voicePaths.length;
   for (let tick = 1; tick <= 60; tick++)
     await director.update({ ...base, distance: tick * .05, world: { ...base.world, entities: [roadsideHit] } });
+  expect(voicePaths.length - beforeHit).toBe(0);
+  const actualHit = { ...roadsideHit, pickupable: false, lastHit: 25,
+    passengerMotion: { homeX: 0, homeDistance: 3, startedAt: 26, phase: 0, idle: false,
+      ejectedAt: 25, fromX: 0, fromDistance: 3, crashRecovery: true, hitByPlayer: true } };
+  await director.update({ ...base, distance: 3, world: { ...base.world, entities: [actualHit] } });
   expect(voicePaths.length - beforeHit).toBe(1);
   await director.update({ ...base, distance: 3.1, world: { ...base.world, entities: [roadsideHit] } });
   expect(voicePaths.length - beforeHit).toBe(1);
@@ -361,6 +386,6 @@ it('sustains water only during contact, uses physical collision types, and leave
     await roadsideDirector.update(roadsideRun);
   }
   expect(roadsideRun.distance).toBeGreaterThan(5);
-  expect(voicePaths.slice(beforeDriveBy).filter(path => path.includes('_scream') || path.includes('kick_short'))).toHaveLength(1);
+  expect(voicePaths.slice(beforeDriveBy).filter(path => path.includes('_scream') || path.includes('kick_short'))).toHaveLength(0);
   roadsideDirector.dispose();
 });
