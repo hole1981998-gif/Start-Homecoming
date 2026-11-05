@@ -381,7 +381,7 @@ export class RoadRenderer {
         part(.8, .1, .15, '#eee3bc', 0, .7, .42);
       }
     } else if (kind === 'shop') {
-      const art = createShopArt('far'); g.add(art.root);
+      const art = createShopArt('far'); g.add(art.root); g.userData.shopArt = art;
     }
     else if (kind === 'wind') {
       const art = createWindStreakArt(width, length);
@@ -426,6 +426,7 @@ export class RoadRenderer {
       this.scene.add(shadow);
       g.userData.roadContactShadow = shadow;
     }
+    this.cloudShadows?.applyTo(g);
     this.scene.add(g); return g;
   }
   draw(s: Run, previous: Run, alpha: number, steering = { left: false, right: false }): void {
@@ -455,8 +456,10 @@ export class RoadRenderer {
       if (this.forceMode && vehicle.kind === 'container' && 'trailer' in art && art.trailer)
         attachArticulatedContainerArt(this.tractorFrame, this.trailerFrame, art);
       else attachVehicleArtToPrototype(this.bike, art);
+      this.cloudShadows?.applyTo(art.root);
       this.playerArt.set(vehicle.kind, art);
     }
+    this.cloudShadows?.applyTo(this.bike);
     for (const [kind, art] of this.playerArt) art.root.visible = useSourceArt && kind === vehicle.kind;
     if (useSourceArt) {
       const ratio = s.durability / vehicle.durabilityCapacity;
@@ -799,6 +802,7 @@ export class RoadRenderer {
       const entityPose = pathPose(e.distance, route, s.seed);
       const pose = passengerPose(e, s.activeSeconds);
       const entityX = e.x + (e.kind === 'shop' ? Math.sign(e.x) * 2.8 : 0);
+      (entry.mesh.userData.shopArt as ReturnType<typeof createShopArt> | undefined)?.update?.(visualTime, lowFx);
       entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * entityX, pose.height,
         entityPose.z + Math.sin(entityPose.heading) * entityX);
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),

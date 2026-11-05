@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createCar4Art } from './car4';
 import { markGameplayAccentTarget } from './storm-lighting';
 
-export interface SpecialArt { root: THREE.Group; dispose: () => void }
+export interface SpecialArt { root: THREE.Group; update?: (time: number, reduced?: boolean) => void; dispose: () => void }
 const mat = (color: string) => new THREE.MeshStandardMaterial({
   color, roughness: .85, flatShading: true, side: THREE.DoubleSide,
 });
@@ -47,7 +47,15 @@ export function createShopArt(lod: 'near' | 'far' = 'near'): SpecialArt {
   root.scale.set(.86, .91, .77);
   const plaster = mat('#718986'), trim = mat('#385a62'), roof = mat('#925e48');
   const wood = mat('#806e59'), glass = mat('#3f6770'), warm = mat('#f2c37c');
-  warm.emissive.set('#c97938'); warm.emissiveIntensity = .19;
+  warm.emissive.set('#ffc275'); warm.emissiveIntensity = 1.2;
+  const beaconTime = { value: 0 }, beaconDepth = { value: 1 };
+  warm.onBeforeCompile = shader => {
+    shader.uniforms.shopBeaconTime = beaconTime; shader.uniforms.shopBeaconDepth = beaconDepth;
+    shader.fragmentShader = 'uniform float shopBeaconTime; uniform float shopBeaconDepth;\n' + shader.fragmentShader;
+    shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>',
+      '#include <emissivemap_fragment>\n totalEmissiveRadiance *= 1.0 + shopBeaconDepth * (0.75 * sin(shopBeaconTime * 3.14159265) + 0.15 * sin(shopBeaconTime * 6.2831853));');
+  };
+  warm.customProgramCacheKey = () => 'shop-beacon-v1';
   box(root, 'shop_plaster', [3.36, 2.6, 3.9], [0, 1.30, -.2], plaster);
   box(root, 'shop_roof', [3.78, .16, 4.34], [0, 2.68, -.18], roof);
   for (const side of [-1, 1])
@@ -73,6 +81,7 @@ export function createShopArt(lod: 'near' | 'far' = 'near'): SpecialArt {
     box(root, `side_cross_horizontal_${side}`, [.09, .12, .45],
       [side * 1.78, 2.05, -.20], trim);
   }
+  box(root, 'shop_roof_beacon', [.42, .16, 2.8], [0, 3.22, -.18], warm);
   box(root, 'repair_sign', [1.10, .50, .10], [0, 3.17, 2.16], warm);
   box(root, 'repair_cross_vertical', [.08, .31, .014], [0, 3.17, 2.22], trim);
   box(root, 'repair_cross_horizontal', [.27, .08, .014], [0, 3.17, 2.23], trim);
@@ -82,5 +91,5 @@ export function createShopArt(lod: 'near' | 'far' = 'near'): SpecialArt {
   }
   root.userData = { id: 'srv_shop_A', axes: '+Y up, +Z forward', collisionRole: 'decorative-service',
     interactionSource: 'existing shop entity; place on verge, no new transaction timer' };
-  return { root, dispose: () => disposeTree(root) };
+  return { root, update: (time, reduced = false) => { beaconTime.value = time; beaconDepth.value = reduced ? .18 : 1; }, dispose: () => disposeTree(root) };
 }
