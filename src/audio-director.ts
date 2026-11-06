@@ -15,6 +15,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/owner-music-2026-11-05/*.mp3',
   '../project-reference/sfx/elevenlabs-world-2026-11-06/*.mp3',
   '../project-reference/sfx/elevenlabs-traffic-2026-11-06/*.mp3',
+  '../project-reference/sfx/elevenlabs-rewards-2026-11-06/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -24,6 +25,29 @@ const waterRoot = '../project-reference/sfx/elevenlabs-water-2026-11-06/';
 const musicRoot = '../project-reference/sfx/owner-music-2026-11-05/';
 const worldRoot = '../project-reference/sfx/elevenlabs-world-2026-11-06/';
 const trafficRoot = '../project-reference/sfx/elevenlabs-traffic-2026-11-06/';
+const rewardRoot = '../project-reference/sfx/elevenlabs-rewards-2026-11-06/';
+const rewardCues: Record<string, string> = {
+  'item/fuel_pickup.wav': 'fuel_pickup_rise.mp3',
+  'item/repair_pickup.wav': 'repair_pickup_rise.mp3',
+  'pickup_01.wav': 'passenger_pickup_rise.mp3',
+  'ui-modern/purchase_success_a.wav': 'item_purchase_rise.mp3',
+  'ui-modern/shop_service_a.wav': 'service_purchase_rise.mp3',
+  'ui-modern/shop_upgrade_a.wav': 'upgrade_purchase_rise.mp3',
+  'ui-modern/vehicle_purchase_a.wav': 'vehicle_purchase_rise.mp3',
+  'ui-modern/menu_select_a.wav': 'ui_soft_select.mp3',
+  'ui-modern/help_open_a.wav': 'ui_soft_select.mp3',
+  'ui-modern/card_open_a.wav': 'ui_soft_select.mp3',
+  'ui-modern/shop_category_a.wav': 'ui_soft_select.mp3',
+  'ui-modern/toggle_on_a.wav': 'ui_soft_select.mp3',
+  'ui-modern/menu_back_a.wav': 'ui_soft_back.mp3',
+  'ui-modern/card_dismiss_a.wav': 'ui_soft_back.mp3',
+  'ui-modern/toggle_off_a.wav': 'ui_soft_back.mp3',
+  'ui-modern/shop_enter_a.wav': 'ui_shop_open.mp3',
+  'ui-modern/purchase_fail_a.wav': 'ui_purchase_fail.mp3',
+  'ui-modern/pause_a.wav': 'ui_pause.mp3',
+  'ui-modern/resume_a.wav': 'ui_resume.mp3',
+  'ui-modern/restart_a.wav': 'ui_restart.mp3',
+};
 const waterCues: Record<string, string> = {
   'road/water_tire_light_loop.wav': 'water_light_loop.mp3',
   'road/water_tire_medium_loop.wav': 'water_medium_loop.mp3',
@@ -82,29 +106,23 @@ const generated: Record<string, string> = {
   'interaction-v2/police_capture.wav': 'police_capture.mp3',
   'interaction-v2/banana_use.wav': 'banana_use.mp3',
   'interaction-v2/broken_car.wav': 'broken_car.mp3',
-  'item/fuel_pickup.wav': 'fuel_pickup.mp3',
-  'item/repair_pickup.wav': 'repair_pickup.mp3',
   'item/nitro_activate.wav': 'nitro_activate.mp3',
   'item/jump.wav': 'jump_launch.mp3',
   'item/landing.wav': 'jump_land.mp3',
   'item/star_activate.wav': 'star_activate.mp3',
   'item/grab_call.wav': 'grab_call.mp3',
-  'pickup_01.wav': 'passenger_pickup.mp3',
   'kick_01.wav': 'passenger_drop.mp3',
   'result/result_damage.wav': 'result_failure.mp3',
   'result/result_fuel.wav': 'result_fuel.mp3',
   'result/result_train.wav': 'result_train.mp3',
   'result/result_police.wav': 'result_police.mp3',
   'result/result_secret.wav': 'result_success.mp3',
-  'ui-modern/purchase_success_a.wav': 'passenger_pickup.mp3',
-  'ui-modern/shop_service_a.wav': 'repair_pickup.mp3',
-  'ui-modern/shop_upgrade_a.wav': 'star_activate.mp3',
-  'ui-modern/vehicle_purchase_a.wav': 'vehicle_switch.mp3',
 };
 const url = (name: string): string | undefined =>
   name === 'traffic/horn_light.wav' || name === 'traffic/horn_car.wav' ? files[worldRoot + 'traffic_horn_car.mp3'] :
   name === 'traffic/horn_heavy.wav' ? files[worldRoot + 'traffic_horn_heavy.mp3'] :
   name.startsWith('traffic/new/') ? files[trafficRoot + name.slice('traffic/new/'.length) + '.mp3'] :
+  rewardCues[name] ? files[rewardRoot + rewardCues[name]] :
   name === 'npc/footsteps_wet' ? files[worldRoot + 'npc_footsteps_wet.mp3'] :
   name === 'train/roll_past' ? files[worldRoot + 'train_roll_past.mp3'] :
   name.startsWith('voice/') ? files[voiceRoot + name.slice(6) + '.mp3'] :
@@ -224,7 +242,7 @@ export type UiCue = 'menu_select' | 'menu_back' | 'help_open' | 'card_open' | 'c
   'purchase_success' | 'shop_service' | 'shop_upgrade' | 'vehicle_purchase' |
   'toggle_on' | 'toggle_off' | 'resource_gain' | 'resource_loss' | 'reward_small';
 const rainLevel = 3;
-const thunderLevel = 1;
+const thunderLevel = 1.4;
 const thunderLoop = 'ambience/distant_thunder_loop.wav';
 const lightningCues = ['ambience/lightning_distant_a.wav', 'ambience/lightning_distant_b.wav'];
 const voiceBoost = (event: VoiceEvent): number => event === 'call' ? 2.6 : event === 'laugh' ? 3.4 :
@@ -493,7 +511,7 @@ export class AudioDirector {
       source.connect(gain).connect(bus);
       this.shopMusic = { audio, source, gain };
     }
-    this.shopMusic.gain.gain.setTargetAtTime(.78, ctx.currentTime, .12);
+    this.shopMusic.gain.gain.setTargetAtTime(.95, ctx.currentTime, .12);
     if (!this.shopMusic.audio.paused || this.shopMusicPending) return;
     const audio = this.shopMusic.audio;
     this.shopMusicPending = true;
@@ -611,10 +629,11 @@ export class AudioDirector {
     if (!ctx) return;
     const request = ++this.uiRequest, generation = this.generation;
     const cue = `ui-modern/${name}_a.wav`;
-    if (!generated[cue]) return;
+    if (!url(cue)) return;
     const play = () => { void this.play(cue, `ui-${name}`, .09,
       name === 'resource_gain' || name === 'resource_loss' || name === 'reward_small' ? .24 :
-        name === 'purchase_success' || name === 'shop_service' || name === 'shop_upgrade' || name === 'vehicle_purchase' ? .72 : .38); };
+        name === 'purchase_success' || name === 'shop_service' || name === 'shop_upgrade' || name === 'vehicle_purchase' ? .88 :
+          name === 'shop_enter' ? .52 : .3); };
     if (ctx.state === 'running') play(); else void ctx.resume().then(() => {
       if (request === this.uiRequest && generation === this.generation) play();
     }).catch(() => { /* blocked until a gesture */ });
@@ -750,12 +769,12 @@ export class AudioDirector {
         if (!e.consumed && !e.wrecked && !this.trafficHorned.has(e.id) && ahead > 9 && ahead < 42 &&
           relativeSpeed > 5 && lateral < (e.width + vehicle.width) / 2 + 2.2) {
           this.trafficHorned.add(e.id);
-          void this.play(hornCue(e.trafficKind), 'traffic-horn', 4.5, .26 + .16 * (1 - ahead / 42), (e.x - run.x) / 6);
+          void this.play(hornCue(e.trafficKind), 'traffic-horn', 4.5, .35 + .21 * (1 - ahead / 42), (e.x - run.x) / 6);
         }
         if (!e.consumed && !e.wrecked && !run.crash && !this.trafficPassed.has(e.id) &&
           prior && prior.ahead > 0 && ahead <= 0 && Math.abs(relativeSpeed) > 4 && lateral < 9) {
           this.trafficPassed.add(e.id);
-          void this.play(passCue(e.trafficKind), 'traffic-pass', .45, .34 * (1 - lateral / 12), (e.x - run.x) / 6);
+          void this.play(passCue(e.trafficKind), 'traffic-pass', .45, .48 * (1 - lateral / 12), (e.x - run.x) / 6);
         }
         for (const otherId of e.trafficPairContacts ?? []) {
           const other = trafficById.get(otherId);
@@ -763,7 +782,7 @@ export class AudioDirector {
           const key = [e.id, otherId].sort().join('|');
           nextPairs.add(key);
           if (!this.trafficPairs.has(key) && Math.abs((e.distance + other.distance) / 2 - run.distance) < 65) {
-            void this.play(collisionCue(e.trafficKind, other.trafficKind), 'traffic-pair', .22, .55);
+            void this.play(collisionCue(e.trafficKind, other.trafficKind), 'traffic-pair', .22, .68);
             this.voice('driver', key, .48 * spatialVoiceVolume((e.distance + other.distance) / 2 - run.distance,
               (e.x + other.x) / 2 - run.x, 65), (e.x - run.x) / 8, 1);
           }
@@ -773,12 +792,12 @@ export class AudioDirector {
           if (potholes.has(holeId)) {
             nextHoles.add(key);
             if (!this.trafficHoles.has(key) && Math.abs(e.distance - run.distance) < 40)
-              void this.play(potholeCue(e.trafficKind), 'traffic-pothole', .28, .42);
+              void this.play(potholeCue(e.trafficKind), 'traffic-pothole', .28, .55);
           } else if (blockers.has(holeId)) {
             nextBlocks.add(key);
             if (!this.trafficBlocks.has(key) && Math.abs(e.distance - run.distance) < 65)
               void this.play(trafficBlockCue(e.trafficKind), 'traffic-block', .35,
-                .32 + .32 * (1 - Math.abs(e.distance - run.distance) / 65), (e.x - run.x) / 8);
+                .42 + .38 * (1 - Math.abs(e.distance - run.distance) / 65), (e.x - run.x) / 8);
           }
         }
       }

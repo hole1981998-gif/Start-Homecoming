@@ -51,7 +51,7 @@ it('starts ElevenLabs driving sound and cancels active stems on pause', async ()
   expect(fetched.some(path => path.includes('engine_bike_texture_loop.mp3'))).toBe(true);
   expect(fetched.some(path => path.includes('rain_shower_loop.mp3'))).toBe(true);
   director.ui('menu_select');
-  expect(fetched.some(path => path.includes('menu_select_a.wav'))).toBe(false);
+  expect(fetched.some(path => path.includes('ui_soft_select.mp3'))).toBe(true);
   const car = newVehicle('car4', 'audio-car');
   await director.update({ ...run, vehicleInstances: [...run.vehicleInstances, car], activeVehicleId: car.id });
   await vi.waitFor(() => expect(fetched.some(path => path.includes('engine_car_texture_loop.mp3'))).toBe(true));
@@ -72,7 +72,7 @@ it('starts ElevenLabs driving sound and cancels active stems on pause', async ()
   director.pause();
   expect(tracks[0].paused).toBe(true);
   director.ui('pause');
-  expect(fetched.some(path => path.includes('pause_a.wav'))).toBe(false);
+  expect(fetched.some(path => path.includes('ui_pause.mp3'))).toBe(true);
   expect(sources.some(s => s.stopped)).toBe(true);
   director.reset();
   expect(sources.every(s => s.stopped)).toBe(true);
