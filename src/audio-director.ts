@@ -16,6 +16,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-world-2026-11-06/*.mp3',
   '../project-reference/sfx/elevenlabs-traffic-2026-11-06/*.mp3',
   '../project-reference/sfx/elevenlabs-rewards-2026-11-06/*.mp3',
+  '../project-reference/sfx/elevenlabs-pothole-2026-11-06/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -26,6 +27,15 @@ const musicRoot = '../project-reference/sfx/owner-music-2026-11-05/';
 const worldRoot = '../project-reference/sfx/elevenlabs-world-2026-11-06/';
 const trafficRoot = '../project-reference/sfx/elevenlabs-traffic-2026-11-06/';
 const rewardRoot = '../project-reference/sfx/elevenlabs-rewards-2026-11-06/';
+const potholeRoot = '../project-reference/sfx/elevenlabs-pothole-2026-11-06/';
+const potholeCues: Record<string, string> = {
+  'road/pothole_rattle_light.wav': 'pothole_light_a.mp3',
+  'road/pothole_rattle_light_alt.wav': 'pothole_light_b.mp3',
+  'road/pothole_rattle_medium.wav': 'pothole_medium_a.mp3',
+  'road/pothole_rattle_medium_alt.wav': 'pothole_medium_b.mp3',
+  'road/pothole_rattle_heavy.wav': 'pothole_heavy_a.mp3',
+  'road/pothole_rattle_heavy_alt.wav': 'pothole_heavy_b.mp3',
+};
 const rewardCues: Record<string, string> = {
   'item/fuel_pickup.wav': 'fuel_pickup_rise.mp3',
   'item/repair_pickup.wav': 'repair_pickup_rise.mp3',
@@ -122,6 +132,7 @@ const url = (name: string): string | undefined =>
   name === 'traffic/horn_light.wav' || name === 'traffic/horn_car.wav' ? files[worldRoot + 'traffic_horn_car.mp3'] :
   name === 'traffic/horn_heavy.wav' ? files[worldRoot + 'traffic_horn_heavy.mp3'] :
   name.startsWith('traffic/new/') ? files[trafficRoot + name.slice('traffic/new/'.length) + '.mp3'] :
+  potholeCues[name] ? files[potholeRoot + potholeCues[name]] :
   rewardCues[name] ? files[rewardRoot + rewardCues[name]] :
   name === 'npc/footsteps_wet' ? files[worldRoot + 'npc_footsteps_wet.mp3'] :
   name === 'train/roll_past' ? files[worldRoot + 'train_roll_past.mp3'] :
@@ -191,6 +202,7 @@ const oneShotVariants: Record<string, string[]> = {
   'interaction-v2/collision_medium.wav': ['interaction-v2/collision_medium.wav', 'interaction-v2/collision_medium_alt.wav'],
   'interaction-v2/collision_heavy.wav': ['interaction-v2/collision_heavy.wav', 'interaction-v2/collision_heavy_alt.wav'],
   'road/pothole_rattle_light.wav': ['road/pothole_rattle_light.wav', 'road/pothole_rattle_light_alt.wav'],
+  'road/pothole_rattle_medium.wav': ['road/pothole_rattle_medium.wav', 'road/pothole_rattle_medium_alt.wav'],
   'road/pothole_rattle_heavy.wav': ['road/pothole_rattle_heavy.wav', 'road/pothole_rattle_heavy_alt.wav'],
   'interaction-v2/cargo_crate_hit.wav': ['interaction-v2/cargo_crate_hit.wav', 'interaction-v2/cargo_crate_hit_alt.wav'],
   'interaction-v2/cargo_barrel_hit.wav': ['interaction-v2/cargo_barrel_hit.wav', 'interaction-v2/cargo_barrel_hit_alt.wav'],
@@ -206,6 +218,9 @@ const windLoops = ['ambience/wind_loop.wav', 'ambience/wind_soft_loop.wav'];
 const hornCue = (kind?: VehicleKind): string =>
   `traffic/horn_${heavyVehicle(kind) ? 'heavy' : lightVehicle(kind) ? 'light' : 'car'}.wav`;
 const passCue = (kind?: VehicleKind): string => `traffic/new/pass_${heavyVehicle(kind) ? 'truck' : lightVehicle(kind) ? 'scooter' : 'car'}`;
+/** Start the recorded approach early so its closest pass coincides with the vehicle crossing the player. */
+export const trafficPassLeadDistance = (kind: VehicleKind | undefined, relativeSpeed: number): number =>
+  Math.max(6, Math.min(40, Math.abs(relativeSpeed) * (heavyVehicle(kind) ? 1.5 : lightVehicle(kind) ? 1.1 : 1.25)));
 const trafficBlockCue = (kind?: VehicleKind): string =>
   `traffic/new/traffic_block_${heavyVehicle(kind) ? 'heavy' : 'light'}`;
 
@@ -221,7 +236,8 @@ const collisionCue = (a?: VehicleKind, b?: VehicleKind, impactSpeed?: number): s
     : impactSpeed < 9 ? 'light' : impactSpeed < 21 ? 'medium' : heavyVehicle(a) || heavyVehicle(b) ? 'heavy' : 'medium';
   return `interaction-v2/collision_${weight}.wav`;
 };
-const potholeCue = (kind?: VehicleKind): string => `road/pothole_rattle_${heavyVehicle(kind) ? 'heavy' : 'light'}.wav`;
+const potholeCue = (kind?: VehicleKind): string =>
+  `road/pothole_rattle_${heavyVehicle(kind) ? 'heavy' : lightVehicle(kind) ? 'light' : 'medium'}.wav`;
 const engineTexture = (kind: VehicleKind): string =>
   `engine-v2/${lightVehicle(kind) ? 'bike' : heavyVehicle(kind) ? 'heavy' : 'car'}_texture_loop.wav`;
 const cueTrim: Record<string, number> = {
@@ -766,13 +782,16 @@ export class AudioDirector {
       if (e.kind === 'traffic') {
         const lateral = Math.abs(e.x - run.x);
         const relativeSpeed = run.speed - e.speed;
+        const passLead = trafficPassLeadDistance(e.trafficKind, relativeSpeed);
+        if (!e.consumed && !e.wrecked && ahead > passLead && ahead < 95 && relativeSpeed > 4)
+          void this.buffer(passCue(e.trafficKind));
         if (!e.consumed && !e.wrecked && !this.trafficHorned.has(e.id) && ahead > 9 && ahead < 42 &&
           relativeSpeed > 5 && lateral < (e.width + vehicle.width) / 2 + 2.2) {
           this.trafficHorned.add(e.id);
           void this.play(hornCue(e.trafficKind), 'traffic-horn', 4.5, .35 + .21 * (1 - ahead / 42), (e.x - run.x) / 6);
         }
         if (!e.consumed && !e.wrecked && !run.crash && !this.trafficPassed.has(e.id) &&
-          prior && prior.ahead > 0 && ahead <= 0 && Math.abs(relativeSpeed) > 4 && lateral < 9) {
+          prior && prior.ahead > passLead && ahead <= passLead && relativeSpeed > 4 && lateral < 9) {
           this.trafficPassed.add(e.id);
           void this.play(passCue(e.trafficKind), 'traffic-pass', .45, .48 * (1 - lateral / 12), (e.x - run.x) / 6);
         }
