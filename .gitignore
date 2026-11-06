@@ -3,3 +3,6 @@ dist/
 .vite/
 coverage/
 *.log
+.env.local
+.env
+__pycache__/

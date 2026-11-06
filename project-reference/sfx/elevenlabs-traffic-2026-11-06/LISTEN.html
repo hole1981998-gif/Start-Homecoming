@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="vi">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nghe thử âm giao thông</title>
+<style>
+  body{font:16px system-ui;background:#14212a;color:#e9f1f1;max-width:760px;margin:32px auto;padding:0 20px}
+  h1{font-size:1.5rem} h2{font-size:1.1rem;margin-top:28px}
+  .clip{display:grid;grid-template-columns:minmax(130px,1fr) 2fr;align-items:center;gap:14px;margin:12px 0}
+  audio{width:100%} @media(max-width:560px){.clip{grid-template-columns:1fr}}
+</style>
+<h1>Âm giao thông mới</h1>
+<p>Nghe từng bản riêng trước khi thử trong game. Các tiếng còi cũ vẫn được dùng xen kẽ với bản mới.</p>
+<h2>Còi</h2>
+<div class="clip"><span>Xe nhỏ</span><audio controls src="horn_scooter_short.mp3"></audio></div>
+<div class="clip"><span>Ô tô</span><audio controls src="horn_car_urgent.mp3"></audio></div>
+<div class="clip"><span>Xe tải</span><audio controls src="horn_truck_low.mp3"></audio></div>
+<h2>Động cơ vụt qua</h2>
+<div class="clip"><span>Xe nhỏ</span><audio controls src="pass_scooter.mp3"></audio></div>
+<div class="clip"><span>Ô tô</span><audio controls src="pass_car.mp3"></audio></div>
+<div class="clip"><span>Xe tải</span><audio controls src="pass_truck.mp3"></audio></div>
+<h2>Xe chướng ngại va vật cản</h2>
+<div class="clip"><span>Va nhẹ</span><audio controls src="traffic_block_light.mp3"></audio></div>
+<div class="clip"><span>Va nặng</span><audio controls src="traffic_block_heavy.mp3"></audio></div>
+</html>
