@@ -199,7 +199,8 @@ export class ForceIntegration {
           lastHit: next.activeSeconds,
           passengerMotion: { ...motion, homeX: targetX, homeDistance: targetDistance,
             startedAt: next.activeSeconds + recovery, ejectedAt: next.activeSeconds,
-            fromX: e.x, fromDistance: e.distance, crashRecovery: true } });
+            fromX: e.x, fromDistance: e.distance, crashRecovery: true,
+            hitByPlayer: carrier.kind === 'player' } });
         this.npcImpacts++;
         if (carrier.kind === 'player') playerHitNpc = true;
         break;
