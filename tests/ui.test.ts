@@ -91,8 +91,14 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   expect(el('help-details').textContent).toContain('tài xế');
   expect(el('modal-title').nextElementSibling).toBe(el('close-help'));
   const helpDistance = el('distance').textContent; tick(3); expect(el('distance').textContent).toBe(helpDistance);
-  key('keydown', 'Tab'); expect(document.activeElement).toBe(el('close-help'));
-  el('effects-toggle').focus(); key('keydown', 'Tab'); expect(document.activeElement).toBe(el('close-help'));
+  const firstAudioSlider = document.querySelector<HTMLInputElement>('.audio-options input');
+  expect(firstAudioSlider?.getAttribute('aria-label')).toBe('Hiệu ứng');
+  expect([...document.querySelectorAll('.audio-options input')].map(node => node.getAttribute('aria-label')))
+    .toEqual(['Hiệu ứng', 'Mưa và gió', 'Nhạc nền']);
+  const focusables = [...el('modal').querySelectorAll<HTMLElement>('button,input,select,a[href],summary')]
+    .filter(node => !node.closest('[hidden]') && !(node instanceof HTMLButtonElement && node.disabled));
+  focusables.at(-1)!.focus(); key('keydown', 'Tab'); expect(document.activeElement).toBe(focusables[0]);
+  key('keydown', 'Tab', { shiftKey: true }); expect(document.activeElement).toBe(focusables.at(-1));
   key('keydown', 'Escape'); expect(el('modal').hidden).toBe(false);
   expect(el('help-details').hidden).toBe(true);
   key('keydown', 'Escape'); expect(el('modal').hidden).toBe(true);
