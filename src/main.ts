@@ -1,5 +1,5 @@
 import './style.css';
-import { approachCueScale } from './cue-scale';
+import { approachCueScale, roadCueDistance } from './cue-scale';
 import './ui-flat.css';
 import { prepareContentIcons, renderItemSlots } from './ui-icons';
 import { prepareUiShell } from './ui-shell';
@@ -118,7 +118,7 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
   el('panel-help').hidden = !['pause', 'result', 'start'].includes(view);
   el('panel-restart').hidden = view !== 'pause';
-  el('feedback-options').hidden = !['pause', 'help', 'result'].includes(view);
+  el('feedback-options').hidden = true;
   play.textContent = view === 'card' ? 'Đã hiểu · tiếp tục' : view === 'result' ? 'Chơi lại' : view === 'start' ? 'Bắt đầu lái' : 'Tiếp tục lái';
   (view === 'help' ? closeHelp : play).focus({ preventScroll: true });
 }
@@ -229,10 +229,8 @@ function setMenu(open: boolean): void {
 menuToggle.setAttribute('aria-keyshortcuts', 'M');
 menuToggle.title = 'Điều khiển và menu · M';
 menuToggle.addEventListener('click', () => { const open = menuPanel.hidden; setMenu(open); if (!open && state.phase === 'running') canvas.focus({preventScroll:true}); }, { signal: listeners.signal });
-menu.addEventListener('pointerenter', event => { if (event.pointerType === 'mouse') setMenu(true); }, { signal: listeners.signal });
-menu.addEventListener('pointerleave', event => { if (event.pointerType === 'mouse') setMenu(false); }, { signal: listeners.signal });
+menuPanel.addEventListener('click', event => { if ((event.target as Element).closest('button')) setMenu(false); }, { signal: listeners.signal });
 menu.addEventListener('focusin', event => { if (event.target !== menuToggle) setMenu(true); }, { signal: listeners.signal });
-menu.addEventListener('focusout', event => { if (!menu.contains(event.relatedTarget as Node)) setMenu(false); }, { signal: listeners.signal });
 document.addEventListener('pointerdown', event => { if (!menu.contains(event.target as Node)) setMenu(false); }, { signal: listeners.signal });
 menu.addEventListener('keydown', event => {
   if (event.code === 'Escape') { event.stopPropagation(); setMenu(false); if (state.phase === 'running') canvas.focus({preventScroll:true}); else menuToggle.focus(); setMenu(false); }
@@ -242,6 +240,7 @@ window.addEventListener('keydown', event => {
   if (event.code === 'KeyM' && modal.hidden && !event.repeat) { event.preventDefault(); const open = menuPanel.hidden; if (open) menuToggle.focus(); else canvas.focus({preventScroll:true}); setMenu(open); return; }
   if (event.code === 'Escape' && !event.repeat) {
     event.preventDefault();
+    if (!menuPanel.hidden) { setMenu(false); if (state.phase === 'running') canvas.focus({preventScroll:true}); return; }
     if (screen === 'card') dismissCard(); else if (screen === 'help') closeHelp.click(); else if (state.phase === 'running') pauseRun(); else if (state.phase === 'paused') resume();
     return;
   }
@@ -279,7 +278,7 @@ function updateHud(): void {
   const nextJunction = junction(state.seed, state.route.index);
   const approach = nextJunction.distance - state.distance;
   const junctionCue = el('junction-cue');
-  junctionCue.hidden = state.phase !== 'running' || !!state.crash || approach < 0 || approach > Math.max(70, state.speed * 4);
+  junctionCue.hidden = state.phase !== 'running' || !!state.crash || approach < 0 || approach > roadCueDistance;
   el('junction-branches').hidden = junctionCue.hidden;
   if (!junctionCue.hidden) {
     const activeChoice = canChoose(state.distance, state.speed, nextJunction, vehicle.kind, state.route.window);
@@ -295,11 +294,11 @@ function updateHud(): void {
     el('junction-left').classList.toggle('selected', state.route.choice === 'left');
     el('junction-right').classList.toggle('selected', state.route.choice === 'right');
     for (const [id, side] of [['junction-left', -1], ['junction-right', 1]] as const) {
-      const target = graphics.project(side * 5.2, 0.6, -(approach + 2));
+      const target = graphics.project(side * 5.2, .15, -(approach + 2), true);
       const cue = el<HTMLElement>(id);
       cue.style.setProperty('--cue-scale', String(approachCueScale(approach)));
-      cue.style.left = `${Math.max(side < 0 ? 12 : 64, Math.min(side < 0 ? 36 : 88, target.x))}%`;
-      cue.style.top = `${Math.max(40, Math.min(52, target.y))}%`;
+      cue.style.left = `${Math.max(8, Math.min(92, target.x))}%`;
+      cue.style.top = `${target.y}%`;
     }
   }
   text('speed', speedText(state.phase === 'running' ? state.speed : 0)); text('distance', `${Math.floor(state.distance + 1e-8)}`);
@@ -328,7 +327,7 @@ function updateHud(): void {
     state.recovering ? 'Đang tăng tốc lại' :
     state.motion === 'coasting' ? `Hết xăng · trôi ${Math.ceil(state.coastRemaining)} m` : input.brake ? 'Giữ S · hãm' : hasBoost(state) ? 'Nitro boost' : input.accelerate ? 'Giữ W · tăng' :
       Math.abs(state.speed - passengerDrive(state.riderIds.length, vehicle).cruiseSpeed) > 1e-8 ? 'Đang hồi về trung vị' : 'Tự chạy trung vị');
-  roadHud.update(state, graphics, flavorToggle.checked);
+  roadHud.update(state, graphics);
   pause.disabled = state.phase === 'ready' || state.phase === 'ended'; restart.disabled = state.phase === 'ready';
   pause.setAttribute('aria-label', state.phase === 'paused' ? 'Tiếp tục' : 'Tạm dừng');
   pause.title = state.phase === 'paused' ? 'Tiếp tục · Esc' : 'Tạm dừng · Esc';

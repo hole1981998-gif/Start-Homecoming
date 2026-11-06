@@ -14,49 +14,42 @@ it('renders only supply tags and leaves hazards in the world without mutating si
   const hud=setup(), run: Run={...initialRun(),phase:'running'};
   run.world.entities=[entity('water','water',35,3.2),entity('traffic','car',25,0),entity('fuel','fuel',40,3.2),entity('repair','repair',30,-3.2),entity('shop','shop',30,3.2)];
   const before=structuredClone(run);
-  hud.update(run,{project:(x) => ({x:x>0?120:10,y:-20})},true);
+  hud.update(run,{project:(x) => ({x:x>0?120:10,y:-20})});
   expect(document.querySelector('[data-kind="water"]')).toBeNull();
   expect(document.querySelector('[data-kind="traffic"]')).toBeNull();
   expect(document.querySelector('[data-kind="fuel"] .supply-badge [data-icon="fuel"]')).not.toBeNull();
   expect(document.querySelector('[data-kind="shop"] .shop-label')!.textContent).toBe('CỬA HÀNG');
   expect(document.querySelector('[data-kind="shop"] [data-icon]')).toBeNull();
   const fuel=document.querySelector<HTMLElement>('[data-kind="fuel"]')!;
-  expect(fuel.hidden).toBe(false);expect(fuel.style.left).toBe('88%');expect(fuel.style.top).toBe('32%');
+  expect(fuel.hidden).toBe(false);expect(fuel.style.left).toBe('120%');expect(fuel.style.top).toBe('-20%');
   expect([...document.querySelectorAll<HTMLElement>('.world-cue')].map(n=>n.dataset.kind)).toEqual(['fuel','repair','shop']);
   expect(run).toEqual(before);
-  hud.update({...run,phase:'paused'},{project:()=>({x:50,y:40})},false);expect(fuel.hidden).toBe(true);
+  hud.update({...run,phase:'paused'},{project:()=>({x:50,y:40})});expect(fuel.hidden).toBe(true);
 });
-it('keeps essential train and banana actions without reinstating obstacle tags', () => {
- const hud=setup(), train=entity('train','t',15,0), projection={project:()=>({x:50,y:40})};
- const run: Run={...initialRun(),phase:'running',world:{...initialRun().world,entities:[train]}};
- hud.update(run,projection,false);expect(document.getElementById('road-action')!.textContent).toContain('TÀU');
- expect(document.querySelector('[data-kind="train"]')).toBeNull();
- const officer=entity('police','p',10,0);run.world.entities=[officer];run.inventory=['banana',null];
- hud.update(run,projection,false);expect(document.getElementById('road-action')!.textContent).toBe('1 · DÙNG CHUỐI');
- expect(document.querySelector('[data-kind="police"]')).toBeNull();
+it('never shows floating action prompts for passengers, officers, trains or cargo', () => {
+ const hud=setup(),projection={project:()=>({x:50,y:40})};
+ const run:Run={...initialRun(),phase:'running',inventory:['banana',null]};
+ for(const kind of ['passenger','police','militia','train','traffic'] as const){
+  const target=entity(kind,'target',0,0);target.cargoReleaseAt=1;
+  run.world.entities=[target];hud.update(run,projection);
+  expect(document.getElementById('road-action')).toBeNull();
+ }
 });
-it('shows pickup action only for a reachable, unlocked, willing passenger', () => {
- const hud=setup(),person=entity('passenger','p',0,0), projection={project:()=>({x:50,y:40})};
- const run: Run={...initialRun(),phase:'running',world:{...initialRun().world,entities:[person]}};
- const cue=document.getElementById('road-action')!;
- person.lastHit=2;hud.update(run,projection,false);expect(cue.hidden).toBe(true);
- run.activeSeconds=2;hud.update(run,projection,false);expect(cue.textContent).toContain('F · ĐÓN');expect(cue.hidden).toBe(false);
- person.pickupable=false;hud.update(run,projection,false);expect(cue.hidden).toBe(true);
- person.pickupable=true;person.x=8;hud.update(run,projection,false);expect(cue.hidden).toBe(true);
-});
-it('disabling flavor keeps numeric consequences; expired/restarted feedback clears; coast stays readable', () => {
+it('keeps consequences in live text and resource HUD without visual impact popups', () => {
   const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
   const run: Run = { ...initialRun(), phase: 'running', feedbackKind: 'pothole', feedbackAt: 0, activeSeconds: 1,
     feedback: 'Ổ gà · −12 HP · −10.0 tiền', motion: 'coasting', coastRemaining: 18 };
-  hud.update(run, projection, false);
-  expect(document.getElementById('impact-value')!.textContent).toContain('−12 HP');
+  hud.update(run, projection);
+  expect(document.getElementById('impact-cue')!.hidden).toBe(true);
+  expect(document.getElementById('impact-value')!.textContent).toBe('');
   expect(document.getElementById('impact-flavor')!.textContent).toBe('');
   expect(document.getElementById('coast-cue')!.textContent).toBe('Trôi 18 m');
-  hud.update(run, projection, true);
-  expect(document.getElementById('impact-flavor')!.textContent).toBe('OH MY XE!');
-  hud.update({ ...run, activeSeconds: 3 }, projection, true);
+  hud.update(run, projection);
+  expect(document.getElementById('impact-flavor')!.textContent).toBe('');
   expect(document.getElementById('impact-cue')!.hidden).toBe(true);
-  hud.update(initialRun(), projection, true);
+  hud.update({ ...run, activeSeconds: 3 }, projection);
+  expect(document.getElementById('impact-cue')!.hidden).toBe(true);
+  hud.update(initialRun(), projection);
   expect(document.getElementById('feedback')!.textContent).toBe('');
   expect(document.getElementById('coast-cue')!.hidden).toBe(true);
 });
@@ -64,10 +57,10 @@ it('crash return cue shows remaining protection time and clears on restart', () 
   const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
   const run: Run = { ...initialRun(), phase: 'running', crash: { elapsed: 1, side: 1, originDistance: 0, originX: 0,
     impactSpeed: balance.cruiseSpeed, returningRiderIds: [], strandedRiderIds: [] } };
-  hud.update(run, projection, true);
+  hud.update(run, projection);
   const cue = document.getElementById('crash-cue')!;
   expect(cue.hidden).toBe(false); expect(cue.getAttribute('aria-label')).toContain('miễn nhiễm');
-  hud.update(initialRun(), projection, true);
+  hud.update(initialRun(), projection);
   expect(cue.hidden).toBe(true);
 });
 
@@ -75,9 +68,22 @@ it('grows supply tags as the player approaches without mutating the run',()=>{
  const hud=setup(),projection={project:()=>({x:50,y:40})};
  const run:Run={...initialRun(),phase:'running',world:{...initialRun().world,entities:[entity('fuel','f',35,0)]}};
  const cue=document.querySelector<HTMLElement>('[data-kind="fuel"]')!;
- const before=structuredClone(run);hud.update(run,projection,false);
+ const before=structuredClone(run);hud.update(run,projection);
  const far=Number(cue.style.getPropertyValue('--cue-scale'));
- hud.update({...run,speed:25},projection,false);expect(Number(cue.style.getPropertyValue('--cue-scale'))).toBe(far);
- hud.update({...run,distance:30},projection,false);const near=Number(cue.style.getPropertyValue('--cue-scale'));
+ hud.update({...run,speed:25},projection);expect(Number(cue.style.getPropertyValue('--cue-scale'))).toBe(far);
+ hud.update({...run,distance:30},projection);const near=Number(cue.style.getPropertyValue('--cue-scale'));
  expect(near).toBeGreaterThan(far);expect(near).toBeLessThanOrEqual(1);expect(run).toEqual(before);
+});
+
+it('shows distant tags and follows the road projection continuously regardless of speed',()=>{
+ const hud=setup(),run:Run={...initialRun(),phase:'running',speed:0,
+  world:{...initialRun().world,entities:[entity('fuel','far-fuel',110,0)]}};
+ const cue=document.querySelector<HTMLElement>('[data-kind="fuel"]')!;
+ const projection={project:(_x:number,_y:number,z:number)=>({x:50,y:70+z/3})};
+ hud.update(run,projection);expect(cue.hidden).toBe(false);
+ const farY=parseFloat(cue.style.top),farScale=Number(cue.style.getPropertyValue('--cue-scale'));
+ hud.update({...run,distance:50},projection);
+ expect(parseFloat(cue.style.top)).toBeGreaterThan(farY);
+ expect(Number(cue.style.getPropertyValue('--cue-scale'))).toBeGreaterThan(farScale);
+ hud.update({...run,speed:30},projection);expect(parseFloat(cue.style.top)).toBe(farY);
 });

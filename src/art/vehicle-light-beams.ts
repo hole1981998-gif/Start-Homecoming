@@ -26,7 +26,7 @@ export function createVehicleLightBeams(capacity = 64) {
       }`,
   });
   const root = new THREE.InstancedMesh(geometry, material, capacity);
-  root.name = 'vehicle_headlight_ground_washes'; root.frustumCulled = false; root.count = 0;
+  root.name = 'vehicle_headlight_ground_washes'; root.renderOrder = 2; root.frustumCulled = false; root.count = 0;
   const dummy = new THREE.Object3D();
   const reset = () => { root.count = 0; };
   const add = (position: THREE.Vector3, direction: THREE.Vector3, width = 1, length = 6) => {

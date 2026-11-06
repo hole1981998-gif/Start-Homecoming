@@ -21,6 +21,7 @@ export function bindVehicleLampMaterials(art: { root: THREE.Group; trailer?: THR
     if (!material) return;
     originals.push({ mesh: object, material: object.material });
     object.material = material;
+    object.receiveShadow = false;
   });
   const baseDispose = art.dispose;
   art.dispose = () => {

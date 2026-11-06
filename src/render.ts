@@ -1,3 +1,5 @@
+import { updateWindowPassenger } from './art/window-passengers';
+import { roadCuePose } from './cue-scale';
 import { isSpecial, trainClosed } from './special-events';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -296,11 +298,6 @@ export class RoadRenderer {
   /** Small upper bodies lean beyond each side window; the driver is never included. */
   private addWindowPassengers(parent: THREE.Group, width: number, length: number, count: number, height: number): THREE.Group[] {
     const passengers: THREE.Group[] = [];
-    const torsoGeometry = new THREE.CylinderGeometry(.12, .16, .27, 5);
-    const headGeometry = new THREE.IcosahedronGeometry(.145, 1);
-    const coats = ['#9cb7a6', '#d59b79'].map(color =>
-      new THREE.MeshLambertMaterial({ color, flatShading: true }));
-    const skin = new THREE.MeshLambertMaterial({ color: '#e6d8bd', flatShading: true });
     for (let i = 0; i < count; i++) {
       const side = i % 2 ? 1 : -1;
       const row = Math.floor(i / 2);
@@ -309,11 +306,6 @@ export class RoadRenderer {
       const person = new THREE.Group(); parent.add(person);
       person.position.set(side * (width * .5 + .08), height, z);
       person.rotation.z = -side * .22;
-      const torso = new THREE.Mesh(torsoGeometry, coats[i % coats.length]);
-      torso.position.y = -.11; person.add(torso);
-      const head = new THREE.Mesh(headGeometry, skin);
-      head.name = 'window_head';
-      head.position.y = .13; person.add(head);
       person.visible = false; passengers.push(person);
     }
     return passengers;
@@ -380,7 +372,7 @@ export class RoadRenderer {
         part(.8, .1, .15, '#eee3bc', 0, .7, .42);
       }
     } else if (kind === 'shop') {
-      const art = createShopArt('far'); g.add(art.root);
+      const art = createShopArt('far'); g.add(art.root); g.userData.shopArt = art;
     }
     else if (kind === 'wind') {
       const art = createWindStreakArt(width, length);
@@ -425,6 +417,7 @@ export class RoadRenderer {
       this.scene.add(shadow);
       g.userData.roadContactShadow = shadow;
     }
+    this.cloudShadows?.applyTo(g);
     this.scene.add(g); return g;
   }
   draw(s: Run, previous: Run, alpha: number, steering = { left: false, right: false }): void {
@@ -454,8 +447,10 @@ export class RoadRenderer {
       if (this.forceMode && vehicle.kind === 'container' && 'trailer' in art && art.trailer)
         attachArticulatedContainerArt(this.tractorFrame, this.trailerFrame, art);
       else attachVehicleArtToPrototype(this.bike, art);
+      this.cloudShadows?.applyTo(art.root);
       this.playerArt.set(vehicle.kind, art);
     }
+    this.cloudShadows?.applyTo(this.bike);
     for (const [kind, art] of this.playerArt) art.root.visible = useSourceArt && kind === vehicle.kind;
     if (useSourceArt) {
       const ratio = s.durability / vehicle.durabilityCapacity;
@@ -551,11 +546,12 @@ export class RoadRenderer {
         person.position.z = vehicle.kind === 'truck' || vehicle.kind === 'container' ? -.36 + Math.floor(i / 2) * .18 :
           rows <= 1 ? 0 : -.58 + Math.floor(i / 2) * 1.16 / (rows - 1);
       }
-      person.getObjectByName('window_head')!.rotation.y = Math.sin(visualTime * 1.6 + i) * .08;
+      if (person.visible) updateWindowPassenger(person, s.riderIds[i], visualTime);
     });
     this.tractorPassengers.forEach((person, i) => {
       person.visible = articulated && !s.crash && i < s.riderIds.length;
       if (useSourceArt) person.position.set(-1.20, 2.19, -.78);
+      if (person.visible) updateWindowPassenger(person, s.riderIds[i], visualTime);
       person.rotation.z = Math.sin(visualTime * 2.2 + i) * .025;
     });
     const modeledPassengers = useSourceArt && open ?
@@ -738,6 +734,7 @@ export class RoadRenderer {
             object.castShadow = lod === 'near' &&
               new THREE.Box3().setFromObject(object).max.y > 1.6;
           } });
+          this.cloudShadows?.applyTo(art.root);
           this.scene.add(art.root);
           this.scenery.set(key, art);
         }
@@ -798,6 +795,7 @@ export class RoadRenderer {
       const entityPose = pathPose(e.distance, route, s.seed);
       const pose = passengerPose(e, s.activeSeconds);
       const entityX = e.x + (e.kind === 'shop' ? Math.sign(e.x) * 2.8 : 0);
+      (entry.mesh.userData.shopArt as ReturnType<typeof createShopArt> | undefined)?.update?.(visualTime, lowFx);
       entry.mesh.visible = true; entry.mesh.position.set(entityPose.x + Math.cos(entityPose.heading) * entityX, pose.height,
         entityPose.z + Math.sin(entityPose.heading) * entityX);
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
@@ -893,8 +891,8 @@ export class RoadRenderer {
     this.host.style.setProperty('--bike-x', `${Math.max(30, Math.min(70, tail.x))}%`);
     this.host.style.setProperty('--bike-tail-y', `${Math.max(76, Math.min(86, tail.y))}%`);
   }
-  project(x: number, y: number, z: number): { x: number; y: number } {
-    const p = pathPose(this.viewState.distance - z, this.viewState.route, this.viewState.seed);
+  project(x: number, y: number, z: number, junctionAnchor = false): { x: number; y: number } {
+    const p = roadCuePose(this.viewState.distance - z, this.viewState.route, this.viewState.seed, junctionAnchor);
     this.projected.set(p.x + Math.cos(p.heading) * x, y, p.z + Math.sin(p.heading) * x).project(this.camera);
     return { x: (this.projected.x + 1) * 50, y: (1 - this.projected.y) * 50 };
   }

@@ -52,6 +52,7 @@ function featherTexture(): THREE.DataTexture {
 export interface CloudShadowArt {
   root: THREE.Group;
   update: (seed: number, distance: number, route: RouteState) => void;
+  applyTo: (root: THREE.Object3D) => void;
   dispose: () => void;
 }
 
@@ -66,6 +67,55 @@ export function createCloudShadowArt(): CloudShadowArt {
     color: roadShadowColor, alphaMap: texture, opacity: roadShadowOpacity,
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
   });
+  const bounds = { value: Array.from({length:visiblePatches},()=>new THREE.Vector4(0,0,1,1)) };
+  const rotations = { value: Array.from({length:visiblePatches},()=>new THREE.Vector2(1,0)) };
+  const applied = new WeakSet<THREE.Material>();
+  const applyTo = (target: THREE.Object3D) => target.traverse(object => {
+    if (!(object instanceof THREE.Mesh)) return;
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    // Unlit lenses must not enter Three's Basic-material shadow-mask path.
+    object.receiveShadow = !materials.every(material => material instanceof THREE.MeshBasicMaterial);
+    for (const material of materials) {
+      if (!(material instanceof THREE.MeshStandardMaterial) || applied.has(material)) continue;
+      applied.add(material);
+      const previous = material.onBeforeCompile.bind(material);
+      const previousKey = material.customProgramCacheKey.bind(material);
+      const cacheKey = previousKey();
+      material.onBeforeCompile = (shader, renderer) => {
+        previous(shader, renderer);
+        shader.uniforms.cloudBounds = bounds; shader.uniforms.cloudRotations = rotations;
+        shader.uniforms.cloudMask = { value: texture };
+        shader.vertexShader = 'varying vec3 vCloudWorld;\n' + shader.vertexShader;
+        shader.vertexShader = shader.vertexShader.replace('#include <worldpos_vertex>',
+          `#include <worldpos_vertex>
+          vec4 cloudPosition = vec4(transformed, 1.0);
+          #ifdef USE_BATCHING
+            cloudPosition = batchingMatrix * cloudPosition;
+          #endif
+          #ifdef USE_INSTANCING
+            cloudPosition = instanceMatrix * cloudPosition;
+          #endif
+          vCloudWorld = (modelMatrix * cloudPosition).xyz;`);
+        shader.fragmentShader = 'varying vec3 vCloudWorld; uniform vec4 cloudBounds[8]; uniform vec2 cloudRotations[8]; uniform sampler2D cloudMask;\n' + shader.fragmentShader;
+        shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
+          float cloudTransmission = 1.0;
+          for (int i = 0; i < 8; i++) {
+            vec2 delta = vCloudWorld.xz - cloudBounds[i].xy;
+            vec2 r = cloudRotations[i];
+            vec2 uv = vec2(r.x*delta.x-r.y*delta.y, r.y*delta.x+r.x*delta.y) / cloudBounds[i].zw + 0.5;
+            uv.y = 1.0 - uv.y;
+            if (vCloudWorld.y > 0.08 && uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0)
+              cloudTransmission *= 1.0 - texture2D(cloudMask, uv).g * 0.72;
+          }
+          // Shade reflected light only. Lamps keep their emitted radiance in every cloud.
+          vec3 cloudTint = mix(vec3(0.30,0.42,0.47), vec3(1.0), cloudTransmission);
+          outgoingLight = (outgoingLight - totalEmissiveRadiance) * cloudTint + totalEmissiveRadiance;
+          #include <opaque_fragment>`);
+      };
+      material.customProgramCacheKey = () => cacheKey + '|cloud-receiver-v2';
+      material.needsUpdate = true;
+    }
+  });
   const patches = Array.from({ length: visiblePatches }, (_, index) => {
     const patch = new THREE.Mesh(geometry, material);
     patch.name = `cloud_shadow_${index}`;
@@ -75,7 +125,7 @@ export function createCloudShadowArt(): CloudShadowArt {
     return patch;
   });
   return {
-    root,
+    root, applyTo,
     update(seed, distance, route) {
       const firstCell = Math.floor((distance - 24) / cellMetres);
       patches.forEach((patch, index) => {
@@ -88,6 +138,8 @@ export function createCloudShadowArt(): CloudShadowArt {
         );
         patch.rotation.y = -pose.heading + placement.yaw;
         patch.scale.set(placement.width, 1, placement.length);
+        bounds.value[index].set(patch.position.x,patch.position.z,placement.width,placement.length);
+        rotations.value[index].set(Math.cos(patch.rotation.y),Math.sin(patch.rotation.y));
       });
     },
     dispose() { geometry.dispose(); material.dispose(); texture.dispose(); },
