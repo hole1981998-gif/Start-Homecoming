@@ -840,7 +840,9 @@ export class RoadRenderer {
       }
       if (e.kind === 'train') {
         entry.mesh.visible = !!e.crossMotion || trainClosed(e, s.activeSeconds);
-        (entry.mesh.userData.movingArt as MovingArt).root.scale.x = (e.crossMotion?.velocity ?? 1) < 0 ? -1 : 1;
+        const trainArt = entry.mesh.userData.movingArt as MovingArt;
+        trainArt.root.scale.x = (e.crossMotion?.velocity ?? 1) < 0 ? -1 : 1;
+        trainArt.setVisualTime?.(s.activeSeconds, !!e.crossMotion && !e.motionWaiting);
       }
       if (e.kind === 'police' || e.kind === 'militia') {
         const movingArt = entry.mesh.userData.movingArt as MovingArt;

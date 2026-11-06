@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="vi">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nghe thử âm thưởng và UI</title>
+<style>
+  body{font:16px system-ui;background:#14212a;color:#e9f1f1;max-width:760px;margin:32px auto;padding:0 20px}
+  h1{font-size:1.5rem} h2{font-size:1.1rem;margin-top:28px}
+  .clip{display:grid;grid-template-columns:minmax(130px,1fr) 2fr;align-items:center;gap:14px;margin:12px 0}
+  audio{width:100%} @media(max-width:560px){.clip{grid-template-columns:1fr}}
+</style>
+<h1>Âm thưởng và UI mới</h1>
+<p>Nghe từng tiếng riêng; trong game chúng phát theo đúng sự kiện.</p>
+<h2>Nhặt trên đường</h2>
+<div class="clip"><span>Bình xăng</span><audio controls src="fuel_pickup_rise.mp3"></audio></div>
+<div class="clip"><span>Bình máu / sửa xe</span><audio controls src="repair_pickup_rise.mp3"></audio></div>
+<div class="clip"><span>Đón khách</span><audio controls src="passenger_pickup_rise.mp3"></audio></div>
+<h2>Mua trong cửa hàng</h2>
+<div class="clip"><span>Vật phẩm</span><audio controls src="item_purchase_rise.mp3"></audio></div>
+<div class="clip"><span>Tiếp tế</span><audio controls src="service_purchase_rise.mp3"></audio></div>
+<div class="clip"><span>Nâng cấp</span><audio controls src="upgrade_purchase_rise.mp3"></audio></div>
+<div class="clip"><span>Xe mới</span><audio controls src="vehicle_purchase_rise.mp3"></audio></div>
+<h2>Menu</h2>
+<div class="clip"><span>Chọn</span><audio controls src="ui_soft_select.mp3"></audio></div>
+<div class="clip"><span>Quay lại</span><audio controls src="ui_soft_back.mp3"></audio></div>
+<div class="clip"><span>Mở cửa hàng</span><audio controls src="ui_shop_open.mp3"></audio></div>
+<div class="clip"><span>Chưa mua được</span><audio controls src="ui_purchase_fail.mp3"></audio></div>
+<div class="clip"><span>Tạm dừng</span><audio controls src="ui_pause.mp3"></audio></div>
+<div class="clip"><span>Tiếp tục</span><audio controls src="ui_resume.mp3"></audio></div>
+<div class="clip"><span>Chơi lại</span><audio controls src="ui_restart.mp3"></audio></div>
+</html>
