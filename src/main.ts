@@ -309,7 +309,7 @@ window.addEventListener('keydown', event => {
     event.preventDefault(); const before = state;
     const turn = event.code === 'KeyQ' ? 'left' : 'right';
     state = selectTurn(state, turn);
-    if (state !== before) audio.indicator(turn);
+    if (state !== before) void audio.update(state, input);
     return;
   }
   if (event.code in mapping) { event.preventDefault(); input[mapping[event.code as keyof typeof mapping]] = true; }

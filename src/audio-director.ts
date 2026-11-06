@@ -18,6 +18,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-rewards-2026-11-06/*.mp3',
   '../project-reference/sfx/elevenlabs-pothole-2026-11-06/*.mp3',
   '../project-reference/sfx/elevenlabs-interactions-2026-11-06/*.mp3',
+  '../project-reference/sfx/elevenlabs-train-pothole-2026-11-06/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -30,13 +31,23 @@ const trafficRoot = '../project-reference/sfx/elevenlabs-traffic-2026-11-06/';
 const rewardRoot = '../project-reference/sfx/elevenlabs-rewards-2026-11-06/';
 const potholeRoot = '../project-reference/sfx/elevenlabs-pothole-2026-11-06/';
 const interactionRoot = '../project-reference/sfx/elevenlabs-interactions-2026-11-06/';
+const revisionRoot = '../project-reference/sfx/elevenlabs-train-pothole-2026-11-06/';
+const revisionCues: Record<string, string> = {
+  'road/pothole_rattle_light_c.wav': 'pothole_light_c.mp3',
+  'road/pothole_rattle_light_d.wav': 'pothole_light_d.mp3',
+  'road/pothole_rattle_medium_c.wav': 'pothole_medium_c.mp3',
+  'road/pothole_rattle_medium_d.wav': 'pothole_medium_d.mp3',
+  'road/pothole_rattle_heavy_c.wav': 'pothole_heavy_c.mp3',
+  'road/pothole_rattle_heavy_d.wav': 'pothole_heavy_d.mp3',
+  'train/horn_approach': 'train_horn_approach.mp3',
+  'train/crossing_loop': 'train_wheels_clack_loop.mp3',
+};
 const interactionCues: Record<string, string> = {
   'interaction-v2/passenger_hit.wav': 'person_impact_a.mp3',
   'interaction-v2/passenger_hit_alt.wav': 'person_impact_b.mp3',
   'interaction-v2/vendor_hit.wav': 'vendor_cart_impact_a.mp3',
   'interaction-v2/vendor_hit_alt.wav': 'vendor_cart_impact_b.mp3',
   'control/indicator_tick': 'indicator_tick.mp3',
-  'train/crossing_loop': 'train_crossing_loop.mp3',
 };
 const potholeCues: Record<string, string> = {
   'road/pothole_rattle_light.wav': 'pothole_light_a.mp3',
@@ -142,6 +153,7 @@ const url = (name: string): string | undefined =>
   name === 'traffic/horn_light.wav' || name === 'traffic/horn_car.wav' ? files[worldRoot + 'traffic_horn_car.mp3'] :
   name === 'traffic/horn_heavy.wav' ? files[worldRoot + 'traffic_horn_heavy.mp3'] :
   name.startsWith('traffic/new/') ? files[trafficRoot + name.slice('traffic/new/'.length) + '.mp3'] :
+  revisionCues[name] ? files[revisionRoot + revisionCues[name]] :
   interactionCues[name] ? files[interactionRoot + interactionCues[name]] :
   potholeCues[name] ? files[potholeRoot + potholeCues[name]] :
   rewardCues[name] ? files[rewardRoot + rewardCues[name]] :
@@ -212,9 +224,9 @@ const oneShotVariants: Record<string, string[]> = {
   'interaction-v2/collision_light.wav': ['interaction-v2/collision_light.wav', 'interaction-v2/collision_light_alt.wav'],
   'interaction-v2/collision_medium.wav': ['interaction-v2/collision_medium.wav', 'interaction-v2/collision_medium_alt.wav'],
   'interaction-v2/collision_heavy.wav': ['interaction-v2/collision_heavy.wav', 'interaction-v2/collision_heavy_alt.wav'],
-  'road/pothole_rattle_light.wav': ['road/pothole_rattle_light.wav', 'road/pothole_rattle_light_alt.wav'],
-  'road/pothole_rattle_medium.wav': ['road/pothole_rattle_medium.wav', 'road/pothole_rattle_medium_alt.wav'],
-  'road/pothole_rattle_heavy.wav': ['road/pothole_rattle_heavy.wav', 'road/pothole_rattle_heavy_alt.wav'],
+  'road/pothole_rattle_light.wav': ['road/pothole_rattle_light.wav', 'road/pothole_rattle_light_alt.wav', 'road/pothole_rattle_light_c.wav', 'road/pothole_rattle_light_d.wav'],
+  'road/pothole_rattle_medium.wav': ['road/pothole_rattle_medium.wav', 'road/pothole_rattle_medium_alt.wav', 'road/pothole_rattle_medium_c.wav', 'road/pothole_rattle_medium_d.wav'],
+  'road/pothole_rattle_heavy.wav': ['road/pothole_rattle_heavy.wav', 'road/pothole_rattle_heavy_alt.wav', 'road/pothole_rattle_heavy_c.wav', 'road/pothole_rattle_heavy_d.wav'],
   'interaction-v2/cargo_crate_hit.wav': ['interaction-v2/cargo_crate_hit.wav', 'interaction-v2/cargo_crate_hit_alt.wav'],
   'interaction-v2/cargo_barrel_hit.wav': ['interaction-v2/cargo_barrel_hit.wav', 'interaction-v2/cargo_barrel_hit_alt.wav'],
   'interaction-v2/ambulance_hit.wav': ['interaction-v2/ambulance_hit.wav', 'interaction-v2/ambulance_hit_alt.wav'],
@@ -272,6 +284,16 @@ const rainLevel = 3;
 const thunderLevel = 1.4;
 const thunderLoop = 'ambience/distant_thunder_loop.wav';
 const trainLoop = 'train/crossing_loop';
+const indicatorLoop = 'control/indicator_tick';
+/** Seeded selection with no immediate repeat across four pothole takes. */
+export function potholeVariantIndex(seed: number, count: number, previous = -1): number {
+  let hash = Math.imul(seed ^ Math.imul(count + 1, 0x9e3779b1), 0x85ebca6b);
+  hash = Math.imul(hash ^ hash >>> 13, 0xc2b2ae35);
+  hash = (hash ^ hash >>> 16) >>> 0;
+  let index = hash % 4;
+  if (index === previous) index = (index + 1 + (hash >>> 8) % 3) % 4;
+  return index;
+}
 const lightningCues = ['ambience/lightning_distant_a.wav', 'ambience/lightning_distant_b.wav'];
 const voiceBoost = (event: VoiceEvent): number => event === 'call' ? 2.6 : event === 'laugh' ? 3.4 :
   event === 'thanks' || event === 'traffic' || event === 'driver' ? 1.6 : 1;
@@ -325,6 +347,7 @@ export class AudioDirector {
   private strandedRiders: string[] = [];
   private cooldown = new Map<string, number>();
   private variantCount = new Map<string, number>();
+  private indicatorActive = false;
   private windStart = 0;
   private nextLightningAt = 0;
   private lightningCount = 0;
@@ -409,7 +432,11 @@ export class AudioDirector {
     if (variants) {
       const count = this.variantCount.get(name) ?? 0;
       this.variantCount.set(name, count + 1);
-      name = variants[count % variants.length];
+      if (name.startsWith('road/pothole_rattle_')) {
+        const index = potholeVariantIndex(this.voiceSeed, count, this.variantCount.get(`last:${name}`) ?? -1);
+        this.variantCount.set(`last:${name}`, index);
+        name = variants[index];
+      } else name = variants[count % variants.length];
     }
     const generation = this.generation;
     const buffer = await this.buffer(name);
@@ -485,12 +512,22 @@ export class AudioDirector {
   private async loop(name: string, bus: Bus, volume: number): Promise<void> {
     if (this.ambience.has(name) || !this.context || !this.buses) return;
     const ctx = this.context, generation = this.generation, buffer = await this.buffer(name);
-    if (!buffer || generation !== this.generation || !this.running || this.ambience.has(name) || ctx.state !== 'running' || waterLoops.includes(name) && !this.waterActive) return;
+    if (!buffer || generation !== this.generation || !this.running || this.ambience.has(name) || ctx.state !== 'running' ||
+      waterLoops.includes(name) && !this.waterActive || name === indicatorLoop && !this.indicatorActive) return;
     const source = ctx.createBufferSource(), gain = ctx.createGain();
-    source.buffer = buffer; source.loop = true; gain.gain.value = 0;
+    source.buffer = buffer; source.loop = true; gain.gain.value = name === indicatorLoop ? volume : 0;
     source.connect(gain).connect(this.buses[bus]); source.start();
     this.ambience.set(name, { source, gain });
-    gain.gain.setTargetAtTime(volume, ctx.currentTime, .15);
+    gain.gain.setTargetAtTime(volume, ctx.currentTime, name === indicatorLoop ? .01 : .15);
+  }
+
+  private stopLoop(name: string): void {
+    const node = this.ambience.get(name);
+    if (!node) return;
+    this.ambience.delete(name);
+    node.gain.gain.setTargetAtTime(0, this.context?.currentTime ?? 0, .03);
+    try { node.source.stop((this.context?.currentTime ?? 0) + .12); } catch { /* already stopped */ }
+    node.source.onended = () => { node.source.disconnect(); node.gain.disconnect(); };
   }
 
   private startMusic(): void {
@@ -628,7 +665,7 @@ export class AudioDirector {
     this.shopMusicPending = false; this.shopOpen = false;
     this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficBlocks.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.strandedRiders = []; this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0;
     this.windStart = 0; this.nextLightningAt = 0; this.lightningCount = 0;
-    this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.vehicleId = ''; this.requestedKind = undefined; this.running = false; this.voiceSeed = 0;
+    this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.indicatorActive = false; this.vehicleId = ''; this.requestedKind = undefined; this.running = false; this.voiceSeed = 0;
   }
 
   pause(): void {
@@ -667,10 +704,6 @@ export class AudioDirector {
     }).catch(() => { /* blocked until a gesture */ });
   }
 
-  indicator(side: 'left' | 'right'): void {
-    void this.play('control/indicator_tick', 'indicator-tick', .52, .48, side === 'left' ? -.25 : .25);
-  }
-
   async update(run: Run, steering?: { left: boolean; right: boolean }): Promise<void> {
     const ctx = this.context;
     if (!ctx) return;
@@ -690,6 +723,8 @@ export class AudioDirector {
     }
     if (run.phase !== 'running') {
       this.running = false;
+      this.indicatorActive = false;
+      this.stopLoop(indicatorLoop);
       this.requestedKind = undefined;
       this.stopEngine(.12);
       this.music?.audio.pause();
@@ -703,7 +738,9 @@ export class AudioDirector {
     }
     this.running = true;
     const indicatorSide = run.route.choice ?? (steering?.left === steering?.right ? null : steering?.left ? 'left' : 'right');
-    if (!run.crash && indicatorSide) this.indicator(indicatorSide);
+    this.indicatorActive = !run.crash && !!indicatorSide;
+    if (this.indicatorActive) void this.loop(indicatorLoop, 'sfx', .58);
+    else this.stopLoop(indicatorLoop);
     this.startMusic();
     for (const node of this.voices) {
       if (!node.spatial) continue;
@@ -737,11 +774,18 @@ export class AudioDirector {
     const windIndex = Math.floor(Math.max(0, ctx.currentTime - this.windStart) / 9) % windLoops.length;
     for (const name of windLoops) void this.loop(name, 'ambience', name === windLoops[windIndex] ? .18 : 0);
     void this.loop('ambience/wet_road_loop.wav', 'ambience', .1);
-    const trainNearby = run.world.entities.some(e => e.kind === 'train' && !e.consumed && e.crossMotion &&
-      !e.motionWaiting && Math.abs(e.distance - run.distance) < 65 && Math.abs(e.x) < 34);
-    if (run.world.entities.some(e => e.kind === 'train' && !e.consumed && e.distance - run.distance < 110))
+    const crossingTrains = run.world.entities.filter(e => e.kind === 'train' && !e.consumed && e.crossMotion &&
+      !e.motionWaiting && Math.abs(e.distance - run.distance) < 85 && Math.abs(e.x) < 34);
+    const trainNearby = crossingTrains.length > 0;
+    if (run.world.entities.some(e => e.kind === 'train' && !e.consumed && e.distance - run.distance < 110)) {
       void this.buffer(trainLoop);
-    if (trainNearby) void this.loop(trainLoop, 'sfx', .85);
+      void this.buffer('train/horn_approach');
+    }
+    for (const train of crossingTrains) if (!this.near.has(`train:${train.id}`)) {
+      this.near.add(`train:${train.id}`);
+      void this.play('train/horn_approach', 'train-horn', .4, .72, train.x / 24);
+    }
+    if (trainNearby) void this.loop(trainLoop, 'sfx', .98);
     const waterSpeed = Math.max(0, Math.min(1, run.speed / Math.max(1, vehicle.maxSpeed)));
     const activeWater = waterLoopForVehicle(vehicle.kind);
     const waterLevel = (heavyVehicle(vehicle.kind) ? .65 : .75) + .4 * waterSpeed;
@@ -752,7 +796,8 @@ export class AudioDirector {
       const waterTarget = inWater && name === activeWater ? waterLevel : 0;
       const windTarget = name === windLoops[windIndex] ? .18 : 0;
       node.gain.gain.setTargetAtTime(waterRoll ? waterTarget : windLoops.includes(name) ? windTarget :
-        name === trainLoop ? trainNearby ? .85 : 0 : name === thunderLoop ? thunderLevel : name.includes('rain') ? rainLevel : .1,
+        name === trainLoop ? trainNearby ? .98 : 0 : name === indicatorLoop ? .58 :
+          name === thunderLoop ? thunderLevel : name.includes('rain') ? rainLevel : .1,
         ctx.currentTime, waterRoll || windLoops.includes(name) ? .22 : .15);
       if (waterRoll) node.source.playbackRate.setTargetAtTime(.92 + .16 * waterSpeed, ctx.currentTime, .18);
     }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { AudioDirector, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, trafficPassLeadDistance, waterLoopForVehicle } from '../src/audio-director';
+import { AudioDirector, potholeVariantIndex, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, trafficPassLeadDistance, waterLoopForVehicle } from '../src/audio-director';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
@@ -20,6 +20,16 @@ it('leads longer traffic passes by more road distance at the same closing speed'
   expect(trafficPassLeadDistance('motorcycle', 20)).toBe(22);
   expect(trafficPassLeadDistance('car4', 20)).toBe(25);
   expect(trafficPassLeadDistance('truck', 20)).toBe(30);
+});
+
+it('chooses four seeded pothole takes without a fixed alternating cycle', () => {
+  const sequence: number[] = [];
+  for (let count = 0; count < 12; count++)
+    sequence.push(potholeVariantIndex(17, count, sequence.at(-1)));
+  expect(new Set(sequence).size).toBe(4);
+  expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
+  expect(sequence.some((index, i) => i >= 2 && index !== sequence[i - 2])).toBe(true);
+  expect(sequence).toEqual(sequence.map((_, i) => potholeVariantIndex(17, i, sequence[i - 1])));
 });
 
 it('makes a roadside call grow louder on approach and fade after passing', () => {
@@ -222,7 +232,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   const beforePlayerTraffic = voicePaths.length;
   await director.update({ ...base, eventSequence: 3, feedbackKind: 'traffic', world: { ...base.world, entities: [container] } });
   expect(voicePaths.length).toBe(beforePlayerTraffic);
-  expect(fetched.some(path => path.includes('pothole_light_a.mp3'))).toBe(true);
+  expect(fetched.some(path => /pothole_light_[abcd]\.mp3/.test(path))).toBe(true);
   expect(fetched.some(path => path.includes('resource_loss_a.wav'))).toBe(false);
   expect(fetched.some(path => path.includes('collision_light.mp3'))).toBe(true);
   FakeAudioContext.time = 4.5;
@@ -236,7 +246,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   expect(fetched.some(path => path.includes('collision_light_alt.mp3'))).toBe(true);
   const hole = entity('pothole', 'hole', 0, 0);
   await director.update({ ...base, eventSequence: 4, world: { ...base.world, entities: [{ ...container, trafficContacts: ['hole'] }, hole] } });
-  expect(fetched.some(path => path.includes('pothole_heavy_a.mp3'))).toBe(true);
+  expect(fetched.some(path => /pothole_heavy_[abcd]\.mp3/.test(path))).toBe(true);
   const trafficBarrier = entity('jam', 'traffic-barrier', 0, 0);
   const firstBlockCount = fetched.filter(path => path.includes('traffic_block_heavy.mp3')).length;
   await director.update({ ...base, eventSequence: 4, world: { ...base.world,
@@ -313,11 +323,21 @@ it('routes driving, impact, indicator and train cues to their actual events', as
     crossMotion: { type: 'linear' as const, origin: -20, velocity: 6, startedAt: 0, min: -20, max: 20 } };
   await director.update({ ...base, world: { ...base.world, entities: [train] } });
   await vi.waitFor(() => expect(sources.some(source => source.started && source.loop &&
-    source.buffer?.path.includes('train_crossing_loop.mp3'))).toBe(true));
+    source.buffer?.path.includes('train_wheels_clack_loop.mp3'))).toBe(true));
+  expect(fetched.some(path => path.includes('train_horn_approach.mp3'))).toBe(true);
   await director.update({ ...base, world: { ...base.world, entities: [] } });
-  expect(sources.find(source => source.buffer?.path.includes('train_crossing_loop.mp3'))?.gain?.gain.targets.at(-1)).toBe(0);
-  director.indicator('left');
-  expect(fetched.some(path => path.includes('indicator_tick.mp3'))).toBe(true);
+  expect(sources.find(source => source.buffer?.path.includes('train_wheels_clack_loop.mp3'))?.gain?.gain.targets.at(-1)).toBe(0);
+  await director.update(base, { left: true, right: false });
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.loop &&
+    source.buffer?.path.includes('indicator_tick.mp3'))).toBe(true));
+  const indicators = sources.filter(source => source.buffer?.path.includes('indicator_tick.mp3'));
+  await director.update(base, { left: true, right: false });
+  expect(sources.filter(source => source.buffer?.path.includes('indicator_tick.mp3'))).toHaveLength(1);
+  await director.update(base, { left: false, right: false });
+  expect(indicators[0].stopped).toBe(true);
+  await director.update({ ...base, route: { ...base.route, choice: 'right' } }, { left: false, right: false });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && source.loop &&
+    source.buffer?.path.includes('indicator_tick.mp3'))).toHaveLength(2));
   FakeAudioContext.time = 12;
   const vendorHit = { ...entity('jam', 'vendor-hit', 0, 0), crossingRole: 'vendor' as const, consumed: true };
   await director.update({ ...base, eventSequence: 10, feedbackKind: 'jam', world: { ...base.world, entities: [vendorHit] } });
