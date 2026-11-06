@@ -21,6 +21,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-train-pothole-2026-11-06/*.mp3',
   '../project-reference/sfx/owner-kick-voices-2026-11-06/*.mp3',
   '../project-reference/sfx/elevenlabs-indicator-2026-11-07/*.mp3',
+  '../project-reference/sfx/owner-officer-voices-2026-11-07/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -36,6 +37,7 @@ const potholeRoot = '../project-reference/sfx/elevenlabs-pothole-2026-11-06/';
 const interactionRoot = '../project-reference/sfx/elevenlabs-interactions-2026-11-06/';
 const revisionRoot = '../project-reference/sfx/elevenlabs-train-pothole-2026-11-06/';
 const indicatorRoot = '../project-reference/sfx/elevenlabs-indicator-2026-11-07/';
+const officerVoiceRoot = '../project-reference/sfx/owner-officer-voices-2026-11-07/';
 const revisionCues: Record<string, string> = {
   'road/pothole_rattle_light_c.wav': 'pothole_light_c.mp3',
   'road/pothole_rattle_light_d.wav': 'pothole_light_d.mp3',
@@ -165,6 +167,7 @@ const url = (name: string): string | undefined =>
   name === 'npc/footsteps_wet' ? files[worldRoot + 'npc_footsteps_wet.mp3'] :
   name === 'train/roll_past' ? files[worldRoot + 'train_roll_past.mp3'] :
   name.startsWith('voice/kick-line/') ? files[kickVoiceRoot + name.slice('voice/kick-line/'.length) + '.mp3'] :
+  name.startsWith('voice/officer/') ? files[officerVoiceRoot + name.slice('voice/officer/'.length) + '.mp3'] :
   name.startsWith('voice/') ? files[voiceRoot + name.slice(6) + '.mp3'] :
   name === 'ambience/rain_light_loop.wav' ? files[rainRoot + 'rain_shower_loop.mp3'] :
   name === 'ambience/distant_thunder_loop.wav' ? files[stormRoot + 'distant_thunder_loop.mp3'] :
@@ -173,13 +176,15 @@ const url = (name: string): string | undefined =>
   files[waterRoot + waterCues[name]] ?? files[generatedRoot + generated[name]];
 
 const actors = ['nam', 'thanh'] as const;
-type VoiceEvent = 'call' | 'thanks' | 'return' | 'abandon' | 'kick' | 'kickLine' | 'fall' | 'playerFall' | 'hit' | 'laugh' | 'traffic' | 'driver';
+type VoiceEvent = 'call' | 'thanks' | 'return' | 'abandon' | 'kick' | 'kickLine' | 'fall' | 'playerFall' | 'hit' | 'laugh' | 'traffic' | 'driver' | 'militiaHit' | 'policeHit';
 const screamClips = ['tram_scream', 'quang_toan_scream', 'anh_thu_scream_a', 'anh_thu_scream_b',
   'anh_minh_scream', 'nam_kick_scream', 'nam_kick_scream_alt', 'thanh_kick_scream',
   'huy_kick_scream', 'huy_kick_short', 'huy_kick_scream_alt'];
 const playerScreamClips = ['anh_minh_scream', 'quang_toan_scream', 'huy_kick_scream'];
 const ownerKickLines = ['kick-line/kick_line_01', 'kick-line/kick_line_02',
   'kick-line/kick_line_03', 'kick-line/kick_line_04'];
+const militiaHitLines = ['officer/militia_hit_01', 'officer/militia_hit_02', 'officer/militia_hit_03'];
+const policeHitLines = ['officer/police_hit_01', 'officer/police_hit_02', 'officer/police_hit_03'];
 const isScream = (event: VoiceEvent): boolean => event === 'kick' || event === 'fall' || event === 'playerFall' || event === 'hit';
 const voiceClips: Record<VoiceEvent, Record<string, string[]>> = {
   call: { nam: ['nam_call_here', 'nam_call_wait'], thanh: ['thanh_call_shout', 'thanh_call_ride'] },
@@ -195,6 +200,8 @@ const voiceClips: Record<VoiceEvent, Record<string, string[]>> = {
   traffic: { nam: ['nam_traffic_carcry'], thanh: ['thanh_traffic_surprise'] },
   driver: { nam: ['nam_driver_mirror', 'thuong_driver_police', 'thuong_driver_taunt'],
     thanh: ['bao_ngoc_driver_lexus', 'bao_ngoc_driver_touch'] },
+  militiaHit: { nam: militiaHitLines, thanh: militiaHitLines },
+  policeHit: { nam: policeHitLines, thanh: policeHitLines },
 };
 const voiceActor = (id: string): typeof actors[number] => {
   let hash = 0;
@@ -316,7 +323,8 @@ export const kickLineVariantIndex = (seed: number, count: number, previous = -1)
   potholeVariantIndex(seed ^ 0x4b49434b, count, previous);
 const lightningCues = ['ambience/lightning_distant_a.wav', 'ambience/lightning_distant_b.wav'];
 const voiceBoost = (event: VoiceEvent): number => event === 'call' ? 2.6 : event === 'laugh' ? 3.4 :
-  event === 'thanks' || event === 'traffic' || event === 'driver' ? 1.6 : 1;
+  event === 'thanks' || event === 'traffic' || event === 'driver' ? 1.6 :
+    event === 'militiaHit' || event === 'policeHit' ? 1.45 : 1;
 const kickLineBoost = (name: string): number => name.endsWith('/kick_line_01') ? 2.2 : 1.4;
 
 /** Deterministic, irregular spacing so lightning is occasional without a clocklike repeat. */
@@ -492,12 +500,16 @@ export class AudioDirector {
     if (!ctx || !bus || ctx.state !== 'running') return;
     const actor = voiceActor(riderId);
     const clips = event === 'playerFall' ? playerScreamClips : isScream(event) ? screamClips : voiceClips[event][actor];
-    const countKey = event === 'kickLine' ? 'voice-variant-kick-line' :
+    const officerHit = event === 'militiaHit' || event === 'policeHit';
+    const countKey = officerHit ? `voice-variant-${event}` : event === 'kickLine' ? 'voice-variant-kick-line' :
       event === 'playerFall' ? 'voice-variant-player-fall' :
       isScream(event) ? 'voice-variant-scream' : `voice-variant-${event}-${actor}`;
     const count = this.variantCount.get(countKey) ?? 0;
     const variantActor = isScream(event) ? 'all' : actor;
-    const variantIndex = event === 'kickLine'
+    const variantIndex = officerHit
+      ? indicatorVariantIndex(this.voiceSeed ^ (event === 'militiaHit' ? 0x4d494c : 0x504f4c),
+        count, this.variantCount.get(`last:${countKey}`) ?? -1)
+      : event === 'kickLine'
       ? kickLineVariantIndex(this.voiceSeed, count, this.variantCount.get(`last:${countKey}`) ?? -1)
       : (voiceVariantStart(this.voiceSeed, event, variantActor, clips.length) + count) % clips.length;
     const name = `voice/${clips[variantIndex]}`;
@@ -508,7 +520,7 @@ export class AudioDirector {
       if (active.riderId === riderId && !pairedKick && (isScream(active.event) || isScream(event))) active.stop();
     }
     this.variantCount.set(countKey, count + 1);
-    if (event === 'kickLine') this.variantCount.set(`last:${countKey}`, variantIndex);
+    if (event === 'kickLine' || officerHit) this.variantCount.set(`last:${countKey}`, variantIndex);
     const requestedAt = ctx.currentTime;
     this.cooldown.set(key, requestedAt);
     // HTML media preserves pitch when a long line is sped up; buffer playback does not.
@@ -748,7 +760,11 @@ export class AudioDirector {
       const impactSpeed = run.crash?.impactSpeed ?? run.speed;
       const cue: Record<string, string> = { pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind, impactSpeed), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind, undefined, impactSpeed), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : hitEntity?.serviceRole === 'ambulance' ? 'interaction-v2/ambulance_hit.wav' : 'interaction-v2/barrier_hit.wav', accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
       if (kind && cue[kind]) void this.play(cue[kind], `event-${kind}`, .18, kind === 'pothole' ? 1.35 : 1);
-      if (kind === 'police' || kind === 'militia') void this.play('interaction-v2/passenger_hit.wav', 'npc-impact', .18, .6);
+      const officerCollision = (kind === 'police' || kind === 'militia') && !run.feedback.includes('Chuối');
+      if (officerCollision) {
+        void this.play('interaction-v2/passenger_hit.wav', 'npc-impact', .18, .6);
+        this.voice(kind === 'militia' ? 'militiaHit' : 'policeHit', hitEntity?.id ?? `${kind}:${run.eventSequence}`, 1);
+      }
       if (kind === 'pothole' || kind === 'police' || kind === 'militia') this.ui('resource_loss');
     }
     if (run.phase !== 'running') {

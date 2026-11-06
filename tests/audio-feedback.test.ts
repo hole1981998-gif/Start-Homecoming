@@ -471,6 +471,31 @@ it('routes driving, impact, indicator and train cues to their actual events', as
       .9 * 1.25 * (kicked[i + 1].includes('kick_line_01.mp3') ? 2.2 : 1.4));
   }
 
+  const officerStart = voicePaths.length;
+  for (const kind of ['militia', 'police'] as const) {
+    for (let i = 0; i < 12; i++) {
+      const officer = { ...entity(kind, `hit-${kind}-${i}`, 0, 0), consumed: true };
+      await director.update({ ...base, eventSequence: 20 + (kind === 'police' ? 12 : 0) + i,
+        feedbackKind: kind, feedback: '−300 tiền',
+        phase: kind === 'police' && i === 11 ? 'ended' : 'running',
+        world: { ...base.world, entities: [officer] } });
+    }
+  }
+  const officerVoices = voicePaths.slice(officerStart);
+  expect(officerVoices).toHaveLength(24);
+  const militiaVoices = officerVoices.slice(0, 12), policeVoices = officerVoices.slice(12);
+  expect(militiaVoices.every(path => /owner-officer-voices-2026-11-07.*militia_hit_0[1-3]\.mp3/.test(path))).toBe(true);
+  expect(policeVoices.every(path => /owner-officer-voices-2026-11-07.*police_hit_0[1-3]\.mp3/.test(path))).toBe(true);
+  expect(new Set(militiaVoices).size).toBe(3);
+  expect(new Set(policeVoices).size).toBe(3);
+  for (const group of [militiaVoices, policeVoices])
+    expect(group.every((path, i) => i === 0 || path !== group[i - 1])).toBe(true);
+  await director.update({ ...base, eventSequence: 44, feedbackKind: 'militia',
+    feedback: 'Chuối · tránh bị bắt', world: { ...base.world, entities: [{ ...entity('militia', 'banana-officer', 0, 0), consumed: true }] } });
+  await director.update({ ...base, eventSequence: 45, feedbackKind: 'police',
+    feedback: 'Chuối · tránh bị bắt', world: { ...base.world, entities: [{ ...entity('police', 'banana-police', 0, 0), consumed: true }] } });
+  expect(voicePaths.slice(officerStart)).toHaveLength(24);
+
   const heavyBefore = sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length;
   await director.update({ ...base, phase: 'ended', eventSequence: 11, feedbackKind: 'accident' });
   await vi.waitFor(() => expect(sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length).toBeGreaterThan(heavyBefore));
