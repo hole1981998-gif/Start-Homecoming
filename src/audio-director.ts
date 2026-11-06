@@ -7,6 +7,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-2026-10-29/*.mp3',
   '!../project-reference/sfx/elevenlabs-2026-10-29/water_entry_splash.mp3',
   '!../project-reference/sfx/elevenlabs-2026-10-29/water_roll_loop.mp3',
+  '!../project-reference/sfx/elevenlabs-2026-10-29/water_roll_*.mp3',
   '!../project-reference/sfx/elevenlabs-2026-10-29/fuel_pickup.mp3',
   '!../project-reference/sfx/elevenlabs-2026-10-29/repair_pickup.mp3',
   '!../project-reference/sfx/elevenlabs-2026-10-29/passenger_pickup.mp3',
@@ -17,6 +18,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/owner-voices-2026-11-04/*.mp3',
   '../project-reference/sfx/elevenlabs-rain-2026-11-04/*.mp3',
   '../project-reference/sfx/elevenlabs-storm-2026-11-05/*.mp3',
+  '../project-reference/sfx/elevenlabs-water-2026-11-06/*.mp3',
   '../project-reference/sfx/owner-music-2026-11-05/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const root = '../project-reference/sfx/procedural-auditions-2026-10-28/';
@@ -26,7 +28,13 @@ const powerTrafficRoot = '../project-reference/sfx/power-traffic-2026-10-31/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
 const rainRoot = '../project-reference/sfx/elevenlabs-rain-2026-11-04/';
 const stormRoot = '../project-reference/sfx/elevenlabs-storm-2026-11-05/';
+const waterRoot = '../project-reference/sfx/elevenlabs-water-2026-11-06/';
 const musicRoot = '../project-reference/sfx/owner-music-2026-11-05/';
+const waterCues: Record<string, string> = {
+  'road/water_tire_light_loop.wav': 'water_light_loop.mp3',
+  'road/water_tire_medium_loop.wav': 'water_medium_loop.mp3',
+  'road/water_tire_heavy_loop.wav': 'water_heavy_loop.mp3',
+};
 const powerTrafficCues: Record<string, string> = {
   'item/nitro_run_loop.wav': 'nitro_run_loop.wav',
   'item/star_run_loop.wav': 'star_run_loop.wav',
@@ -51,12 +59,6 @@ const generated: Record<string, string> = {
   'road/water_entry_skim.wav': 'water_entry_skim.mp3',
   'road/water_entry_wash.wav': 'water_entry_wash.mp3',
   'road/water_entry_heavy.wav': 'water_entry_heavy.mp3',
-  'road/water_roll_shallow_loop.wav': 'water_roll_shallow_loop.mp3',
-  'road/water_roll_shallow_ripple_loop.wav': 'water_roll_shallow_ripple_loop.mp3',
-  'road/water_roll_shallow_grit_loop.wav': 'water_roll_shallow_grit_loop.mp3',
-  'road/water_roll_deep_loop.wav': 'water_roll_deep_loop.mp3',
-  'road/water_roll_deep_churn_loop.wav': 'water_roll_deep_churn_loop.mp3',
-  'road/water_roll_deep_surge_loop.wav': 'water_roll_deep_surge_loop.mp3',
   'road/water_entry_skim_alt.wav': 'water_entry_skim_alt.mp3',
   'road/water_entry_skim_grit.wav': 'water_entry_skim_grit.mp3',
   'road/water_entry_wash_alt.wav': 'water_entry_wash_alt.mp3',
@@ -127,6 +129,7 @@ const url = (name: string): string | undefined =>
   name === 'ambience/distant_thunder_loop.wav' ? files[stormRoot + 'distant_thunder_loop.mp3'] :
   name === 'ambience/lightning_distant_a.wav' ? files[stormRoot + 'lightning_distant_a.mp3'] :
   name === 'ambience/lightning_distant_b.wav' ? files[stormRoot + 'lightning_distant_b.mp3'] :
+  files[waterRoot + waterCues[name]] ??
   files[powerTrafficRoot + powerTrafficCues[name]] ?? files[rewardRoot + rewardCues[name]] ??
     files[generatedRoot + generated[name]] ?? files[root + name];
 
@@ -193,10 +196,8 @@ const oneShotVariants: Record<string, string[]> = {
   'interaction-v2/passenger_hit.wav': ['interaction-v2/passenger_hit.wav', 'interaction-v2/passenger_hit_alt.wav'],
   'vehicle/driver_fall.wav': ['vehicle/driver_fall.wav', 'vehicle/driver_fall_alt.wav'],
 };
-const waterLoops = {
-  shallow: ['road/water_roll_shallow_loop.wav', 'road/water_roll_shallow_ripple_loop.wav', 'road/water_roll_shallow_grit_loop.wav'],
-  deep: ['road/water_roll_deep_loop.wav', 'road/water_roll_deep_churn_loop.wav', 'road/water_roll_deep_surge_loop.wav'],
-};
+const waterLoops = ['road/water_tire_light_loop.wav', 'road/water_tire_medium_loop.wav',
+  'road/water_tire_heavy_loop.wav'];
 const windLoops = ['ambience/wind_loop.wav', 'ambience/wind_soft_loop.wav'];
 const hornCue = (kind?: VehicleKind): string =>
   `traffic/horn_${heavyVehicle(kind) ? 'heavy' : lightVehicle(kind) ? 'light' : 'car'}.wav`;
@@ -206,6 +207,8 @@ type Bus = 'sfx' | 'ambience' | 'music';
 type Stem = { sources: AudioBufferSourceNode[]; gains: GainNode[]; kind: VehicleKind };
 const heavyVehicle = (kind?: VehicleKind): boolean => kind === 'bus' || kind === 'truck' || kind === 'container';
 const lightVehicle = (kind?: VehicleKind): boolean => kind === 'motorcycle' || kind === 'motorbike' || kind === 'tricycle';
+export const waterLoopForVehicle = (kind: VehicleKind): string =>
+  waterLoops[lightVehicle(kind) ? 0 : heavyVehicle(kind) ? 2 : 1];
 const collisionCue = (a?: VehicleKind, b?: VehicleKind, impactSpeed?: number): string => {
   const weight = impactSpeed === undefined
     ? heavyVehicle(a) || heavyVehicle(b) ? 'heavy' : lightVehicle(a) && lightVehicle(b) ? 'light' : 'medium'
@@ -232,7 +235,7 @@ export type UiCue = 'menu_select' | 'menu_back' | 'help_open' | 'card_open' | 'c
   'pause' | 'resume' | 'restart' | 'shop_enter' | 'shop_category' | 'purchase_fail' |
   'purchase_success' | 'shop_service' | 'shop_upgrade' | 'vehicle_purchase' |
   'toggle_on' | 'toggle_off' | 'resource_gain' | 'resource_loss' | 'reward_small';
-const rainLevel = 3.6;
+const rainLevel = 3;
 const thunderLevel = 1;
 const thunderLoop = 'ambience/distant_thunder_loop.wav';
 const lightningCues = ['ambience/lightning_distant_a.wav', 'ambience/lightning_distant_b.wav'];
@@ -283,8 +286,6 @@ export class AudioDirector {
   private strandedRiders: string[] = [];
   private cooldown = new Map<string, number>();
   private variantCount = new Map<string, number>();
-  private waterVisit = -1;
-  private waterStart = 0;
   private windStart = 0;
   private nextLightningAt = 0;
   private lightningCount = 0;
@@ -350,7 +351,7 @@ export class AudioDirector {
     if (!ctx || !path) return null;
     if (!this.buffers.has(name)) this.buffers.set(name, fetch(path).then(r => r.ok ? r.arrayBuffer() : Promise.reject(new Error('audio fetch')))
       .then(data => ctx.decodeAudioData(data)).then(buffer => {
-        if (name.includes('_loop') && (generated[name] || powerTrafficCues[name] ||
+        if (name.includes('_loop') && (generated[name] || waterCues[name] || powerTrafficCues[name] ||
           name === 'ambience/rain_light_loop.wav' || name === thunderLoop) && buffer.length > 0)
           taperLoopEdges(buffer);
         return buffer;
@@ -445,7 +446,7 @@ export class AudioDirector {
   private async loop(name: string, bus: Bus, volume: number): Promise<void> {
     if (this.ambience.has(name) || !this.context || !this.buses) return;
     const ctx = this.context, generation = this.generation, buffer = await this.buffer(name);
-    if (!buffer || generation !== this.generation || !this.running || this.ambience.has(name) || ctx.state !== 'running' || name.includes('water_roll') && !this.waterActive) return;
+    if (!buffer || generation !== this.generation || !this.running || this.ambience.has(name) || ctx.state !== 'running' || waterLoops.includes(name) && !this.waterActive) return;
     const source = ctx.createBufferSource(), gain = ctx.createGain();
     source.buffer = buffer; source.loop = true; gain.gain.value = 0;
     source.connect(gain).connect(this.buses[bus]); source.start();
@@ -535,7 +536,7 @@ export class AudioDirector {
     if (this.music) { this.music.audio.pause(); this.music.source.disconnect(); this.music = undefined; }
     this.musicPending = false;
     this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.strandedRiders = []; this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0;
-    this.waterVisit = -1; this.waterStart = 0; this.windStart = 0; this.nextLightningAt = 0; this.lightningCount = 0;
+    this.windStart = 0; this.nextLightningAt = 0; this.lightningCount = 0;
     this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.vehicleId = ''; this.requestedKind = undefined; this.running = false; this.voiceSeed = 0;
   }
 
@@ -616,7 +617,6 @@ export class AudioDirector {
     }
     const touchingWater = run.world.entities.filter(e => e.kind === 'water' && e.touching && !e.consumed);
     const inWater = touchingWater.length > 0;
-    if (inWater && !this.waterActive) { this.waterVisit++; this.waterStart = ctx.currentTime; }
     if (this.waterActive && !inWater) void this.play('road/water_exit_spray.wav', 'water-exit', .35, .26);
     this.waterActive = inWater;
     void this.loop('ambience/rain_light_loop.wav', 'ambience', rainLevel);
@@ -636,15 +636,13 @@ export class AudioDirector {
     if (boostActive) void this.loop('item/nitro_run_loop.wav', 'sfx', .5);
     if (starActive) void this.loop('item/star_run_loop.wav', 'sfx', .36);
     const waterSpeed = Math.max(0, Math.min(1, run.speed / Math.max(1, vehicle.maxSpeed)));
-    const deepWater = heavyVehicle(vehicle.kind) || touchingWater.some(e => e.width >= 5.7 || e.length >= 20);
-    const waterLevel = deepWater ? .10 + .12 * waterSpeed : .24 + .18 * waterSpeed;
-    const activeWater = deepWater ? waterLoops.deep : waterLoops.shallow;
-    const waterIndex = (this.waterVisit + Math.floor(Math.max(0, ctx.currentTime - this.waterStart) / 3.5)) % activeWater.length;
-    if (inWater) for (const name of [...waterLoops.shallow, ...waterLoops.deep])
-      void this.loop(name, 'sfx', name === activeWater[waterIndex] ? waterLevel : 0);
+    const activeWater = waterLoopForVehicle(vehicle.kind);
+    const waterLevel = (heavyVehicle(vehicle.kind) ? .12 : .18) + .16 * waterSpeed;
+    if (inWater) for (const name of waterLoops)
+      void this.loop(name, 'sfx', name === activeWater ? waterLevel : 0);
     for (const [name, node] of this.ambience) {
-      const waterRoll = name.includes('water_roll');
-      const waterTarget = inWater && name === activeWater[waterIndex] ? waterLevel : 0;
+      const waterRoll = waterLoops.includes(name);
+      const waterTarget = inWater && name === activeWater ? waterLevel : 0;
       const windTarget = name === windLoops[windIndex] ? .18 : 0;
       const powerTarget = name === 'item/nitro_run_loop.wav' ? boostActive ? .5 : 0 :
         name === 'item/star_run_loop.wav' ? starActive ? .36 : 0 : undefined;

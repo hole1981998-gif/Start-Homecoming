@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { AudioDirector, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges } from '../src/audio-director';
+import { AudioDirector, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, waterLoopForVehicle } from '../src/audio-director';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
@@ -35,6 +35,15 @@ it('spaces storm strikes across a run and keeps each seed reproducible', () => {
   expect(stormStrikeDelay(17, 0)).toBe(first);
   expect(stormStrikeDelay(17, 1)).toBeGreaterThanOrEqual(27);
   expect(stormStrikeDelay(17, 1)).toBeLessThanOrEqual(43);
+});
+
+it('routes puddle loops by vehicle weight', () => {
+  for (const kind of ['motorcycle', 'motorbike', 'tricycle'] as const)
+    expect(waterLoopForVehicle(kind)).toBe('road/water_tire_light_loop.wav');
+  for (const kind of ['car4', 'car7'] as const)
+    expect(waterLoopForVehicle(kind)).toBe('road/water_tire_medium_loop.wav');
+  for (const kind of ['bus', 'truck', 'container'] as const)
+    expect(waterLoopForVehicle(kind)).toBe('road/water_tire_heavy_loop.wav');
 });
 
 it('tapers both channels at compressed water-loop boundaries while preserving the body', () => {
@@ -133,22 +142,23 @@ it('sustains water only during contact, uses physical collision types, and leave
   const drivingStems = sources.filter(source => source.started && source.buffer?.path.includes('engine-v2'));
   await director.update({ ...base, motion: 'coasting', speed: 4 });
   expect(drivingStems.every(source => !source.stopped)).toBe(true);
-  expect(fetched.some(path => path.includes('water_roll_shallow_loop'))).toBe(false);
+  expect(fetched.some(path => path.includes('water_light_loop.mp3'))).toBe(false);
   expect(fetched.some(path => path.includes('skid.wav') || path.includes('police_warning'))).toBe(false);
 
   const water = { ...entity('water', 'test-water', 0, 0), touching: true };
   await director.update({ ...base, eventSequence: 1, feedbackKind: 'water', world: { ...base.world, entities: [water] } });
-  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('water_roll_shallow_loop'))).toBe(true));
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('water_light_loop.mp3'))).toBe(true));
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
   expect(waterFilters).toHaveLength(0);
   const rainSource = sources.find(source => source.buffer?.path.includes('rain_shower_loop.mp3'))!;
   expect(rainSource.loop).toBe(true);
-  expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(3.6);
+  expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(3);
   const thunderSource = sources.find(source => source.buffer?.path.includes('distant_thunder_loop.mp3'))!;
   expect(thunderSource.loop).toBe(true);
   expect(thunderSource.gain?.gain.targets.at(-1)).toBeCloseTo(1);
   expect(fetched.some(path => path.includes('rain_road_loop.mp3'))).toBe(false);
-  const waterSource = sources.find(source => source.buffer?.path.includes('water_roll_shallow_loop'))!;
+  const waterSource = sources.find(source => source.buffer?.path.includes('water_light_loop.mp3'))!;
+  expect(waterSource.loop).toBe(true);
   expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
   await director.update({ ...base, speed: 20, world: { ...base.world, entities: [water] } });
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
@@ -157,13 +167,11 @@ it('sustains water only during contact, uses physical collision types, and leave
   expect(waterSource.playbackRate.targets.at(-1)).toBeGreaterThan(1);
   FakeAudioContext.time = 5;
   await director.update({ ...base, world: { ...base.world, entities: [water] } });
-  await vi.waitFor(() => expect(sources.some(source => source.buffer?.path.includes('water_roll_shallow_ripple_loop') &&
-    (source.gain?.gain.targets.at(-1) ?? 0) > 0)).toBe(true));
-  expect(waterSource.gain?.gain.targets.at(-1)).toBe(0);
+  expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
   FakeAudioContext.time = 8.5;
   await director.update({ ...base, world: { ...base.world, entities: [water] } });
-  await vi.waitFor(() => expect(sources.some(source => source.buffer?.path.includes('water_roll_shallow_grit_loop') &&
-    (source.gain?.gain.targets.at(-1) ?? 0) > 0)).toBe(true));
+  expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
+  expect(sources.filter(source => source.buffer?.path.includes('water_light_loop.mp3'))).toHaveLength(1);
   await director.update(base);
   expect(waterSource.gain?.gain.targets.at(-1)).toBe(0);
   expect(fetched.some(path => path.includes('water_exit_spray.mp3'))).toBe(true);
@@ -175,11 +183,14 @@ it('sustains water only during contact, uses physical collision types, and leave
   FakeAudioContext.time = 2;
   const wideWater = { ...water, id: 'wide-water', width: 9.6, length: 24 };
   await director.update({ ...base, eventSequence: 1, world: { ...base.world, entities: [wideWater] } });
-  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('water_roll_deep_loop'))).toBe(true));
+  expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
+  const car = newVehicle('car4', 'test-car');
+  await director.update({ ...base, activeVehicleId: car.id, vehicleInstances: [...base.vehicleInstances, car],
+    world: { ...base.world, entities: [wideWater] } });
+  await vi.waitFor(() => expect(sources.some(source => source.buffer?.path.includes('water_medium_loop.mp3') &&
+    (source.gain?.gain.targets.at(-1) ?? 0) > 0)).toBe(true));
   expect(waterSource.gain?.gain.targets.at(-1)).toBe(0);
-  expect(sources.some(source => source.buffer?.path.includes('water_roll_deep_') &&
-    (source.gain?.gain.targets.at(-1) ?? 0) > 0)).toBe(true);
   await director.update({ ...base, eventSequence: 1, world: { ...base.world, entities: [wideWater] } });
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
   await director.update(base);
@@ -187,6 +198,8 @@ it('sustains water only during contact, uses physical collision types, and leave
   const truck = newVehicle('truck', 'test-truck');
   await director.update({ ...base, activeVehicleId: truck.id, vehicleInstances: [...base.vehicleInstances, truck],
     world: { ...base.world, entities: [{ ...water, id: 'truck-water' }] } });
+  await vi.waitFor(() => expect(sources.some(source => source.buffer?.path.includes('water_heavy_loop.mp3') &&
+    (source.gain?.gain.targets.at(-1) ?? 0) > 0)).toBe(true));
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
   await director.update(base);
   FakeAudioContext.time = 3;
