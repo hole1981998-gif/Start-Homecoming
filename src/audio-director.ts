@@ -269,7 +269,7 @@ const trafficBlockCue = (kind?: VehicleKind): string =>
   `traffic/new/traffic_block_${heavyVehicle(kind) ? 'heavy' : 'light'}`;
 
 type Bus = 'sfx' | 'ambience' | 'music';
-type Stem = { sources: AudioBufferSourceNode[]; gains: GainNode[]; kind: VehicleKind };
+type Stem = { sources: AudioBufferSourceNode[]; gains: GainNode[]; filters: BiquadFilterNode[]; kind: VehicleKind };
 const heavyVehicle = (kind?: VehicleKind): boolean => kind === 'bus' || kind === 'truck' || kind === 'container';
 const lightVehicle = (kind?: VehicleKind): boolean => kind === 'motorcycle' || kind === 'motorbike' || kind === 'tricycle';
 export const waterLoopForVehicle = (kind: VehicleKind): string =>
@@ -653,17 +653,19 @@ export class AudioDirector {
     const buffers = await Promise.all(names.map(n => this.buffer(n)));
     if (!buffers[0] || generation !== this.generation || this.requestedKind !== kind || this.stem?.kind === kind || ctx.state !== 'running') return;
     this.stopEngine(.18);
-    const sources: AudioBufferSourceNode[] = [], gains: GainNode[] = [];
+    const sources: AudioBufferSourceNode[] = [], gains: GainNode[] = [], filters: BiquadFilterNode[] = [];
     for (const buffer of buffers) {
       if (!buffer) continue;
-      const source = ctx.createBufferSource(), gain = ctx.createGain();
+      const source = ctx.createBufferSource(), gain = ctx.createGain(), presence = ctx.createBiquadFilter();
       source.buffer = buffer; source.loop = true; gain.gain.value = 0;
-      source.connect(gain).connect(this.buses.sfx);
-      sources.push(source); gains.push(gain);
+      // Rain and music mask the midrange of these bass-heavy engine recordings.
+      presence.type = 'peaking'; presence.frequency.value = 850; presence.Q.value = .8; presence.gain.value = 6;
+      source.connect(gain).connect(presence).connect(this.buses.sfx);
+      sources.push(source); gains.push(gain); filters.push(presence);
     }
     const start = ctx.currentTime + .01;
     for (const source of sources) source.start(start);
-    this.stem = { kind, sources, gains };
+    this.stem = { kind, sources, gains, filters };
   }
 
   private stopEngine(fadeSeconds = 0): void {
@@ -676,11 +678,11 @@ export class AudioDirector {
       const gain = stem.gains[index];
       if (fadeSeconds && ctx?.state === 'running') {
         gain.gain.setTargetAtTime(0, ctx.currentTime, fadeSeconds / 4);
-        source.onended = () => { source.disconnect(); gain.disconnect(); if (--remaining === 0) this.retiring.delete(stem); };
+        source.onended = () => { source.disconnect(); gain.disconnect(); stem.filters[index].disconnect(); if (--remaining === 0) this.retiring.delete(stem); };
         try { source.stop(ctx.currentTime + fadeSeconds); } catch { /* already stopped */ }
       } else {
         try { source.stop(); } catch { /* already stopped */ }
-        source.disconnect(); gain.disconnect();
+        source.disconnect(); gain.disconnect(); stem.filters[index].disconnect();
       }
     });
   }
@@ -689,6 +691,7 @@ export class AudioDirector {
     for (const stem of this.retiring) {
       stem.sources.forEach(source => { try { source.stop(); } catch { /* already stopped */ } source.disconnect(); });
       stem.gains.forEach(gain => gain.disconnect());
+      stem.filters.forEach(filter => filter.disconnect());
     }
     this.retiring.clear();
   }
@@ -869,7 +872,8 @@ export class AudioDirector {
       void this.engine(vehicle.kind);
       if (this.stem?.kind === vehicle.kind) {
         const s = Math.max(0, Math.min(1, (run.speed - vehicle.minSpeed) / Math.max(1, vehicle.maxSpeed - vehicle.minSpeed)));
-        const level = run.motion === 'coasting' ? .7 : 1.25;
+        const vehicleGain = lightVehicle(vehicle.kind) ? 1 : heavyVehicle(vehicle.kind) ? 1.5 : 1.7;
+        const level = (run.motion === 'coasting' ? .7 : 1.25) * vehicleGain;
         this.stem.gains[0].gain.setTargetAtTime(level, ctx.currentTime, .085);
         this.stem.sources.forEach(source => source.playbackRate.setTargetAtTime((.86 + .38 * s) * (run.motion === 'coasting' ? .9 : 1), ctx.currentTime, .085));
       }

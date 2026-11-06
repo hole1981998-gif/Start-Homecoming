@@ -108,7 +108,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   const voicePaths: string[] = [];
   const voiceAudios: Array<{ src: string; paused: boolean; onended?: () => void }> = [];
   const voiceGains: Array<ReturnType<FakeAudioContext['createGain']>> = [];
-  const waterFilters: Array<{ type: string; frequency: { value: number } }> = [];
+  const filters: Array<{ type: string; frequency: { value: number }; Q: { value: number }; gain: { value: number } }> = [];
   const stereoPans: Array<{ value: number }> = [];
   class FakeAudioContext {
     static time = 1;
@@ -122,9 +122,9 @@ it('routes driving, impact, indicator and train cues to their actual events', as
         disconnect() { /* detached */ } };
     }
     createBiquadFilter() {
-      const filter = { type: '', frequency: { value: 0 }, connect(gain: ReturnType<FakeAudioContext['createGain']>) { return gain; },
+      const filter = { type: '', frequency: { value: 0 }, Q: { value: 0 }, gain: { value: 0 }, connect(gain: ReturnType<FakeAudioContext['createGain']>) { return gain; },
         disconnect() { /* detached */ } };
-      waterFilters.push(filter); return filter;
+      filters.push(filter); return filter;
     }
     createStereoPanner() {
       const panner = { pan: { value: 0, setTargetAtTime(value: number) { this.value = value; } },
@@ -135,7 +135,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
       const source = { buffer: undefined as { path: string } | undefined, gain: undefined as ReturnType<FakeAudioContext['createGain']> | undefined,
         started: false, stopped: false, loop: false, playbackRate: { targets: [] as number[], setTargetAtTime(value: number) { this.targets.push(value); } },
         connect(gain: ReturnType<FakeAudioContext['createGain']> | ReturnType<FakeAudioContext['createBiquadFilter']>) {
-          if ('gain' in gain) this.gain = gain;
+          if (!('type' in gain)) this.gain = gain;
           return gain;
         },
         disconnect() { /* detached */ }, start() { this.started = true; }, stop() { this.stopped = true; } };
@@ -173,6 +173,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   await director.update({ ...base, lateralVelocity: 5, world: { ...base.world, entities: [police] } });
   await vi.waitFor(() => expect(sources.filter(source => source.started && source.buffer?.path.includes('engine_bike_texture_loop.mp3')).length).toBe(1));
   const drivingStems = sources.filter(source => source.started && source.buffer?.path.includes('engine_bike_texture_loop.mp3'));
+  expect(filters.some(filter => filter.type === 'peaking' && filter.frequency.value === 850 && filter.gain.value === 6)).toBe(true);
   await director.update({ ...base, motion: 'coasting', speed: 4 });
   expect(drivingStems.every(source => !source.stopped)).toBe(true);
   expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(.7);
@@ -184,7 +185,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(1.25);
   await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('water_light_loop.mp3'))).toBe(true));
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
-  expect(waterFilters).toHaveLength(0);
+  expect(filters.filter(filter => filter.type === 'lowpass')).toHaveLength(0);
   const rainSource = sources.find(source => source.buffer?.path.includes('rain_shower_loop.mp3'))!;
   expect(rainSource.loop).toBe(true);
   expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(3);

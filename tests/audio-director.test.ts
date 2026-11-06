@@ -14,6 +14,7 @@ it('starts ElevenLabs driving sound and cancels active stems on pause', async ()
   class FakeAudioContext {
     state = 'running'; currentTime = 1; destination = {};
     createGain() { return gain(); }
+    createBiquadFilter() { return { type: '', frequency: { value: 0 }, Q: { value: 0 }, gain: { value: 0 }, connect() { return this; }, disconnect() { /* detached */ } }; }
     createMediaElementSource() { return { connect() { return this; }, disconnect() { /* detached */ } }; }
     createBufferSource() {
       const source = { started: false, stopped: false, stopTimes: [] as number[], buffer: null, loop: false,
