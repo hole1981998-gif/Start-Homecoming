@@ -19,9 +19,11 @@ const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-pothole-2026-11-06/*.mp3',
   '../project-reference/sfx/elevenlabs-interactions-2026-11-06/*.mp3',
   '../project-reference/sfx/elevenlabs-train-pothole-2026-11-06/*.mp3',
+  '../project-reference/sfx/owner-kick-voices-2026-11-06/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
+const kickVoiceRoot = '../project-reference/sfx/owner-kick-voices-2026-11-06/';
 const rainRoot = '../project-reference/sfx/elevenlabs-rain-2026-11-04/';
 const stormRoot = '../project-reference/sfx/elevenlabs-storm-2026-11-05/';
 const waterRoot = '../project-reference/sfx/elevenlabs-water-2026-11-06/';
@@ -159,6 +161,7 @@ const url = (name: string): string | undefined =>
   rewardCues[name] ? files[rewardRoot + rewardCues[name]] :
   name === 'npc/footsteps_wet' ? files[worldRoot + 'npc_footsteps_wet.mp3'] :
   name === 'train/roll_past' ? files[worldRoot + 'train_roll_past.mp3'] :
+  name.startsWith('voice/kick-line/') ? files[kickVoiceRoot + name.slice('voice/kick-line/'.length) + '.mp3'] :
   name.startsWith('voice/') ? files[voiceRoot + name.slice(6) + '.mp3'] :
   name === 'ambience/rain_light_loop.wav' ? files[rainRoot + 'rain_shower_loop.mp3'] :
   name === 'ambience/distant_thunder_loop.wav' ? files[stormRoot + 'distant_thunder_loop.mp3'] :
@@ -167,11 +170,13 @@ const url = (name: string): string | undefined =>
   files[waterRoot + waterCues[name]] ?? files[generatedRoot + generated[name]];
 
 const actors = ['nam', 'thanh'] as const;
-type VoiceEvent = 'call' | 'thanks' | 'return' | 'abandon' | 'kick' | 'fall' | 'playerFall' | 'hit' | 'laugh' | 'traffic' | 'driver';
+type VoiceEvent = 'call' | 'thanks' | 'return' | 'abandon' | 'kick' | 'kickLine' | 'fall' | 'playerFall' | 'hit' | 'laugh' | 'traffic' | 'driver';
 const screamClips = ['tram_scream', 'quang_toan_scream', 'anh_thu_scream_a', 'anh_thu_scream_b',
   'anh_minh_scream', 'nam_kick_scream', 'nam_kick_scream_alt', 'thanh_kick_scream',
   'huy_kick_scream', 'huy_kick_short', 'huy_kick_scream_alt'];
 const playerScreamClips = ['anh_minh_scream', 'quang_toan_scream', 'huy_kick_scream'];
+const ownerKickLines = ['kick-line/kick_line_01', 'kick-line/kick_line_02',
+  'kick-line/kick_line_03', 'kick-line/kick_line_04'];
 const isScream = (event: VoiceEvent): boolean => event === 'kick' || event === 'fall' || event === 'playerFall' || event === 'hit';
 const voiceClips: Record<VoiceEvent, Record<string, string[]>> = {
   call: { nam: ['nam_call_here', 'nam_call_wait'], thanh: ['thanh_call_shout', 'thanh_call_ride'] },
@@ -179,6 +184,7 @@ const voiceClips: Record<VoiceEvent, Record<string, string[]>> = {
   return: { nam: ['nam_return_mutter'], thanh: ['thanh_return_warning', 'thanh_return_pain'] },
   abandon: { nam: ['nam_abandon_insult'], thanh: ['thanh_abandon_problem', 'thanh_abandon_plead', 'thanh_abandon_judge'] },
   kick: { nam: ['nam_kick_scream', 'nam_kick_scream_alt'], thanh: ['thanh_kick_scream'] },
+  kickLine: { nam: ownerKickLines, thanh: ownerKickLines },
   fall: { nam: ['huy_kick_scream', 'huy_kick_short'], thanh: ['huy_kick_scream_alt'] },
   playerFall: { nam: playerScreamClips, thanh: playerScreamClips },
   hit: { nam: screamClips, thanh: screamClips },
@@ -281,7 +287,7 @@ export type UiCue = 'menu_select' | 'menu_back' | 'help_open' | 'card_open' | 'c
   'purchase_success' | 'shop_service' | 'shop_upgrade' | 'vehicle_purchase' |
   'toggle_on' | 'toggle_off' | 'resource_gain' | 'resource_loss' | 'reward_small';
 const rainLevel = 3;
-const thunderLevel = 1.4;
+const thunderLevel = 2.1;
 const thunderLoop = 'ambience/distant_thunder_loop.wav';
 const trainLoop = 'train/crossing_loop';
 const indicatorLoop = 'control/indicator_tick';
@@ -294,9 +300,12 @@ export function potholeVariantIndex(seed: number, count: number, previous = -1):
   if (index === previous) index = (index + 1 + (hash >>> 8) % 3) % 4;
   return index;
 }
+export const kickLineVariantIndex = (seed: number, count: number, previous = -1): number =>
+  potholeVariantIndex(seed ^ 0x4b49434b, count, previous);
 const lightningCues = ['ambience/lightning_distant_a.wav', 'ambience/lightning_distant_b.wav'];
 const voiceBoost = (event: VoiceEvent): number => event === 'call' ? 2.6 : event === 'laugh' ? 3.4 :
   event === 'thanks' || event === 'traffic' || event === 'driver' ? 1.6 : 1;
+const kickLineBoost = (name: string): number => name.endsWith('/kick_line_01') ? 2.2 : 1.4;
 
 /** Deterministic, irregular spacing so lightning is occasional without a clocklike repeat. */
 export function stormStrikeDelay(seed: number, strikeIndex: number): number {
@@ -391,7 +400,7 @@ export class AudioDirector {
     const speaking = this.voices.size > 0;
     this.buses.ambience.gain.setTargetAtTime(.22 * this.levels.ambience * (speaking ? .55 : 1),
       this.context.currentTime, speaking ? .08 : .25);
-    this.buses.music.gain.setTargetAtTime(.30 * this.levels.music * (speaking ? .45 : 1),
+    this.buses.music.gain.setTargetAtTime(.42 * this.levels.music * (speaking ? .45 : 1),
       this.context.currentTime, speaking ? .08 : .25);
   }
 
@@ -401,7 +410,7 @@ export class AudioDirector {
       this.context = new AudioContext();
       const sfx = this.context.createGain(), ambience = this.context.createGain(), music = this.context.createGain();
       sfx.gain.value = .65 * this.levels.sfx; ambience.gain.value = .22 * this.levels.ambience;
-      music.gain.value = .30 * this.levels.music;
+      music.gain.value = .42 * this.levels.music;
       sfx.connect(this.context.destination); ambience.connect(this.context.destination); music.connect(this.context.destination);
       this.buses = { sfx, ambience, music };
     }
@@ -470,16 +479,23 @@ export class AudioDirector {
     if (!ctx || !bus || ctx.state !== 'running') return;
     const actor = voiceActor(riderId);
     const clips = event === 'playerFall' ? playerScreamClips : isScream(event) ? screamClips : voiceClips[event][actor];
-    const countKey = event === 'playerFall' ? 'voice-variant-player-fall' :
+    const countKey = event === 'kickLine' ? 'voice-variant-kick-line' :
+      event === 'playerFall' ? 'voice-variant-player-fall' :
       isScream(event) ? 'voice-variant-scream' : `voice-variant-${event}-${actor}`;
     const count = this.variantCount.get(countKey) ?? 0;
     const variantActor = isScream(event) ? 'all' : actor;
-    const name = `voice/${clips[(voiceVariantStart(this.voiceSeed, event, variantActor, clips.length) + count) % clips.length]}`;
+    const variantIndex = event === 'kickLine'
+      ? kickLineVariantIndex(this.voiceSeed, count, this.variantCount.get(`last:${countKey}`) ?? -1)
+      : (voiceVariantStart(this.voiceSeed, event, variantActor, clips.length) + count) % clips.length;
+    const name = `voice/${clips[variantIndex]}`;
     const path = url(name), key = `voice-${event}-${riderId}`;
     if (!path || ctx.currentTime - (this.cooldown.get(key) ?? -100) < gap) return;
-    for (const active of [...this.voices])
-      if (active.riderId === riderId && (isScream(active.event) || isScream(event))) active.stop();
+    for (const active of [...this.voices]) {
+      const pairedKick = event === 'kickLine' && active.event === 'kick' || event === 'kick' && active.event === 'kickLine';
+      if (active.riderId === riderId && !pairedKick && (isScream(active.event) || isScream(event))) active.stop();
+    }
     this.variantCount.set(countKey, count + 1);
+    if (event === 'kickLine') this.variantCount.set(`last:${countKey}`, variantIndex);
     const requestedAt = ctx.currentTime;
     this.cooldown.set(key, requestedAt);
     // HTML media preserves pitch when a long line is sped up; buffer playback does not.
@@ -487,7 +503,7 @@ export class AudioDirector {
     const panner = pan ? ctx.createStereoPanner() : undefined;
     audio.preservesPitch = true;
     audio.onloadedmetadata = () => { audio.playbackRate = speechPlaybackRate(audio.duration, event === 'laugh'); };
-    gain.gain.value = volume * 1.25 * voiceBoost(event);
+    gain.gain.value = volume * 1.25 * voiceBoost(event) * (event === 'kickLine' ? kickLineBoost(name) : 1);
     if (panner) { panner.pan.value = Math.max(-.8, Math.min(.8, pan)); source.connect(gain).connect(panner).connect(bus); }
     else source.connect(gain).connect(bus);
     const node: { audio: HTMLAudioElement; source: MediaElementAudioSourceNode; gain: GainNode;
@@ -808,7 +824,7 @@ export class AudioDirector {
       void this.engine(vehicle.kind);
       if (this.stem?.kind === vehicle.kind) {
         const s = Math.max(0, Math.min(1, (run.speed - vehicle.minSpeed) / Math.max(1, vehicle.maxSpeed - vehicle.minSpeed)));
-        const level = run.motion === 'coasting' ? .21 : .32;
+        const level = run.motion === 'coasting' ? .42 : .72;
         this.stem.gains[0].gain.setTargetAtTime(level, ctx.currentTime, .085);
         this.stem.sources.forEach(source => source.playbackRate.setTargetAtTime((.86 + .38 * s) * (run.motion === 'coasting' ? .9 : 1), ctx.currentTime, .085));
       }
@@ -904,7 +920,9 @@ export class AudioDirector {
           void this.play('npc/footsteps_wet', `steps:${e.id}`, 0, .22, lateral / 8);
         }
         if (e.id.startsWith('dropped-') && !this.spoken.has(e.id) && Math.abs(ahead) < 25) {
-          this.spoken.add(e.id); this.voice('kick', e.riderId ?? e.id, 1);
+          this.spoken.add(e.id);
+          this.voice('kick', e.riderId ?? e.id, .8);
+          this.voice('kickLine', e.riderId ?? e.id, .9);
         } else if (e.id.startsWith('wreck-rider:') && !prior && !this.spoken.has(`wreck-scream:${e.id}`) &&
           ahead > -18 && ahead < 40) {
           const group = e.id.slice(0, e.id.lastIndexOf(':') + 1);

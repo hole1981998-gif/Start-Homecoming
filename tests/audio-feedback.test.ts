@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { AudioDirector, potholeVariantIndex, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, trafficPassLeadDistance, waterLoopForVehicle } from '../src/audio-director';
+import { AudioDirector, kickLineVariantIndex, potholeVariantIndex, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, trafficPassLeadDistance, waterLoopForVehicle } from '../src/audio-director';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
@@ -30,6 +30,15 @@ it('chooses four seeded pothole takes without a fixed alternating cycle', () => 
   expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
   expect(sequence.some((index, i) => i >= 2 && index !== sequence[i - 2])).toBe(true);
   expect(sequence).toEqual(sequence.map((_, i) => potholeVariantIndex(17, i, sequence[i - 1])));
+});
+
+it('randomizes owner kick lines by seed without immediately repeating one', () => {
+  const sequence: number[] = [];
+  for (let count = 0; count < 16; count++)
+    sequence.push(kickLineVariantIndex(17, count, sequence.at(-1)));
+  expect(new Set(sequence).size).toBe(4);
+  expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
+  expect(sequence.some((index, i) => i >= 2 && index !== sequence[i - 2])).toBe(true);
 });
 
 it('makes a roadside call grow louder on approach and fade after passing', () => {
@@ -158,11 +167,13 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   const drivingStems = sources.filter(source => source.started && source.buffer?.path.includes('engine_bike_texture_loop.mp3'));
   await director.update({ ...base, motion: 'coasting', speed: 4 });
   expect(drivingStems.every(source => !source.stopped)).toBe(true);
+  expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(.42);
   expect(fetched.some(path => path.includes('water_light_loop.mp3'))).toBe(false);
   expect(fetched.some(path => path.includes('skid.wav') || path.includes('police_warning'))).toBe(false);
 
   const water = { ...entity('water', 'test-water', 0, 0), touching: true };
   await director.update({ ...base, eventSequence: 1, feedbackKind: 'water', world: { ...base.world, entities: [water] } });
+  expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(.72);
   await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('water_light_loop.mp3'))).toBe(true));
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
   expect(waterFilters).toHaveLength(0);
@@ -171,7 +182,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(3);
   const thunderSource = sources.find(source => source.buffer?.path.includes('distant_thunder_loop.mp3'))!;
   expect(thunderSource.loop).toBe(true);
-  expect(thunderSource.gain?.gain.targets.at(-1)).toBeCloseTo(1.4);
+  expect(thunderSource.gain?.gain.targets.at(-1)).toBeCloseTo(2.1);
   expect(fetched.some(path => path.includes('rain_road_loop.mp3'))).toBe(false);
   const waterSource = sources.find(source => source.buffer?.path.includes('water_light_loop.mp3'))!;
   expect(waterSource.loop).toBe(true);
@@ -432,6 +443,22 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   FakeAudioContext.time = 27;
   await director.update({ ...base, activeSeconds: 130 });
   await vi.waitFor(() => expect(fetched.some(path => path.includes('lightning_distant_b.mp3'))).toBe(true));
+
+  const kickStart = voicePaths.length;
+  for (let i = 0; i < 4; i++) {
+    const rider = { ...entity('passenger', `dropped-demo-${i}`, 0, 0), riderId: `kick-rider-${i}` };
+    await director.update({ ...base, world: { ...base.world, entities: [rider] } });
+  }
+  const kicked = voicePaths.slice(kickStart);
+  expect(kicked).toHaveLength(8);
+  for (let i = 0; i < kicked.length; i += 2) {
+    expect(kicked[i]).toMatch(/scream|kick_short/);
+    expect(kicked[i + 1]).toMatch(/owner-kick-voices-2026-11-06.*kick_line_0[1-4]\.mp3/);
+    expect(voiceAudios[kickStart + i].paused).toBe(false);
+    expect(voiceAudios[kickStart + i + 1].paused).toBe(false);
+    expect(voiceGains[kickStart + i + 1].gain.value).toBeCloseTo(
+      .9 * 1.25 * (kicked[i + 1].includes('kick_line_01.mp3') ? 2.2 : 1.4));
+  }
 
   const heavyBefore = sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length;
   await director.update({ ...base, phase: 'ended', eventSequence: 11, feedbackKind: 'accident' });
