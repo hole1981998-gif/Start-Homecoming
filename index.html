@@ -41,6 +41,12 @@
       <section id="legacy-board" class="leaderboard" hidden><h2>Thành tích cũ · luật điểm trước speed-v1</h2><ol id="legacy-list"></ol></section>
       <button class="primary" id="play">Bắt đầu lái</button><button id="close-help" hidden>Đóng hướng dẫn</button>
       <div class="panel-actions"><button id="panel-help" hidden>Xem hướng dẫn</button><button id="panel-restart" hidden>Chơi lại từ đầu</button></div>
+      <fieldset id="audio-settings"><legend>Âm thanh</legend>
+        <label>Hiệu ứng <input id="sfx-volume" type="range" min="0" max="100" value="70" aria-label="Âm lượng hiệu ứng" /></label>
+        <label>Môi trường <input id="ambience-volume" type="range" min="0" max="100" value="35" aria-label="Âm lượng môi trường" /></label>
+        <label>Nhạc <input id="music-volume" type="range" min="0" max="100" value="0" aria-label="Âm lượng nhạc" disabled /></label>
+        <small>Nhạc chưa được thêm. Kéo về 0 để tắt từng nhóm âm.</small>
+      </fieldset>
       <label><input id="effects-toggle" type="checkbox" /> Hiệu ứng nhẹ (giảm mưa, gợn và hạt)</label>
       <label id="feedback-options" hidden><input id="flavor-toggle" type="checkbox" checked /> Popup vui (luôn giữ phản hồi tài nguyên)</label>
     </div></div>

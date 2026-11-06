@@ -20,6 +20,7 @@ import { hasBoost, hasStar, itemNames, requestJump, usePowerItem } from './items
 import { ShopView } from './shop-view';
 import type { ForceIntegration } from './force-integration';
 import { runtimeMode } from './runtime-mode';
+import { GameAudio } from './audio';
 prepareUiShell();
 prepareContentIcons();
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound, Menu } });
@@ -81,6 +82,20 @@ if (effectsToggle) {
   }, { signal: listeners.signal });
 }
 const roadHud = new RoadHud(el('world-cues'));
+const audio = new GameAudio();
+for (const [id, category] of [['sfx-volume', 'sfx'], ['ambience-volume', 'ambience'], ['music-volume', 'music']] as const) {
+  const slider = el<HTMLInputElement>(id);
+  try {
+    const saved = Number(localStorage.getItem(`homecoming-${category}-volume`));
+    if (Number.isFinite(saved) && saved >= 0 && saved <= 100 && localStorage.getItem(`homecoming-${category}-volume`) !== null)
+      slider.value = String(saved);
+  } catch { /* Audio still works without persistent settings. */ }
+  audio.setVolume(category, Number(slider.value) / 100);
+  slider.addEventListener('input', () => {
+    audio.setVolume(category, Number(slider.value) / 100);
+    try { localStorage.setItem(`homecoming-${category}-volume`, slider.value); } catch { /* Session preference still works. */ }
+  }, { signal: listeners.signal });
+}
 const shopView = new ShopView(el('shop-panel'), () => state, command => {
   const result = transact(state, command); state = result.run; previous = state;
   text('shop-status', result.message);
@@ -98,6 +113,7 @@ graphics.setLowEffects(effectsToggle?.checked ?? false);
 
 function clearInput(): void { input = noInput(); clock.reset(); previous = state; }
 function show(view: Exclude<Screen, null>, title: string, description: string): void {
+  audio.pause();
   screen = view; modal.hidden = false; modal.setAttribute('data-view', view); setMenu(false); clearInput();
   el('discovery-art').hidden = view !== 'card';
   el('quick-start').hidden = view !== 'start';
@@ -115,6 +131,7 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   el('result-badge').hidden = view !== 'result' || state.result?.reason !== 'secret';
   el('leaderboard').hidden = view !== 'result';
   el('effects-toggle').parentElement!.hidden = !['pause', 'help', 'start'].includes(view);
+  el('audio-settings').hidden = !['pause', 'help', 'start'].includes(view);
   play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
   el('panel-help').hidden = !['pause', 'result', 'start'].includes(view);
   el('panel-restart').hidden = view !== 'pause';
@@ -129,11 +146,13 @@ function pauseRun(): void {
 }
 function resume(): void {
   if (document.hidden || state.phase === 'ended') return;
+  void audio.unlock();
   setMenu(false); state = { ...leaveShop(state), phase: 'running' }; screen = null; modal.hidden = true;
   clearInput(); canvas.focus({ preventScroll: true });
 }
 function reset(): void {
   clearTimeout(cardTimer); discovery = null;
+  audio.reset();
   force = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
   state = newRun(); previous = state;
   if (state.world.prototype) {
@@ -255,7 +274,12 @@ window.addEventListener('keydown', event => {
   if (!event.repeat && event.code === 'Space') { state = requestJump(state); return; }
   if (!event.repeat && event.code === 'KeyR') { event.preventDefault(); openShop(); return; }
   if (!event.repeat && ['Digit1', 'Digit2', 'Numpad1', 'Numpad2'].includes(event.code)) {
-    event.preventDefault(); state = usePowerItem(state, event.code.endsWith('1') ? 0 : 1); return;
+    event.preventDefault();
+    const slot = event.code.endsWith('1') ? 0 : 1;
+    const item = state.inventory[slot];
+    const next = usePowerItem(state, slot);
+    if (next !== state && item === 'banana') audio.play('banana_use');
+    state = next; return;
   }
   if (!event.repeat && event.code === 'Tab') { state = switchVehicle(state); return; }
   if (!event.repeat && event.code === 'KeyF') { state = pickUpPassenger(state); return; }
@@ -340,6 +364,7 @@ const diagnosticSamples: unknown[] = [];
 function frame(now: number): void {
   const elapsed = (now - last) / 1000; last = now; const start = performance.now();
   const alpha = state.phase === 'running' ? clock.advance(elapsed, () => { previous = state; state = force ? force.step(state, input) : stepRun(state, input); }) : 1;
+  audio.update(state);
   if (state.phase === 'ended' && screen !== 'result' && screen !== 'help') {
     resultView();
   } else discover();
@@ -368,4 +393,4 @@ function frame(now: number): void {
   canvas.dataset.forceContacts = `${force?.contactPairs ?? 0}`;
 }
 reset(); updateHud(); animation = requestAnimationFrame(frame);
-if (import.meta.hot) import.meta.hot.dispose(() => { cancelAnimationFrame(animation); listeners.abort(); clearTimeout(cardTimer); graphics.dispose(); });
+if (import.meta.hot) import.meta.hot.dispose(() => { cancelAnimationFrame(animation); listeners.abort(); clearTimeout(cardTimer); audio.reset(); graphics.dispose(); });
