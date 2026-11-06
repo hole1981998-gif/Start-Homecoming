@@ -1,0 +1,68 @@
+[
+  {
+    "profile": "Thận trọng",
+    "variant": "current",
+    "seeds": 3000,
+    "boughtBy90": 0,
+    "boughtBy180": 2725,
+    "censored180": 275,
+    "p10": 133.4999999999961,
+    "median": 143.5499999999984,
+    "p90": 143.5499999999984
+  },
+  {
+    "profile": "Thận trọng",
+    "variant": "proposal",
+    "seeds": 3000,
+    "boughtBy90": 2005,
+    "boughtBy180": 2659,
+    "censored180": 341,
+    "p10": 85.54999999999728,
+    "median": 85.54999999999728,
+    "p90": 174.00000000000531
+  },
+  {
+    "profile": "Trung bình (giả định)",
+    "variant": "current",
+    "seeds": 3000,
+    "boughtBy90": 55,
+    "boughtBy180": 2969,
+    "censored180": 31,
+    "p10": 92.14999999999691,
+    "median": 96.89999999999664,
+    "p90": 96.89999999999664
+  },
+  {
+    "profile": "Trung bình (giả định)",
+    "variant": "proposal",
+    "seeds": 3000,
+    "boughtBy90": 2352,
+    "boughtBy180": 2945,
+    "censored180": 55,
+    "p10": 57.84999999999885,
+    "median": 57.84999999999885,
+    "p90": 118.5999999999954
+  },
+  {
+    "profile": "Nhanh",
+    "variant": "current",
+    "seeds": 3000,
+    "boughtBy90": 2850,
+    "boughtBy180": 3000,
+    "censored180": 0,
+    "p10": 59.99999999999873,
+    "median": 59.99999999999873,
+    "p90": 59.99999999999873
+  },
+  {
+    "profile": "Nhanh",
+    "variant": "proposal",
+    "seeds": 3000,
+    "boughtBy90": 2979,
+    "boughtBy180": 3000,
+    "censored180": 0,
+    "p10": 36.00000000000009,
+    "median": 36.00000000000009,
+    "p90": 74.99999999999788
+  }
+]
