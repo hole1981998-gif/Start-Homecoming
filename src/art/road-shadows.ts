@@ -25,7 +25,7 @@ export function createRoadShadowArt(width: number, skew: number, bandWidth: numb
     const drift = Math.sin(u * 15.7 + .7) * .19 + Math.sin(u * 27.2) * .08;
     const z = (u - .5) * skew + drift;
     for (const v of [0, 1]) {
-      positions.push(x, .029, z + (v - .5) * bandWidth);
+      positions.push(x, .04, z + (v - .5) * bandWidth);
       uvs.push(u, v);
     }
     if (i < columns) {

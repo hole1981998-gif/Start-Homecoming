@@ -1,0 +1,12 @@
+{
+  "file": "water-reflection.webp",
+  "frames": 164,
+  "size": [
+    568,
+    634
+  ],
+  "durationMs": 6120,
+  "startUnixMs": 1793201725231,
+  "pausedFramesIdentical": true,
+  "note": "Real variable-interval browser screenshots, not native video or 60-FPS capture."
+}

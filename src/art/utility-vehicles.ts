@@ -68,6 +68,9 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
       block(parent, `rear_indicator_${side}`, [.08, .08, .045], [side * (x + .16), y, rearZ], amber);
       sockets[`headlamp_${side}`] = socket(root, `headlamp_socket_${side}`, [side * x, y, frontZ + .03]);
       sockets[`tail_${side}`] = socket(root, `tail_socket_${side}`, [side * x, y, rearZ - .03]);
+      const name = side < 0 ? 'left' : 'right';
+      sockets[`indicator_front_${name}`] = socket(root, `indicator_front_${name}`, [side * (x + .19), y, frontZ + .03]);
+      sockets[`indicator_rear_${name}`] = socket(root, `indicator_rear_${name}`, [side * (x + .16), y, rearZ - .03]);
     }
   }
 
@@ -90,6 +93,15 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     block(body, 'front_cowl_inset', [.31, .07, .32], [0, 1.27, 1.07], trim);
     block(front, 'handlebar', [.83, .055, .065], [0, 1.34, .91], steel);
     block(front, 'front_lamp', [.29, .20, .08], [0, 1.08, 1.53], light);
+    sockets.headlamp = socket(front, 'headlamp_socket', [0, 1.08, 1.58]);
+    for (const side of [-1, 1]) {
+      const name = side < 0 ? 'left' : 'right';
+      block(front, `front_indicator_${side}`, [.09, .07, .04], [side * .28, 1.08, 1.55], amber);
+      block(body, `rear_indicator_${side}`, [.09, .07, .04], [side * .70, .82, -1.60], amber);
+      sockets[`tail_${name}`] = socket(body, `tail_${name}`, [side * .55, .82, -1.61]);
+      sockets[`indicator_front_${name}`] = socket(front, `indicator_front_${name}`, [side * .28, 1.08, 1.58]);
+      sockets[`indicator_rear_${name}`] = socket(body, `indicator_rear_${name}`, [side * .70, .82, -1.63]);
+    }
     block(body, 'engine', [.46, .30, .37], [0, .52, .51], dark);
     block(body, 'driver_saddle', [.43, .11, .49], [0, 1.06, .28], dark);
     block(body, 'rear_axle_beam', [1.41, .09, .10], [0, .34, -1.08], steel);
@@ -297,6 +309,9 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     for (const side of [-1, 1]) {
       block(tractor, `headlamp_${side}`, [.31, .16, .04], [side * 1.00, 1.26, 7.36], light);
       sockets[`headlamp_${side}`] = socket(root, `headlamp_socket_${side}`, [side * 1.00, 1.26, 7.39]);
+      const name = side < 0 ? 'left' : 'right';
+      sockets[`indicator_front_${name}`] = socket(root, `indicator_front_${name}`, [side * 1.17, 1.26, 7.40]);
+      block(tractor, `front_indicator_${side}`, [.12, .11, .045], [side * 1.17, 1.26, 7.37], amber);
     }
     const hitch = socket(root, 'hitch', [0, 1.10, 3.13]); sockets.hitch = hitch;
     block(tractor, 'fifth_wheel', [1.15, .09, .91], [0, 1.14, 3.23], dark);
@@ -326,6 +341,9 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
         [.17, .18, .055], [side * 1.02, y, -7.34], dark);
       block(trailer, `tail_${side}`, [.22, .14, .04], [side * 1.04, 1.31, -7.32], red);
       sockets[`tail_${side}`] = socket(root, `tail_socket_${side}`, [side * 1.04, 1.31, -7.35]);
+      const name = side < 0 ? 'left' : 'right';
+      sockets[`indicator_rear_${name}`] = socket(root, `indicator_rear_${name}`, [side * 1.20, 1.31, -7.38]);
+      block(trailer, `rear_indicator_${side}`, [.12, .11, .045], [side * 1.20, 1.31, -7.35], amber);
     }
     block(trailer, 'rear_doors', [2.51, 2.33, .075], [0, 2.58, -7.28], wood);
     block(trailer, 'rear_center_seam', [.05, 2.30, .04], [0, 2.58, -7.34], dark);

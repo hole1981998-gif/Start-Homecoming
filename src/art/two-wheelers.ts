@@ -173,6 +173,11 @@ export function createTwoWheelerArt(kind: TwoWheelerKind, lod: 'near' | 'far' = 
     driver: point(body, 'seat_driver', [0, sport ? 1.07 : 1.13, sport ? -.38 : -.34]),
     passenger: point(body, 'seat_passenger', [0, 1.10, sport ? -.71 : -.69]),
   };
+  for (const side of [-1, 1]) {
+    const name = side < 0 ? 'left' : 'right';
+    sockets[`indicator_front_${name}`] = point(frontSteer, `indicator_front_${name}`, [side * .27, 1.12, half + .025]);
+    sockets[`indicator_rear_${name}`] = point(body, `indicator_rear_${name}`, [side * .26, 1.01, -half + .055]);
+  }
   root.userData = { id: `veh_${kind}_player_A`, kind, lod, axes: '+Y up, +Z forward',
     widthM: sport ? .96 : .896, lengthM: sport ? 2.2 : 2.0,
     logicCollisionRole: 'reference-only' };

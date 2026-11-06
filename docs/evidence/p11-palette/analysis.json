@@ -1,0 +1,76 @@
+{
+  "referenceSize": [
+    1000,
+    749
+  ],
+  "quantizedReferenceColors": [
+    {
+      "hex": "#338085",
+      "fraction": 0.1288
+    },
+    {
+      "hex": "#1f3034",
+      "fraction": 0.1149
+    },
+    {
+      "hex": "#285d61",
+      "fraction": 0.1123
+    },
+    {
+      "hex": "#63b5b5",
+      "fraction": 0.1005
+    },
+    {
+      "hex": "#3d504e",
+      "fraction": 0.0961
+    },
+    {
+      "hex": "#525b56",
+      "fraction": 0.092
+    },
+    {
+      "hex": "#63a2a4",
+      "fraction": 0.0902
+    },
+    {
+      "hex": "#655f57",
+      "fraction": 0.0743
+    },
+    {
+      "hex": "#a8ac94",
+      "fraction": 0.0612
+    },
+    {
+      "hex": "#598482",
+      "fraction": 0.0551
+    },
+    {
+      "hex": "#b1cdb7",
+      "fraction": 0.038
+    },
+    {
+      "hex": "#8b8674",
+      "fraction": 0.0365
+    }
+  ],
+  "captureSizes": {
+    "water-before.png": [
+      1000,
+      563
+    ],
+    "water-after.png": [
+      1000,
+      563
+    ],
+    "city-final.png": [
+      1000,
+      563
+    ],
+    "powers-after.png": [
+      1000,
+      563
+    ]
+  },
+  "pausedFramesIdentical": true,
+  "note": "Palette clusters describe the supplied image, not a perceptual match score. Screenshots are unmodified."
+}

@@ -31,7 +31,9 @@ export function attachArticulatedContainerArt(tractorFrame: THREE.Object3D,
     const overlay = art.root.getObjectByName(name);
     if (overlay) trailerVisual.add(overlay);
   }
-  for (const name of ['cargo_drop', 'contact_spark_rear']) {
+  for (const name of Object.keys(art.sockets).filter(name =>
+    name === 'cargo_drop' || name === 'contact_spark_rear' || name.startsWith('tail_') ||
+    name.startsWith('indicator_rear_') || name.startsWith('brake_'))) {
     const socket = art.sockets[name];
     if (socket) trailerVisual.add(socket);
   }

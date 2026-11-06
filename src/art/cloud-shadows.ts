@@ -69,7 +69,7 @@ export function createCloudShadowArt(): CloudShadowArt {
   const patches = Array.from({ length: visiblePatches }, (_, index) => {
     const patch = new THREE.Mesh(geometry, material);
     patch.name = `cloud_shadow_${index}`;
-    patch.position.y = .022;
+    patch.position.y = .04;
     patch.renderOrder = 1;
     root.add(patch);
     return patch;
@@ -83,7 +83,7 @@ export function createCloudShadowArt(): CloudShadowArt {
         const pose = pathPose(placement.distance, route, seed);
         patch.position.set(
           pose.x + Math.cos(pose.heading) * placement.lateral,
-          .022,
+          .04,
           pose.z + Math.sin(pose.heading) * placement.lateral,
         );
         patch.rotation.y = -pose.heading + placement.yaw;
