@@ -112,6 +112,7 @@ function openShop(): void {
   const next = enterShop(state); if (next === state) return;
   state = next; shopView.reset();
   show('shop', 'Cửa hàng ven đường', 'Tiếp tế rồi lên đường.');
+  audio.enterShop();
   audio.ui('shop_enter');
   text('shop-status', 'Đã dừng an toàn.'); shopView.render();
 }
@@ -159,6 +160,7 @@ function resume(cue?: UiCue | null): void {
   if (document.hidden || state.phase === 'ended') return;
   const previousScreen = screen;
   audio.unlock();
+  audio.leaveShop();
   setMenu(false);
   state = { ...leaveShop(state), phase: 'running' }; screen = null; modal.hidden = true;
   clearInput(); canvas.focus({ preventScroll: true });
@@ -312,8 +314,12 @@ window.addEventListener('keydown', event => {
   if (event.code in mapping) { event.preventDefault(); input[mapping[event.code as keyof typeof mapping]] = true; }
 }, { signal: listeners.signal });
 window.addEventListener('keyup', event => { if (event.code in mapping) input[mapping[event.code as keyof typeof mapping]] = false; }, { signal: listeners.signal });
-window.addEventListener('blur', () => pauseRun(true), { signal: listeners.signal });
-document.addEventListener('visibilitychange', () => { if (document.hidden) pauseRun(true); }, { signal: listeners.signal });
+window.addEventListener('blur', () => { if (screen === 'shop') audio.pause(); else pauseRun(true); }, { signal: listeners.signal });
+window.addEventListener('focus', () => { if (screen === 'shop' && !document.hidden) audio.enterShop(); }, { signal: listeners.signal });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { if (screen === 'shop') audio.pause(); else pauseRun(true); }
+  else if (screen === 'shop') audio.enterShop();
+}, { signal: listeners.signal });
 canvas.addEventListener('blur', event => {
   clearInput(); if (!menu.contains(event.relatedTarget as Node)) pauseRun();
 }, { signal: listeners.signal });

@@ -259,8 +259,12 @@ export class AudioDirector {
   private stem?: Stem;
   private retiring = new Set<Stem>();
   private ambience = new Map<string, { source: AudioBufferSourceNode; gain: GainNode }>();
-  private music?: { audio: HTMLAudioElement; source: MediaElementAudioSourceNode };
+  private music?: { audio: HTMLAudioElement; source: MediaElementAudioSourceNode; gain: GainNode };
   private musicPending = false;
+  private shopMusic?: { audio: HTMLAudioElement; source: MediaElementAudioSourceNode; gain: GainNode };
+  private shopMusicPending = false;
+  private shopOpen = false;
+  private shopStopTimer?: ReturnType<typeof setTimeout>;
   private near = new Set<string>();
   private trafficPairs = new Set<string>();
   private trafficHoles = new Set<string>();
@@ -450,18 +454,66 @@ export class AudioDirector {
       const audio = new Audio(path);
       audio.loop = true;
       audio.preload = 'auto';
-      const source = ctx.createMediaElementSource(audio);
-      source.connect(bus);
-      this.music = { audio, source };
+      const source = ctx.createMediaElementSource(audio), gain = ctx.createGain();
+      gain.gain.value = 0;
+      source.connect(gain).connect(bus);
+      this.music = { audio, source, gain };
     }
     if (!this.music.audio.paused || this.musicPending) return;
     const audio = this.music.audio;
+    this.music.gain.gain.value = 0;
+    this.music.gain.gain.setTargetAtTime(1, ctx.currentTime, .12);
     this.musicPending = true;
     void audio.play().then(() => {
       if (this.music?.audio !== audio || !this.running) audio.pause();
     }).catch(() => { /* Retry after the next user gesture. */ }).finally(() => {
       if (this.music?.audio === audio) this.musicPending = false;
     });
+  }
+
+  /** The shop pauses gameplay, but its music continues through the shared music slider. */
+  enterShop(): void {
+    const ctx = this.context, bus = this.buses?.music;
+    const path = files[musicRoot + 'afternoon_jazz.mp3'];
+    if (!ctx || !bus || !path || typeof Audio === 'undefined') return;
+    this.shopOpen = true;
+    if (ctx.state !== 'running') {
+      void ctx.resume().then(() => { if (this.shopOpen && ctx.state === 'running') this.enterShop(); })
+        .catch(() => { /* Retry on the next gesture. */ });
+      return;
+    }
+    if (this.shopStopTimer) clearTimeout(this.shopStopTimer);
+    this.shopStopTimer = undefined;
+    if (!this.shopMusic) {
+      const audio = new Audio(path);
+      audio.loop = true;
+      audio.preload = 'auto';
+      const source = ctx.createMediaElementSource(audio), gain = ctx.createGain();
+      gain.gain.value = 0;
+      source.connect(gain).connect(bus);
+      this.shopMusic = { audio, source, gain };
+    }
+    this.shopMusic.gain.gain.setTargetAtTime(.78, ctx.currentTime, .12);
+    if (!this.shopMusic.audio.paused || this.shopMusicPending) return;
+    const audio = this.shopMusic.audio;
+    this.shopMusicPending = true;
+    void audio.play().then(() => {
+      if (this.shopMusic?.audio !== audio || !this.shopOpen) audio.pause();
+    }).catch(() => { /* Retry on the next shop interaction. */ }).finally(() => {
+      if (this.shopMusic?.audio === audio) this.shopMusicPending = false;
+    });
+  }
+
+  leaveShop(): void {
+    this.shopOpen = false;
+    const track = this.shopMusic, ctx = this.context;
+    if (!track || !ctx) return;
+    track.gain.gain.setTargetAtTime(0, ctx.currentTime, .08);
+    if (this.shopStopTimer) clearTimeout(this.shopStopTimer);
+    this.shopStopTimer = setTimeout(() => {
+      if (this.shopMusic === track && !this.shopOpen) track.audio.pause();
+      this.shopStopTimer = undefined;
+    }, 400);
   }
 
   private async engine(kind: VehicleKind): Promise<void> {
@@ -522,8 +574,12 @@ export class AudioDirector {
     this.stopEngine();
     this.clearRetiring();
     for (const { source, gain } of this.ambience.values()) { try { source.stop(); } catch { /* already stopped */ } source.disconnect(); gain.disconnect(); }
-    if (this.music) { this.music.audio.pause(); this.music.source.disconnect(); this.music = undefined; }
+    if (this.music) { this.music.audio.pause(); this.music.source.disconnect(); this.music.gain.disconnect(); this.music = undefined; }
     this.musicPending = false;
+    if (this.shopStopTimer) clearTimeout(this.shopStopTimer);
+    this.shopStopTimer = undefined;
+    if (this.shopMusic) { this.shopMusic.audio.pause(); this.shopMusic.source.disconnect(); this.shopMusic.gain.disconnect(); this.shopMusic = undefined; }
+    this.shopMusicPending = false; this.shopOpen = false;
     this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficBlocks.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.strandedRiders = []; this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0;
     this.windStart = 0; this.nextLightningAt = 0; this.lightningCount = 0;
     this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.vehicleId = ''; this.requestedKind = undefined; this.running = false; this.voiceSeed = 0;
@@ -542,6 +598,11 @@ export class AudioDirector {
     this.voices.clear();
     this.syncVoiceDucking();
     this.music?.audio.pause();
+    if (this.shopStopTimer) clearTimeout(this.shopStopTimer);
+    this.shopStopTimer = undefined;
+    this.shopOpen = false;
+    this.shopMusic?.audio.pause();
+    if (this.shopMusic && this.context) this.shopMusic.gain.gain.setTargetAtTime(0, this.context.currentTime, .08);
     for (const { gain } of this.ambience.values()) gain.gain.setTargetAtTime(0, this.context?.currentTime ?? 0, .08);
   }
 
