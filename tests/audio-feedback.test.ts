@@ -231,6 +231,14 @@ it('sustains water only during contact, uses physical collision types, and leave
   const hole = entity('pothole', 'hole', 0, 0);
   await director.update({ ...base, eventSequence: 4, world: { ...base.world, entities: [{ ...container, trafficContacts: ['hole'] }, hole] } });
   expect(fetched.some(path => path.includes('pothole_heavy.mp3'))).toBe(true);
+  const trafficBarrier = entity('jam', 'traffic-barrier', 0, 0);
+  const firstBlockCount = fetched.filter(path => path.includes('traffic_block_heavy.mp3')).length;
+  await director.update({ ...base, eventSequence: 4, world: { ...base.world,
+    entities: [{ ...container, trafficContacts: [trafficBarrier.id] }, trafficBarrier] } });
+  expect(fetched.filter(path => path.includes('traffic_block_heavy.mp3'))).toHaveLength(firstBlockCount + 1);
+  await director.update({ ...base, eventSequence: 4, world: { ...base.world,
+    entities: [{ ...container, trafficContacts: [trafficBarrier.id] }, trafficBarrier] } });
+  expect(fetched.filter(path => path.includes('traffic_block_heavy.mp3'))).toHaveLength(firstBlockCount + 1);
   FakeAudioContext.time = 5;
   const barrier = { ...entity('jam', 'barrier', 0, 0), consumed: true };
   await director.update({ ...base, eventSequence: 5, feedbackKind: 'jam', world: { ...base.world, entities: [barrier] } });
@@ -316,17 +324,17 @@ it('sustains water only during contact, uses physical collision types, and leave
   await director.update({ ...base, speed: 15, world: { ...base.world, entities: [closeCar] } });
   expect(fetched.some(path => path.includes('traffic_horn_car.mp3'))).toBe(true);
   await director.update({ ...base, speed: 15, world: { ...base.world, entities: [{ ...closeCar, distance: -2 }] } });
-  expect(fetched.some(path => path.includes('vehicle_coast.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('pass_car.mp3'))).toBe(true);
   expect(fetched.filter(path => path.includes('traffic_horn_car.mp3'))).toHaveLength(1);
   await director.update({ ...base, speed: 15, world: { ...base.world, entities: [{ ...closeCar, distance: -3 }] } });
-  expect(fetched.filter(path => path.includes('vehicle_coast.mp3'))).toHaveLength(2);
-  FakeAudioContext.time = 17;
+  expect(fetched.filter(path => path.includes('pass_car.mp3'))).toHaveLength(1);
+  FakeAudioContext.time = 17.7;
   const truckTraffic = { ...entity('traffic', 'near-truck', 32, 3.2), trafficKind: 'truck' as const, speed: -7 };
   await director.update({ ...base, speed: 15, world: { ...base.world, entities: [truckTraffic] } });
   expect(fetched.some(path => path.includes('traffic_horn_heavy.mp3'))).toBe(true);
   await vi.waitFor(() => expect(stereoPans.at(-1)?.value).toBeGreaterThan(0));
   await director.update({ ...base, speed: 15, world: { ...base.world, entities: [{ ...truckTraffic, distance: -1 }] } });
-  expect(fetched.some(path => path.includes('wind_gust.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('pass_truck.mp3'))).toBe(true);
 
   FakeAudioContext.time = 18;
   const crash = { elapsed: 0, side: 1 as const, originDistance: 0, originX: 0, impactSpeed: 15,
