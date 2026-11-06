@@ -159,7 +159,7 @@ it('sustains water only during contact, uses physical collision types, and leave
   expect(fetched.some(path => path.includes('rain_road_loop.mp3'))).toBe(false);
   const waterSource = sources.find(source => source.buffer?.path.includes('water_light_loop.mp3'))!;
   expect(waterSource.loop).toBe(true);
-  expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
+  expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(.75);
   await director.update({ ...base, speed: 20, world: { ...base.world, entities: [water] } });
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
   const waterTargets = waterSource.gain?.gain.targets ?? [];
@@ -189,7 +189,7 @@ it('sustains water only during contact, uses physical collision types, and leave
   await director.update({ ...base, activeVehicleId: car.id, vehicleInstances: [...base.vehicleInstances, car],
     world: { ...base.world, entities: [wideWater] } });
   await vi.waitFor(() => expect(sources.some(source => source.buffer?.path.includes('water_medium_loop.mp3') &&
-    (source.gain?.gain.targets.at(-1) ?? 0) > 0)).toBe(true));
+    (source.gain?.gain.targets.at(-1) ?? 0) > .75)).toBe(true));
   expect(waterSource.gain?.gain.targets.at(-1)).toBe(0);
   await director.update({ ...base, eventSequence: 1, world: { ...base.world, entities: [wideWater] } });
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
@@ -199,7 +199,7 @@ it('sustains water only during contact, uses physical collision types, and leave
   await director.update({ ...base, activeVehicleId: truck.id, vehicleInstances: [...base.vehicleInstances, truck],
     world: { ...base.world, entities: [{ ...water, id: 'truck-water' }] } });
   await vi.waitFor(() => expect(sources.some(source => source.buffer?.path.includes('water_heavy_loop.mp3') &&
-    (source.gain?.gain.targets.at(-1) ?? 0) > 0)).toBe(true));
+    (source.gain?.gain.targets.at(-1) ?? 0) > .65)).toBe(true));
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
   await director.update(base);
   FakeAudioContext.time = 3;

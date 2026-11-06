@@ -637,7 +637,7 @@ export class AudioDirector {
     if (starActive) void this.loop('item/star_run_loop.wav', 'sfx', .36);
     const waterSpeed = Math.max(0, Math.min(1, run.speed / Math.max(1, vehicle.maxSpeed)));
     const activeWater = waterLoopForVehicle(vehicle.kind);
-    const waterLevel = (heavyVehicle(vehicle.kind) ? .12 : .18) + .16 * waterSpeed;
+    const waterLevel = (heavyVehicle(vehicle.kind) ? .65 : .75) + .4 * waterSpeed;
     if (inWater) for (const name of waterLoops)
       void this.loop(name, 'sfx', name === activeWater ? waterLevel : 0);
     for (const [name, node] of this.ambience) {
