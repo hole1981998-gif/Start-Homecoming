@@ -496,6 +496,26 @@ it('routes driving, impact, indicator and train cues to their actual events', as
     feedback: 'Chuối · tránh bị bắt', world: { ...base.world, entities: [{ ...entity('police', 'banana-police', 0, 0), consumed: true }] } });
   expect(voicePaths.slice(officerStart)).toHaveLength(24);
 
+  const vendorStart = voicePaths.length;
+  for (let i = 0; i < 12; i++) {
+    const vendor = { ...entity('jam', `hit-vendor-${i}`, 0, 0), crossingRole: 'vendor' as const, consumed: true };
+    await director.update({ ...base, eventSequence: 50 + i, feedbackKind: 'jam',
+      world: { ...base.world, entities: [vendor] } });
+  }
+  const vendorVoices = voicePaths.slice(vendorStart);
+  expect(vendorVoices).toHaveLength(12);
+  expect(vendorVoices.every(path => /owner-vendor-voices-2026-11-07.*vendor_hit_0[1-3]\.mp3/.test(path))).toBe(true);
+  expect(new Set(vendorVoices).size).toBe(3);
+  expect(vendorVoices.every((path, i) => i === 0 || path !== vendorVoices[i - 1])).toBe(true);
+  await director.update({ ...base, eventSequence: 61, feedbackKind: 'jam',
+    world: { ...base.world, entities: [{ ...entity('jam', 'repeat-vendor', 0, 0), crossingRole: 'vendor', consumed: true }] } });
+  expect(voicePaths.slice(vendorStart)).toHaveLength(12);
+  await director.update({ ...base, eventSequence: 62, feedbackKind: 'jam',
+    world: { ...base.world, entities: [{ ...entity('jam', 'barrier-only', 0, 0), consumed: true }] } });
+  await director.update({ ...base, eventSequence: 63, feedbackKind: 'jam',
+    world: { ...base.world, entities: [{ ...entity('jam', 'ambulance-only', 0, 0), serviceRole: 'ambulance', consumed: true }] } });
+  expect(voicePaths.slice(vendorStart)).toHaveLength(12);
+
   const heavyBefore = sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length;
   await director.update({ ...base, phase: 'ended', eventSequence: 11, feedbackKind: 'accident' });
   await vi.waitFor(() => expect(sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length).toBeGreaterThan(heavyBefore));
