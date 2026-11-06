@@ -307,8 +307,9 @@ window.addEventListener('keydown', event => {
   if (!event.repeat && event.code === 'KeyG') { state = dropPassenger(state); return; }
   if (!event.repeat && (event.code === 'KeyQ' || event.code === 'KeyE')) {
     event.preventDefault(); const before = state;
-    state = selectTurn(state, event.code === 'KeyQ' ? 'left' : 'right');
-    if (state !== before) audio.ui('menu_select');
+    const turn = event.code === 'KeyQ' ? 'left' : 'right';
+    state = selectTurn(state, turn);
+    if (state !== before) audio.indicator(turn);
     return;
   }
   if (event.code in mapping) { event.preventDefault(); input[mapping[event.code as keyof typeof mapping]] = true; }
@@ -392,7 +393,7 @@ const diagnosticSamples: unknown[] = [];
 function frame(now: number): void {
   const elapsed = (now - last) / 1000; last = now; const start = performance.now();
   const alpha = state.phase === 'running' ? clock.advance(elapsed, () => { previous = state; state = force ? force.step(state, input) : stepRun(state, input); }) : 1;
-  void audio.update(state);
+  void audio.update(state, input);
   if (state.phase === 'ended' && screen !== 'result' && screen !== 'help') {
     resultView();
   } else discover();

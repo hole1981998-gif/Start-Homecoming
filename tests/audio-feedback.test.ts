@@ -75,7 +75,7 @@ it('the water contact flag remains active across ticks of a long puddle', () => 
   expect(wetTicks).toBeGreaterThan(10);
 });
 
-it('sustains water only during contact, uses physical collision types, and leaves steering and warning cues silent', async () => {
+it('routes driving, impact, indicator and train cues to their actual events', async () => {
   const sources: Array<{ buffer?: { path: string }; gain?: { gain: { value: number; targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean }> = [];
   const fetched: string[] = [];
   const voicePaths: string[] = [];
@@ -309,13 +309,19 @@ it('sustains water only during contact, uses physical collision types, and leave
   const stepFetches = fetched.filter(path => path.includes('npc_footsteps_wet.mp3')).length;
   await director.update({ ...base, world: { ...base.world, entities: [walker] } });
   expect(fetched.filter(path => path.includes('npc_footsteps_wet.mp3'))).toHaveLength(stepFetches);
-  const train = entity('train', 'approaching-train', 48, 0);
+  const train = { ...entity('train', 'approaching-train', 48, 0),
+    crossMotion: { type: 'linear' as const, origin: -20, velocity: 6, startedAt: 0, min: -20, max: 20 } };
   await director.update({ ...base, world: { ...base.world, entities: [train] } });
-  expect(fetched.some(path => path.includes('train_roll_past.mp3'))).toBe(true);
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.loop &&
+    source.buffer?.path.includes('train_crossing_loop.mp3'))).toBe(true));
+  await director.update({ ...base, world: { ...base.world, entities: [] } });
+  expect(sources.find(source => source.buffer?.path.includes('train_crossing_loop.mp3'))?.gain?.gain.targets.at(-1)).toBe(0);
+  director.indicator('left');
+  expect(fetched.some(path => path.includes('indicator_tick.mp3'))).toBe(true);
   FakeAudioContext.time = 12;
   const vendorHit = { ...entity('jam', 'vendor-hit', 0, 0), crossingRole: 'vendor' as const, consumed: true };
   await director.update({ ...base, eventSequence: 10, feedbackKind: 'jam', world: { ...base.world, entities: [vendorHit] } });
-  expect(fetched.some(path => path.includes('vendor_cart_hit.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('vendor_cart_impact_a.mp3'))).toBe(true);
   expect(fetched.some(path => path.includes('voice-auditions'))).toBe(false);
   const powers = { ...base.powers, boostUntil: 30, starUntil: 30 };
   await director.update({ ...base, powers });
@@ -385,6 +391,7 @@ it('sustains water only during contact, uses physical collision types, and leave
       ejectedAt: 25, fromX: 0, fromDistance: 3, crashRecovery: true, hitByPlayer: true } };
   await director.update({ ...base, distance: 3, world: { ...base.world, entities: [actualHit] } });
   expect(voicePaths.length - beforeHit).toBe(1);
+  expect(fetched.some(path => path.includes('person_impact_a.mp3'))).toBe(true);
   await director.update({ ...base, distance: 3.1, world: { ...base.world, entities: [roadsideHit] } });
   expect(voicePaths.length - beforeHit).toBe(1);
 
