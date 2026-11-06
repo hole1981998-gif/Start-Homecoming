@@ -6,8 +6,8 @@ import { createAmbulanceArt, createOfficerArt, createTrainArt, createVendorArt,
 
 describe('moving event art uses prototype contracts', () => {
   it('keeps a finite crossing train within the existing world-space footprint in either direction', () => {
-    for (const direction of [-1, 1] as const) {
-      const asset = createTrainArt(direction);
+    for (const lod of ['near', 'far'] as const) for (const direction of [-1, 1] as const) {
+      const asset = createTrainArt(direction, lod);
       const size = new THREE.Box3().setFromObject(asset.root).getSize(new THREE.Vector3());
       expect(size.x).toBeLessThanOrEqual(movingBalance.trainWidth + .3);
       expect(size.x).toBeGreaterThan(movingBalance.trainWidth - .8);
