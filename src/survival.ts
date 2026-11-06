@@ -9,7 +9,6 @@ import { initialState, step, type Input, type State } from './simulation';
 import { advancePassengers, advanceTraffic, entity, fillWorld, forkWorld, initialWorld, passengerMotion, spawnWreckPassengers, sweptContact, trafficTypes, type Entity, type EntityKind, type World } from './world';
 import { containerParts, stepTrailerRearX, tailSweepYaw } from './tail-sweep';
 import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
-import type { AudioEvent } from './audio';
 import { canChoose, compactRoute, initialRoute, junction, updateJunctionWindow, type RouteState, type Turn } from './route';
 import { effectiveVehicle, newVehicle, vehicleDefinition, vehicleRam, vehicles, waterFuelPerSecond, type VehicleDefinition, type VehicleInstance } from './vehicles';
 import { splitCrashRiders } from './passenger-outcomes';
@@ -25,7 +24,6 @@ export interface Run extends State {
   runId: string; seed: number; fuel: number; durability: number; score: number; money: number;
   activeSeconds: number; motion: 'powered' | 'coasting'; coastRemaining: number;
   world: World; result: RunResult | null; eventSequence: number; feedback: string; feedbackAt: number;
-  audioEvents: AudioEvent[];
   feedbackKind: FeedbackKind | null; feedbackFlavor: string; feedbackCounts: Record<FeedbackKind, number>;
   crash: CrashState | null; recovering: boolean; riderIds: string[]; lostPassengers: number; crashRng: number; crashNumber: number;
   protectedEntities: string[];
@@ -44,7 +42,6 @@ export const initialRun = (seed = 17, runId = 'simulation', balanceProfile?: 'ba
     vehicleDefinition('motorcycle', balanceProfile).fuelCapacity,
     vehicleDefinition('motorcycle', balanceProfile).durabilityCapacity, 1,
     vehicleDefinition('motorcycle', balanceProfile)), result: null, eventSequence: 0, feedback: '', feedbackAt: -100,
-  audioEvents: [],
   feedbackKind: null, feedbackFlavor: '', feedbackCounts: initialFeedbackCounts(),
   crash: null, recovering: false, riderIds: [], lostPassengers: 0, crashRng: (seed ^ 0x9e3779b9) >>> 0, crashNumber: 0,
   protectedEntities: [],
@@ -94,8 +91,7 @@ export function switchVehicle(run: Run, targetId?: string, automatic = false): R
 
 function passengerEvent(run: Run, kind: 'passenger' | 'drop', message: string): Run {
   const count = run.feedbackCounts[kind];
-  const id = run.eventSequence + 1;
-  return { ...run, eventSequence: id, audioEvents: [...run.audioEvents.slice(-23), { id, kind }], feedbackKind: kind, feedback: message,
+  return { ...run, eventSequence: run.eventSequence + 1, feedbackKind: kind, feedback: message,
     feedbackAt: run.activeSeconds, feedbackFlavor: captions[kind][count % captions[kind].length],
     feedbackCounts: { ...run.feedbackCounts, [kind]: count + 1 } };
 }
@@ -344,15 +340,9 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
     vehicle.kind, r.activeVehicleId, r.riderIds.length);
   // A depleted imported/test state starts coasting immediately, never receives cruise thrust.
   if (r.fuel <= 0 && r.motion === 'powered') { r.motion = 'coasting'; r.coastRemaining = balance.coastDistance; r.speed = Math.min(before.speed, driven.speed); }
-  const feedback = (kind: FeedbackKind, text: string, source?: Entity, cueVariant?: string) => {
+  const feedback = (kind: FeedbackKind, text: string) => {
     const count = r.feedbackCounts[kind]; r.feedbackCounts = { ...r.feedbackCounts, [kind]: count + 1 };
     r.eventSequence++; r.feedbackKind = kind; r.feedback = text; r.feedbackAt = r.activeSeconds;
-    r.audioEvents = [...r.audioEvents.slice(-23), { id: r.eventSequence, kind,
-      entityId: source?.id,
-      variant: cueVariant ?? (source?.kind === 'traffic' ? source.serviceRole === 'ambulance' ? 'ambulance' : source.trafficKind :
-        source?.kind === 'cargo' ? source.cargoType : source?.kind === 'jam' && source.crossingRole === 'vendor' ? 'vendor' :
-        source && (source.kind === 'water' || source.kind === 'pothole') ?
-          source.width > balance.laneWidth * 2 ? 'heavy' : source.width > balance.laneWidth ? 'wide' : 'light' : undefined) }];
     r.feedbackFlavor = captions[kind][count % captions[kind].length];
   };
   let replacementPending = false;
@@ -473,7 +463,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
     const e = r.world.entities[event.index];
     if (e.consumed || e.stunned) continue;
     if (event.type === 'enter-water') {
-      waterCount++; if (!hasStar(r) && !e.touching) feedback('water', 'Vũng nước · hao thêm xăng khi đi qua', e); e.touching = true; continue;
+      waterCount++; if (!hasStar(r) && !e.touching) feedback('water', 'Vũng nước · hao thêm xăng khi đi qua'); e.touching = true; continue;
     }
     if (event.type === 'exit-water') { waterCount = Math.max(0, waterCount - 1); if (event.t < 1) e.touching = false; continue; }
     if (event.type === 'enter-pothole') {
@@ -482,7 +472,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
         const loss = Math.min(r.money, balance.potholeMoneyLoss);
         r.durability = Math.max(0, r.durability - balance.potholeImpactDamage);
         r.money -= loss; e.lastHit = r.activeSeconds;
-        feedback('pothole', `Ổ gà · −${balance.potholeImpactDamage} HP · −${balance.potholeDamagePerSecond} HP/s${loss ? ` · −${loss.toFixed(1)} tiền` : ''}`, e);
+        feedback('pothole', `Ổ gà · −${balance.potholeImpactDamage} HP · −${balance.potholeDamagePerSecond} HP/s${loss ? ` · −${loss.toFixed(1)} tiền` : ''}`);
         if (r.durability === 0) finish('damage');
       }
       e.touching = true; continue;
@@ -490,13 +480,13 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
     if (event.type === 'exit-pothole') { potholeCount = Math.max(0, potholeCount - 1); if (event.t < 1) e.touching = false; continue; }
     if (isSpecial(e.kind)) {
       e.consumed = true;
-      if (e.kind === 'train') { feedback('train', 'Va chạm tàu', e); finish('train'); }
+      if (e.kind === 'train') { feedback('train', 'Va chạm tàu'); finish('train'); }
       else if (e.kind === 'police' || e.kind === 'militia') {
         if (e.groupId) for (const member of r.world.entities) if (member.groupId === e.groupId) member.consumed = true;
         const fine = e.kind === 'police' ? eventBalance.policeFine : eventBalance.militiaFine;
         const short = r.money < fine, paid = Math.min(fine, r.money);
         r.money -= paid;
-        feedback(e.kind, '−' + paid.toFixed(1) + ' tiền' + (e.kind === 'police' ? ' · tịch thu xe' : ''), e);
+        feedback(e.kind, '−' + paid.toFixed(1) + ' tiền' + (e.kind === 'police' ? ' · tịch thu xe' : ''));
         if (e.kind === 'police') {
           confiscatedId = r.activeVehicleId;
           r.vehicleInstances = saveVehicle(r).map(v => v.id === r.activeVehicleId ? { ...v, disabled: true } :
@@ -505,11 +495,11 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
         }
       } else if (e.kind === 'accident') {
         if (canSecretEnd(r.secret, r.activeVehicleId, r.riderIds.length)) {
-          feedback('accident', 'Đã về nhà!', e); finish('secret');
-        } else { r.durability = 0; feedback('accident', 'Xe hỏng · 0 HP', e); finish('damage'); }
+          feedback('accident', 'Đã về nhà!'); finish('secret');
+        } else { r.durability = 0; feedback('accident', 'Xe hỏng · 0 HP'); finish('damage'); }
       }
       else if (e.kind === 'jam') {
-        feedback('jam', 'Kẹt xe · ngã xe', e);
+        feedback('jam', 'Kẹt xe · ngã xe');
         if (!hasStar(r)) crashDriver(before.speed + (driven.speed - before.speed) * fraction);
       } else if (e.kind === 'broken') {
         const npc = entity('passenger', e.id + '-passenger', e.distance + 4, e.x < 0 ? balance.laneWidth : -balance.laneWidth);
@@ -518,7 +508,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
         const slot = r.inventory.indexOf(null);
         if (slot >= 0 && hash / 4294967296 < eventBalance.brokenItemChance)
           r.inventory = r.inventory.map((v, i) => i === slot ? 'banana' : v);
-        feedback('broken', 'Có khách cần đi nhờ · F đón', e);
+        feedback('broken', 'Có khách cần đi nhờ · F đón');
       }
       continue;
     }
@@ -528,13 +518,13 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
         const damage = (e.cargoType === 'barrel' ? cargoBalance.barrelDamage : cargoBalance.crateDamage) *
           (articulated && event.part === 'trailer' ? .5 : 1);
         r.durability = Math.max(0, r.durability - damage);
-        feedback('cargo', `Đồ rơi · −${damage} HP`, e);
+        feedback('cargo', `Đồ rơi · −${damage} HP`);
         if (r.durability === 0) finish('damage');
         else if (e.cargoType === 'barrel') crashDriver(before.speed + (driven.speed - before.speed) * fraction);
       }
     } else if (e.kind === 'traffic') {
       if (canSecretEnd(r.secret, r.activeVehicleId, r.riderIds.length)) {
-        feedback('traffic', 'Đã về nhà!', e); finish('secret'); continue;
+        feedback('traffic', 'Đã về nhà!'); finish('secret'); continue;
       }
       if (hasStar(r)) continue;
       const target = trafficTypes[e.trafficKind ?? 'car4'];
@@ -546,16 +536,16 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       const impactDamage = articulated && event.part === 'trailer' ? fullDamage / 2 : fullDamage;
       r.durability = Math.max(0, r.durability - impactDamage);
       e.lastHit = r.activeSeconds;
-      feedback('traffic', `${names.traffic} · −${impactDamage} HP`, e);
+      feedback('traffic', `${names.traffic} · −${impactDamage} HP`);
       if (r.durability === 0) finish('damage');
       else if (!(ram.breaksThrough && e.wrecked)) crashDriver(before.speed + (driven.speed - before.speed) * fraction);
     } else if (e.kind === 'fuel') {
       const gained = Math.min(vehicle.fuelPickup, vehicle.fuelCapacity - r.fuel);
       r.fuel += gained; r.motion = 'powered'; r.coastRemaining = balance.coastDistance; e.consumed = true;
-      feedback('fuel', `Nhặt xăng · +${gained.toFixed(1)} L`, e);
+      feedback('fuel', `Nhặt xăng · +${gained.toFixed(1)} L`);
     } else if (e.kind === 'repair') {
       const gained = Math.min(vehicle.repairPickup, vehicle.durabilityCapacity - r.durability);
-      r.durability += gained; e.consumed = true; feedback('repair', `Sửa xe · +${gained.toFixed(0)} HP`, e);
+      r.durability += gained; e.consumed = true; feedback('repair', `Sửa xe · +${gained.toFixed(0)} HP`);
     }
   }
   advance(1);
@@ -571,7 +561,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       history: choice === 'straight' ? r.route.history : [...r.route.history, { distance: crossing.distance, turn: choice }] };
     if (choice === 'straight' && crossing.blockedStraight && !hasStar(r)) {
       r.durability = Math.max(0, r.durability - balance.trafficDamage);
-      feedback('traffic', `Đường thẳng bị chắn · −${balance.trafficDamage} HP`, undefined, 'barrier');
+      feedback('traffic', `Đường thẳng bị chắn · −${balance.trafficDamage} HP`);
       if (r.durability === 0) finish('damage'); else crashDriver(r.speed);
     }
   }
