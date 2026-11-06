@@ -20,6 +20,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-interactions-2026-11-06/*.mp3',
   '../project-reference/sfx/elevenlabs-train-pothole-2026-11-06/*.mp3',
   '../project-reference/sfx/owner-kick-voices-2026-11-06/*.mp3',
+  '../project-reference/sfx/elevenlabs-indicator-2026-11-07/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -34,6 +35,7 @@ const rewardRoot = '../project-reference/sfx/elevenlabs-rewards-2026-11-06/';
 const potholeRoot = '../project-reference/sfx/elevenlabs-pothole-2026-11-06/';
 const interactionRoot = '../project-reference/sfx/elevenlabs-interactions-2026-11-06/';
 const revisionRoot = '../project-reference/sfx/elevenlabs-train-pothole-2026-11-06/';
+const indicatorRoot = '../project-reference/sfx/elevenlabs-indicator-2026-11-07/';
 const revisionCues: Record<string, string> = {
   'road/pothole_rattle_light_c.wav': 'pothole_light_c.mp3',
   'road/pothole_rattle_light_d.wav': 'pothole_light_d.mp3',
@@ -156,6 +158,7 @@ const url = (name: string): string | undefined =>
   name === 'traffic/horn_heavy.wav' ? files[worldRoot + 'traffic_horn_heavy.mp3'] :
   name.startsWith('traffic/new/') ? files[trafficRoot + name.slice('traffic/new/'.length) + '.mp3'] :
   revisionCues[name] ? files[revisionRoot + revisionCues[name]] :
+  name.startsWith('control/indicator_tick_') ? files[indicatorRoot + name.slice('control/'.length) + '.mp3'] :
   interactionCues[name] ? files[interactionRoot + interactionCues[name]] :
   potholeCues[name] ? files[potholeRoot + potholeCues[name]] :
   rewardCues[name] ? files[rewardRoot + rewardCues[name]] :
@@ -290,7 +293,16 @@ const rainLevel = 3;
 const thunderLevel = 2.1;
 const thunderLoop = 'ambience/distant_thunder_loop.wav';
 const trainLoop = 'train/crossing_loop';
-const indicatorLoop = 'control/indicator_tick';
+const indicatorLoops = ['control/indicator_tick', 'control/indicator_tick_crisp', 'control/indicator_tick_hollow'];
+const indicatorLevel = 1.12;
+/** Seeded indicator take for each new press, never repeating the preceding take. */
+export function indicatorVariantIndex(seed: number, count: number, previous = -1): number {
+  let hash = Math.imul(seed ^ Math.imul(count + 1, 0x9e3779b1), 0x85ebca6b);
+  hash = Math.imul(hash ^ hash >>> 16, 0xc2b2ae35) >>> 0;
+  let index = hash % indicatorLoops.length;
+  if (index === previous) index = (index + 1 + (hash >>> 8) % (indicatorLoops.length - 1)) % indicatorLoops.length;
+  return index;
+}
 /** Seeded selection with no immediate repeat across four pothole takes. */
 export function potholeVariantIndex(seed: number, count: number, previous = -1): number {
   let hash = Math.imul(seed ^ Math.imul(count + 1, 0x9e3779b1), 0x85ebca6b);
@@ -357,6 +369,7 @@ export class AudioDirector {
   private cooldown = new Map<string, number>();
   private variantCount = new Map<string, number>();
   private indicatorActive = false;
+  private activeIndicator?: string;
   private windStart = 0;
   private nextLightningAt = 0;
   private lightningCount = 0;
@@ -529,12 +542,13 @@ export class AudioDirector {
     if (this.ambience.has(name) || !this.context || !this.buses) return;
     const ctx = this.context, generation = this.generation, buffer = await this.buffer(name);
     if (!buffer || generation !== this.generation || !this.running || this.ambience.has(name) || ctx.state !== 'running' ||
-      waterLoops.includes(name) && !this.waterActive || name === indicatorLoop && !this.indicatorActive) return;
+      waterLoops.includes(name) && !this.waterActive || indicatorLoops.includes(name) &&
+      (!this.indicatorActive || this.activeIndicator !== name)) return;
     const source = ctx.createBufferSource(), gain = ctx.createGain();
-    source.buffer = buffer; source.loop = true; gain.gain.value = name === indicatorLoop ? volume : 0;
+    source.buffer = buffer; source.loop = true; gain.gain.value = indicatorLoops.includes(name) ? volume : 0;
     source.connect(gain).connect(this.buses[bus]); source.start();
     this.ambience.set(name, { source, gain });
-    gain.gain.setTargetAtTime(volume, ctx.currentTime, name === indicatorLoop ? .01 : .15);
+    gain.gain.setTargetAtTime(volume, ctx.currentTime, indicatorLoops.includes(name) ? .01 : .15);
   }
 
   private stopLoop(name: string): void {
@@ -681,7 +695,7 @@ export class AudioDirector {
     this.shopMusicPending = false; this.shopOpen = false;
     this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficBlocks.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.strandedRiders = []; this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0;
     this.windStart = 0; this.nextLightningAt = 0; this.lightningCount = 0;
-    this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.indicatorActive = false; this.vehicleId = ''; this.requestedKind = undefined; this.running = false; this.voiceSeed = 0;
+    this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.indicatorActive = false; this.activeIndicator = undefined; this.vehicleId = ''; this.requestedKind = undefined; this.running = false; this.voiceSeed = 0;
   }
 
   pause(): void {
@@ -740,7 +754,8 @@ export class AudioDirector {
     if (run.phase !== 'running') {
       this.running = false;
       this.indicatorActive = false;
-      this.stopLoop(indicatorLoop);
+      if (this.activeIndicator) this.stopLoop(this.activeIndicator);
+      this.activeIndicator = undefined;
       this.requestedKind = undefined;
       this.stopEngine(.12);
       this.music?.audio.pause();
@@ -755,8 +770,15 @@ export class AudioDirector {
     this.running = true;
     const indicatorSide = run.route.choice ?? (steering?.left === steering?.right ? null : steering?.left ? 'left' : 'right');
     this.indicatorActive = !run.crash && !!indicatorSide;
-    if (this.indicatorActive) void this.loop(indicatorLoop, 'sfx', .58);
-    else this.stopLoop(indicatorLoop);
+    if (this.indicatorActive && !this.activeIndicator) {
+      const count = this.variantCount.get('indicator') ?? 0;
+      const index = indicatorVariantIndex(run.seed, count, this.variantCount.get('last:indicator') ?? -1);
+      this.activeIndicator = indicatorLoops[index];
+      this.variantCount.set('indicator', count + 1);
+      this.variantCount.set('last:indicator', index);
+    }
+    if (this.indicatorActive && this.activeIndicator) void this.loop(this.activeIndicator, 'sfx', indicatorLevel);
+    else if (this.activeIndicator) { this.stopLoop(this.activeIndicator); this.activeIndicator = undefined; }
     this.startMusic();
     for (const node of this.voices) {
       if (!node.spatial) continue;
@@ -812,7 +834,7 @@ export class AudioDirector {
       const waterTarget = inWater && name === activeWater ? waterLevel : 0;
       const windTarget = name === windLoops[windIndex] ? .18 : 0;
       node.gain.gain.setTargetAtTime(waterRoll ? waterTarget : windLoops.includes(name) ? windTarget :
-        name === trainLoop ? trainNearby ? .98 : 0 : name === indicatorLoop ? .58 :
+        name === trainLoop ? trainNearby ? .98 : 0 : indicatorLoops.includes(name) ? indicatorLevel :
           name === thunderLoop ? thunderLevel : name.includes('rain') ? rainLevel : .1,
         ctx.currentTime, waterRoll || windLoops.includes(name) ? .22 : .15);
       if (waterRoll) node.source.playbackRate.setTargetAtTime(.92 + .16 * waterSpeed, ctx.currentTime, .18);
@@ -824,7 +846,7 @@ export class AudioDirector {
       void this.engine(vehicle.kind);
       if (this.stem?.kind === vehicle.kind) {
         const s = Math.max(0, Math.min(1, (run.speed - vehicle.minSpeed) / Math.max(1, vehicle.maxSpeed - vehicle.minSpeed)));
-        const level = run.motion === 'coasting' ? .42 : .72;
+        const level = run.motion === 'coasting' ? .7 : 1.25;
         this.stem.gains[0].gain.setTargetAtTime(level, ctx.currentTime, .085);
         this.stem.sources.forEach(source => source.playbackRate.setTargetAtTime((.86 + .38 * s) * (run.motion === 'coasting' ? .9 : 1), ctx.currentTime, .085));
       }

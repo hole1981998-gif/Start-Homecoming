@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { AudioDirector, kickLineVariantIndex, potholeVariantIndex, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, trafficPassLeadDistance, waterLoopForVehicle } from '../src/audio-director';
+import { AudioDirector, indicatorVariantIndex, kickLineVariantIndex, potholeVariantIndex, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, trafficPassLeadDistance, waterLoopForVehicle } from '../src/audio-director';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
@@ -39,6 +39,14 @@ it('randomizes owner kick lines by seed without immediately repeating one', () =
   expect(new Set(sequence).size).toBe(4);
   expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
   expect(sequence.some((index, i) => i >= 2 && index !== sequence[i - 2])).toBe(true);
+});
+
+it('chooses three seeded indicator sounds without repeating the previous press', () => {
+  const sequence: number[] = [];
+  for (let count = 0; count < 18; count++)
+    sequence.push(indicatorVariantIndex(17, count, sequence.at(-1)));
+  expect(new Set(sequence).size).toBe(3);
+  expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
 });
 
 it('makes a roadside call grow louder on approach and fade after passing', () => {
@@ -167,13 +175,13 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   const drivingStems = sources.filter(source => source.started && source.buffer?.path.includes('engine_bike_texture_loop.mp3'));
   await director.update({ ...base, motion: 'coasting', speed: 4 });
   expect(drivingStems.every(source => !source.stopped)).toBe(true);
-  expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(.42);
+  expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(.7);
   expect(fetched.some(path => path.includes('water_light_loop.mp3'))).toBe(false);
   expect(fetched.some(path => path.includes('skid.wav') || path.includes('police_warning'))).toBe(false);
 
   const water = { ...entity('water', 'test-water', 0, 0), touching: true };
   await director.update({ ...base, eventSequence: 1, feedbackKind: 'water', world: { ...base.world, entities: [water] } });
-  expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(.72);
+  expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(1.25);
   await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('water_light_loop.mp3'))).toBe(true));
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
   expect(waterFilters).toHaveLength(0);
@@ -340,15 +348,18 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   expect(sources.find(source => source.buffer?.path.includes('train_wheels_clack_loop.mp3'))?.gain?.gain.targets.at(-1)).toBe(0);
   await director.update(base, { left: true, right: false });
   await vi.waitFor(() => expect(sources.some(source => source.started && source.loop &&
-    source.buffer?.path.includes('indicator_tick.mp3'))).toBe(true));
-  const indicators = sources.filter(source => source.buffer?.path.includes('indicator_tick.mp3'));
+    source.buffer?.path.includes('indicator_tick'))).toBe(true));
+  const indicators = sources.filter(source => source.buffer?.path.includes('indicator_tick'));
+  expect(indicators[0].gain?.gain.value).toBeCloseTo(1.12);
   await director.update(base, { left: true, right: false });
-  expect(sources.filter(source => source.buffer?.path.includes('indicator_tick.mp3'))).toHaveLength(1);
+  expect(sources.filter(source => source.buffer?.path.includes('indicator_tick'))).toHaveLength(1);
   await director.update(base, { left: false, right: false });
   expect(indicators[0].stopped).toBe(true);
   await director.update({ ...base, route: { ...base.route, choice: 'right' } }, { left: false, right: false });
   await vi.waitFor(() => expect(sources.filter(source => source.started && source.loop &&
-    source.buffer?.path.includes('indicator_tick.mp3'))).toHaveLength(2));
+    source.buffer?.path.includes('indicator_tick'))).toHaveLength(2));
+  expect(sources.filter(source => source.buffer?.path.includes('indicator_tick'))[1].buffer?.path)
+    .not.toBe(indicators[0].buffer?.path);
   FakeAudioContext.time = 12;
   const vendorHit = { ...entity('jam', 'vendor-hit', 0, 0), crossingRole: 'vendor' as const, consumed: true };
   await director.update({ ...base, eventSequence: 10, feedbackKind: 'jam', world: { ...base.world, entities: [vendorHit] } });
