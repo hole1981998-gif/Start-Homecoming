@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { AudioDirector, impactFoleyVariantIndex, indicatorVariantIndex, kickLineVariantIndex, playerCallVariantIndex, potholeVariantIndex, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, trafficPassLeadDistance, waterLoopForVehicle } from '../src/audio-director';
+import { AudioDirector, impactFoleyVariantIndex, indicatorVariantIndex, kickLineVariantIndex, playerCallVariantIndex, playerHornFamily, playerHornVariantIndex, potholeVariantIndex, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, trafficPassLeadDistance, waterLoopForVehicle } from '../src/audio-director';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
@@ -625,21 +625,37 @@ it('routes driving, impact, indicator and train cues to their actual events', as
 
   let previousCall = -1;
   const callChoices = new Set<number>();
-  for (let count = 0; count < 24; count++) {
+  const hornKinds = ['motorcycle', 'motorbike', 'tricycle', 'car4', 'car7', 'bus', 'truck', 'container'] as const;
+  const hornFiles = {
+    motorcycle: ['motorcycle_01', 'motorcycle_02', 'motorcycle_03', 'motorcycle_04'],
+    car: ['car_01', 'car_02', 'car_03'],
+    bus: ['bus_01', 'bus_02', 'bus_03', 'bus_04'],
+    heavy: ['heavy_01', 'heavy_02', 'heavy_03', 'heavy_04', 'heavy_05'],
+  };
+  const hornCounts = { motorcycle: 0, car: 0, bus: 0, heavy: 0 };
+  const hornPrevious = { motorcycle: -1, car: -1, bus: -1, heavy: -1 };
+  const hornSeen = { motorcycle: new Set<number>(), car: new Set<number>(), bus: new Set<number>(), heavy: new Set<number>() };
+  for (let count = 0; count < 48; count++) {
     FakeAudioContext.time += 2;
     const choice = playerCallVariantIndex(17, count, previousCall);
     previousCall = choice; callChoices.add(choice);
-    const hornKind = (['motorcycle', 'car4', 'truck'] as const)[count % 3];
-    const expectedHorn = ['horn_scooter_short.mp3', 'horn_car_urgent.mp3', 'horn_truck_low.mp3'][count % 3];
+    const hornKind = hornKinds[count % hornKinds.length], family = playerHornFamily(hornKind);
+    const hornIndex = playerHornVariantIndex(17, family, hornCounts[family], hornPrevious[family]);
+    const expectedHorn = `${hornFiles[family][hornIndex]}.mp3`;
+    hornCounts[family]++; hornPrevious[family] = hornIndex; hornSeen[family].add(hornIndex);
     const beforeVoice = voicePaths.length, beforeSources = sources.length;
     director.playerCall(hornKind);
     director.playerCall(hornKind); // Same moment must not queue a second pair.
-    await vi.waitFor(() => expect(sources.slice(beforeSources).filter(source => source.started && source.buffer?.path.includes(expectedHorn))).toHaveLength(1));
+    await vi.waitFor(() => expect(sources.slice(beforeSources).filter(source => source.started && source.buffer?.path.includes(`owner-player-horns-2026-11-07/${expectedHorn}`))).toHaveLength(1));
     expect(voicePaths).toHaveLength(beforeVoice + 1);
     expect(voicePaths.at(-1)).toContain(`player_call_0${choice + 1}.mp3`);
     voiceAudios.at(-1)?.onended?.();
   }
   expect(callChoices.size).toBe(3);
+  for (const family of ['motorcycle', 'car', 'bus', 'heavy'] as const) {
+    expect(hornSeen[family].size).toBe(hornFiles[family].length);
+    expect(hornCounts[family]).toBeGreaterThan(0);
+  }
   const beforeQuickRepeat = voicePaths.length;
   FakeAudioContext.time += .4;
   director.playerCall('motorcycle');

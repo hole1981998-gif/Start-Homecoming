@@ -28,6 +28,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-ui-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-pickup-voices-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-player-call-voices-2026-11-07/*.mp3',
+  '../project-reference/sfx/owner-player-horns-2026-11-07/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -50,7 +51,15 @@ const vehicleImpactRoot = '../project-reference/sfx/owner-vehicle-impacts-2026-1
 const uiEffectsRoot = '../project-reference/sfx/elevenlabs-ui-2026-11-07/';
 const ownerPickupRoot = '../project-reference/sfx/owner-pickup-voices-2026-11-07/';
 const playerCallRoot = '../project-reference/sfx/owner-player-call-voices-2026-11-07/';
+const playerHornRoot = '../project-reference/sfx/owner-player-horns-2026-11-07/';
 const playerCallClips = ['player-call/player_call_01', 'player-call/player_call_02', 'player-call/player_call_03'];
+type PlayerHornFamily = 'motorcycle' | 'car' | 'bus' | 'heavy';
+const playerHornClips: Record<PlayerHornFamily, string[]> = {
+  motorcycle: ['motorcycle_01', 'motorcycle_02', 'motorcycle_03', 'motorcycle_04'],
+  car: ['car_01', 'car_02', 'car_03'],
+  bus: ['bus_01', 'bus_02', 'bus_03', 'bus_04'],
+  heavy: ['heavy_01', 'heavy_02', 'heavy_03', 'heavy_04', 'heavy_05'],
+};
 const ownerPickupNames = ['pickup/owner_pickup_01', 'pickup/owner_pickup_02',
   'pickup/owner_pickup_03', 'pickup/owner_pickup_04'];
 const vehicleImpactNames = ['light_01', 'light_02', 'light_03', 'medium_01', 'medium_02', 'medium_03',
@@ -199,6 +208,7 @@ const url = (name: string): string | undefined =>
   name.startsWith('voice/officer/') ? files[officerVoiceRoot + name.slice('voice/officer/'.length) + '.mp3'] :
   name.startsWith('voice/vendor/') ? files[vendorVoiceRoot + name.slice('voice/vendor/'.length) + '.mp3'] :
   name.startsWith('voice/player-call/') ? files[playerCallRoot + name.slice('voice/player-call/'.length) + '.mp3'] :
+  name.startsWith('player-horn/') ? files[playerHornRoot + name.slice('player-horn/'.length) + '.mp3'] :
   name.startsWith('foley/') ? files[impactFoleyRoot + name.slice('foley/'.length) + '.mp3'] :
   name.startsWith('vehicle-impact/') ? files[vehicleImpactRoot + name.slice('vehicle-impact/'.length) + '.mp3'] :
   name.startsWith('voice/') ? files[voiceRoot + name.slice(6) + '.mp3'] :
@@ -298,8 +308,8 @@ const waterLoops = ['road/water_tire_light_loop.wav', 'road/water_tire_medium_lo
 const windLoops = ['ambience/wind_loop.wav', 'ambience/wind_soft_loop.wav'];
 const hornCue = (kind?: VehicleKind): string =>
   `traffic/horn_${heavyVehicle(kind) ? 'heavy' : lightVehicle(kind) ? 'light' : 'car'}.wav`;
-const playerHornCue = (kind: VehicleKind): string =>
-  `traffic/new/horn_${heavyVehicle(kind) ? 'truck_low' : lightVehicle(kind) ? 'scooter_short' : 'car_urgent'}`;
+export const playerHornFamily = (kind: VehicleKind): PlayerHornFamily =>
+  kind === 'bus' ? 'bus' : heavyVehicle(kind) ? 'heavy' : lightVehicle(kind) ? 'motorcycle' : 'car';
 const passCue = (kind?: VehicleKind): string => `traffic/new/pass_${heavyVehicle(kind) ? 'truck' : lightVehicle(kind) ? 'scooter' : 'car'}`;
 /** Start the recorded approach early so its closest pass coincides with the vehicle crossing the player. */
 export const trafficPassLeadDistance = (kind: VehicleKind | undefined, relativeSpeed: number): number =>
@@ -378,6 +388,9 @@ export function impactFoleyVariantIndex(seed: number, count: number, length: num
 }
 export const playerCallVariantIndex = (seed: number, count: number, previous = -1): number =>
   impactFoleyVariantIndex(seed ^ 0x504c4159, count, 3, previous);
+export const playerHornVariantIndex = (seed: number, family: PlayerHornFamily, count: number, previous = -1): number =>
+  impactFoleyVariantIndex(seed ^ { motorcycle: 0x4d4f544f, car: 0x434152, bus: 0x425553, heavy: 0x48454156 }[family],
+    count, playerHornClips[family].length, previous);
 export const kickLineVariantIndex = (seed: number, count: number, previous = -1): number =>
   potholeVariantIndex(seed ^ 0x4b49434b, count, previous);
 const lightningCues = ['ambience/lightning_distant_a.wav', 'ambience/lightning_distant_b.wav'];
@@ -494,7 +507,8 @@ export class AudioDirector {
       music.gain.value = .36 * this.levels.music;
       sfx.connect(this.context.destination); ambience.connect(this.context.destination); music.connect(this.context.destination);
       this.buses = { sfx, ambience, music };
-      for (const name of [...impactFoleyNames, ...vehicleImpactNames, ...ownerPickupNames]) void this.buffer(name);
+      for (const name of [...impactFoleyNames, ...vehicleImpactNames, ...ownerPickupNames,
+        ...Object.values(playerHornClips).flat().map(clip => `player-horn/${clip}`)]) void this.buffer(name);
     }
     void this.context.resume();
   }
@@ -647,7 +661,13 @@ export class AudioDirector {
     this.variantCount.set('player-call', count + 1);
     this.variantCount.set('last:player-call', index);
     this.cooldown.set('player-call', ctx.currentTime);
-    void this.play(playerHornCue(kind), 'player-horn', .35, .72);
+    const family = playerHornFamily(kind), hornKey = `player-horn:${family}`;
+    const hornCount = this.variantCount.get(hornKey) ?? 0;
+    const hornIndex = playerHornVariantIndex(this.voiceSeed, family, hornCount,
+      this.variantCount.get(`last:${hornKey}`) ?? -1);
+    this.variantCount.set(hornKey, hornCount + 1);
+    this.variantCount.set(`last:${hornKey}`, hornIndex);
+    void this.play(`player-horn/${playerHornClips[family][hornIndex]}`, 'player-horn', .35, .72);
     this.voice('playerCall', this.runId, .9, 0, 0, undefined, playerCallClips[index]);
   }
 
