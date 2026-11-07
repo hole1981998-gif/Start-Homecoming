@@ -330,7 +330,7 @@ export type UiCue = 'menu_select' | 'menu_back' | 'help_open' | 'card_open' | 'c
   'pause' | 'resume' | 'restart' | 'shop_enter' | 'shop_category' | 'purchase_fail' |
   'purchase_success' | 'shop_service' | 'shop_upgrade' | 'vehicle_purchase' |
   'toggle_on' | 'toggle_off' | 'resource_gain' | 'resource_loss' | 'reward_small';
-const rainLevel = 3;
+const rainLevel = 2.5;
 const thunderLevel = 2.1;
 const thunderLoop = 'ambience/distant_thunder_loop.wav';
 const trainLoop = 'train/crossing_loop';

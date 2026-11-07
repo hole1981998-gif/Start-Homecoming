@@ -189,7 +189,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   expect(filters.filter(filter => filter.type === 'lowpass')).toHaveLength(0);
   const rainSource = sources.find(source => source.buffer?.path.includes('rain_shower_loop.mp3'))!;
   expect(rainSource.loop).toBe(true);
-  expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(3);
+  expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(2.5);
   const thunderSource = sources.find(source => source.buffer?.path.includes('distant_thunder_loop.mp3'))!;
   expect(thunderSource.loop).toBe(true);
   expect(thunderSource.gain?.gain.targets.at(-1)).toBeCloseTo(2.1);
