@@ -27,6 +27,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/owner-vehicle-impacts-2026-11-07/*.mp3',
   '../project-reference/sfx/elevenlabs-ui-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-pickup-voices-2026-11-07/*.mp3',
+  '../project-reference/sfx/owner-player-call-voices-2026-11-07/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -48,6 +49,8 @@ const impactFoleyRoot = '../project-reference/sfx/owner-impact-foley-2026-11-07/
 const vehicleImpactRoot = '../project-reference/sfx/owner-vehicle-impacts-2026-11-07/';
 const uiEffectsRoot = '../project-reference/sfx/elevenlabs-ui-2026-11-07/';
 const ownerPickupRoot = '../project-reference/sfx/owner-pickup-voices-2026-11-07/';
+const playerCallRoot = '../project-reference/sfx/owner-player-call-voices-2026-11-07/';
+const playerCallClips = ['player-call/player_call_01', 'player-call/player_call_02', 'player-call/player_call_03'];
 const ownerPickupNames = ['pickup/owner_pickup_01', 'pickup/owner_pickup_02',
   'pickup/owner_pickup_03', 'pickup/owner_pickup_04'];
 const vehicleImpactNames = ['light_01', 'light_02', 'light_03', 'medium_01', 'medium_02', 'medium_03',
@@ -195,6 +198,7 @@ const url = (name: string): string | undefined =>
   name.startsWith('voice/kick-line/') ? files[kickVoiceRoot + name.slice('voice/kick-line/'.length) + '.mp3'] :
   name.startsWith('voice/officer/') ? files[officerVoiceRoot + name.slice('voice/officer/'.length) + '.mp3'] :
   name.startsWith('voice/vendor/') ? files[vendorVoiceRoot + name.slice('voice/vendor/'.length) + '.mp3'] :
+  name.startsWith('voice/player-call/') ? files[playerCallRoot + name.slice('voice/player-call/'.length) + '.mp3'] :
   name.startsWith('foley/') ? files[impactFoleyRoot + name.slice('foley/'.length) + '.mp3'] :
   name.startsWith('vehicle-impact/') ? files[vehicleImpactRoot + name.slice('vehicle-impact/'.length) + '.mp3'] :
   name.startsWith('voice/') ? files[voiceRoot + name.slice(6) + '.mp3'] :
@@ -205,7 +209,7 @@ const url = (name: string): string | undefined =>
   files[waterRoot + waterCues[name]] ?? files[generatedRoot + generated[name]];
 
 const actors = ['nam', 'thanh'] as const;
-type VoiceEvent = 'call' | 'thanks' | 'return' | 'abandon' | 'kick' | 'kickLine' | 'fall' | 'playerFall' | 'hit' | 'laugh' | 'traffic' | 'driver' | 'militiaHit' | 'policeHit' | 'vendorHit';
+type VoiceEvent = 'call' | 'thanks' | 'return' | 'abandon' | 'kick' | 'kickLine' | 'fall' | 'playerFall' | 'hit' | 'laugh' | 'traffic' | 'driver' | 'militiaHit' | 'policeHit' | 'vendorHit' | 'playerCall';
 const screamClips = ['tram_scream', 'quang_toan_scream', 'anh_thu_scream_a', 'anh_thu_scream_b',
   'anh_minh_scream', 'nam_kick_scream', 'nam_kick_scream_alt', 'thanh_kick_scream',
   'huy_kick_scream', 'huy_kick_short', 'huy_kick_scream_alt'];
@@ -233,6 +237,7 @@ const voiceClips: Record<VoiceEvent, Record<string, string[]>> = {
   militiaHit: { nam: militiaHitLines, thanh: militiaHitLines },
   policeHit: { nam: policeHitLines, thanh: policeHitLines },
   vendorHit: { nam: vendorHitLines, thanh: vendorHitLines },
+  playerCall: { nam: playerCallClips, thanh: playerCallClips },
 };
 const voiceActor = (id: string): typeof actors[number] => {
   let hash = 0;
@@ -293,6 +298,8 @@ const waterLoops = ['road/water_tire_light_loop.wav', 'road/water_tire_medium_lo
 const windLoops = ['ambience/wind_loop.wav', 'ambience/wind_soft_loop.wav'];
 const hornCue = (kind?: VehicleKind): string =>
   `traffic/horn_${heavyVehicle(kind) ? 'heavy' : lightVehicle(kind) ? 'light' : 'car'}.wav`;
+const playerHornCue = (kind: VehicleKind): string =>
+  `traffic/new/horn_${heavyVehicle(kind) ? 'truck_low' : lightVehicle(kind) ? 'scooter_short' : 'car_urgent'}`;
 const passCue = (kind?: VehicleKind): string => `traffic/new/pass_${heavyVehicle(kind) ? 'truck' : lightVehicle(kind) ? 'scooter' : 'car'}`;
 /** Start the recorded approach early so its closest pass coincides with the vehicle crossing the player. */
 export const trafficPassLeadDistance = (kind: VehicleKind | undefined, relativeSpeed: number): number =>
@@ -369,10 +376,13 @@ export function impactFoleyVariantIndex(seed: number, count: number, length: num
   if (index === previous) index = (index + 1 + (hash >>> 8) % (length - 1)) % length;
   return index;
 }
+export const playerCallVariantIndex = (seed: number, count: number, previous = -1): number =>
+  impactFoleyVariantIndex(seed ^ 0x504c4159, count, 3, previous);
 export const kickLineVariantIndex = (seed: number, count: number, previous = -1): number =>
   potholeVariantIndex(seed ^ 0x4b49434b, count, previous);
 const lightningCues = ['ambience/lightning_distant_a.wav', 'ambience/lightning_distant_b.wav'];
 const voiceBoost = (event: VoiceEvent): number => event === 'call' ? 2.6 : event === 'laugh' ? 3.4 :
+  event === 'playerCall' ? 1.5 :
   event === 'thanks' || event === 'traffic' || event === 'driver' ? 1.6 :
     event === 'militiaHit' || event === 'policeHit' || event === 'vendorHit' ? 1.45 : 1;
 const kickLineBoost = (name: string): number => name.endsWith('/kick_line_01') ? 2.2 : 1.4;
@@ -562,7 +572,7 @@ export class AudioDirector {
   }
 
   private voice(event: VoiceEvent, riderId: string, volume = .6, pan = 0, gap = 0,
-    spatial?: { entityId: string; range: number; rearCutoff?: number; level: number }): void {
+    spatial?: { entityId: string; range: number; rearCutoff?: number; level: number }, clip?: string): void {
     const ctx = this.context, bus = this.buses?.sfx;
     if (!ctx || !bus || ctx.state !== 'running') return;
     const actor = voiceActor(riderId);
@@ -579,7 +589,7 @@ export class AudioDirector {
       : event === 'kickLine'
       ? kickLineVariantIndex(this.voiceSeed, count, this.variantCount.get(`last:${countKey}`) ?? -1)
       : (voiceVariantStart(this.voiceSeed, event, variantActor, clips.length) + count) % clips.length;
-    const name = `voice/${clips[variantIndex]}`;
+    const name = `voice/${clip ?? clips[variantIndex]}`;
     const path = url(name), key = `voice-${event}-${riderId}`;
     if (!path || ctx.currentTime - (this.cooldown.get(key) ?? -100) < gap) return;
     for (const active of [...this.voices]) {
@@ -621,12 +631,24 @@ export class AudioDirector {
     for (const active of [...this.voices])
       if (active.riderId === riderId && (active.event === 'call' || active.event === 'laugh')) active.stop();
     const stillAboard = () => this.running && this.lastRiders.has(riderId);
+    void this.play('foley/person_thud', `pickup-thud:${eventSequence}`, .18, .78);
     void this.play('pickup/owner_pickup', `pickup-owner:${eventSequence}`, .18, .95, 0, 'sfx', () => {
-      if (!stillAboard()) return;
-      void this.play('foley/person_thud', `pickup-thud:${eventSequence}`, .18, .78, 0, 'sfx', () => {
-        if (stillAboard()) this.voice('thanks', riderId, .9);
-      });
+      if (stillAboard()) this.voice('thanks', riderId, .9);
     });
+  }
+
+  playerCall(kind: VehicleKind): void {
+    const ctx = this.context;
+    if (!ctx || ctx.state !== 'running' ||
+      ctx.currentTime - (this.cooldown.get('player-call') ?? -100) < .35) return;
+    for (const active of [...this.voices]) if (active.event === 'playerCall') active.stop();
+    const count = this.variantCount.get('player-call') ?? 0;
+    const index = playerCallVariantIndex(this.voiceSeed, count, this.variantCount.get('last:player-call') ?? -1);
+    this.variantCount.set('player-call', count + 1);
+    this.variantCount.set('last:player-call', index);
+    this.cooldown.set('player-call', ctx.currentTime);
+    void this.play(playerHornCue(kind), 'player-horn', .35, .72);
+    this.voice('playerCall', this.runId, .9, 0, 0, undefined, playerCallClips[index]);
   }
 
   private async loop(name: string, bus: Bus, volume: number): Promise<void> {
