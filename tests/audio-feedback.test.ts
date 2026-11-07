@@ -192,7 +192,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(2.5);
   const thunderSource = sources.find(source => source.buffer?.path.includes('distant_thunder_loop.mp3'))!;
   expect(thunderSource.loop).toBe(true);
-  expect(thunderSource.gain?.gain.targets.at(-1)).toBeCloseTo(2.1);
+  expect(thunderSource.gain?.gain.targets.at(-1)).toBeCloseTo(2.7);
   expect(fetched.some(path => path.includes('rain_road_loop.mp3'))).toBe(false);
   const waterSource = sources.find(source => source.buffer?.path.includes('water_light_loop.mp3'))!;
   expect(waterSource.loop).toBe(true);
@@ -308,10 +308,9 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   director.ui('shop_upgrade');
   director.ui('shop_service');
   director.ui('vehicle_purchase');
-  expect(fetched.some(path => path.includes('item_purchase_rise.mp3'))).toBe(true);
-  expect(fetched.some(path => path.includes('service_purchase_rise.mp3'))).toBe(true);
-  expect(fetched.some(path => path.includes('upgrade_purchase_rise.mp3'))).toBe(true);
-  expect(fetched.some(path => path.includes('vehicle_purchase_rise.mp3'))).toBe(true);
+  expect(fetched.filter(path => path.includes('cash_checkout.mp3'))).toHaveLength(4);
+  director.ui('qte_turn');
+  expect(fetched.some(path => path.includes('qte_turn_confirm.mp3'))).toBe(true);
   FakeAudioContext.time = 11;
   const roadside = entity('passenger', 'roadside-caller', 50, 0);
   const beforeApproach = voicePaths.length;

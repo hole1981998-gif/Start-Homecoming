@@ -25,6 +25,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/owner-vendor-voices-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-impact-foley-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-vehicle-impacts-2026-11-07/*.mp3',
+  '../project-reference/sfx/elevenlabs-ui-2026-11-07/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -44,6 +45,7 @@ const officerVoiceRoot = '../project-reference/sfx/owner-officer-voices-2026-11-
 const vendorVoiceRoot = '../project-reference/sfx/owner-vendor-voices-2026-11-07/';
 const impactFoleyRoot = '../project-reference/sfx/owner-impact-foley-2026-11-07/';
 const vehicleImpactRoot = '../project-reference/sfx/owner-vehicle-impacts-2026-11-07/';
+const uiEffectsRoot = '../project-reference/sfx/elevenlabs-ui-2026-11-07/';
 const vehicleImpactNames = ['light_01', 'light_02', 'light_03', 'medium_01', 'medium_02', 'medium_03',
   'heavy_01', 'heavy_02', 'heavy_03'].map(name => `vehicle-impact/${name}`);
 const vehicleImpactGain: Record<string, number> = {
@@ -87,10 +89,6 @@ const rewardCues: Record<string, string> = {
   'item/fuel_pickup.wav': 'fuel_pickup_rise.mp3',
   'item/repair_pickup.wav': 'repair_pickup_rise.mp3',
   'pickup_01.wav': 'passenger_pickup_rise.mp3',
-  'ui-modern/purchase_success_a.wav': 'item_purchase_rise.mp3',
-  'ui-modern/shop_service_a.wav': 'service_purchase_rise.mp3',
-  'ui-modern/shop_upgrade_a.wav': 'upgrade_purchase_rise.mp3',
-  'ui-modern/vehicle_purchase_a.wav': 'vehicle_purchase_rise.mp3',
   'ui-modern/menu_select_a.wav': 'ui_soft_select.mp3',
   'ui-modern/help_open_a.wav': 'ui_soft_select.mp3',
   'ui-modern/card_open_a.wav': 'ui_soft_select.mp3',
@@ -176,6 +174,9 @@ const generated: Record<string, string> = {
   'result/result_secret.wav': 'result_success.mp3',
 };
 const url = (name: string): string | undefined =>
+  name === 'ui-modern/qte_turn_a.wav' ? files[uiEffectsRoot + 'qte_turn_confirm.mp3'] :
+  ['ui-modern/purchase_success_a.wav', 'ui-modern/shop_service_a.wav', 'ui-modern/shop_upgrade_a.wav',
+    'ui-modern/vehicle_purchase_a.wav'].includes(name) ? files[uiEffectsRoot + 'cash_checkout.mp3'] :
   name === 'traffic/horn_light.wav' || name === 'traffic/horn_car.wav' ? files[worldRoot + 'traffic_horn_car.mp3'] :
   name === 'traffic/horn_heavy.wav' ? files[worldRoot + 'traffic_horn_heavy.mp3'] :
   name.startsWith('traffic/new/') ? files[trafficRoot + name.slice('traffic/new/'.length) + '.mp3'] :
@@ -329,9 +330,9 @@ const cueTrim: Record<string, number> = {
 export type UiCue = 'menu_select' | 'menu_back' | 'help_open' | 'card_open' | 'card_dismiss' |
   'pause' | 'resume' | 'restart' | 'shop_enter' | 'shop_category' | 'purchase_fail' |
   'purchase_success' | 'shop_service' | 'shop_upgrade' | 'vehicle_purchase' |
-  'toggle_on' | 'toggle_off' | 'resource_gain' | 'resource_loss' | 'reward_small';
+  'toggle_on' | 'toggle_off' | 'resource_gain' | 'resource_loss' | 'reward_small' | 'qte_turn';
 const rainLevel = 2.5;
-const thunderLevel = 2.1;
+const thunderLevel = 2.7;
 const thunderLoop = 'ambience/distant_thunder_loop.wav';
 const trainLoop = 'train/crossing_loop';
 const indicatorLoops = ['control/indicator_tick', 'control/indicator_tick_crisp', 'control/indicator_tick_hollow'];
@@ -796,7 +797,8 @@ export class AudioDirector {
     if (!url(cue)) return;
     const play = () => { void this.play(cue, `ui-${name}`, .09,
       name === 'resource_gain' || name === 'resource_loss' || name === 'reward_small' ? .24 :
-        name === 'purchase_success' || name === 'shop_service' || name === 'shop_upgrade' || name === 'vehicle_purchase' ? .88 :
+        name === 'purchase_success' || name === 'shop_service' || name === 'shop_upgrade' || name === 'vehicle_purchase' ? 1.25 :
+          name === 'qte_turn' ? .8 :
           name === 'shop_enter' ? .52 : .3); };
     if (ctx.state === 'running') play(); else void ctx.resume().then(() => {
       if (request === this.uiRequest && generation === this.generation) play();
@@ -889,7 +891,7 @@ export class AudioDirector {
     void this.loop(thunderLoop, 'ambience', thunderLevel);
     if (!this.nextLightningAt) this.nextLightningAt = stormStrikeDelay(run.seed, 0);
     if (run.activeSeconds >= this.nextLightningAt) {
-      void this.play(lightningCues[this.lightningCount % lightningCues.length], 'storm-lightning', .25, .75, 0, 'ambience');
+      void this.play(lightningCues[this.lightningCount % lightningCues.length], 'storm-lightning', .25, 1, 0, 'ambience');
       this.lightningCount++;
       this.nextLightningAt = run.activeSeconds + stormStrikeDelay(run.seed, this.lightningCount);
     }
