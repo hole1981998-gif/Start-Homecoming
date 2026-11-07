@@ -24,6 +24,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/owner-officer-voices-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-vendor-voices-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-impact-foley-2026-11-07/*.mp3',
+  '../project-reference/sfx/owner-vehicle-impacts-2026-11-07/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -42,6 +43,14 @@ const indicatorRoot = '../project-reference/sfx/elevenlabs-indicator-2026-11-07/
 const officerVoiceRoot = '../project-reference/sfx/owner-officer-voices-2026-11-07/';
 const vendorVoiceRoot = '../project-reference/sfx/owner-vendor-voices-2026-11-07/';
 const impactFoleyRoot = '../project-reference/sfx/owner-impact-foley-2026-11-07/';
+const vehicleImpactRoot = '../project-reference/sfx/owner-vehicle-impacts-2026-11-07/';
+const vehicleImpactNames = ['light_01', 'light_02', 'light_03', 'medium_01', 'medium_02', 'medium_03',
+  'heavy_01', 'heavy_02', 'heavy_03'].map(name => `vehicle-impact/${name}`);
+const vehicleImpactGain: Record<string, number> = {
+  'vehicle-impact/light_01': 1.1, 'vehicle-impact/light_02': .8, 'vehicle-impact/light_03': 1.45,
+  'vehicle-impact/medium_01': .85, 'vehicle-impact/medium_02': 1.35, 'vehicle-impact/medium_03': 1.6,
+  'vehicle-impact/heavy_01': 1, 'vehicle-impact/heavy_02': .9, 'vehicle-impact/heavy_03': 1.05,
+};
 const impactFoleyNames = ['foley/person_thud_01', 'foley/person_thud_02', 'foley/person_thud_03',
   'foley/crate_thud_01', 'foley/crate_thud_02'];
 // Skip the measured lead-in so the impact transient lands with the collision frame.
@@ -181,6 +190,7 @@ const url = (name: string): string | undefined =>
   name.startsWith('voice/officer/') ? files[officerVoiceRoot + name.slice('voice/officer/'.length) + '.mp3'] :
   name.startsWith('voice/vendor/') ? files[vendorVoiceRoot + name.slice('voice/vendor/'.length) + '.mp3'] :
   name.startsWith('foley/') ? files[impactFoleyRoot + name.slice('foley/'.length) + '.mp3'] :
+  name.startsWith('vehicle-impact/') ? files[vehicleImpactRoot + name.slice('vehicle-impact/'.length) + '.mp3'] :
   name.startsWith('voice/') ? files[voiceRoot + name.slice(6) + '.mp3'] :
   name === 'ambience/rain_light_loop.wav' ? files[rainRoot + 'rain_shower_loop.mp3'] :
   name === 'ambience/distant_thunder_loop.wav' ? files[stormRoot + 'distant_thunder_loop.mp3'] :
@@ -266,6 +276,9 @@ const oneShotVariants: Record<string, string[]> = {
   'interaction-v2/passenger_hit.wav': ['interaction-v2/passenger_hit.wav', 'interaction-v2/passenger_hit_alt.wav'],
   'foley/person_thud': impactFoleyNames.slice(0, 3),
   'foley/crate_thud': impactFoleyNames.slice(3),
+  'vehicle-impact/light': vehicleImpactNames.slice(0, 3),
+  'vehicle-impact/medium': vehicleImpactNames.slice(3, 6),
+  'vehicle-impact/heavy': vehicleImpactNames.slice(6),
   'vehicle/driver_fall.wav': ['vehicle/driver_fall.wav', 'vehicle/driver_fall_alt.wav'],
 };
 const waterLoops = ['road/water_tire_light_loop.wav', 'road/water_tire_medium_loop.wav',
@@ -284,6 +297,10 @@ type Bus = 'sfx' | 'ambience' | 'music';
 type Stem = { sources: AudioBufferSourceNode[]; gains: GainNode[]; filters: BiquadFilterNode[]; kind: VehicleKind };
 const heavyVehicle = (kind?: VehicleKind): boolean => kind === 'bus' || kind === 'truck' || kind === 'container';
 const lightVehicle = (kind?: VehicleKind): boolean => kind === 'motorcycle' || kind === 'motorbike' || kind === 'tricycle';
+const vehicleImpactCue = (kind?: VehicleKind): string =>
+  `vehicle-impact/${heavyVehicle(kind) ? 'heavy' : lightVehicle(kind) ? 'light' : 'medium'}`;
+const trafficPairImpactCue = (a?: VehicleKind, b?: VehicleKind): string =>
+  `vehicle-impact/${heavyVehicle(a) || heavyVehicle(b) ? 'heavy' : lightVehicle(a) && lightVehicle(b) ? 'light' : 'medium'}`;
 export const waterLoopForVehicle = (kind: VehicleKind): string =>
   waterLoops[lightVehicle(kind) ? 0 : heavyVehicle(kind) ? 2 : 1];
 const collisionCue = (a?: VehicleKind, b?: VehicleKind, impactSpeed?: number): string => {
@@ -447,7 +464,7 @@ export class AudioDirector {
     const speaking = this.voices.size > 0;
     this.buses.ambience.gain.setTargetAtTime(.22 * this.levels.ambience * (speaking ? .55 : 1),
       this.context.currentTime, speaking ? .08 : .25);
-    this.buses.music.gain.setTargetAtTime(.42 * this.levels.music * (speaking ? .45 : 1),
+    this.buses.music.gain.setTargetAtTime(.36 * this.levels.music * (speaking ? .45 : 1),
       this.context.currentTime, speaking ? .08 : .25);
   }
 
@@ -457,10 +474,10 @@ export class AudioDirector {
       this.context = new AudioContext();
       const sfx = this.context.createGain(), ambience = this.context.createGain(), music = this.context.createGain();
       sfx.gain.value = .65 * this.levels.sfx; ambience.gain.value = .22 * this.levels.ambience;
-      music.gain.value = .42 * this.levels.music;
+      music.gain.value = .36 * this.levels.music;
       sfx.connect(this.context.destination); ambience.connect(this.context.destination); music.connect(this.context.destination);
       this.buses = { sfx, ambience, music };
-      for (const name of impactFoleyNames) void this.buffer(name);
+      for (const name of [...impactFoleyNames, ...vehicleImpactNames]) void this.buffer(name);
     }
     void this.context.resume();
   }
@@ -493,7 +510,7 @@ export class AudioDirector {
         const index = potholeVariantIndex(this.voiceSeed, count, this.variantCount.get(`last:${name}`) ?? -1);
         this.variantCount.set(`last:${name}`, index);
         name = variants[index];
-      } else if (name.startsWith('foley/')) {
+      } else if (name.startsWith('foley/') || name.startsWith('vehicle-impact/')) {
         const index = impactFoleyVariantIndex(this.voiceSeed, count, variants.length, this.variantCount.get(`last:${name}`) ?? -1);
         this.variantCount.set(`last:${name}`, index);
         name = variants[index];
@@ -507,7 +524,7 @@ export class AudioDirector {
     const panner = pan ? ctx.createStereoPanner() : undefined;
     if (panner) panner.pan.value = Math.max(-.8, Math.min(.8, pan));
     source.buffer = buffer;
-    gain.gain.value = waterEntry ? 0 : volume * trim;
+    gain.gain.value = waterEntry ? 0 : volume * trim * (vehicleImpactGain[name] ?? 1);
     if (panner) gain.connect(panner).connect(bus);
     else gain.connect(bus);
     if (waterEntry) {
@@ -526,7 +543,8 @@ export class AudioDirector {
       const duration = Math.min(.7, buffer.duration - offset);
       gain.gain.setTargetAtTime(0, ctx.currentTime + Math.min(.48, duration * .7), .075);
       source.start(0, offset, duration);
-    } else source.start();
+    } else if (name === 'vehicle-impact/medium_02') source.start(0, .29);
+    else source.start();
     this.oneShots.add(source);
   }
 
@@ -800,6 +818,11 @@ export class AudioDirector {
       const cue: Record<string, string> = { pothole: potholeCue(vehicle.kind), traffic: collisionCue(vehicle.kind, hitTraffic?.trafficKind, impactSpeed), cargo: hitEntity?.cargoType === 'crate' ? 'interaction-v2/cargo_crate_hit.wav' : 'interaction-v2/cargo_barrel_hit.wav', fuel: 'item/fuel_pickup.wav', repair: 'item/repair_pickup.wav', passenger: 'pickup_01.wav', drop: 'kick_01.wav', coast: 'vehicle/coast.wav', police: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : 'interaction-v2/police_capture.wav', militia: run.feedback.includes('Chuối') ? 'interaction-v2/banana_use.wav' : collisionCue(vehicle.kind, undefined, impactSpeed), jam: hitEntity?.crossingRole === 'vendor' ? 'interaction-v2/vendor_hit.wav' : hitEntity?.serviceRole === 'ambulance' ? 'interaction-v2/ambulance_hit.wav' : 'interaction-v2/barrier_hit.wav', accident: 'interaction-v2/collision_heavy.wav', train: 'interaction-v2/train_pass.wav', broken: 'interaction-v2/broken_car.wav' };
       if (kind && cue[kind]) void this.play(cue[kind], `event-${kind}`, .18, kind === 'pothole' ? 1.35 : 1);
       const officerCollision = (kind === 'police' || kind === 'militia') && !run.feedback.includes('Chuối');
+      if (kind === 'traffic' || kind === 'accident' || officerCollision ||
+          (kind === 'jam' && hitEntity?.crossingRole !== 'vendor'))
+        void this.play(vehicleImpactCue(vehicle.kind), `vehicle-impact:${run.eventSequence}`, .18, .78);
+      if (kind === 'passenger')
+        void this.play('foley/person_thud', `pickup-thud:${run.eventSequence}`, .18, .78);
       if (officerCollision) {
         void this.play('interaction-v2/passenger_hit.wav', 'npc-impact', .18, .6);
         void this.play('foley/person_thud', `person-thud:${hitEntity?.id ?? run.eventSequence}`, .18, .95);
@@ -972,6 +995,7 @@ export class AudioDirector {
           nextPairs.add(key);
           if (!this.trafficPairs.has(key) && Math.abs((e.distance + other.distance) / 2 - run.distance) < 65) {
             void this.play(collisionCue(e.trafficKind, other.trafficKind), 'traffic-pair', .22, .68);
+            void this.play(trafficPairImpactCue(e.trafficKind, other.trafficKind), 'traffic-pair-impact', .22, .62);
             this.voice('driver', key, .48 * spatialVoiceVolume((e.distance + other.distance) / 2 - run.distance,
               (e.x + other.x) / 2 - run.x, 65), (e.x - run.x) / 8, 1);
           }
@@ -984,9 +1008,12 @@ export class AudioDirector {
               void this.play(potholeCue(e.trafficKind), 'traffic-pothole', .28, .75);
           } else if (blockers.has(holeId)) {
             nextBlocks.add(key);
-            if (!this.trafficBlocks.has(key) && Math.abs(e.distance - run.distance) < 65)
+            if (!this.trafficBlocks.has(key) && Math.abs(e.distance - run.distance) < 65) {
               void this.play(trafficBlockCue(e.trafficKind), 'traffic-block', .35,
                 .42 + .38 * (1 - Math.abs(e.distance - run.distance) / 65), (e.x - run.x) / 8);
+              void this.play(vehicleImpactCue(e.trafficKind), 'traffic-block-impact', .35,
+                .52 * (1 - Math.abs(e.distance - run.distance) / 85), (e.x - run.x) / 8);
+            }
           }
         }
       }
