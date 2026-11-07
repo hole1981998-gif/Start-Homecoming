@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { AudioDirector, indicatorVariantIndex, kickLineVariantIndex, potholeVariantIndex, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, trafficPassLeadDistance, waterLoopForVehicle } from '../src/audio-director';
+import { AudioDirector, impactFoleyVariantIndex, indicatorVariantIndex, kickLineVariantIndex, potholeVariantIndex, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, trafficPassLeadDistance, waterLoopForVehicle } from '../src/audio-director';
 import { initialRun, stepRun, type Run } from '../src/survival';
 import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
@@ -36,6 +36,15 @@ it('randomizes owner kick lines by seed without immediately repeating one', () =
   const sequence: number[] = [];
   for (let count = 0; count < 16; count++)
     sequence.push(kickLineVariantIndex(17, count, sequence.at(-1)));
+  expect(new Set(sequence).size).toBe(4);
+  expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
+  expect(sequence.some((index, i) => i >= 2 && index !== sequence[i - 2])).toBe(true);
+});
+
+it('draws all four owner pickup takes without repeating the previous take', () => {
+  const sequence: number[] = [];
+  for (let count = 0; count < 24; count++)
+    sequence.push(impactFoleyVariantIndex(17, count, 4, sequence.at(-1)));
   expect(new Set(sequence).size).toBe(4);
   expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
   expect(sequence.some((index, i) => i >= 2 && index !== sequence[i - 2])).toBe(true);
@@ -103,7 +112,7 @@ it('the water contact flag remains active across ticks of a long puddle', () => 
 });
 
 it('routes driving, impact, indicator and train cues to their actual events', async () => {
-  const sources: Array<{ buffer?: { path: string }; gain?: { gain: { value: number; targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean; startArgs?: number[] }> = [];
+  const sources: Array<{ buffer?: { path: string }; gain?: { gain: { value: number; targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean; startArgs?: number[]; onended?: () => void }> = [];
   const fetched: string[] = [];
   const voicePaths: string[] = [];
   const voiceAudios: Array<{ src: string; paused: boolean; onended?: () => void }> = [];
@@ -138,7 +147,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
           if (!('type' in gain)) this.gain = gain;
           return gain;
         },
-        startArgs: undefined as number[] | undefined,
+        startArgs: undefined as number[] | undefined, onended: undefined as (() => void) | undefined,
         disconnect() { /* detached */ }, start(...args: number[]) { this.started = true; this.startArgs = args; }, stop() { this.stopped = true; } };
       sources.push(source); return source;
     }
@@ -237,6 +246,9 @@ it('routes driving, impact, indicator and train cues to their actual events', as
     world: { ...base.world, entities: [{ ...water, id: 'truck-water' }] } });
   await vi.waitFor(() => expect(sources.some(source => source.buffer?.path.includes('water_heavy_loop.mp3') &&
     (source.gain?.gain.targets.at(-1) ?? 0) > .65)).toBe(true));
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('engine_heavy_texture_loop.mp3'))).toBe(true));
+  await director.update({ ...base, activeVehicleId: truck.id, vehicleInstances: [...base.vehicleInstances, truck] });
+  expect(sources.filter(source => source.buffer?.path.includes('engine_heavy_texture_loop.mp3')).at(-1)?.gain?.gain.targets.at(-1)).toBeCloseTo(1.25 * .85);
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
   await director.update(base);
   FakeAudioContext.time = 3;
@@ -297,12 +309,29 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   FakeAudioContext.time = 7.5;
   await director.update({ ...base, eventSequence: 8, feedbackKind: 'repair' });
   expect(fetched.some(path => path.includes('repair_pickup_rise.mp3'))).toBe(true);
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('repair_pickup_rise.mp3'))).toBe(true));
+  expect(sources.filter(source => source.buffer?.path.includes('repair_pickup_rise.mp3')).at(-1)?.gain?.gain.value).toBeCloseTo(1.6);
   FakeAudioContext.time = 8;
   const beforePickupThud = sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).length;
-  await director.update({ ...base, eventSequence: 9, feedbackKind: 'passenger' });
+  const beforeThanks = voicePaths.filter(path => path.includes('_thanks_') || path.includes('onboard_chatter')).length;
+  await director.update({ ...base, eventSequence: 9, feedbackKind: 'passenger', riderIds: ['new-passenger'] });
   expect(fetched.some(path => path.includes('passenger_pickup_rise.mp3'))).toBe(true);
+  await vi.waitFor(() => expect(sources.some(source => source.started && /owner-pickup-voices-2026-11-07.*pickup_0[1-4]\.mp3/.test(source.buffer?.path ?? ''))).toBe(true));
+  expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforePickupThud);
+  expect(voicePaths.filter(path => path.includes('_thanks_') || path.includes('onboard_chatter'))).toHaveLength(beforeThanks);
+  sources.filter(source => /owner-pickup-voices-2026-11-07.*pickup_0[1-4]\.mp3/.test(source.buffer?.path ?? '')).at(-1)?.onended?.();
   await vi.waitFor(() => expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforePickupThud + 1));
   expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).at(-1)?.gain?.gain.value).toBeCloseTo(.78);
+  expect(voicePaths.filter(path => path.includes('_thanks_') || path.includes('onboard_chatter'))).toHaveLength(beforeThanks);
+  sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).at(-1)?.onended?.();
+  expect(voicePaths.filter(path => path.includes('_thanks_') || path.includes('onboard_chatter'))).toHaveLength(beforeThanks + 1);
+  FakeAudioContext.time = 8.5;
+  await director.update({ ...base, eventSequence: 10, feedbackKind: 'passenger', riderIds: ['departing-passenger'] });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /owner-pickup-voices-2026-11-07.*pickup_0[1-4]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(2));
+  await director.update({ ...base, eventSequence: 11, feedbackKind: null, riderIds: [] });
+  sources.filter(source => /owner-pickup-voices-2026-11-07.*pickup_0[1-4]\.mp3/.test(source.buffer?.path ?? '')).at(-1)?.onended?.();
+  expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforePickupThud + 1);
+  expect(voicePaths.filter(path => path.includes('_thanks_') || path.includes('onboard_chatter'))).toHaveLength(beforeThanks + 1);
   expect(fetched.some(path => path.includes('reward_small_a.wav'))).toBe(false);
   director.ui('purchase_success');
   director.ui('shop_upgrade');
