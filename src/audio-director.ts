@@ -23,6 +23,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-indicator-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-officer-voices-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-vendor-voices-2026-11-07/*.mp3',
+  '../project-reference/sfx/owner-impact-foley-2026-11-07/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -40,6 +41,14 @@ const revisionRoot = '../project-reference/sfx/elevenlabs-train-pothole-2026-11-
 const indicatorRoot = '../project-reference/sfx/elevenlabs-indicator-2026-11-07/';
 const officerVoiceRoot = '../project-reference/sfx/owner-officer-voices-2026-11-07/';
 const vendorVoiceRoot = '../project-reference/sfx/owner-vendor-voices-2026-11-07/';
+const impactFoleyRoot = '../project-reference/sfx/owner-impact-foley-2026-11-07/';
+const impactFoleyNames = ['foley/person_thud_01', 'foley/person_thud_02', 'foley/person_thud_03',
+  'foley/crate_thud_01', 'foley/crate_thud_02'];
+// Skip the measured lead-in so the impact transient lands with the collision frame.
+const impactFoleyOffset: Record<string, number> = {
+  'foley/person_thud_01': .09, 'foley/person_thud_02': .11, 'foley/person_thud_03': .24,
+  'foley/crate_thud_01': .08, 'foley/crate_thud_02': .16,
+};
 const revisionCues: Record<string, string> = {
   'road/pothole_rattle_light_c.wav': 'pothole_light_c.mp3',
   'road/pothole_rattle_light_d.wav': 'pothole_light_d.mp3',
@@ -171,6 +180,7 @@ const url = (name: string): string | undefined =>
   name.startsWith('voice/kick-line/') ? files[kickVoiceRoot + name.slice('voice/kick-line/'.length) + '.mp3'] :
   name.startsWith('voice/officer/') ? files[officerVoiceRoot + name.slice('voice/officer/'.length) + '.mp3'] :
   name.startsWith('voice/vendor/') ? files[vendorVoiceRoot + name.slice('voice/vendor/'.length) + '.mp3'] :
+  name.startsWith('foley/') ? files[impactFoleyRoot + name.slice('foley/'.length) + '.mp3'] :
   name.startsWith('voice/') ? files[voiceRoot + name.slice(6) + '.mp3'] :
   name === 'ambience/rain_light_loop.wav' ? files[rainRoot + 'rain_shower_loop.mp3'] :
   name === 'ambience/distant_thunder_loop.wav' ? files[stormRoot + 'distant_thunder_loop.mp3'] :
@@ -254,6 +264,8 @@ const oneShotVariants: Record<string, string[]> = {
   'interaction-v2/barrier_hit.wav': ['interaction-v2/barrier_hit.wav', 'interaction-v2/barrier_hit_alt.wav'],
   'interaction-v2/vendor_hit.wav': ['interaction-v2/vendor_hit.wav', 'interaction-v2/vendor_hit_alt.wav'],
   'interaction-v2/passenger_hit.wav': ['interaction-v2/passenger_hit.wav', 'interaction-v2/passenger_hit_alt.wav'],
+  'foley/person_thud': impactFoleyNames.slice(0, 3),
+  'foley/crate_thud': impactFoleyNames.slice(3),
   'vehicle/driver_fall.wav': ['vehicle/driver_fall.wav', 'vehicle/driver_fall_alt.wav'],
 };
 const waterLoops = ['road/water_tire_light_loop.wav', 'road/water_tire_medium_loop.wav',
@@ -322,6 +334,15 @@ export function potholeVariantIndex(seed: number, count: number, previous = -1):
   hash = (hash ^ hash >>> 16) >>> 0;
   let index = hash % 4;
   if (index === previous) index = (index + 1 + (hash >>> 8) % 3) % 4;
+  return index;
+}
+/** Seeded impact take with no immediate repeat; two-take groups necessarily alternate. */
+export function impactFoleyVariantIndex(seed: number, count: number, length: number, previous = -1): number {
+  let hash = Math.imul(seed ^ Math.imul(count + 1, 0x9e3779b1), 0x85ebca6b);
+  hash = Math.imul(hash ^ hash >>> 13, 0xc2b2ae35);
+  hash = (hash ^ hash >>> 16) >>> 0;
+  let index = hash % length;
+  if (index === previous) index = (index + 1 + (hash >>> 8) % (length - 1)) % length;
   return index;
 }
 export const kickLineVariantIndex = (seed: number, count: number, previous = -1): number =>
@@ -439,6 +460,7 @@ export class AudioDirector {
       music.gain.value = .42 * this.levels.music;
       sfx.connect(this.context.destination); ambience.connect(this.context.destination); music.connect(this.context.destination);
       this.buses = { sfx, ambience, music };
+      for (const name of impactFoleyNames) void this.buffer(name);
     }
     void this.context.resume();
   }
@@ -471,6 +493,10 @@ export class AudioDirector {
         const index = potholeVariantIndex(this.voiceSeed, count, this.variantCount.get(`last:${name}`) ?? -1);
         this.variantCount.set(`last:${name}`, index);
         name = variants[index];
+      } else if (name.startsWith('foley/')) {
+        const index = impactFoleyVariantIndex(this.voiceSeed, count, variants.length, this.variantCount.get(`last:${name}`) ?? -1);
+        this.variantCount.set(`last:${name}`, index);
+        name = variants[index];
       } else name = variants[count % variants.length];
     }
     const generation = this.generation;
@@ -495,7 +521,12 @@ export class AudioDirector {
       source.connect(gain);
       source.onended = () => { this.oneShots.delete(source); source.disconnect(); gain.disconnect(); panner?.disconnect(); };
     }
-    source.start();
+    const offset = impactFoleyOffset[name];
+    if (offset !== undefined) {
+      const duration = Math.min(.7, buffer.duration - offset);
+      gain.gain.setTargetAtTime(0, ctx.currentTime + Math.min(.48, duration * .7), .075);
+      source.start(0, offset, duration);
+    } else source.start();
     this.oneShots.add(source);
   }
 
@@ -771,10 +802,15 @@ export class AudioDirector {
       const officerCollision = (kind === 'police' || kind === 'militia') && !run.feedback.includes('Chuối');
       if (officerCollision) {
         void this.play('interaction-v2/passenger_hit.wav', 'npc-impact', .18, .6);
+        void this.play('foley/person_thud', `person-thud:${hitEntity?.id ?? run.eventSequence}`, .18, .95);
         this.voice(kind === 'militia' ? 'militiaHit' : 'policeHit', hitEntity?.id ?? `${kind}:${run.eventSequence}`, 1);
       }
-      if (kind === 'jam' && hitEntity?.crossingRole === 'vendor')
+      if (kind === 'jam' && hitEntity?.crossingRole === 'vendor') {
+        void this.play('foley/person_thud', `person-thud:${hitEntity.id}`, .18, .95);
         this.voice('vendorHit', hitEntity.id, 1);
+      }
+      if (kind === 'cargo' && hitEntity?.cargoType === 'crate')
+        void this.play('foley/crate_thud', `crate-thud:${hitEntity.id}`, .18, .8);
       if (kind === 'pothole' || kind === 'police' || kind === 'militia') this.ui('resource_loss');
     }
     if (run.phase !== 'running') {
@@ -955,10 +991,13 @@ export class AudioDirector {
         }
       }
       if (e.kind === 'passenger' && prior && e.lastHit > prior.lastHit && e.lastHit >= 0 &&
-          e.passengerMotion?.crashRecovery && e.passengerMotion.hitByPlayer) {
-        void this.play('interaction-v2/passenger_hit.wav', 'passenger-hit', .35, 1.15);
-        this.voice('hit', e.riderId ?? e.id, 1, (e.x - run.x) / 8);
-        this.spoken.add(`road-hit:${e.id}`);
+          e.passengerMotion?.crashRecovery) {
+        void this.play('foley/person_thud', `person-thud:${e.id}`, .18, .95, (e.x - run.x) / 8);
+        if (e.passengerMotion.hitByPlayer) {
+          void this.play('interaction-v2/passenger_hit.wav', 'passenger-hit', .35, 1.15);
+          this.voice('hit', e.riderId ?? e.id, 1, (e.x - run.x) / 8);
+          this.spoken.add(`road-hit:${e.id}`);
+        }
       }
       if (e.kind === 'passenger' && !e.consumed) {
         const lateral = e.x - run.x;

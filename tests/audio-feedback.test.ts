@@ -103,7 +103,7 @@ it('the water contact flag remains active across ticks of a long puddle', () => 
 });
 
 it('routes driving, impact, indicator and train cues to their actual events', async () => {
-  const sources: Array<{ buffer?: { path: string }; gain?: { gain: { value: number; targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean }> = [];
+  const sources: Array<{ buffer?: { path: string }; gain?: { gain: { value: number; targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean; startArgs?: number[] }> = [];
   const fetched: string[] = [];
   const voicePaths: string[] = [];
   const voiceAudios: Array<{ src: string; paused: boolean; onended?: () => void }> = [];
@@ -138,10 +138,11 @@ it('routes driving, impact, indicator and train cues to their actual events', as
           if (!('type' in gain)) this.gain = gain;
           return gain;
         },
-        disconnect() { /* detached */ }, start() { this.started = true; }, stop() { this.stopped = true; } };
+        startArgs: undefined as number[] | undefined,
+        disconnect() { /* detached */ }, start(...args: number[]) { this.started = true; this.startArgs = args; }, stop() { this.stopped = true; } };
       sources.push(source); return source;
     }
-    decodeAudioData(data: ArrayBuffer & { path?: string }) { return Promise.resolve({ path: data.path ?? '' }); }
+    decodeAudioData(data: ArrayBuffer & { path?: string }) { return Promise.resolve({ path: data.path ?? '', duration: 2 }); }
     resume() { return Promise.resolve(); }
     close() { return Promise.resolve(); }
   }
@@ -365,6 +366,25 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   const vendorHit = { ...entity('jam', 'vendor-hit', 0, 0), crossingRole: 'vendor' as const, consumed: true };
   await director.update({ ...base, eventSequence: 10, feedbackKind: 'jam', world: { ...base.world, entities: [vendorHit] } });
   expect(fetched.some(path => path.includes('vendor_cart_impact_a.mp3'))).toBe(true);
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(1));
+  const vendorThud = sources.find(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))!;
+  expect(vendorThud.startArgs).toHaveLength(3);
+  expect(vendorThud.startArgs![1]).toBeGreaterThan(0);
+  expect(vendorThud.gain?.gain.value).toBeCloseTo(.95);
+  const crate = { ...entity('cargo', 'hit-crate', 0, 0), cargoType: 'crate' as const, consumed: true };
+  await director.update({ ...base, eventSequence: 11, feedbackKind: 'cargo', world: { ...base.world, entities: [crate] } });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /crate_thud_0[1-2]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(1));
+  expect(fetched.some(path => path.includes('cargo_crate_hit.mp3'))).toBe(true);
+  const crateThud = sources.find(source => source.started && /crate_thud_0[1-2]\.mp3/.test(source.buffer?.path ?? ''))!;
+  expect(crateThud.gain?.gain.value).toBeCloseTo(.8);
+  const secondCrate = { ...crate, id: 'hit-crate-2' };
+  await director.update({ ...base, eventSequence: 12, feedbackKind: 'cargo', world: { ...base.world, entities: [secondCrate] } });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /crate_thud_0[1-2]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(2));
+  const crateThuds = sources.filter(source => source.started && /crate_thud_0[1-2]\.mp3/.test(source.buffer?.path ?? ''));
+  expect(crateThuds[1].buffer?.path).not.toBe(crateThuds[0].buffer?.path);
+  const barrel = { ...entity('cargo', 'hit-barrel', 0, 0), cargoType: 'barrel' as const, consumed: true };
+  await director.update({ ...base, eventSequence: 13, feedbackKind: 'cargo', world: { ...base.world, entities: [barrel] } });
+  expect(sources.filter(source => source.started && /crate_thud_0[1-2]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(2);
   expect(fetched.some(path => path.includes('voice-auditions'))).toBe(false);
   const powers = { ...base.powers, boostUntil: 30, starUntil: 30 };
   await director.update({ ...base, powers });
@@ -435,6 +455,18 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   await director.update({ ...base, distance: 3, world: { ...base.world, entities: [actualHit] } });
   expect(voicePaths.length - beforeHit).toBe(1);
   expect(fetched.some(path => path.includes('person_impact_a.mp3'))).toBe(true);
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(2));
+  const trafficHitNpc = { ...entity('passenger', 'traffic-hit-rider', 3, 0), pickupable: false };
+  await director.update({ ...base, world: { ...base.world, entities: [trafficHitNpc] } });
+  const beforeTrafficHitVoices = voicePaths.length;
+  const trafficHit = { ...trafficHitNpc, lastHit: 26,
+    passengerMotion: { homeX: 0, homeDistance: 3, startedAt: 27, phase: 0, idle: false,
+      ejectedAt: 26, fromX: 0, fromDistance: 3, crashRecovery: true, hitByPlayer: false } };
+  await director.update({ ...base, world: { ...base.world, entities: [trafficHit] } });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(3));
+  expect(voicePaths).toHaveLength(beforeTrafficHitVoices);
+  await director.update({ ...base, world: { ...base.world, entities: [trafficHit] } });
+  expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(3);
   await director.update({ ...base, distance: 3.1, world: { ...base.world, entities: [roadsideHit] } });
   expect(voicePaths.length - beforeHit).toBe(1);
 
@@ -472,6 +504,8 @@ it('routes driving, impact, indicator and train cues to their actual events', as
       .9 * 1.25 * (kicked[i + 1].includes('kick_line_01.mp3') ? 2.2 : 1.4));
   }
 
+  const personThuds = () => sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''));
+  const officerThudStart = personThuds().length;
   const officerStart = voicePaths.length;
   for (const kind of ['militia', 'police'] as const) {
     for (let i = 0; i < 12; i++) {
@@ -483,6 +517,10 @@ it('routes driving, impact, indicator and train cues to their actual events', as
     }
   }
   const officerVoices = voicePaths.slice(officerStart);
+  await vi.waitFor(() => expect(personThuds()).toHaveLength(officerThudStart + 24));
+  const officerThuds = personThuds().slice(officerThudStart).map(source => source.buffer!.path);
+  expect(new Set(officerThuds).size).toBe(3);
+  expect(officerThuds.every((path, i) => i === 0 || path !== officerThuds[i - 1])).toBe(true);
   expect(officerVoices).toHaveLength(24);
   const militiaVoices = officerVoices.slice(0, 12), policeVoices = officerVoices.slice(12);
   expect(militiaVoices.every(path => /owner-officer-voices-2026-11-07.*militia_hit_0[1-3]\.mp3/.test(path))).toBe(true);
@@ -497,6 +535,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
     feedback: 'Chuối · tránh bị bắt', world: { ...base.world, entities: [{ ...entity('police', 'banana-police', 0, 0), consumed: true }] } });
   expect(voicePaths.slice(officerStart)).toHaveLength(24);
 
+  const vendorThudStart = personThuds().length;
   const vendorStart = voicePaths.length;
   for (let i = 0; i < 12; i++) {
     const vendor = { ...entity('jam', `hit-vendor-${i}`, 0, 0), crossingRole: 'vendor' as const, consumed: true };
@@ -504,6 +543,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
       world: { ...base.world, entities: [vendor] } });
   }
   const vendorVoices = voicePaths.slice(vendorStart);
+  await vi.waitFor(() => expect(personThuds()).toHaveLength(vendorThudStart + 12));
   expect(vendorVoices).toHaveLength(12);
   expect(vendorVoices.every(path => /owner-vendor-voices-2026-11-07.*vendor_hit_0[1-3]\.mp3/.test(path))).toBe(true);
   expect(new Set(vendorVoices).size).toBe(3);
