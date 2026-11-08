@@ -1,5 +1,7 @@
 # Đường Về Nhà — Game Design
 
+> **Thử nghiệm mới 08/11/2026 (TẠM):** ván chính nhận điểm bằng cách lái qua vật điểm rải trên đường; vật điểm có thể chồng vùng nguy hiểm để người chơi tự chọn bỏ điểm hoặc mạo hiểm. Không thưởng điểm chỉ vì đi xa/chạy nhanh/chở khách. Tiền mua xe và đồ vẫn theo quãng đường và khách như trước. Dân phòng phạt ít nhất 110 khi đủ tiền; trên 220 tiền thì lấy 50%, không trần. Tăng nhẹ mật độ special. Công thức điểm cũ được lưu trong [BALANCE_CONFIG.md](BALANCE_CONFIG.md). `ver.noforce` là backup, giữ luật cũ.
+
 > **Bản thử độ phủ P8 ngày 22/10/2026 — TẠM:** tăng cơ hội gặp vũng nước, đặc biệt vũng rộng hai làn dài 24 m và vũng toàn đường dài 30 m nếu có đường sống được; thử 12 pattern từ cơ chế đã có, vẫn phải đọc cảnh báo và có lựa chọn hợp lệ. Giữ xe chướng ngại có xăng, force/damage/grip hiện hành; bản `ver.noforce` là backup. Mục tiêu thời lượng 4 phút và độ thú vị/công bằng chưa nghiệm thu; xem `P8_BALANCE_TRIAL_REVIEW.md`.
 
 > **Thử cân bằng P8 ngày 21/10/2026:** chủ dự án đã cho áp dụng báo cáo cân bằng mới. Mục tiêu hiện hành thay mốc mua xe 1–1,5 phút bên dưới: giao dịch ô tô 4 chỗ khoảng 20–24 giây với người chơi chủ động đón khách; thời lượng ván trung vị thử khoảng 4 phút. Đây là mục tiêu thử, chưa phải kết quả đã đạt. Xe nặng cần chốt Q/E sớm hơn xe nhỏ; số cửa sổ còn TẠM. Xem `P8_BALANCE_TRIAL_REVIEW.md`.

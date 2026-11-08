@@ -104,7 +104,7 @@ export class RoadRenderer {
   private rainSplashes?: RainArt;
   private viewState!: Run;
   private entityMeshes = new Map<string, { kind: EntityKind; trafficKind?: TrafficKind; mesh: THREE.Group }>();
-  private pools: Record<EntityKind, THREE.Group[]> = { wind: [], water: [], pothole: [], traffic: [], cargo: [], fuel: [], repair: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
+  private pools: Record<EntityKind, THREE.Group[]> = { wind: [], water: [], pothole: [], traffic: [], cargo: [], fuel: [], repair: [], score: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
   private trafficPools = new Map<TrafficKind, THREE.Group[]>();
   private passengerPools = new Map<PersonArchetype, THREE.Group[]>();
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
@@ -400,6 +400,14 @@ export class RoadRenderer {
       art.root.rotation.y = Math.PI;
       g.add(art.root);
       g.userData.trafficArt = art;
+    } else if (kind === 'score') {
+      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(.38),
+        new THREE.MeshStandardMaterial({ color: '#f4d366', emissive: '#b47b24', emissiveIntensity: .48,
+          metalness: .35, roughness: .3 }));
+      gem.position.y = .55; gem.rotation.z = Math.PI / 4; g.add(gem);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(.4, .045, 6, 16),
+        new THREE.MeshBasicMaterial({ color: '#ffe9a1' }));
+      ring.rotation.x = Math.PI / 2; ring.position.y = .13; g.add(ring);
     } else if (kind === 'passenger') {
       const person = createPersonArt(passengerCast ?? 'commuter', 'far');
       g.add(person.root); g.userData.personArt = person;

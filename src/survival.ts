@@ -2,7 +2,7 @@ import { environmentalPush, pushTrafficWithWind } from './environment-forces';
 import { advanceCrossMotion, crossBoundaries, retireCrossers } from './cross-motion';
 import { advanceInteractingTraffic } from './traffic-interactions';
 import { advanceCargo, releaseCargo } from './traffic-cargo';
-import { eventBalance } from './config';
+import { backupEventBalance, eventBalance } from './config';
 import { isSpecial, trainClosed } from './special-events';
 import { balance, cargoBalance, forceTailSweep, itemBalance } from './config';
 import { initialState, step, type Input, type State } from './simulation';
@@ -12,12 +12,12 @@ import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, updateJunctionWindow, type RouteState, type Turn } from './route';
 import { effectiveVehicle, newVehicle, vehicleDefinition, vehicleRam, vehicles, waterFuelPerSecond, type VehicleDefinition, type VehicleInstance } from './vehicles';
 import { splitCrashRiders } from './passenger-outcomes';
-import { scorePerMeter, scoreVersion } from './scoring';
+import { roadScore, scorePerMeter, scoreVersion } from './scoring';
 import { canSecretEnd, guardedSecret, initialSecret, secretLanding, secretPickup, secretTrainOverlap, secretVehicle, type SecretState } from './secret';
 
 import { jumpHeight, hasBoost, hasStar, newPowers, powerBoundaries, type PowerItem, type Powers } from './items';
 
-export interface RunResult { runId: string; seed: number; config: string; scoreVersion?: 'legacy-v1' | typeof scoreVersion; reason: 'fuel' | 'damage' | 'train' | 'police' | 'secret'; distance: number; score: number; money: number; seconds: number }
+export interface RunResult { runId: string; seed: number; config: string; scoreVersion?: 'legacy-v1' | 'speed-v1' | typeof scoreVersion; reason: 'fuel' | 'damage' | 'train' | 'police' | 'secret'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
   returningRiderIds: string[]; strandedRiderIds: string[] }
 export interface Run extends State {
@@ -52,7 +52,7 @@ export const initialRun = (seed = 17, runId = 'simulation', balanceProfile?: 'ba
   shopId: null, economySequence: 0, inventory: [null, null], powers: newPowers(), secret: initialSecret(),
   forceYaw: 0, forceTrailerRearX: 0,
 });
-export const names: Record<EntityKind, string> = { wind: 'Gió ngang', water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', cargo: 'Đồ rơi đang lăn', fuel: 'Xăng', repair: 'Bộ sửa chữa', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường', police: 'Công an', militia: 'Dân phòng', jam: 'Kẹt xe', accident: 'Tai nạn', train: 'Tàu hoả', broken: 'Xe chết máy' };
+export const names: Record<EntityKind, string> = { wind: 'Gió ngang', water: 'Vũng nước', pothole: 'Ổ gà', traffic: 'Xe đang chạy', cargo: 'Đồ rơi đang lăn', fuel: 'Xăng', repair: 'Bộ sửa chữa', score: 'Điểm', passenger: 'Người cần đi nhờ', shop: 'Cửa hàng ven đường', police: 'Công an', militia: 'Dân phòng', jam: 'Kẹt xe', accident: 'Tai nạn', train: 'Tàu hoả', broken: 'Xe chết máy' };
 const runConfigVersion = (run: Run) => run.world.prototype?.version ??
   (run.world.directorVersion === 'backup' ? 'p8-encounter-candidate-a-1' : balance.version);
 
@@ -441,7 +441,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
         balance.scorePerMeter * (1 + r.riderIds.length * balance.riderScoreBonus) :
         scorePerMeter(before.speed + (driven.speed - before.speed) * (fraction + segment / 2),
           r.riderIds.length, vehicleDefinition(vehicle.kind));
-      r.score += ds * segment * scoringRate;
+      if (r.world.directorVersion === 'backup') r.score += ds * segment * scoringRate;
       r.money += ds * segment * (balance.moneyPerMeter + r.riderIds.length * balance.riderMoneyPerMeter +
         (r.grabRiderIds.length ? r.grabRiderIds.filter(id => r.riderIds.includes(id)).length : 0) * balance.riderMoneyPerMeter * (itemBalance.grabMoneyMultiplier - 1)); r.activeSeconds += dt * segment;
       if (powered) r.fuel = Math.max(0, r.fuel - fuelRate * segment);
@@ -483,7 +483,9 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       if (e.kind === 'train') { feedback('train', 'Va chạm tàu'); finish('train'); }
       else if (e.kind === 'police' || e.kind === 'militia') {
         if (e.groupId) for (const member of r.world.entities) if (member.groupId === e.groupId) member.consumed = true;
-        const fine = e.kind === 'police' ? eventBalance.policeFine : eventBalance.militiaFine;
+        const fine = e.kind === 'police' ? eventBalance.policeFine :
+          r.world.directorVersion === 'backup' ? backupEventBalance.militiaFine :
+            r.money > eventBalance.militiaHalfMoneyThreshold ? r.money * .5 : eventBalance.militiaFine;
         const short = r.money < fine, paid = Math.min(fine, r.money);
         r.money -= paid;
         feedback(e.kind, '−' + paid.toFixed(1) + ' tiền' + (e.kind === 'police' ? ' · tịch thu xe' : ''));
@@ -539,6 +541,8 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       feedback('traffic', `${names.traffic} · −${impactDamage} HP`);
       if (r.durability === 0) finish('damage');
       else if (!(ram.breaksThrough && e.wrecked)) crashDriver(before.speed + (driven.speed - before.speed) * fraction);
+    } else if (e.kind === 'score') {
+      e.consumed = true; r.score += roadScore.value;
     } else if (e.kind === 'fuel') {
       const gained = Math.min(vehicle.fuelPickup, vehicle.fuelCapacity - r.fuel);
       r.fuel += gained; r.motion = 'powered'; r.coastRemaining = balance.coastDistance; e.consumed = true;

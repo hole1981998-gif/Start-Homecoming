@@ -43,14 +43,16 @@ it('fixed fines do not grow with wealth; sufficient police money leaves reserve 
   }
   expect(seconds(ready('police', 8, false), 1).result?.reason).toBe('police');
 });
-it('militia take up to the fixed fine, never confiscate and never create negative money', () => {
+it('militia take the available floor or half a larger wallet, never confiscate or create negative money', () => {
   for (const money of [0, 20, 500]) {
     const before = ready('militia'); before.money = money;
     const after = seconds(before, 1);
     expect(after.activeVehicleId).toBe('active'); expect(after.phase).toBe('running');
     expect(after.money).toBeGreaterThanOrEqual(0); expect(after.feedbackCounts.militia).toBe(1);
-    if (money === 500) expect(after.money).toBeCloseTo(money - eventBalance.militiaFine +
-      after.distance * balance.moneyPerMeter);
+    if (money === 500) {
+      expect(after.money).toBeGreaterThan(250);
+      expect(after.money).toBeLessThan(250 + after.distance * balance.moneyPerMeter);
+    }
   }
 });
 it('banana consumes only its slot for one nearest officer in the reaction window, never outside/paused or for train', () => {
