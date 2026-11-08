@@ -41,6 +41,8 @@ it('normal generated routes contain countersteerable wind and live same-directio
     generated(17).map(e => [e.id, e.kind, e.cargoReleaseAt, e.lateralPush]));
   console.log(JSON.stringify({ mode: 'generated integrated route, 0–5000m, no pilot', seeds: 30,
     branchVariants: 3, windCount, sourceCount }));
+  // Previous revision measured 1,971 zones over this exact seeded route set.
+  expect(windCount).toBeGreaterThan(1971);
 }, 15000);
 
 it('the integrated step applies wind and releases cargo from a generated source only once', () => {

@@ -2,7 +2,7 @@ import type { Run } from './survival';
 import type { VehicleKind } from './vehicles';
 import { activeVehicle } from './survival';
 import { itemBalance } from './config';
-import { scoreComboPitch } from './scoring';
+import { scoreAudio, scoreComboPitch } from './scoring';
 
 const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-2026-10-29/*.mp3',
@@ -30,6 +30,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/owner-pickup-voices-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-player-call-voices-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-player-horns-2026-11-07/*.mp3',
+  '../project-reference/sfx/owner-score-chime-2026-11-08/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -41,6 +42,7 @@ const musicRoot = '../project-reference/sfx/owner-music-2026-11-05/';
 const worldRoot = '../project-reference/sfx/elevenlabs-world-2026-11-06/';
 const trafficRoot = '../project-reference/sfx/elevenlabs-traffic-2026-11-06/';
 const rewardRoot = '../project-reference/sfx/elevenlabs-rewards-2026-11-06/';
+const scoreRoot = '../project-reference/sfx/owner-score-chime-2026-11-08/';
 const potholeRoot = '../project-reference/sfx/elevenlabs-pothole-2026-11-06/';
 const interactionRoot = '../project-reference/sfx/elevenlabs-interactions-2026-11-06/';
 const revisionRoot = '../project-reference/sfx/elevenlabs-train-pothole-2026-11-06/';
@@ -103,7 +105,6 @@ const potholeCues: Record<string, string> = {
   'road/pothole_rattle_heavy_alt.wav': 'pothole_heavy_b.mp3',
 };
 const rewardCues: Record<string, string> = {
-  'score/collect': 'ui_soft_select.mp3',
   'item/fuel_pickup.wav': 'fuel_pickup_rise.mp3',
   'item/repair_pickup.wav': 'repair_pickup_rise.mp3',
   'pickup_01.wav': 'passenger_pickup_rise.mp3',
@@ -192,6 +193,7 @@ const generated: Record<string, string> = {
   'result/result_secret.wav': 'result_success.mp3',
 };
 const url = (name: string): string | undefined =>
+  name === 'score/collect' ? files[scoreRoot + 'score_chime.mp3'] :
   name.startsWith('pickup/owner_') ? files[ownerPickupRoot + name.slice('pickup/owner_'.length) + '.mp3'] :
   name === 'ui-modern/qte_turn_a.wav' ? files[uiEffectsRoot + 'qte_turn_confirm.mp3'] :
   ['ui-modern/purchase_success_a.wav', 'ui-modern/shop_service_a.wav', 'ui-modern/shop_upgrade_a.wav',
@@ -580,7 +582,10 @@ export class AudioDirector {
         if (generation === this.generation) onEnded?.(); };
     }
     const offset = impactFoleyOffset[name];
-    if (offset !== undefined) {
+    if (name === 'score/collect') {
+      gain.gain.setTargetAtTime(0, ctx.currentTime + scoreAudio.fadeAtSeconds / playbackRate, .05);
+      source.start(0, 0, Math.min(scoreAudio.sliceSeconds, buffer.duration));
+    } else if (offset !== undefined) {
       const duration = Math.min(.7, buffer.duration - offset);
       gain.gain.setTargetAtTime(0, ctx.currentTime + Math.min(.48, duration * .7), .075);
       source.start(0, offset, duration);
@@ -883,7 +888,7 @@ export class AudioDirector {
     const vehicle = activeVehicle(run);
     if (run.scorePickupSequence !== this.lastScorePickupSequence) {
       this.lastScorePickupSequence = run.scorePickupSequence;
-      void this.play('score/collect', 'score/collect', .1, .8, 0, 'sfx', undefined,
+      void this.play('score/collect', 'score/collect', .1, scoreAudio.volume, 0, 'sfx', undefined,
         scoreComboPitch(run.scorePickupLevel));
     }
     let pickupRiderId: string | undefined;

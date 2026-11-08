@@ -200,12 +200,13 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   expect(fetched.some(path => path.includes('skid.wav') || path.includes('police_warning'))).toBe(false);
   await director.update({ ...base, scorePickupSequence: 1, scorePickupLevel: 1 });
   await vi.waitFor(() => expect(sources.some(source => source.started &&
-    source.buffer?.path.includes('elevenlabs-rewards-2026-11-06/ui_soft_select.mp3') &&
+    source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3') &&
     source.playbackRate.targets.at(-1) === scoreComboPitch(1))).toBe(true));
+  expect(sources.find(source => source.started && source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3'))?.startArgs).toEqual([0, 0, .65]);
   FakeAudioContext.time += .4;
   await director.update({ ...base, scorePickupSequence: 2, scorePickupLevel: 8 });
   await vi.waitFor(() => expect(sources.some(source => source.started &&
-    source.buffer?.path.includes('elevenlabs-rewards-2026-11-06/ui_soft_select.mp3') &&
+    source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3') &&
     source.playbackRate.targets.at(-1) === scoreComboPitch(8))).toBe(true));
 
   const water = { ...entity('water', 'test-water', 0, 0), touching: true };
