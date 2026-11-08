@@ -238,12 +238,14 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
       world: { ...run.world, entities: [hole, water, car], nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9,
         nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9 } };
   }
-  if (scenario === 'shop' || scenario === 'shop-third' || scenario === 'shop-insufficient') {
+  if (scenario === 'shop' || scenario === 'shop-third' || scenario === 'shop-spare-disabled' || scenario === 'shop-insufficient') {
     const shop = entity('shop', 'qa-shop', 12, 0);
     shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[], items: { nitro: 1, star: 1, grab: itemBalance.grabShopStock } };
+    const spare = newVehicle('car7', 'qa-spare');
+    if (scenario === 'shop-spare-disabled') { spare.fuel = 2; spare.durability = 0; spare.disabled = true; }
     return { ...run, money: scenario === 'shop-insufficient' ? 20 : 4000, fuel: 1, durability: 30,
       riderIds: ['qa-shop-rider'],
-      vehicleInstances: scenario === 'shop-third' ? [...run.vehicleInstances, newVehicle('car7', 'qa-spare')] : run.vehicleInstances,
+      vehicleInstances: scenario === 'shop-third' || scenario === 'shop-spare-disabled' ? [...run.vehicleInstances, spare] : run.vehicleInstances,
       world: { ...run.world, entities: [shop], nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9,
         nextPassenger: 1e9, nextShopDistance: 1e9 } };
   }
