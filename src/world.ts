@@ -708,14 +708,18 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     while (roadScore.firstDistance + w.nextScore * roadScore.gap <= ahead) {
       const index = w.nextScore++;
       const at = roadScore.firstDistance + index * roadScore.gap;
-      const hash = directorRoll(w.branchSeed, index, 0x4af39d27);
+      const trail = Math.floor(index / roadScore.trailLength);
+      const hash = directorRoll(w.branchSeed, trail, 0x4af39d27);
       const risky = w.entities.filter(e => !e.consumed &&
         ['water', 'pothole', 'traffic', 'cargo', 'jam', 'accident', 'police', 'militia', 'train'].includes(e.kind) &&
         Math.abs(e.distance - at) <= e.length / 2 + roadScore.length / 2);
       const target = risky.length && index % 3 !== 0 ? risky[hash % risky.length] : undefined;
       const lane = target ? Math.round(target.x / balance.laneWidth) : hash % 3 - 1;
-      w.entities.push(entity('score', branchEntityId(w, 'score', index), at,
-        Math.max(-1, Math.min(1, lane)) * balance.laneWidth));
+      const laneCount = 1 + directorRoll(w.branchSeed, trail, 0x79a6e2b1) % 3;
+      const start = laneCount === 3 ? -1 : laneCount === 2 ? (lane > 0 ? 0 : -1) : Math.max(-1, Math.min(1, lane));
+      for (let offset = 0; offset < laneCount; offset++)
+        w.entities.push(entity('score', branchEntityId(w, 'score', index * 3 + offset), at,
+          (start + offset) * balance.laneWidth));
     }
   }
   return w;

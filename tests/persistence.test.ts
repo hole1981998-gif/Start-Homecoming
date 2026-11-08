@@ -36,13 +36,16 @@ it('keeps legacy and speed results while ranking road pickups separately', () =>
     distance: 500, score: 500, money: 0, seconds: 40 };
   const speed: RunResult = { ...legacy, runId: 'speed', scoreVersion: 'speed-v1', score: 300 };
   const road: RunResult = { ...legacy, runId: 'road', scoreVersion: 'road-v1', score: 12 };
+  const dense: RunResult = { ...legacy, runId: 'dense', scoreVersion: 'road-v2', score: 3 };
   expect(recordResult(legacy)).toBe(true);
   expect(recordResult(speed)).toBe(true);
   expect(recordResult(road)).toBe(true);
-  expect(results()).toHaveLength(3);
+  expect(recordResult(dense)).toBe(true);
+  expect(results()).toHaveLength(4);
   expect(leaderboard('legacy-v1').map(r => r.runId)).toEqual(['legacy']);
   expect(leaderboard('speed-v1').map(r => r.runId)).toEqual(['speed']);
   expect(leaderboard('road-v1').map(r => r.runId)).toEqual(['road']);
+  expect(leaderboard('road-v2').map(r => r.runId)).toEqual(['dense']);
 });
 
 it('persists audio mute separately and continues safely when browser storage is blocked', () => {

@@ -12,7 +12,7 @@ function validResult(value: unknown): value is RunResult {
   if (!value || typeof value !== 'object') return false;
   const r = value as RunResult;
   return typeof r.runId === 'string' && typeof r.config === 'string' && Number.isFinite(r.seed) &&
-    (r.scoreVersion === undefined || r.scoreVersion === 'legacy-v1' || r.scoreVersion === 'speed-v1' || r.scoreVersion === 'road-v1') &&
+    (r.scoreVersion === undefined || r.scoreVersion === 'legacy-v1' || r.scoreVersion === 'speed-v1' || r.scoreVersion === 'road-v1' || r.scoreVersion === 'road-v2') &&
     ['fuel', 'damage', 'train', 'police', 'secret'].includes(r.reason) && [r.distance, r.score, r.money, r.seconds].every(n => Number.isFinite(n) && n >= 0);
 }
 export function results(): RunResult[] {
@@ -30,7 +30,7 @@ export function badges(): Set<'home'> {
   return new Set(Array.isArray(data) && data.includes('home') ? ['home'] : []);
 }
 /** Local only; stable tie-breaks make repeated display deterministic. */
-export function leaderboard(version?: 'legacy-v1' | 'speed-v1' | 'road-v1'): RunResult[] {
+export function leaderboard(version?: NonNullable<RunResult['scoreVersion']>): RunResult[] {
   return results().filter(r => !version || (r.scoreVersion ?? 'legacy-v1') === version)
     .sort((a, b) => b.score - a.score || b.distance - a.distance || a.seconds - b.seconds || a.runId.localeCompare(b.runId));
 }
