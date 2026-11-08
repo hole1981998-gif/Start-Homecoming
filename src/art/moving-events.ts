@@ -67,6 +67,7 @@ export function createTrainArt(direction: -1 | 1 = 1, lod: 'near' | 'far' = 'nea
   const coach = mat('#c7a17a'), cab = mat('#d1ad79'), roof = mat('#3c626a');
   const underbody = mat('#344c50'), ink = mat('#20353d'), glass = mat('#648b91', .05);
   const trim = mat('#e2c8a0'), coral = mat('#b95c47'), lamp = mat('#ffe1a1');
+  const rollingWheels: THREE.Mesh[] = [];
   const lengths = [5.4, 8.8, 8.8], centers = [-9.2, -2.1, 7.2];
   lengths.forEach((length, i) => {
     const z = centers[i], carriage = new THREE.Group();
@@ -129,6 +130,7 @@ export function createTrainArt(direction: -1 | 1 = 1, lod: 'near' | 'far' = 'nea
       for (const side of [-1, 1]) {
         const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.28, .28, .12, lod === 'near' ? 10 : 6), ink);
         wheel.name = `wheel_${i}_${end}_${side}`; wheel.rotation.z = Math.PI / 2;
+        wheel.rotation.order = 'ZYX'; rollingWheels.push(wheel);
         wheel.position.x = side * depth * .37; bogie.add(wheel);
         if (lod === 'near') {
           const hub = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .015, 8), trim);
@@ -160,12 +162,16 @@ export function createTrainArt(direction: -1 | 1 = 1, lod: 'near' | 'far' = 'nea
     rear: point(train, 'rear_socket', [0, 1.1, 12]),
     crossing_contact: point(root, 'crossing_contact', [0, 0, 0]) };
   const setState = (state: 'normal' | 'stunned' | 'damaged') => { damaged.visible = state === 'damaged'; };
+  const setVisualTime = (activeSeconds: number, moving = false) => {
+    const spin = moving ? direction * activeSeconds * movingBalance.trainSpeed / .28 : 0;
+    for (const wheel of rollingWheels) wheel.rotation.y = spin;
+  };
   setState('normal');
   root.userData = { id: 'veh_train_A', axes: '+Y up, +Z forward; crossing along world X',
     widthM: total, lengthM: depth, finite: true, collisionRole: 'reference-only',
     motionSource: 'crossMotion', crossingSeconds: movingBalance.trainCrossSeconds };
   markGameplayAccentTarget(root);
-  return { root, sockets, setState, dispose: () => disposeTree(root) };
+  return { root, sockets, setState, setVisualTime, dispose: () => disposeTree(root) };
 }
 
 /** Car7 master with service livery; gameplay keeps car7 HP, dimensions and speed. */

@@ -16,6 +16,15 @@ describe('moving event art uses prototype contracts', () => {
       expect(asset.root.getObjectByName('locomotive')).toBeDefined();
       expect(asset.root.getObjectByName('carriage_2')).toBeDefined();
       expect(Math.sign(asset.sockets.front.getWorldPosition(new THREE.Vector3()).x)).toBe(direction);
+      const wheel = asset.root.getObjectByName('wheel_0_-1_-1')!;
+      asset.setVisualTime?.(1, true);
+      const rolling = wheel.rotation.y;
+      asset.setVisualTime?.(1, true);
+      expect(wheel.rotation.y).toBe(rolling);
+      asset.setVisualTime?.(2, true);
+      expect(wheel.rotation.y).not.toBe(rolling);
+      asset.setVisualTime?.(2, false);
+      expect(wheel.rotation.y).toBe(0);
       asset.dispose();
     }
   });

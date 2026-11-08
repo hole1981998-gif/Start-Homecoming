@@ -1,0 +1,686 @@
+// @vitest-environment jsdom
+import { afterEach, expect, it, vi } from 'vitest';
+import { AudioDirector, impactFoleyVariantIndex, indicatorVariantIndex, kickLineVariantIndex, playerCallVariantIndex, playerHornFamily, playerHornVariantIndex, potholeVariantIndex, roadsideCallRange, spatialVoiceVolume, speechPlaybackRate, stormStrikeDelay, taperLoopEdges, trafficPassLeadDistance, waterLoopForVehicle } from '../src/audio-director';
+import { initialRun, stepRun, type Run } from '../src/survival';
+import { entity } from '../src/world';
+import { developmentScenario } from '../src/development';
+import { noInput } from '../src/simulation';
+import { newVehicle } from '../src/vehicles';
+
+afterEach(() => vi.unstubAllGlobals());
+
+it('keeps a short line natural and brings a long take near 1.5 seconds without extreme speeding', () => {
+  expect(speechPlaybackRate(1.2)).toBe(1);
+  expect(2.08 / speechPlaybackRate(2.08)).toBeCloseTo(1.45);
+  expect(speechPlaybackRate(3)).toBe(1.5);
+  expect(2.72 / speechPlaybackRate(2.72, true)).toBeCloseTo(1.45);
+});
+
+it('leads longer traffic passes by more road distance at the same closing speed', () => {
+  expect(trafficPassLeadDistance('motorcycle', 20)).toBe(22);
+  expect(trafficPassLeadDistance('car4', 20)).toBe(25);
+  expect(trafficPassLeadDistance('truck', 20)).toBe(30);
+});
+
+it('chooses four seeded pothole takes without a fixed alternating cycle', () => {
+  const sequence: number[] = [];
+  for (let count = 0; count < 12; count++)
+    sequence.push(potholeVariantIndex(17, count, sequence.at(-1)));
+  expect(new Set(sequence).size).toBe(4);
+  expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
+  expect(sequence.some((index, i) => i >= 2 && index !== sequence[i - 2])).toBe(true);
+  expect(sequence).toEqual(sequence.map((_, i) => potholeVariantIndex(17, i, sequence[i - 1])));
+});
+
+it('randomizes owner kick lines by seed without immediately repeating one', () => {
+  const sequence: number[] = [];
+  for (let count = 0; count < 16; count++)
+    sequence.push(kickLineVariantIndex(17, count, sequence.at(-1)));
+  expect(new Set(sequence).size).toBe(4);
+  expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
+  expect(sequence.some((index, i) => i >= 2 && index !== sequence[i - 2])).toBe(true);
+});
+
+it('draws all four owner pickup takes without repeating the previous take', () => {
+  const sequence: number[] = [];
+  for (let count = 0; count < 24; count++)
+    sequence.push(impactFoleyVariantIndex(17, count, 4, sequence.at(-1)));
+  expect(new Set(sequence).size).toBe(4);
+  expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
+  expect(sequence.some((index, i) => i >= 2 && index !== sequence[i - 2])).toBe(true);
+});
+
+it('chooses all three T-key lines without repeating the previous choice', () => {
+  const sequence: number[] = [];
+  for (let count = 0; count < 24; count++)
+    sequence.push(playerCallVariantIndex(17, count, sequence.at(-1)));
+  expect(new Set(sequence).size).toBe(3);
+  expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
+});
+
+it('chooses three seeded indicator sounds without repeating the previous press', () => {
+  const sequence: number[] = [];
+  for (let count = 0; count < 18; count++)
+    sequence.push(indicatorVariantIndex(17, count, sequence.at(-1)));
+  expect(new Set(sequence).size).toBe(3);
+  expect(sequence.every((index, i) => i === 0 || index !== sequence[i - 1])).toBe(true);
+});
+
+it('makes a roadside call grow louder on approach and fade after passing', () => {
+  expect(spatialVoiceVolume(58, 0)).toBe(0);
+  expect(spatialVoiceVolume(40, 2)).toBeLessThan(spatialVoiceVolume(15, 2));
+  expect(spatialVoiceVolume(5, 0)).toBeGreaterThan(.8);
+  expect(spatialVoiceVolume(-13, 0)).toBe(0);
+  expect(spatialVoiceVolume(-20, 0, 65, 65)).toBeGreaterThan(0);
+  expect(spatialVoiceVolume(-6, 0)).toBeLessThan(spatialVoiceVolume(0, 0));
+  expect(spatialVoiceVolume(10, 8)).toBeLessThan(spatialVoiceVolume(10, 0));
+  expect(roadsideCallRange(4)).toBe(30);
+  expect(roadsideCallRange(25)).toBe(45);
+});
+
+it('spaces storm strikes across a run and keeps each seed reproducible', () => {
+  const first = stormStrikeDelay(17, 0);
+  expect(first).toBeGreaterThanOrEqual(14);
+  expect(first).toBeLessThanOrEqual(22);
+  expect(stormStrikeDelay(17, 0)).toBe(first);
+  expect(stormStrikeDelay(17, 1)).toBeGreaterThanOrEqual(27);
+  expect(stormStrikeDelay(17, 1)).toBeLessThanOrEqual(43);
+});
+
+it('routes puddle loops by vehicle weight', () => {
+  for (const kind of ['motorcycle', 'motorbike', 'tricycle'] as const)
+    expect(waterLoopForVehicle(kind)).toBe('road/water_tire_light_loop.wav');
+  for (const kind of ['car4', 'car7'] as const)
+    expect(waterLoopForVehicle(kind)).toBe('road/water_tire_medium_loop.wav');
+  for (const kind of ['bus', 'truck', 'container'] as const)
+    expect(waterLoopForVehicle(kind)).toBe('road/water_tire_heavy_loop.wav');
+});
+
+it('tapers both channels at compressed water-loop boundaries while preserving the body', () => {
+  const channels = [new Float32Array(4410).fill(.4), new Float32Array(4410).fill(-.3)];
+  const buffer = { sampleRate: 44100, length: 4410, numberOfChannels: 2,
+    getChannelData: (index: number) => channels[index] } as AudioBuffer;
+  taperLoopEdges(buffer);
+  for (const channel of channels) {
+    expect(Math.abs(channel[0])).toBe(0);
+    expect(Math.abs(channel.at(-1)!)).toBe(0);
+  }
+  expect(channels[0][2205]).toBeCloseTo(.4);
+  expect(channels[1][2205]).toBeCloseTo(-.3);
+});
+
+it('the water contact flag remains active across ticks of a long puddle', () => {
+  let run: Run = { ...developmentScenario(initialRun(17), 'p62-water-baseline'), phase: 'running', distance: 60 };
+  let wetTicks = 0;
+  for (let tick = 0; tick < 45; tick++) {
+    run = stepRun(run, noInput());
+    if (run.world.entities.some(e => e.kind === 'water' && e.touching)) wetTicks++;
+  }
+  expect(wetTicks).toBeGreaterThan(10);
+});
+
+it('routes driving, impact, indicator and train cues to their actual events', async () => {
+  const sources: Array<{ buffer?: { path: string }; gain?: { gain: { value: number; targets: number[] } }; playbackRate: { targets: number[] }; started: boolean; stopped: boolean; loop: boolean; startArgs?: number[]; onended?: () => void }> = [];
+  const fetched: string[] = [];
+  const voicePaths: string[] = [];
+  const voiceAudios: Array<{ src: string; paused: boolean; onended?: () => void }> = [];
+  const voiceGains: Array<ReturnType<FakeAudioContext['createGain']>> = [];
+  const filters: Array<{ type: string; frequency: { value: number }; Q: { value: number }; gain: { value: number } }> = [];
+  const stereoPans: Array<{ value: number }> = [];
+  class FakeAudioContext {
+    static time = 1;
+    state = 'running'; get currentTime() { return FakeAudioContext.time; } destination = {};
+    createGain() {
+      return { gain: { value: 0, targets: [] as number[], setTargetAtTime(value: number) { this.targets.push(value); } },
+        connect() { return this; }, disconnect() { /* detached */ } };
+    }
+    createMediaElementSource() {
+      return { connect(gain: ReturnType<FakeAudioContext['createGain']>) { voiceGains.push(gain); return gain; },
+        disconnect() { /* detached */ } };
+    }
+    createBiquadFilter() {
+      const filter = { type: '', frequency: { value: 0 }, Q: { value: 0 }, gain: { value: 0 }, connect(gain: ReturnType<FakeAudioContext['createGain']>) { return gain; },
+        disconnect() { /* detached */ } };
+      filters.push(filter); return filter;
+    }
+    createStereoPanner() {
+      const panner = { pan: { value: 0, setTargetAtTime(value: number) { this.value = value; } },
+        connect() { return this; }, disconnect() { /* detached */ } };
+      stereoPans.push(panner.pan); return panner;
+    }
+    createBufferSource() {
+      const source = { buffer: undefined as { path: string } | undefined, gain: undefined as ReturnType<FakeAudioContext['createGain']> | undefined,
+        started: false, stopped: false, loop: false, playbackRate: { targets: [] as number[], setTargetAtTime(value: number) { this.targets.push(value); } },
+        connect(gain: ReturnType<FakeAudioContext['createGain']> | ReturnType<FakeAudioContext['createBiquadFilter']>) {
+          if (!('type' in gain)) this.gain = gain;
+          return gain;
+        },
+        startArgs: undefined as number[] | undefined, onended: undefined as (() => void) | undefined,
+        disconnect() { /* detached */ }, start(...args: number[]) { this.started = true; this.startArgs = args; }, stop() { this.stopped = true; } };
+      sources.push(source); return source;
+    }
+    decodeAudioData(data: ArrayBuffer & { path?: string }) { return Promise.resolve({ path: data.path ?? '', duration: 2 }); }
+    resume() { return Promise.resolve(); }
+    close() { return Promise.resolve(); }
+  }
+  class FakeAudio {
+    static rejectNextCall = false;
+    duration = 2; playbackRate = 1; preservesPitch = false; loop = false; preload = '';
+    paused = true;
+    onloadedmetadata?: () => void; onended?: () => void; onerror?: () => void;
+    constructor(public src: string) { voicePaths.push(src); voiceAudios.push(this); }
+    play() {
+      if (this.src.includes('_call_') && FakeAudio.rejectNextCall) {
+        FakeAudio.rejectNextCall = false;
+        return Promise.reject(new Error('temporary media rejection'));
+      }
+      this.paused = false; this.onloadedmetadata?.(); return Promise.resolve();
+    }
+    pause() { this.paused = true; }
+  }
+  vi.stubGlobal('AudioContext', FakeAudioContext);
+  vi.stubGlobal('Audio', FakeAudio);
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => {
+    fetched.push(path);
+    return { ok: true, arrayBuffer: async () => Object.assign(new ArrayBuffer(8), { path }) };
+  }));
+  const director = new AudioDirector();
+  const base = { ...initialRun(17, 'audio-feedback'), phase: 'running' as const, speed: 4 };
+  director.unlock();
+  const police = entity('police', 'test-police', 12, 0);
+  await director.update({ ...base, lateralVelocity: 5, world: { ...base.world, entities: [police] } });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && source.buffer?.path.includes('engine_bike_texture_loop.mp3')).length).toBe(1));
+  const drivingStems = sources.filter(source => source.started && source.buffer?.path.includes('engine_bike_texture_loop.mp3'));
+  expect(filters.some(filter => filter.type === 'peaking' && filter.frequency.value === 850 && filter.gain.value === 6)).toBe(true);
+  await director.update({ ...base, motion: 'coasting', speed: 4 });
+  expect(drivingStems.every(source => !source.stopped)).toBe(true);
+  expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(.7);
+  expect(fetched.some(path => path.includes('water_light_loop.mp3'))).toBe(false);
+  expect(fetched.some(path => path.includes('skid.wav') || path.includes('police_warning'))).toBe(false);
+
+  const water = { ...entity('water', 'test-water', 0, 0), touching: true };
+  await director.update({ ...base, eventSequence: 1, feedbackKind: 'water', world: { ...base.world, entities: [water] } });
+  expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(1.25);
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('water_light_loop.mp3'))).toBe(true));
+  expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
+  expect(filters.filter(filter => filter.type === 'lowpass')).toHaveLength(0);
+  const rainSource = sources.find(source => source.buffer?.path.includes('rain_shower_loop.mp3'))!;
+  expect(rainSource.loop).toBe(true);
+  expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(2.5);
+  const thunderSource = sources.find(source => source.buffer?.path.includes('distant_thunder_loop.mp3'))!;
+  expect(thunderSource.loop).toBe(true);
+  expect(thunderSource.gain?.gain.targets.at(-1)).toBeCloseTo(2.7);
+  expect(fetched.some(path => path.includes('rain_road_loop.mp3'))).toBe(false);
+  const waterSource = sources.find(source => source.buffer?.path.includes('water_light_loop.mp3'))!;
+  expect(waterSource.loop).toBe(true);
+  expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(.75);
+  await director.update({ ...base, speed: 20, world: { ...base.world, entities: [water] } });
+  expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
+  const waterTargets = waterSource.gain?.gain.targets ?? [];
+  expect(waterTargets.at(-1)).toBeGreaterThan(waterTargets.at(-2) ?? 0);
+  expect(waterSource.playbackRate.targets.at(-1)).toBeGreaterThan(1);
+  FakeAudioContext.time = 5;
+  await director.update({ ...base, world: { ...base.world, entities: [water] } });
+  expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
+  FakeAudioContext.time = 8.5;
+  await director.update({ ...base, world: { ...base.world, entities: [water] } });
+  expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
+  expect(sources.filter(source => source.buffer?.path.includes('water_light_loop.mp3'))).toHaveLength(1);
+  await director.update(base);
+  expect(waterSource.gain?.gain.targets.at(-1)).toBe(0);
+  expect(fetched.some(path => path.includes('water_exit_spray.mp3'))).toBe(true);
+  FakeAudioContext.time = 11;
+  await director.update(base);
+  await vi.waitFor(() => expect(sources.some(source => source.buffer?.path.includes('wind_road_soft_loop.mp3') &&
+    (source.gain?.gain.targets.at(-1) ?? 0) > 0)).toBe(true));
+
+  FakeAudioContext.time = 2;
+  const wideWater = { ...water, id: 'wide-water', width: 9.6, length: 24 };
+  await director.update({ ...base, eventSequence: 1, world: { ...base.world, entities: [wideWater] } });
+  expect(waterSource.gain?.gain.targets.at(-1)).toBeGreaterThan(0);
+  expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
+  const car = newVehicle('car4', 'test-car');
+  await director.update({ ...base, activeVehicleId: car.id, vehicleInstances: [...base.vehicleInstances, car],
+    world: { ...base.world, entities: [wideWater] } });
+  await vi.waitFor(() => expect(sources.some(source => source.buffer?.path.includes('water_medium_loop.mp3') &&
+    (source.gain?.gain.targets.at(-1) ?? 0) > .75)).toBe(true));
+  expect(waterSource.gain?.gain.targets.at(-1)).toBe(0);
+  await director.update({ ...base, eventSequence: 1, world: { ...base.world, entities: [wideWater] } });
+  expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
+  await director.update(base);
+  FakeAudioContext.time = 2.5;
+  const truck = newVehicle('truck', 'test-truck');
+  await director.update({ ...base, activeVehicleId: truck.id, vehicleInstances: [...base.vehicleInstances, truck],
+    world: { ...base.world, entities: [{ ...water, id: 'truck-water' }] } });
+  await vi.waitFor(() => expect(sources.some(source => source.buffer?.path.includes('water_heavy_loop.mp3') &&
+    (source.gain?.gain.targets.at(-1) ?? 0) > .65)).toBe(true));
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('engine_heavy_texture_loop.mp3'))).toBe(true));
+  await director.update({ ...base, activeVehicleId: truck.id, vehicleInstances: [...base.vehicleInstances, truck] });
+  expect(sources.filter(source => source.buffer?.path.includes('engine_heavy_texture_loop.mp3')).at(-1)?.gain?.gain.targets.at(-1)).toBeCloseTo(1.25 * .85);
+  expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
+  await director.update(base);
+  FakeAudioContext.time = 3;
+  await director.update({ ...base, eventSequence: 1, world: { ...base.world, entities: [{ ...water, id: 'second-skim' }] } });
+  expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
+  await director.update(base);
+  FakeAudioContext.time = 3.5;
+  await director.update({ ...base, eventSequence: 1, world: { ...base.world, entities: [{ ...water, id: 'third-skim' }] } });
+  expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
+  await director.update(base);
+
+  await director.update({ ...base, eventSequence: 2, feedbackKind: 'pothole' });
+  const container = { ...entity('traffic', 'test-container', 0, 0), trafficKind: 'container' as const, lastHit: 0 };
+  const beforePlayerTraffic = voicePaths.length;
+  await director.update({ ...base, eventSequence: 3, feedbackKind: 'traffic', world: { ...base.world, entities: [container] } });
+  expect(voicePaths.length).toBe(beforePlayerTraffic);
+  expect(fetched.some(path => /pothole_light_[abcd]\.mp3/.test(path))).toBe(true);
+  expect(fetched.some(path => path.includes('resource_loss_a.wav'))).toBe(false);
+  expect(fetched.some(path => path.includes('collision_light.mp3'))).toBe(true);
+  FakeAudioContext.time = 4.5;
+  await director.update({ ...base, speed: 25, eventSequence: 4, feedbackKind: 'traffic', world: { ...base.world, entities: [container] } });
+  expect(fetched.some(path => path.includes('collision_heavy.mp3'))).toBe(true);
+  const bike = { ...entity('traffic', 'bike', 0, 0), trafficKind: 'motorbike' as const, trafficPairContacts: ['moto'] };
+  const moto = { ...entity('traffic', 'moto', 0, 0), trafficKind: 'motorcycle' as const, trafficPairContacts: ['bike'] };
+  const beforePairImpact = sources.filter(source => source.started && /light_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).length;
+  await director.update({ ...base, eventSequence: 4, world: { ...base.world, entities: [bike, moto] } });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /light_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforePairImpact + 1));
+  expect(voicePaths.slice(beforePlayerTraffic).some(path => path.includes('_driver_'))).toBe(true);
+  expect(fetched.some(path => path.includes('collision_light'))).toBe(true);
+  expect(fetched.some(path => path.includes('collision_light_alt.mp3'))).toBe(true);
+  const hole = entity('pothole', 'hole', 0, 0);
+  await director.update({ ...base, eventSequence: 4, world: { ...base.world, entities: [{ ...container, trafficContacts: ['hole'] }, hole] } });
+  expect(fetched.some(path => /pothole_heavy_[abcd]\.mp3/.test(path))).toBe(true);
+  const trafficBarrier = entity('jam', 'traffic-barrier', 0, 0);
+  const firstBlockCount = fetched.filter(path => path.includes('traffic_block_heavy.mp3')).length;
+  const beforeHeavyImpact = sources.filter(source => source.started && /heavy_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).length;
+  await director.update({ ...base, eventSequence: 4, world: { ...base.world,
+    entities: [{ ...container, trafficContacts: [trafficBarrier.id] }, trafficBarrier] } });
+  expect(fetched.filter(path => path.includes('traffic_block_heavy.mp3'))).toHaveLength(firstBlockCount + 1);
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /heavy_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforeHeavyImpact + 1));
+  await director.update({ ...base, eventSequence: 4, world: { ...base.world,
+    entities: [{ ...container, trafficContacts: [trafficBarrier.id] }, trafficBarrier] } });
+  expect(fetched.filter(path => path.includes('traffic_block_heavy.mp3'))).toHaveLength(firstBlockCount + 1);
+  FakeAudioContext.time = 5;
+  const barrier = { ...entity('jam', 'barrier', 0, 0), consumed: true };
+  await director.update({ ...base, eventSequence: 5, feedbackKind: 'jam', world: { ...base.world, entities: [barrier] } });
+  expect(fetched.some(path => path.includes('barrier_hit.mp3'))).toBe(true);
+  FakeAudioContext.time = 6;
+  const ambulance = { ...entity('jam', 'ambulance', 0, 0), consumed: true, serviceRole: 'ambulance' as const };
+  await director.update({ ...base, eventSequence: 6, feedbackKind: 'jam', world: { ...base.world, entities: [ambulance] } });
+  expect(fetched.some(path => path.includes('ambulance_hit.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('skid.wav') || path.includes('police_warning'))).toBe(false);
+  expect(fetched.some(path => path.includes('vehicle/accelerate.wav') || path.includes('vehicle/brake.wav'))).toBe(false);
+  FakeAudioContext.time = 7;
+  await director.update({ ...base, eventSequence: 7, feedbackKind: 'fuel' });
+  expect(fetched.some(path => path.includes('fuel_pickup_rise.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('resource_gain_a.wav'))).toBe(false);
+  FakeAudioContext.time = 7.5;
+  await director.update({ ...base, eventSequence: 8, feedbackKind: 'repair' });
+  expect(fetched.some(path => path.includes('repair_pickup_rise.mp3'))).toBe(true);
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('repair_pickup_rise.mp3'))).toBe(true));
+  expect(sources.filter(source => source.buffer?.path.includes('repair_pickup_rise.mp3')).at(-1)?.gain?.gain.value).toBeCloseTo(1.6);
+  FakeAudioContext.time = 8;
+  const beforePickupThud = sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).length;
+  const beforeThanks = voicePaths.filter(path => path.includes('_thanks_') || path.includes('onboard_chatter')).length;
+  await director.update({ ...base, eventSequence: 9, feedbackKind: 'passenger', riderIds: ['new-passenger'] });
+  expect(fetched.some(path => path.includes('passenger_pickup_rise.mp3'))).toBe(true);
+  await vi.waitFor(() => expect(sources.some(source => source.started && /owner-pickup-voices-2026-11-07.*pickup_0[1-4]\.mp3/.test(source.buffer?.path ?? ''))).toBe(true));
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforePickupThud + 1));
+  expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).at(-1)?.gain?.gain.value).toBeCloseTo(.78);
+  expect(voicePaths.filter(path => path.includes('_thanks_') || path.includes('onboard_chatter'))).toHaveLength(beforeThanks);
+  sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).at(-1)?.onended?.();
+  expect(voicePaths.filter(path => path.includes('_thanks_') || path.includes('onboard_chatter'))).toHaveLength(beforeThanks);
+  sources.filter(source => /owner-pickup-voices-2026-11-07.*pickup_0[1-4]\.mp3/.test(source.buffer?.path ?? '')).at(-1)?.onended?.();
+  expect(voicePaths.filter(path => path.includes('_thanks_') || path.includes('onboard_chatter'))).toHaveLength(beforeThanks + 1);
+  FakeAudioContext.time = 8.5;
+  await director.update({ ...base, eventSequence: 10, feedbackKind: 'passenger', riderIds: ['departing-passenger'] });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /owner-pickup-voices-2026-11-07.*pickup_0[1-4]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(2));
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforePickupThud + 2));
+  await director.update({ ...base, eventSequence: 11, feedbackKind: null, riderIds: [] });
+  sources.filter(source => /owner-pickup-voices-2026-11-07.*pickup_0[1-4]\.mp3/.test(source.buffer?.path ?? '')).at(-1)?.onended?.();
+  expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforePickupThud + 2);
+  expect(voicePaths.filter(path => path.includes('_thanks_') || path.includes('onboard_chatter'))).toHaveLength(beforeThanks + 1);
+  expect(fetched.some(path => path.includes('reward_small_a.wav'))).toBe(false);
+  director.ui('purchase_success');
+  director.ui('shop_upgrade');
+  director.ui('shop_service');
+  director.ui('vehicle_purchase');
+  expect(fetched.filter(path => path.includes('cash_checkout.mp3'))).toHaveLength(4);
+  director.ui('qte_turn');
+  expect(fetched.some(path => path.includes('qte_turn_confirm.mp3'))).toBe(true);
+  FakeAudioContext.time = 11;
+  const roadside = entity('passenger', 'roadside-caller', 50, 0);
+  const beforeApproach = voicePaths.length;
+  await director.update({ ...base, speed: 20, eventSequence: 8, world: { ...base.world, entities: [roadside] } });
+  expect(voicePaths.length).toBe(beforeApproach);
+  await director.update({ ...base, speed: 20, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: 35 }] } });
+  expect(voicePaths.some(path => path.includes('owner-voices-2026-11-04') && path.includes('_call_'))).toBe(true);
+  const callGain = voiceGains.at(-1)!.gain.value;
+  expect(callGain).toBeGreaterThan(.5);
+  await director.update({ ...base, speed: 20, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: 12 }] } });
+  expect(voiceGains.at(-1)?.gain.targets.at(-1)).toBeGreaterThan(callGain);
+  await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [{ ...roadside, distance: -25 }] } });
+  expect(voiceGains.at(-1)?.gain.targets.at(-1)).toBe(0);
+  FakeAudio.rejectNextCall = true;
+  const retryRider = entity('passenger', 'retry-caller', 29, 0);
+  const callsBeforeRetry = voicePaths.filter(path => path.includes('_call_')).length;
+  await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [retryRider] } });
+  await vi.waitFor(() => expect(voiceAudios.at(-1)?.paused).toBe(true));
+  FakeAudioContext.time = 11.7;
+  await director.update({ ...base, eventSequence: 8, world: { ...base.world, entities: [{ ...retryRider, distance: 20 }] } });
+  expect(voicePaths.filter(path => path.includes('_call_')).length - callsBeforeRetry).toBe(2);
+  expect(voiceAudios.at(-1)?.paused).toBe(false);
+  const callsBeforeVariation = voicePaths.filter(path => path.includes('_call_')).length;
+  await director.update({ ...base, world: { ...base.world, entities: [entity('passenger', 'caller-a', 22, 0)] } });
+  await director.update({ ...base, world: { ...base.world, entities: [entity('passenger', 'caller-c', 22, 0)] } });
+  const variants = voicePaths.filter(path => path.includes('_call_')).slice(callsBeforeVariation);
+  expect(variants).toHaveLength(2);
+  expect(variants[0]).not.toBe(variants[1]);
+  const walker = { ...entity('passenger', 'walking-npc', 14, 2),
+    passengerMotion: { homeX: 2, homeDistance: 14, startedAt: 0, phase: 0, idle: false } };
+  await director.update({ ...base, world: { ...base.world, entities: [walker] } });
+  expect(fetched.some(path => path.includes('npc_footsteps_wet.mp3'))).toBe(true);
+  const stepFetches = fetched.filter(path => path.includes('npc_footsteps_wet.mp3')).length;
+  await director.update({ ...base, world: { ...base.world, entities: [walker] } });
+  expect(fetched.filter(path => path.includes('npc_footsteps_wet.mp3'))).toHaveLength(stepFetches);
+  const train = { ...entity('train', 'approaching-train', 48, 0),
+    crossMotion: { type: 'linear' as const, origin: -20, velocity: 6, startedAt: 0, min: -20, max: 20 } };
+  await director.update({ ...base, world: { ...base.world, entities: [train] } });
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.loop &&
+    source.buffer?.path.includes('train_wheels_clack_loop.mp3'))).toBe(true));
+  expect(fetched.some(path => path.includes('train_horn_approach.mp3'))).toBe(true);
+  await director.update({ ...base, world: { ...base.world, entities: [] } });
+  expect(sources.find(source => source.buffer?.path.includes('train_wheels_clack_loop.mp3'))?.gain?.gain.targets.at(-1)).toBe(0);
+  await director.update(base, { left: true, right: false });
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.loop &&
+    source.buffer?.path.includes('indicator_tick'))).toBe(true));
+  const indicators = sources.filter(source => source.buffer?.path.includes('indicator_tick'));
+  expect(indicators[0].gain?.gain.value).toBeCloseTo(1.12);
+  await director.update(base, { left: true, right: false });
+  expect(sources.filter(source => source.buffer?.path.includes('indicator_tick'))).toHaveLength(1);
+  await director.update(base, { left: false, right: false });
+  expect(indicators[0].stopped).toBe(true);
+  await director.update({ ...base, route: { ...base.route, choice: 'right' } }, { left: false, right: false });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && source.loop &&
+    source.buffer?.path.includes('indicator_tick'))).toHaveLength(2));
+  expect(sources.filter(source => source.buffer?.path.includes('indicator_tick'))[1].buffer?.path)
+    .not.toBe(indicators[0].buffer?.path);
+  FakeAudioContext.time = 12;
+  const vendorHit = { ...entity('jam', 'vendor-hit', 0, 0), crossingRole: 'vendor' as const, consumed: true };
+  const beforeVendorThud = sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).length;
+  await director.update({ ...base, eventSequence: 10, feedbackKind: 'jam', world: { ...base.world, entities: [vendorHit] } });
+  expect(fetched.some(path => path.includes('vendor_cart_impact_a.mp3'))).toBe(true);
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforeVendorThud + 1));
+  const vendorThud = sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).at(-1)!;
+  expect(vendorThud.startArgs).toHaveLength(3);
+  expect(vendorThud.startArgs![1]).toBeGreaterThan(0);
+  expect(vendorThud.gain?.gain.value).toBeCloseTo(.95);
+  const crate = { ...entity('cargo', 'hit-crate', 0, 0), cargoType: 'crate' as const, consumed: true };
+  await director.update({ ...base, eventSequence: 11, feedbackKind: 'cargo', world: { ...base.world, entities: [crate] } });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /crate_thud_0[1-2]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(1));
+  expect(fetched.some(path => path.includes('cargo_crate_hit.mp3'))).toBe(true);
+  const crateThud = sources.find(source => source.started && /crate_thud_0[1-2]\.mp3/.test(source.buffer?.path ?? ''))!;
+  expect(crateThud.gain?.gain.value).toBeCloseTo(.8);
+  const secondCrate = { ...crate, id: 'hit-crate-2' };
+  await director.update({ ...base, eventSequence: 12, feedbackKind: 'cargo', world: { ...base.world, entities: [secondCrate] } });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /crate_thud_0[1-2]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(2));
+  const crateThuds = sources.filter(source => source.started && /crate_thud_0[1-2]\.mp3/.test(source.buffer?.path ?? ''));
+  expect(crateThuds[1].buffer?.path).not.toBe(crateThuds[0].buffer?.path);
+  const barrel = { ...entity('cargo', 'hit-barrel', 0, 0), cargoType: 'barrel' as const, consumed: true };
+  await director.update({ ...base, eventSequence: 13, feedbackKind: 'cargo', world: { ...base.world, entities: [barrel] } });
+  expect(sources.filter(source => source.started && /crate_thud_0[1-2]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(2);
+  expect(fetched.some(path => path.includes('voice-auditions'))).toBe(false);
+  const powers = { ...base.powers, boostUntil: 30, starUntil: 30 };
+  await director.update({ ...base, powers });
+  expect(fetched.some(path => path.includes('nitro_run_loop.wav') || path.includes('star_run_loop.wav'))).toBe(false);
+  expect(fetched.some(path => path.includes('nitro_activate.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('star_activate.mp3'))).toBe(true);
+  await director.update(base);
+
+  FakeAudioContext.time = 13;
+  const farCar = { ...entity('traffic', 'far-car', 80, 0), trafficKind: 'car4' as const, speed: -6 };
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [farCar] } });
+  expect(fetched.some(path => path.includes('traffic_horn_car.mp3'))).toBe(false);
+  const closeCar = { ...farCar, distance: 35 };
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [closeCar] } });
+  expect(fetched.some(path => path.includes('traffic_horn_car.mp3'))).toBe(true);
+  expect(fetched.some(path => path.includes('pass_car.mp3'))).toBe(true);
+  expect(sources.some(source => source.started && source.buffer?.path.includes('pass_car.mp3'))).toBe(false);
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [{ ...closeCar, distance: 20 }] } });
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('pass_car.mp3'))).toBe(true));
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [{ ...closeCar, distance: -2 }] } });
+  expect(fetched.filter(path => path.includes('traffic_horn_car.mp3'))).toHaveLength(1);
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [{ ...closeCar, distance: -3 }] } });
+  expect(sources.filter(source => source.started && source.buffer?.path.includes('pass_car.mp3'))).toHaveLength(1);
+  FakeAudioContext.time = 17.7;
+  const truckTraffic = { ...entity('traffic', 'near-truck', 40, 3.2), trafficKind: 'truck' as const, speed: -7 };
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [truckTraffic] } });
+  expect(fetched.some(path => path.includes('traffic_horn_heavy.mp3'))).toBe(true);
+  await vi.waitFor(() => expect(stereoPans.at(-1)?.value).toBeGreaterThan(0));
+  await director.update({ ...base, speed: 15, world: { ...base.world, entities: [{ ...truckTraffic, distance: 30 }] } });
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('pass_truck.mp3'))).toBe(true));
+
+  FakeAudioContext.time = 18;
+  const crash = { elapsed: 0, side: 1 as const, originDistance: 0, originX: 0, impactSpeed: 15,
+    returningRiderIds: ['return-a', 'return-b'], strandedRiderIds: ['left-c'] };
+  const fallen = { ...entity('passenger', 'fallen-c', -20, 0), riderId: 'left-c', pickupable: false,
+    passengerMotion: { homeX: 0, homeDistance: -20, startedAt: 18, phase: 0, idle: false,
+      ejectedAt: 18, fromX: 0, fromDistance: 0, crashRecovery: true } };
+  const beforeCrashVoices = voicePaths.length;
+  await director.update({ ...base, crash, riderIds: [], world: { ...base.world, entities: [fallen] } });
+  expect(voicePaths.length - beforeCrashVoices).toBe(4);
+  expect(voicePaths.slice(beforeCrashVoices).every(path => path.includes('scream') || path.includes('kick_short'))).toBe(true);
+  expect(voicePaths.some(path => path.includes('_return_') || path.includes('_abandon_'))).toBe(false);
+  FakeAudioContext.time = 20;
+  await director.update({ ...base, crash: null, riderIds: ['return-a', 'return-b'],
+    world: { ...base.world, entities: [fallen] } });
+  expect(voicePaths.slice(beforeCrashVoices).filter(path => path.includes('_return_'))).toHaveLength(2);
+  expect(voicePaths.slice(beforeCrashVoices).filter(path => path.includes('_abandon_'))).toHaveLength(1);
+  const afterReboard = voicePaths.length;
+  await director.update({ ...base, crash: null, riderIds: ['return-a', 'return-b'] });
+  expect(voicePaths).toHaveLength(afterReboard);
+
+  FakeAudioContext.time = 21;
+  const beforeSoloCrash = voicePaths.length;
+  await director.update({ ...base, crash: { ...crash, returningRiderIds: [], strandedRiderIds: [] }, riderIds: [] });
+  expect(voicePaths.length - beforeSoloCrash).toBe(1);
+  expect(voicePaths.at(-1)).toMatch(/anh_minh_scream|quang_toan_scream|huy_kick_scream/);
+
+  FakeAudioContext.time = 23;
+  const roadsideHit = entity('passenger', 'hit-rider', 3, 0);
+  await director.update({ ...base, world: { ...base.world, entities: [roadsideHit] } });
+  const beforeHit = voicePaths.length;
+  for (let tick = 1; tick <= 60; tick++)
+    await director.update({ ...base, distance: tick * .05, world: { ...base.world, entities: [roadsideHit] } });
+  expect(voicePaths.length - beforeHit).toBe(0);
+  const actualHit = { ...roadsideHit, pickupable: false, lastHit: 25,
+    passengerMotion: { homeX: 0, homeDistance: 3, startedAt: 26, phase: 0, idle: false,
+      ejectedAt: 25, fromX: 0, fromDistance: 3, crashRecovery: true, hitByPlayer: true } };
+  const beforeActualThuds = sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).length;
+  await director.update({ ...base, distance: 3, world: { ...base.world, entities: [actualHit] } });
+  expect(voicePaths.length - beforeHit).toBe(1);
+  expect(fetched.some(path => path.includes('person_impact_a.mp3'))).toBe(true);
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforeActualThuds + 1));
+  const trafficHitNpc = { ...entity('passenger', 'traffic-hit-rider', 3, 0), pickupable: false };
+  await director.update({ ...base, world: { ...base.world, entities: [trafficHitNpc] } });
+  const beforeTrafficHitVoices = voicePaths.length;
+  const trafficHit = { ...trafficHitNpc, lastHit: 26,
+    passengerMotion: { homeX: 0, homeDistance: 3, startedAt: 27, phase: 0, idle: false,
+      ejectedAt: 26, fromX: 0, fromDistance: 3, crashRecovery: true, hitByPlayer: false } };
+  const beforeTrafficThuds = sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? '')).length;
+  await director.update({ ...base, world: { ...base.world, entities: [trafficHit] } });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforeTrafficThuds + 1));
+  expect(voicePaths).toHaveLength(beforeTrafficHitVoices);
+  await director.update({ ...base, world: { ...base.world, entities: [trafficHit] } });
+  expect(sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''))).toHaveLength(beforeTrafficThuds + 1);
+  await director.update({ ...base, distance: 3.1, world: { ...base.world, entities: [roadsideHit] } });
+  expect(voicePaths.length - beforeHit).toBe(1);
+
+  FakeAudioContext.time = 25;
+  const wreckRiders = [0, 1, 2].map(i => entity('passenger', `wreck-rider:bus:${i}`, 0, i * 2));
+  const beforeWreck = voicePaths.length;
+  await director.update({ ...base, world: { ...base.world, entities: wreckRiders } });
+  expect(voicePaths.length - beforeWreck).toBe(3);
+  voiceAudios[beforeWreck].onended?.();
+  await director.update({ ...base, world: { ...base.world, entities: wreckRiders } });
+  expect(voicePaths.slice(beforeWreck).some(path => path.includes('_traffic_'))).toBe(true);
+
+  await director.update({ ...base, activeSeconds: 80 });
+  await vi.waitFor(() => expect(fetched.some(path => path.includes('lightning_distant_a.mp3'))).toBe(true));
+  const firstStrikeCount = fetched.filter(path => path.includes('lightning_distant_')).length;
+  await director.update({ ...base, activeSeconds: 80 });
+  expect(fetched.filter(path => path.includes('lightning_distant_'))).toHaveLength(firstStrikeCount);
+  FakeAudioContext.time = 27;
+  await director.update({ ...base, activeSeconds: 130 });
+  await vi.waitFor(() => expect(fetched.some(path => path.includes('lightning_distant_b.mp3'))).toBe(true));
+
+  const kickStart = voicePaths.length;
+  for (let i = 0; i < 4; i++) {
+    const rider = { ...entity('passenger', `dropped-demo-${i}`, 0, 0), riderId: `kick-rider-${i}` };
+    await director.update({ ...base, world: { ...base.world, entities: [rider] } });
+  }
+  const kicked = voicePaths.slice(kickStart);
+  expect(kicked).toHaveLength(8);
+  for (let i = 0; i < kicked.length; i += 2) {
+    expect(kicked[i]).toMatch(/scream|kick_short/);
+    expect(kicked[i + 1]).toMatch(/owner-kick-voices-2026-11-06.*kick_line_0[1-4]\.mp3/);
+    expect(voiceAudios[kickStart + i].paused).toBe(false);
+    expect(voiceAudios[kickStart + i + 1].paused).toBe(false);
+    expect(voiceGains[kickStart + i + 1].gain.value).toBeCloseTo(
+      .9 * 1.25 * (kicked[i + 1].includes('kick_line_01.mp3') ? 2.2 : 1.4));
+  }
+
+  const personThuds = () => sources.filter(source => source.started && /person_thud_0[1-3]\.mp3/.test(source.buffer?.path ?? ''));
+  const officerThudStart = personThuds().length;
+  const officerStart = voicePaths.length;
+  for (const kind of ['militia', 'police'] as const) {
+    for (let i = 0; i < 12; i++) {
+      const officer = { ...entity(kind, `hit-${kind}-${i}`, 0, 0), consumed: true };
+      await director.update({ ...base, eventSequence: 20 + (kind === 'police' ? 12 : 0) + i,
+        feedbackKind: kind, feedback: '−300 tiền',
+        phase: kind === 'police' && i === 11 ? 'ended' : 'running',
+        world: { ...base.world, entities: [officer] } });
+    }
+  }
+  const officerVoices = voicePaths.slice(officerStart);
+  await vi.waitFor(() => expect(personThuds()).toHaveLength(officerThudStart + 24));
+  const officerThuds = personThuds().slice(officerThudStart).map(source => source.buffer!.path);
+  expect(new Set(officerThuds).size).toBe(3);
+  expect(officerThuds.every((path, i) => i === 0 || path !== officerThuds[i - 1])).toBe(true);
+  expect(officerVoices).toHaveLength(24);
+  const militiaVoices = officerVoices.slice(0, 12), policeVoices = officerVoices.slice(12);
+  expect(militiaVoices.every(path => /owner-officer-voices-2026-11-07.*militia_hit_0[1-3]\.mp3/.test(path))).toBe(true);
+  expect(policeVoices.every(path => /owner-officer-voices-2026-11-07.*police_hit_0[1-3]\.mp3/.test(path))).toBe(true);
+  expect(new Set(militiaVoices).size).toBe(3);
+  expect(new Set(policeVoices).size).toBe(3);
+  for (const group of [militiaVoices, policeVoices])
+    expect(group.every((path, i) => i === 0 || path !== group[i - 1])).toBe(true);
+  await director.update({ ...base, eventSequence: 44, feedbackKind: 'militia',
+    feedback: 'Chuối · tránh bị bắt', world: { ...base.world, entities: [{ ...entity('militia', 'banana-officer', 0, 0), consumed: true }] } });
+  await director.update({ ...base, eventSequence: 45, feedbackKind: 'police',
+    feedback: 'Chuối · tránh bị bắt', world: { ...base.world, entities: [{ ...entity('police', 'banana-police', 0, 0), consumed: true }] } });
+  expect(voicePaths.slice(officerStart)).toHaveLength(24);
+
+  const vendorThudStart = personThuds().length;
+  const vendorStart = voicePaths.length;
+  for (let i = 0; i < 12; i++) {
+    const vendor = { ...entity('jam', `hit-vendor-${i}`, 0, 0), crossingRole: 'vendor' as const, consumed: true };
+    await director.update({ ...base, eventSequence: 50 + i, feedbackKind: 'jam',
+      world: { ...base.world, entities: [vendor] } });
+  }
+  const vendorVoices = voicePaths.slice(vendorStart);
+  await vi.waitFor(() => expect(personThuds()).toHaveLength(vendorThudStart + 12));
+  expect(vendorVoices).toHaveLength(12);
+  expect(vendorVoices.every(path => /owner-vendor-voices-2026-11-07.*vendor_hit_0[1-3]\.mp3/.test(path))).toBe(true);
+  expect(new Set(vendorVoices).size).toBe(3);
+  expect(vendorVoices.every((path, i) => i === 0 || path !== vendorVoices[i - 1])).toBe(true);
+  await director.update({ ...base, eventSequence: 61, feedbackKind: 'jam',
+    world: { ...base.world, entities: [{ ...entity('jam', 'repeat-vendor', 0, 0), crossingRole: 'vendor', consumed: true }] } });
+  expect(voicePaths.slice(vendorStart)).toHaveLength(12);
+  await director.update({ ...base, eventSequence: 62, feedbackKind: 'jam',
+    world: { ...base.world, entities: [{ ...entity('jam', 'barrier-only', 0, 0), consumed: true }] } });
+  await director.update({ ...base, eventSequence: 63, feedbackKind: 'jam',
+    world: { ...base.world, entities: [{ ...entity('jam', 'ambulance-only', 0, 0), serviceRole: 'ambulance', consumed: true }] } });
+  expect(voicePaths.slice(vendorStart)).toHaveLength(12);
+
+  const impactVehicles = [
+    { family: 'light', vehicle: base.vehicleInstances[0] },
+    { family: 'medium', vehicle: newVehicle('car4', 'impact-car') },
+    { family: 'heavy', vehicle: newVehicle('bus', 'impact-bus') },
+  ];
+  for (const [familyIndex, { family, vehicle: impactVehicle }] of impactVehicles.entries()) {
+    const matching = () => sources.filter(source => source.started && new RegExp(`/${family}_0[1-3]\\.mp3`).test(source.buffer?.path ?? ''));
+    const beforeImpacts = matching().length;
+    for (let i = 0; i < 8; i++) {
+      FakeAudioContext.time += .5;
+      await director.update({ ...base, eventSequence: 70 + familyIndex * 8 + i, feedbackKind: 'traffic',
+        activeVehicleId: impactVehicle.id, vehicleInstances: family === 'light' ? base.vehicleInstances : [base.vehicleInstances[0], impactVehicle] });
+    }
+    await vi.waitFor(() => expect(matching()).toHaveLength(beforeImpacts + 8));
+    const takes = matching().slice(beforeImpacts).map(source => source.buffer!.path);
+    expect(new Set(takes).size).toBe(3);
+    expect(takes.every((path, i) => i === 0 || path !== takes[i - 1])).toBe(true);
+    if (family === 'medium') expect(matching().some(source => source.buffer?.path.includes('medium_02.mp3') && source.startArgs?.[1] === .29)).toBe(true);
+  }
+
+  let previousCall = -1;
+  const callChoices = new Set<number>();
+  const hornKinds = ['motorcycle', 'motorbike', 'tricycle', 'car4', 'car7', 'bus', 'truck', 'container'] as const;
+  const hornFiles = {
+    motorcycle: ['motorcycle_01', 'motorcycle_02', 'motorcycle_03', 'motorcycle_04'],
+    car: ['car_01', 'car_02', 'car_03'],
+    bus: ['bus_01', 'bus_02', 'bus_03', 'bus_04'],
+    heavy: ['heavy_01', 'heavy_02', 'heavy_03', 'heavy_04', 'heavy_05'],
+  };
+  const hornCounts = { motorcycle: 0, car: 0, bus: 0, heavy: 0 };
+  const hornPrevious = { motorcycle: -1, car: -1, bus: -1, heavy: -1 };
+  const hornSeen = { motorcycle: new Set<number>(), car: new Set<number>(), bus: new Set<number>(), heavy: new Set<number>() };
+  for (let count = 0; count < 48; count++) {
+    FakeAudioContext.time += 2;
+    const choice = playerCallVariantIndex(17, count, previousCall);
+    previousCall = choice; callChoices.add(choice);
+    const hornKind = hornKinds[count % hornKinds.length], family = playerHornFamily(hornKind);
+    const hornIndex = playerHornVariantIndex(17, family, hornCounts[family], hornPrevious[family]);
+    const expectedHorn = `${hornFiles[family][hornIndex]}.mp3`;
+    hornCounts[family]++; hornPrevious[family] = hornIndex; hornSeen[family].add(hornIndex);
+    const beforeVoice = voicePaths.length, beforeSources = sources.length;
+    director.playerCall(hornKind);
+    director.playerCall(hornKind); // Same moment must not queue a second pair.
+    await vi.waitFor(() => expect(sources.slice(beforeSources).filter(source => source.started && source.buffer?.path.includes(`owner-player-horns-2026-11-07/${expectedHorn}`))).toHaveLength(1));
+    expect(voicePaths).toHaveLength(beforeVoice + 1);
+    expect(voicePaths.at(-1)).toContain(`player_call_0${choice + 1}.mp3`);
+    voiceAudios.at(-1)?.onended?.();
+  }
+  expect(callChoices.size).toBe(3);
+  for (const family of ['motorcycle', 'car', 'bus', 'heavy'] as const) {
+    expect(hornSeen[family].size).toBe(hornFiles[family].length);
+    expect(hornCounts[family]).toBeGreaterThan(0);
+  }
+  const beforeQuickRepeat = voicePaths.length;
+  FakeAudioContext.time += .4;
+  director.playerCall('motorcycle');
+  FakeAudioContext.time += .4;
+  director.playerCall('motorcycle');
+  expect(voicePaths).toHaveLength(beforeQuickRepeat + 2);
+  voiceAudios.at(-1)?.onended?.();
+
+  const heavyBefore = sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length;
+  await director.update({ ...base, phase: 'ended', eventSequence: 11, feedbackKind: 'accident' });
+  await vi.waitFor(() => expect(sources.filter(source => source.started && source.buffer?.path.includes('collision_heavy')).length).toBeGreaterThan(heavyBefore));
+  director.dispose();
+
+  const roadsideDirector = new AudioDirector();
+  roadsideDirector.unlock();
+  let roadsideRun: Run = { ...developmentScenario(initialRun(17, 'roadside-audio-test'), 'passenger'),
+    phase: 'running' };
+  FakeAudioContext.time = 30;
+  await roadsideDirector.update(roadsideRun);
+  const beforeDriveBy = voicePaths.length;
+  for (let tick = 0; tick < 45; tick++) {
+    roadsideRun = stepRun(roadsideRun, noInput());
+    await roadsideDirector.update(roadsideRun);
+  }
+  expect(roadsideRun.distance).toBeGreaterThan(5);
+  expect(voicePaths.slice(beforeDriveBy).filter(path => path.includes('_scream') || path.includes('kick_short'))).toHaveLength(0);
+  roadsideDirector.dispose();
+});

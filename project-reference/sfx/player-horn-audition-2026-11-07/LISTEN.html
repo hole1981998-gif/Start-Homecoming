@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="vi">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nghe thử còi xe người chơi</title>
+<style>
+  body{font:16px system-ui;background:#14212a;color:#e9f1f1;max-width:720px;margin:32px auto;padding:0 20px}
+  h1{font-size:1.5rem} h2{font-size:1.1rem;margin-top:28px}
+  .clip{display:grid;grid-template-columns:minmax(180px,1fr) 2fr;align-items:center;gap:14px;margin:14px 0}
+  audio{width:100%} .note{color:#bdd0d0}
+  @media(max-width:560px){.clip{grid-template-columns:1fr}}
+</style>
+<h1>Còi xe người chơi · phím T</h1>
+<p class="note">Ba mục “đang dùng” là tiếng còi hiện phát cùng một câu thoại khi bấm T. Bản xe máy mới chỉ để so sánh, chưa thay vào game.</p>
+<h2>Xe máy, mô tô, ba gác</h2>
+<div class="clip"><span>Đang dùng</span><audio controls preload="metadata" src="../elevenlabs-traffic-2026-11-06/horn_scooter_short.mp3"></audio></div>
+<div class="clip"><span>Bản mới: bíp bíp gọn</span><audio controls preload="metadata" src="bike_horn_candidate.mp3"></audio></div>
+<h2>Ô tô</h2>
+<div class="clip"><span>Đang dùng</span><audio controls preload="metadata" src="../elevenlabs-traffic-2026-11-06/horn_car_urgent.mp3"></audio></div>
+<h2>Xe tải, buýt, container</h2>
+<div class="clip"><span>Đang dùng</span><audio controls preload="metadata" src="../elevenlabs-traffic-2026-11-06/horn_truck_low.mp3"></audio></div>
+</html>

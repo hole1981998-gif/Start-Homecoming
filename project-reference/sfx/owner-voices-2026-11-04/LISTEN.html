@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thoại đã ghép — Đường Về Nhà</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color-scheme: dark; background:#14191d; color:#eee; }
+    body { max-width:960px; margin:auto; padding:24px 16px 60px; }
+    p { color:#b7c8c8; line-height:1.5; }
+    h2 { color:#f5c97a; margin-top:28px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:12px; }
+    article { background:#243035; padding:14px; border-radius:10px; }
+    strong { display:block; margin-bottom:5px; }
+    small { color:#a8bec2; display:block; min-height:2.5em; }
+    audio { display:block; width:100%; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <h1>Thoại người dùng bàn giao đã ghép vào game</h1>
+  <p>Nghe riêng từng câu. Game tăng giảm âm lượng theo khoảng cách cho tiếng gọi xe và tiếng từ xe chướng ngại. Thoại quay lại/bị bỏ lại được giữ để tham khảo, hiện không phát sau khi khách rớt khỏi xe người chơi. Bản thu dài được phát nhanh tối đa 1,5×, giữ nguyên cao độ.</p>
+  <main id="list"></main>
+  <script>
+    const groups = [
+      ['Khách đứng đường gọi xe', [
+        ['thanh_call_shout','Thanh Ngọc — “Xeee! Xeeee!”'],['thanh_call_ride','Thanh Ngọc — “Cho em đi nhờ với chú ơi!”'],
+        ['nam_call_here','Nam — “Đây nè! Đây nè!”'],['nam_call_wait','Nam — “Trời ơi, đợi mãi!”']]],
+      ['Lên xe', [
+        ['thanh_thanks_sing','Thanh Ngọc — “Thank a nhiều~”'],['thanh_thanks_cry','Thanh Ngọc — “Được cứu rồi!”'],
+        ['nam_onboard_chatter','Nam — “Đường đông quá anh nhỉ?”']]],
+      ['Té xe rồi quay lại', [
+        ['thanh_return_warning','Thanh Ngọc — “Anh đi cẩn thận chứ!”'],['thanh_return_pain','Thanh Ngọc — “Đau quá à!”'],
+        ['nam_return_mutter','Nam — lầm bầm sau cú té']]],
+      ['Té xe và bị bỏ lại', [
+        ['thanh_abandon_judge','Thanh Ngọc — “Lái… ngờ u”'],['thanh_abandon_problem','Thanh Ngọc — “Cha này có vấn đề rồi”'],
+        ['thanh_abandon_plead','Thanh Ngọc — “Đừng đi mà!”'],['nam_abandon_insult','Nam — “Mắt anh để dưới đít à?”']]],
+      ['Cười và la hét', [
+        ['thanh_laugh','Thanh Ngọc — cười hềnh hệch'],['thanh_kick_scream','Thanh Ngọc — hét khi bị đá xuống'],
+        ['nam_kick_scream','Nam — hét'],['nam_kick_scream_alt','Nam — hét khác'],
+        ['huy_kick_scream','Đức Huy — hét khi té xe'],['huy_kick_short','Đức Huy — tiếng hét ngắn'],['huy_kick_scream_alt','Đức Huy — hét khác'],
+        ['tram_scream','Trâm — tiếng hét mới'],['quang_toan_scream','Quang Toàn — tiếng hét mới'],
+        ['anh_thu_scream_a','Anh Thư — tiếng hét mới 1'],['anh_thu_scream_b','Anh Thư — tiếng hét mới 2'],
+        ['anh_minh_scream','Anh Minh — tiếng hét mới']]],
+      ['Rớt từ xe chướng ngại và tài xế va chạm', [
+        ['thanh_traffic_surprise','Thanh Ngọc — “Má, sao về đây trời?”'],['nam_traffic_carcry','Nam — “No, my xe!”'],
+        ['nam_driver_mirror','Nam — đòi đền gương chiếu hậu'],['thuong_driver_police','Mr Thương — dọa gọi công an'],
+        ['thuong_driver_taunt','Mr Thương — cằn nhằn'],['bao_ngoc_driver_lexus','Bảo Ngọc — than xe Lexus'],
+        ['bao_ngoc_driver_touch','Bảo Ngọc — trách đụng xe']]],
+    ];
+    const root = document.querySelector('#list');
+    for (const [title, clips] of groups) {
+      const section = document.createElement('section');
+      const h2 = document.createElement('h2'); h2.textContent = title; section.append(h2);
+      const grid = document.createElement('div'); grid.className = 'grid';
+      for (const [file, label] of clips) {
+        const article = document.createElement('article');
+        const strong = document.createElement('strong'); strong.textContent = label;
+        const small = document.createElement('small'); small.textContent = file;
+        const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'none'; audio.src = `${file}.mp3`;
+        audio.preservesPitch = true;
+        audio.addEventListener('loadedmetadata', () => {
+          audio.playbackRate = audio.duration > 1.5 ? Math.min(file === 'thanh_laugh' ? 1.9 : 1.5, audio.duration / 1.45) : 1;
+        });
+        article.append(strong,small,audio); grid.append(article);
+      }
+      section.append(grid); root.append(section);
+    }
+  </script>
+</body>
+</html>

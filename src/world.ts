@@ -17,7 +17,7 @@ export type EntityKind = 'wind' | 'water' | 'pothole' | 'traffic' | 'cargo' | 'f
 export interface ShopStock { vehicles: VehicleKind[]; items?: { nitro: number; star: number; grab?: number; banana?: number } }
 export type TrafficKind = VehicleKind;
 export interface PassengerMotion { homeX: number; homeDistance: number; startedAt: number; phase: number; idle: boolean;
-  ejectedAt?: number; fromX?: number; fromDistance?: number; crashRecovery?: boolean }
+  ejectedAt?: number; fromX?: number; fromDistance?: number; crashRecovery?: boolean; hitByPlayer?: boolean }
 export interface Entity {
   id: string; kind: EntityKind; x: number; distance: number; width: number; length: number;
   speed: number; consumed: boolean; touching: boolean; lastHit: number;
