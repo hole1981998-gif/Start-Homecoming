@@ -30,16 +30,19 @@ it('saves the home badge and one local leaderboard entry for a secret terminal r
   expect([...badges()]).toEqual(['home']);
 });
 
-it('keeps legacy results while ranking the speed rules separately', () => {
+it('keeps legacy and speed results while ranking road pickups separately', () => {
   localStorage.clear();
   const legacy: RunResult = { runId: 'legacy', seed: 17, config: 'old', reason: 'fuel',
     distance: 500, score: 500, money: 0, seconds: 40 };
   const speed: RunResult = { ...legacy, runId: 'speed', scoreVersion: 'speed-v1', score: 300 };
+  const road: RunResult = { ...legacy, runId: 'road', scoreVersion: 'road-v1', score: 12 };
   expect(recordResult(legacy)).toBe(true);
   expect(recordResult(speed)).toBe(true);
-  expect(results()).toHaveLength(2);
+  expect(recordResult(road)).toBe(true);
+  expect(results()).toHaveLength(3);
   expect(leaderboard('legacy-v1').map(r => r.runId)).toEqual(['legacy']);
   expect(leaderboard('speed-v1').map(r => r.runId)).toEqual(['speed']);
+  expect(leaderboard('road-v1').map(r => r.runId)).toEqual(['road']);
 });
 
 it('persists audio mute separately and continues safely when browser storage is blocked', () => {

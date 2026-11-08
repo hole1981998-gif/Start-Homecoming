@@ -133,7 +133,7 @@ Khi Product Design audit khả dụng, dùng nó để chụp và audit flow/mà
 
 Repository cần script thật cho `lint`, `typecheck`, `test`, `build`; đề xuất ESLint, `tsc --noEmit`, Vitest và Vite build. Ghi kết quả command, exit code và môi trường. Script chưa có phải tạo hoặc báo thiếu, không dùng script no-op để qua check.
 
-Unit/integration tập trung vào: capacity có tài xế; quá tải; score theo distance; fuel/coast; 2-slot transaction; thay xe giữ khách/upgrade; tiền phạt cố định và thiếu tiền; secret đủ thứ tự và các reset; event terminal đồng tick; RNG tái hiện và giới hạn; QTE hướng hợp lệ. Browser tests cho focus/pause, UI giao dịch và restart khi phù hợp. Kiểm tra thủ công camera, cảm giác lái, tín hiệu QTE, nhảy tàu, thay xe và HUD; automation không thay thế chơi thử. Ma trận và bằng chứng tuân theo AGENTS.md.
+Unit/integration tập trung vào: capacity có tài xế; quá tải; score theo pickup ở ván chính (công thức cũ được lưu, backup giữ score theo distance); fuel/coast; 2-slot transaction; thay xe giữ khách/upgrade; phạt dân phòng theo hai miền tiền và thiếu tiền; secret đủ thứ tự và các reset; event terminal đồng tick; RNG tái hiện và giới hạn; QTE hướng hợp lệ. Browser tests cho focus/pause, UI giao dịch và restart khi phù hợp. Kiểm tra thủ công camera, cảm giác lái, tín hiệu QTE, nhảy tàu, thay xe và HUD; automation không thay thế chơi thử. Ma trận và bằng chứng tuân theo AGENTS.md.
 
 ## Đặc tả bổ sung sau feedback P2 (chưa triển khai)
 

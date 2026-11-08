@@ -1,9 +1,10 @@
 import type { VehicleDefinition } from './vehicles';
 
-export const scoreVersion = 'speed-v1' as const;
+export const scoreVersion = 'road-v1' as const;
 export const baseScorePerMeter = 0.65;
+export const roadScore = Object.freeze({ firstDistance: 96, gap: 24, value: 12, width: 1, length: 1 });
 
-/** Base catalogue stats keep upgrades, water and nitro from moving the reference speed. */
+/** Archived speed-v1 rule. Base catalogue stats keep upgrades, water and nitro from moving the reference speed. */
 export function scorePerMeter(speed: number, riders: number, vehicle: VehicleDefinition): number {
   const validRiders = Math.min(Math.max(0, riders), vehicle.capacity - 1);
   const cruise = Math.min(vehicle.maxSpeed, Math.max(vehicle.cruiseFloor,

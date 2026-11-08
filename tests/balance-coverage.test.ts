@@ -15,6 +15,7 @@ it(`samples planned and spawned special coverage on ${roadCount} deterministic 3
   const roadsWithVariant = Object.fromEntries(variants.map(kind => [kind, 0])) as Record<typeof variants[number], number>;
   let spawned = 0, planned = 0, pairs = 0, triples = 0, normal = 0, water = 0, wideLongWater = 0;
   let waterGroupCount = 0, trafficGroupCount = 0, coveredMetres = 0, measuredGroups = 0;
+  const specialCounts = { police: 0, militia: 0, train: 0 };
   const gaps: number[] = [];
   const layerDistribution = [0, 0, 0];
   const patterns = new Set<number>();
@@ -29,7 +30,10 @@ it(`samples planned and spawned special coverage on ${roadCount} deterministic 3
       world = fillWorld(world, distance, balance.fuelCapacity, balance.durabilityCapacity,
         1, undefined, distance / 14, 14);
       for (const e of world.entities) if (e.id.startsWith('event-') && !e.id.startsWith('event-pattern-')) {
-        if (!seen.has(e.groupId ?? e.id)) eventWindows.push({start:e.distance-e.length/2,end:e.distance+e.length/2});
+        if (!seen.has(e.groupId ?? e.id)) {
+          eventWindows.push({start:e.distance-e.length/2,end:e.distance+e.length/2});
+          if (e.kind === 'police' || e.kind === 'militia' || e.kind === 'train') specialCounts[e.kind]++;
+        }
         seen.add(e.groupId ?? e.id);
         if (e.patternId) patterns.add(e.patternId);
         if (e.displayName === 'Rào sửa đường') outcomes.delete('barrier');
@@ -75,13 +79,14 @@ it(`samples planned and spawned special coverage on ${roadCount} deterministic 3
     for (const kind of variants) if (!outcomes.has(kind)) roadsWithVariant[kind]++;
   }
   gaps.sort((a,b)=>a-b);
-  console.log(JSON.stringify({planned,spawned,normal,water,wideLongWater,pairs,triples,layerDistribution,
+  console.log(JSON.stringify({planned,spawned,specialCounts,normal,water,wideLongWater,pairs,triples,layerDistribution,
     measuredGroups,waterGroupShare:waterGroupCount/measuredGroups,trafficGroupShare:trafficGroupCount/measuredGroups,
     waterLongitudinalShare:coveredMetres/(2650*roadCount),gapP95Seconds:gaps[Math.floor(gaps.length*.95)],
     gapOver2:gaps.filter(v=>v>2).length,
     patterns:[...patterns].sort((a,b)=>a-b),roadsWithVariant}));
   expect(spawned).toBeGreaterThan(0);
   expect(spawned).toBeGreaterThanOrEqual(6.8 * roadCount);
+  if (roadCount === 100) for (const count of Object.values(specialCounts)) expect(count).toBeGreaterThanOrEqual(120);
   expect(water).toBeGreaterThanOrEqual(15 * roadCount);
   expect(wideLongWater).toBeGreaterThanOrEqual(2.5 * roadCount);
   expect(patterns).toEqual(new Set(Array.from({ length: 16 }, (_, i) => i + 1)));

@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'p8-encounter-c3-refinement-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'road-score-special-density-trial-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -138,8 +138,8 @@ if (!Number.isInteger(itemBalance.grabUses) || itemBalance.grabMinAhead > itemBa
     itemBalance.grabMaxAhead > balance.worldLookAhead || itemBalance.grabMoneyMultiplier <= 1) throw new Error('Invalid Grab bounds');
 
 /** P6 trial values: money, metres, seconds, probability. */
-export const eventBalance = Object.freeze({ policeFine: 300, militiaFine: 500, reserveFuelFactor: .5,
-  firstDistance: 650, gap: 360, minimumGap: 220, policeCooldown: 1200, trainCooldown: 800, accidentCooldown: 600,
+export const eventBalance = Object.freeze({ policeFine: 300, militiaFine: 110, militiaHalfMoneyThreshold: 220, reserveFuelFactor: .5,
+  firstDistance: 650, gap: 320, minimumGap: 220, policeCooldown: 900, trainCooldown: 600, accidentCooldown: 600,
   reactionSeconds: 3.5, bananaReach: 45, bananaPrice: 25,
   trainPeriod: 16, trainClosedSeconds: 8, trainClearance: 1.8, brokenItemChance: .25,
   corridor: 110 });
@@ -150,6 +150,9 @@ if (eventBalance.trainClosedSeconds >= eventBalance.trainPeriod || eventBalance.
     eventBalance.policeCooldown < eventBalance.gap || eventBalance.trainCooldown < eventBalance.gap ||
     eventBalance.accidentCooldown < eventBalance.gap) throw new Error('Invalid event bounds');
 if (densityBalance.specialClearance >= eventBalance.corridor) throw new Error('Special clearance erases normal hazards');
+
+/** Frozen schedule and fine for the user-designated no-force backup. */
+export const backupEventBalance = Object.freeze({ firstDistance: 650, gap: 360, militiaFine: 500 });
 
 export const movingVersion = 'p61-scenarios-3';
 
