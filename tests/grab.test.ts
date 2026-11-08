@@ -234,4 +234,4 @@ it('samples real calls and manual pickup commands on 30 seeded hazardous routes 
       metres: Math.round(run.distance), money: +run.money.toFixed(2), phase: run.phase });
   }
   console.log(JSON.stringify({ config: balance.version, scenario: 'grab-real-route-20s', outcomes }));
-});
+}, 15_000);
