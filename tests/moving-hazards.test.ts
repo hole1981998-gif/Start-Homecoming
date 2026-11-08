@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { balance, eventBalance, movingBalance, movingVersion } from '../src/config';
 import { advanceCrossMotion, crossX } from '../src/cross-motion';
+import { movingEvent } from '../src/moving-events';
 import { developmentScenario } from '../src/development';
 import { usePowerItem, requestJump } from '../src/items';
 import { movingScenarios } from '../src/moving-scenarios';
@@ -27,6 +28,20 @@ function tickActors(entities: Entity[], dt = balance.fixedStep, time = 0): void 
   advanceCrossMotion(entities, time + dt);
   advanceInteractingTraffic(entities, previous, dt);
 }
+it('places more militia in pairs on the main route while preserving backup group sizes', () => {
+  let mainPairs = 0, backupPairs = 0;
+  for (let seed = 1; seed <= 90; seed++) {
+    const officer = entity('militia', `officer-${seed}`, 800, 0);
+    const main = movingEvent({ ...officer }, seed, seed, 0);
+    const backup = movingEvent({ ...officer }, seed, seed, 0, undefined, true);
+    if (main.length === 2) mainPairs++;
+    if (backup.length === 2) backupPairs++;
+    expect(main.every(npc => npc.groupId === officer.id && npc.crossMotion?.type === 'pingpong')).toBe(true);
+  }
+  expect(mainPairs).toBeGreaterThan(backupPairs);
+  expect(mainPairs).toBeGreaterThan(45);
+  expect(backupPairs).toBeLessThan(45);
+});
 it('normal route enables approved motion/interactions while isolated fixtures keep independent streams', () => {
   const run = seconds({ ...initialRun(17), phase: 'running' }, 10);
   expect(run.world.experimentalTraffic).toBe(true); expect(run.world.integrated).toBe(true); expect(run.world.prototype).toBeUndefined();
@@ -99,7 +114,7 @@ it('crossing an officer event distance without NPC contact does not fine; two co
   for (const e of run.world.entities) { e.x = 0; e.crossMotion = undefined; }
   const after = stepRun(run, noInput());
   expect(after.feedbackCounts.militia).toBe(1);
-  expect(after.money).toBeCloseTo(Math.max(0, run.money - eventBalance.militiaFine) +
+  expect(after.money).toBeCloseTo(Math.max(0, run.money - (run.money > eventBalance.militiaHalfMoneyThreshold ? run.money * .5 : eventBalance.militiaFine)) +
     (after.distance - run.distance) * balance.moneyPerMeter);
 });
 it('relative sweep catches a fast crossing officer and reflection cuts catch an out-and-back path with clear endpoints', () => {

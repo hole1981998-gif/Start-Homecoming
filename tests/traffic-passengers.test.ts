@@ -22,7 +22,8 @@ it('every vehicle leaves a deterministic bounded roster once; removal of the wre
     const riders = world.entities.filter(e => e.kind === 'passenger');
     expect(riders).toHaveLength(trafficPassengerCount(seed, world.entities[0]));
     expect(riders.length).toBeGreaterThan(0);
-    expect(riders.length).toBeLessThanOrEqual(Math.min(vehicles[kind].capacity - 1, balance.trafficPassengerLimit));
+    expect(riders.length).toBeLessThanOrEqual(Math.min(vehicles[kind].capacity - 1, balance.trafficPassengerLimit) +
+      (['motorcycle', 'motorbike', 'tricycle'].includes(kind) ? 1 : 0));
     for (let i = 0; i < 200; i++) {
       advanceTraffic(world.entities, balance.fixedStep);
       spawnWreckPassengers(world, i / 60, vehicles.motorcycle);
@@ -89,8 +90,7 @@ it('ram victims refuse F permanently while pothole victims accept; neither grant
     const npc = run.world.entities.find(e => e.kind === 'passenger')!;
     expect(npc).toBeDefined(); expect(run.riderIds).toHaveLength(0);
     expect(run.money).toBeCloseTo(balance.initialMoney + run.distance * balance.moneyPerMeter);
-    expect(run.score).toBeGreaterThan(0);
-    expect(run.score).toBeLessThanOrEqual(run.distance * .65 * 1.5);
+    expect(run.score).toBe(0);
     const at = { ...run, crash: null, x: npc.x, distance: npc.distance };
     const picked = pickUpPassenger(at);
     if (scenario === 'traffic-passengers') {

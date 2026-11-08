@@ -12,7 +12,8 @@ import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep
 import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
 import { attachArticulatedContainerArt, attachVehicleArtToPrototype } from './art/prototype-adapter';
 import { createVehicleArt, setTrafficDriverSeated, type VehicleArt } from './art/vehicle-catalog';
-import { bikeLiftSeconds, trafficBikeWreckPose, twoWheelCrashPose } from './art/vehicle-recovery';
+import { bikeLiftSeconds, trafficBikeWreckPose, trafficDriverFallPose, twoWheelCrashPose } from './art/vehicle-recovery';
+import { openTraffic } from './traffic-recovery';
 import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './art/hazards';
 import { createOfficerArt, createTrainArt, createVendorArt, crossingVisualYaw,
   type MovingArt } from './art/moving-events';
@@ -104,7 +105,7 @@ export class RoadRenderer {
   private rainSplashes?: RainArt;
   private viewState!: Run;
   private entityMeshes = new Map<string, { kind: EntityKind; trafficKind?: TrafficKind; mesh: THREE.Group }>();
-  private pools: Record<EntityKind, THREE.Group[]> = { wind: [], water: [], pothole: [], traffic: [], cargo: [], fuel: [], repair: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
+  private pools: Record<EntityKind, THREE.Group[]> = { wind: [], water: [], pothole: [], traffic: [], cargo: [], fuel: [], repair: [], score: [], passenger: [], shop: [], police: [], militia: [], train: [], accident: [], jam: [], broken: [] };
   private trafficPools = new Map<TrafficKind, THREE.Group[]>();
   private passengerPools = new Map<PersonArchetype, THREE.Group[]>();
   private makeBox!: (w: number, h: number, d: number, color: string, parent?: THREE.Object3D) => THREE.Mesh;
@@ -400,6 +401,17 @@ export class RoadRenderer {
       art.root.rotation.y = Math.PI;
       g.add(art.root);
       g.userData.trafficArt = art;
+      if (openTraffic(trafficKind)) {
+        const driver = createPersonArt('driver', 'far');
+        driver.root.visible = false;
+        g.add(driver.root); g.userData.trafficFallenDriver = driver;
+      }
+    } else if (kind === 'score') {
+      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(.27),
+        new THREE.MeshStandardMaterial({ color: '#dcc27d', emissive: '#9f7930', emissiveIntensity: .22,
+          metalness: .12, roughness: .65 }));
+      gem.position.y = .62; gem.rotation.y = Math.PI / 4; g.add(gem);
+      g.userData.scoreGem = gem;
     } else if (kind === 'passenger') {
       const person = createPersonArt(passengerCast ?? 'commuter', 'far');
       g.add(person.root); g.userData.personArt = person;
@@ -800,6 +812,7 @@ export class RoadRenderer {
         entityPose.z + Math.sin(entityPose.heading) * entityX);
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
+      if (e.kind === 'score') (entry.mesh.userData.scoreGem as THREE.Mesh).rotation.y = Math.PI / 4 + visualTime * .7;
       const contactShadow = entry.mesh.userData.roadContactShadow as THREE.Mesh | undefined;
       if (contactShadow) this.contactShadows.place(contactShadow, entry.mesh.position.x,
         entry.mesh.position.z, entry.mesh.rotation.y, e.width * 1.5, e.length * 1.4);
@@ -833,8 +846,17 @@ export class RoadRenderer {
         art.setPaint(e.serviceRole === 'ambulance' ? '#d2dedd' : trafficTypes[e.trafficKind ?? 'car4'].color);
         const hpRatio = (e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp;
         art.setCondition(e.wrecked ? 'destroyed' : hpRatio < .45 ? 'damaged' : hpRatio < .8 ? 'used' : 'clean');
-        setTrafficDriverSeated(art, !e.wrecked && !e.wreckPassengersSpawned);
-        const wreckPose = trafficBikeWreckPose(e.trafficKind ?? 'car4', !!e.wrecked, e.wreckAge ?? 0, e.id);
+        setTrafficDriverSeated(art, !e.wrecked && e.trafficFallAge === undefined && !e.wreckPassengersSpawned);
+        const fallenDriver = entry.mesh.userData.trafficFallenDriver as PersonArt | undefined;
+        if (fallenDriver) {
+          fallenDriver.root.visible = e.trafficFallAge !== undefined && !e.wrecked;
+          if (fallenDriver.root.visible) {
+            const pose = trafficDriverFallPose(e.trafficFallAge!, e.id);
+            fallenDriver.root.position.set(pose.x, 0, pose.z);
+            fallenDriver.setPose(pose.pose, pose.phase);
+          }
+        }
+        const wreckPose = trafficBikeWreckPose(e.trafficKind ?? 'car4', !!e.wrecked, e.wreckAge ?? 0, e.id, e.trafficFallAge);
         art.root.rotation.set(0, Math.PI, wreckPose.roll, 'YXZ');
         art.root.position.y = wreckPose.height;
       }

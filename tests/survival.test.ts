@@ -15,7 +15,7 @@ function advance(run: Run, seconds: number, input: Input = noInput()): Run {
 describe('survival, continuous hazards and crash recovery', () => {
   it('money/score/fuel follow actual travel; pause/ready/end have no side effects', () => {
     const r = advance(empty(), 10);
-    expect(r.distance).toBeCloseTo(140); expect(r.score).toBeCloseTo(140 * .65);
+    expect(r.distance).toBeCloseTo(140); expect(r.score).toBe(0);
     expect(r.money).toBeCloseTo(balance.initialMoney + 140 * balance.moneyPerMeter); expect(r.fuel).toBeCloseTo(balance.fuelCapacity - 140 * balance.fuelPerMeter);
     for (const phase of ['ready', 'paused', 'ended'] as const) {
       const stopped = { ...r, phase }; expect(advance(stopped, 10)).toBe(stopped);
@@ -34,6 +34,13 @@ describe('survival, continuous hazards and crash recovery', () => {
     const car = { ...entity('traffic', 'car', 0, 0), speed: 14 };
     const once = advance(empty([car]), .5); expect(once.durability).toBe(balance.durabilityCapacity - balance.trafficDamage); expect(once.crash).not.toBeNull();
     const twice = advance(once, 4); expect(twice.durability).toBe(once.durability); expect(twice.world.entities[0].lastHit).toBeGreaterThanOrEqual(0);
+  });
+  it('charges the restored pothole fee once even during prolonged contact', () => {
+    const start = 20;
+    const hole = { ...entity('pothole', 'long-hole', 0, 0), length: 24 };
+    const after = advance({ ...empty([hole]), money: start }, .5);
+    expect(after.money).toBeCloseTo(start - 10 + after.distance * balance.moneyPerMeter);
+    expect(after.durability).toBeLessThan(balance.durabilityCapacity - balance.potholeImpactDamage);
   });
   it('swept contacts catch thin obstacles crossed between endpoints, including sideways', () => {
     expect(sweptContact(0, -10, 0, 10, .5, .01)).toEqual([.4995, .5005]);
@@ -64,7 +71,7 @@ describe('survival, continuous hazards and crash recovery', () => {
     const r = stepRun({ ...empty([entity('pothole', 'deadly', 1.95, 0), entity('repair', 'late', 1.6, 0)]), durability: balance.potholeImpactDamage, speed: 20 }, { ...noInput(), accelerate: true });
     expect(r.phase).toBe('ended'); expect(r.result?.reason).toBe('damage'); expect(r.distance).toBeCloseTo(.05);
     expect(r.world.entities[1].consumed).toBe(false); expect(r.durability).toBe(0);
-    expect(r.result?.score).toBeGreaterThan(0); expect(r.result?.score).toBeLessThan(.05); expect(r.distance).toBeLessThan(.333);
+    expect(r.result?.score).toBe(0); expect(r.distance).toBeLessThan(.333);
   });
   it('pickups apply once and clamp HP/fuel; restart discards all old entities/results', () => {
     const r = advance({ ...empty([entity('repair', 'fix', 0, 0), entity('fuel', 'gas', 0, 0)]), durability: 60, fuel: 4 }, .1);

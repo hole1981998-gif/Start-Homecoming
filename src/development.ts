@@ -10,6 +10,26 @@ import { balance, itemBalance, movingBalance, stressBalance } from './config';
 import { secretPickup, secretVehicle } from './secret';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
+  if (scenario === 'traffic-open-recovery') {
+    const riders = (['motorbike', 'tricycle'] as const).map((kind, i) => {
+      const car = entity('traffic', `qa-open-rider-${kind}`, 20 + i * 16, i ? -3.2 : 3.2);
+      Object.assign(car, { trafficKind: kind, hp: trafficTypes[kind].hp,
+        width: trafficTypes[kind].width, length: trafficTypes[kind].length,
+        speed: trafficTypes[kind].speed, baseSpeed: trafficTypes[kind].speed,
+        fuel: vehicles[kind].fuelCapacity, trafficMotion: 'powered' });
+      return car;
+    });
+    const blockers = riders.map((rider, i) => {
+      const car = entity('traffic', `qa-open-blocker-${i}`, rider.distance + 9, rider.x);
+      Object.assign(car, { speed: 0, baseSpeed: 0, fuel: 0, trafficMotion: 'stopped', hp: 90 });
+      return car;
+    });
+    return { ...run, world: { ...initialWorld(run.seed, true), entities: [...riders, ...blockers],
+      nextHazard: 1e9, nextSpecial: 1e9, nextFuel: 1e9, nextRepair: 1e9,
+      nextPassenger: 1e9, nextShopDistance: 1e9,
+      prototype: { version: 'traffic-open-recovery-qa-1', title: 'Traffic ngã và dựng xe',
+        description: 'Fixture DEV: xe mô tô bên phải và ba gác bên trái va vào xe đứng, còn HP nên ngã, dựng xe và chạy tiếp. Giữ làn giữa để quan sát.' } } };
+  }
   if (scenario === 'recovery-motorcycle' || scenario === 'recovery-motorbike' || scenario === 'wreck-open-drivers') {
     const kind = scenario === 'recovery-motorbike' ? 'motorbike' : 'motorcycle';
     const bike = newVehicle(kind, 'qa-recovery-bike');
@@ -238,12 +258,14 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
       world: { ...run.world, entities: [hole, water, car], nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9,
         nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9 } };
   }
-  if (scenario === 'shop' || scenario === 'shop-third' || scenario === 'shop-insufficient') {
+  if (scenario === 'shop' || scenario === 'shop-third' || scenario === 'shop-spare-disabled' || scenario === 'shop-insufficient') {
     const shop = entity('shop', 'qa-shop', 12, 0);
     shop.shopStock = { vehicles: Object.keys(vehicles) as VehicleKind[], items: { nitro: 1, star: 1, grab: itemBalance.grabShopStock } };
+    const spare = newVehicle('car7', 'qa-spare');
+    if (scenario === 'shop-spare-disabled') { spare.fuel = 2; spare.durability = 0; spare.disabled = true; }
     return { ...run, money: scenario === 'shop-insufficient' ? 20 : 4000, fuel: 1, durability: 30,
       riderIds: ['qa-shop-rider'],
-      vehicleInstances: scenario === 'shop-third' ? [...run.vehicleInstances, newVehicle('car7', 'qa-spare')] : run.vehicleInstances,
+      vehicleInstances: scenario === 'shop-third' || scenario === 'shop-spare-disabled' ? [...run.vehicleInstances, spare] : run.vehicleInstances,
       world: { ...run.world, entities: [shop], nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9,
         nextPassenger: 1e9, nextShopDistance: 1e9 } };
   }

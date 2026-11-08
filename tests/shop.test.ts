@@ -5,7 +5,19 @@ import { noInput } from '../src/simulation';
 import { activeVehicle, initialRun, pickUpPassenger, stepRun, switchVehicle, type Run } from '../src/survival';
 import { enterShop, leaveShop, transact, type ShopCommand } from '../src/shop';
 import { entity, fillWorld, initialWorld, nextShopDistance } from '../src/world';
-import { effectiveVehicle, newVehicle, vehicles } from '../src/vehicles';
+import { buyVehicle, effectiveVehicle, newVehicle, vehicles, type VehicleKind } from '../src/vehicles';
+
+it('charges the revised catalog prices while keeping the noforce backup prices', () => {
+  const prices: Partial<Record<VehicleKind, [number, number]>> = {
+    tricycle: [300, 450], car7: [1100, 1200], bus: [2200, 2400],
+    truck: [1300, 1800], container: [2200, 3000],
+  };
+  for (const [kind, [current, backup]] of Object.entries(prices) as [VehicleKind, [number, number]][]) {
+    const owned = [newVehicle('motorcycle', 'starter')];
+    expect(buyVehicle(owned, 4000, kind, `new-${kind}`)?.money).toBe(4000 - current);
+    expect(buyVehicle(owned, 4000, kind, `backup-${kind}`, undefined, 'backup')?.money).toBe(4000 - backup);
+  }
+});
 
 const atShop = (scenario = 'shop') => enterShop({ ...developmentScenario(initialRun(17, 'shop-test'), scenario), phase: 'running' });
 type WithoutSequence<T> = T extends unknown ? Omit<T, 'sequence'> : never;
@@ -35,6 +47,29 @@ it('services clamp, refuse full resources and insufficient funds, and stale comm
   const poor = atShop('shop-insufficient');
   expect(apply(poor, { kind: 'service', item: 'repair' })).toBe(poor);
   expect(run.fuel).toBe(1); expect(run.money).toBe(4000);
+});
+
+it('services a disabled reserve in place, then allows switching without a free refill', () => {
+  const base = atShop('shop-third');
+  const run = { ...base, vehicleInstances: base.vehicleInstances.map(v => v.id === 'qa-spare' ?
+    { ...v, fuel: 2, durability: 0, disabled: true } : v) };
+  const repaired = apply(run, { kind: 'service', item: 'repair', targetId: 'qa-spare' });
+  const spare = repaired.vehicleInstances.find(v => v.id === 'qa-spare')!;
+  expect(spare.durability).toBe(shopBalance.repairAmount);
+  expect(spare.fuel).toBe(2);
+  expect(spare.disabled).toBe(false);
+  expect(repaired.activeVehicleId).toBe(run.activeVehicleId);
+  expect(repaired.fuel).toBe(run.fuel);
+  expect(repaired.durability).toBe(run.durability);
+  expect(repaired.money).toBe(run.money - shopBalance.repairPrice);
+  expect(apply(repaired, { kind: 'service', item: 'fuel', targetId: 'missing' })).toBe(repaired);
+  const switched = switchVehicle({ ...leaveShop(repaired), phase: 'running' });
+  expect(switched.activeVehicleId).toBe(spare.id);
+  expect(switched.fuel).toBe(2);
+  expect(switched.durability).toBe(shopBalance.repairAmount);
+  const refuelled = apply(repaired, { kind: 'service', item: 'fuel', targetId: 'qa-spare' });
+  expect(refuelled.vehicleInstances.find(v => v.id === 'qa-spare')!.fuel).toBe(2 + shopBalance.fuelAmount);
+  expect(refuelled.fuel).toBe(run.fuel);
 });
 
 it('removed takeaway commands cannot charge, heal or create inventory, even from a stale UI', () => {

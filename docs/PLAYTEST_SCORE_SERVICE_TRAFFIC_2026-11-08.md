@@ -1,0 +1,9 @@
+# Bản chơi thử ghép ba thay đổi — 08/11/2026
+
+Nhánh `codex/playtest-score-service-traffic` ghép để chơi thử ba PR riêng từ `origin/main` e0eb3f4: [#18](https://github.com/hole1981998-gif/Start-Homecoming/pull/18) điểm rải/special, [#19](https://github.com/hole1981998-gif/Start-Homecoming/pull/19) tiếp tế xe dự phòng, [#20](https://github.com/hole1981998-gif/Start-Homecoming/pull/20) NPC xe mở ngã/phục hồi. Nhánh này chỉ phục vụ playtest, không là PR để merge; từng tính năng giữ commit/CI riêng. `ver.noforce` vẫn là backup không đổi.
+
+Chạy trên máy phát triển: `pnpm install --frozen-lockfile`, `pnpm dev --host 127.0.0.1 --port 5177`, mở `http://127.0.0.1:5177/?seed=17`. Fixture NPC: `?scenario=traffic-open-recovery&seed=17`. Fixture xe dự phòng 0 HP: `?scenario=shop-spare-disabled&seed=17`.
+
+Simulation/test ghép: lint, typecheck, production build pass; full tests trên revision ghép có fixture shop pass 81 files/445 tests. Browser IAB seed17: bấm bắt đầu, giữ W qua khoảng 187 m, điểm tăng 0→36 và dải 2–3 làn hiện trên đường; HUD, điều khiển và camera hoạt động. Browser fixture NPC riêng thấy xe và người ngã; pha lên xe lại được kiểm bằng simulation, chưa quan sát trọn vẹn trong browser. Browser shop fixture riêng: chọn xe dự phòng `2 L/0 HP`, sửa tốn 140 tiền lên 20 HP, đóng shop rồi Tab đổi sang xe vừa sửa và chạy được.
+
+Tự review gameplay: ba thay đổi kết hợp có thể làm đường đông hơn do traffic sống lại, nhưng điểm phủ nhiều làn giúp người chơi bớt phải đổi làn liên tục. Cần chủ dự án chơi đủ xa để đánh giá áp lực và liệu điểm đặt trong chướng ngại có đáng mạo hiểm. Tự review UX: dải điểm sáng thấy rõ ở seed17, song có thể lấn cue hazard; mục Tiếp tế hiện tên xe/HP/xăng khi đổi target. Đây là review từ fixture và một lượt chơi ngắn, chưa phải nghiệm thu độ khó hay mỹ thuật.

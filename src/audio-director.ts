@@ -2,6 +2,7 @@ import type { Run } from './survival';
 import type { VehicleKind } from './vehicles';
 import { activeVehicle } from './survival';
 import { itemBalance } from './config';
+import { scoreAudio, scoreComboPitch } from './scoring';
 
 const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-2026-10-29/*.mp3',
@@ -29,6 +30,7 @@ const files = import.meta.glob([
   '../project-reference/sfx/owner-pickup-voices-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-player-call-voices-2026-11-07/*.mp3',
   '../project-reference/sfx/owner-player-horns-2026-11-07/*.mp3',
+  '../project-reference/sfx/owner-score-chime-2026-11-08/*.mp3',
 ], { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const generatedRoot = '../project-reference/sfx/elevenlabs-2026-10-29/';
 const voiceRoot = '../project-reference/sfx/owner-voices-2026-11-04/';
@@ -40,6 +42,7 @@ const musicRoot = '../project-reference/sfx/owner-music-2026-11-05/';
 const worldRoot = '../project-reference/sfx/elevenlabs-world-2026-11-06/';
 const trafficRoot = '../project-reference/sfx/elevenlabs-traffic-2026-11-06/';
 const rewardRoot = '../project-reference/sfx/elevenlabs-rewards-2026-11-06/';
+const scoreRoot = '../project-reference/sfx/owner-score-chime-2026-11-08/';
 const potholeRoot = '../project-reference/sfx/elevenlabs-pothole-2026-11-06/';
 const interactionRoot = '../project-reference/sfx/elevenlabs-interactions-2026-11-06/';
 const revisionRoot = '../project-reference/sfx/elevenlabs-train-pothole-2026-11-06/';
@@ -190,6 +193,7 @@ const generated: Record<string, string> = {
   'result/result_secret.wav': 'result_success.mp3',
 };
 const url = (name: string): string | undefined =>
+  name === 'score/collect' ? files[scoreRoot + 'score_chime.mp3'] :
   name.startsWith('pickup/owner_') ? files[ownerPickupRoot + name.slice('pickup/owner_'.length) + '.mp3'] :
   name === 'ui-modern/qte_turn_a.wav' ? files[uiEffectsRoot + 'qte_turn_confirm.mp3'] :
   ['ui-modern/purchase_success_a.wav', 'ui-modern/shop_service_a.wav', 'ui-modern/shop_upgrade_a.wav',
@@ -461,6 +465,7 @@ export class AudioDirector {
   private runId = '';
   private voiceSeed = 0;
   private lastSequence = -1;
+  private lastScorePickupSequence = 0;
   private lastJump = -100;
   private lastBoost = 0;
   private lastStar = 0;
@@ -508,7 +513,7 @@ export class AudioDirector {
       sfx.connect(this.context.destination); ambience.connect(this.context.destination); music.connect(this.context.destination);
       this.buses = { sfx, ambience, music };
       for (const name of [...impactFoleyNames, ...vehicleImpactNames, ...ownerPickupNames,
-        ...Object.values(playerHornClips).flat().map(clip => `player-horn/${clip}`)]) void this.buffer(name);
+        ...Object.values(playerHornClips).flat().map(clip => `player-horn/${clip}`), 'score/collect']) void this.buffer(name);
     }
     void this.context.resume();
   }
@@ -527,7 +532,7 @@ export class AudioDirector {
   }
 
   private async play(name: string, key = name, gap = .18, volume = 1, pan = 0, busKind: Bus = 'sfx',
-    onEnded?: () => void): Promise<void> {
+    onEnded?: () => void, playbackRate = 1): Promise<void> {
     const ctx = this.context, bus = this.buses?.[busKind];
     if (!ctx || !bus || ctx.state !== 'running') { onEnded?.(); return; }
     const now = ctx.currentTime;
@@ -559,10 +564,18 @@ export class AudioDirector {
     const panner = pan ? ctx.createStereoPanner() : undefined;
     if (panner) panner.pan.value = Math.max(-.8, Math.min(.8, pan));
     source.buffer = buffer;
+    if (playbackRate !== 1) source.playbackRate.setTargetAtTime(playbackRate, ctx.currentTime, .001);
     gain.gain.value = waterEntry ? 0 : volume * trim * (vehicleImpactGain[name] ?? 1);
     if (panner) gain.connect(panner).connect(bus);
     else gain.connect(bus);
-    if (waterEntry) {
+    if (name === 'score/collect') {
+      const warmth = ctx.createBiquadFilter(), soften = ctx.createBiquadFilter();
+      warmth.type = 'lowshelf'; warmth.frequency.value = scoreAudio.warmthHz; warmth.gain.value = scoreAudio.warmthDb;
+      soften.type = 'lowpass'; soften.frequency.value = scoreAudio.lowpassHz;
+      source.connect(warmth).connect(soften).connect(gain);
+      source.onended = () => { this.oneShots.delete(source); source.disconnect(); warmth.disconnect(); soften.disconnect(); gain.disconnect(); panner?.disconnect();
+        if (generation === this.generation) onEnded?.(); };
+    } else if (waterEntry) {
       // The raw splash has a hard first transient; let the rolling water lead in.
       gain.gain.setTargetAtTime(volume * trim, ctx.currentTime, .12);
       const soften = ctx.createBiquadFilter();
@@ -576,7 +589,10 @@ export class AudioDirector {
         if (generation === this.generation) onEnded?.(); };
     }
     const offset = impactFoleyOffset[name];
-    if (offset !== undefined) {
+    if (name === 'score/collect') {
+      gain.gain.setTargetAtTime(0, ctx.currentTime + scoreAudio.fadeAtSeconds / playbackRate, .05);
+      source.start(0, 0, Math.min(scoreAudio.sliceSeconds, buffer.duration));
+    } else if (offset !== undefined) {
       const duration = Math.min(.7, buffer.duration - offset);
       gain.gain.setTargetAtTime(0, ctx.currentTime + Math.min(.48, duration * .7), .075);
       source.start(0, offset, duration);
@@ -651,7 +667,7 @@ export class AudioDirector {
     });
   }
 
-  playerCall(kind: VehicleKind): void {
+  playerCall(kind: VehicleKind, backup = false): void {
     const ctx = this.context;
     if (!ctx || ctx.state !== 'running' ||
       ctx.currentTime - (this.cooldown.get('player-call') ?? -100) < .35) return;
@@ -667,7 +683,7 @@ export class AudioDirector {
       this.variantCount.get(`last:${hornKey}`) ?? -1);
     this.variantCount.set(hornKey, hornCount + 1);
     this.variantCount.set(`last:${hornKey}`, hornIndex);
-    void this.play(`player-horn/${playerHornClips[family][hornIndex]}`, 'player-horn', .35, .72);
+    void this.play(`player-horn/${playerHornClips[family][hornIndex]}`, 'player-horn', .35, backup ? .72 : 1.05);
     this.voice('playerCall', this.runId, .9, 0, 0, undefined, playerCallClips[index]);
   }
 
@@ -831,7 +847,7 @@ export class AudioDirector {
     this.shopMusicPending = false; this.shopOpen = false;
     this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficBlocks.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.strandedRiders = []; this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0;
     this.windStart = 0; this.nextLightningAt = 0; this.lightningCount = 0;
-    this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.indicatorActive = false; this.activeIndicator = undefined; this.vehicleId = ''; this.requestedKind = undefined; this.running = false; this.voiceSeed = 0;
+    this.lastSequence = -1; this.lastScorePickupSequence = 0; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.indicatorActive = false; this.activeIndicator = undefined; this.vehicleId = ''; this.requestedKind = undefined; this.running = false; this.voiceSeed = 0;
   }
 
   pause(): void {
@@ -877,6 +893,11 @@ export class AudioDirector {
     if (run.runId !== this.runId) { this.reset(); this.runId = run.runId; }
     this.voiceSeed = run.seed;
     const vehicle = activeVehicle(run);
+    if (run.scorePickupSequence !== this.lastScorePickupSequence) {
+      this.lastScorePickupSequence = run.scorePickupSequence;
+      void this.play('score/collect', 'score/collect', .1, scoreAudio.volume, 0, 'sfx', undefined,
+        scoreComboPitch(run.scorePickupLevel));
+    }
     let pickupRiderId: string | undefined;
     if (run.eventSequence !== this.lastSequence) {
       this.lastSequence = run.eventSequence;

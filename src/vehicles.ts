@@ -30,32 +30,36 @@ export const vehicles: Record<VehicleKind, VehicleDefinition> = {
     lateralGrip: 1, leanFactor: .8 },
   car7: { kind: 'car7', name: 'Ô tô 7 chỗ', capacity: 7, minSpeed: 8, cruiseSpeed: 15,
     maxSpeed: 22, cruiseLoss: .9, cruiseFloor: 9, fuelCapacity: 16.9, durabilityCapacity: 218.75,
-    fuelPerMeter: .0052, fuelPickup: 6.09, repairPickup: 44.8, width: 2.08, length: 4.8, price: 1200,
+    fuelPerMeter: .0052, fuelPickup: 6.09, repairPickup: 44.8, width: 2.08, length: 4.8, price: 1100,
     lateralGrip: .9, leanFactor: .7 },
   tricycle: { kind: 'tricycle', name: 'Ba gác', capacity: 4, minSpeed: 6, cruiseSpeed: 11.5,
     maxSpeed: 17, cruiseLoss: 1, cruiseFloor: 6, fuelCapacity: 12, durabilityCapacity: 100,
-    fuelPerMeter: .0045, fuelPickup: 7, repairPickup: 40, width: 1.76, length: 3.2, price: 450,
+    fuelPerMeter: .0045, fuelPickup: 7, repairPickup: 40, width: 1.76, length: 3.2, price: 300,
     lateralGrip: .7, leanFactor: .9 },
   bus: { kind: 'bus', name: 'Xe buýt', capacity: 25, minSpeed: 6, cruiseSpeed: 12.5,
-    maxSpeed: 19, cruiseLoss: .3, cruiseFloor: 7, fuelCapacity: 35, durabilityCapacity: 210,
-    fuelPerMeter: .01, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 10, price: 2400,
+    maxSpeed: 19, cruiseLoss: .3, cruiseFloor: 7, fuelCapacity: 28, durabilityCapacity: 168,
+    fuelPerMeter: .01, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 10, price: 2200,
     lateralGrip: .75, leanFactor: .5 },
   truck: { kind: 'truck', name: 'Xe tải', capacity: 3, minSpeed: 6, cruiseSpeed: 13,
     maxSpeed: 20, cruiseLoss: 1.3, cruiseFloor: 7, fuelCapacity: 30, durabilityCapacity: 230,
-    fuelPerMeter: .009, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 7, price: 1800,
+    fuelPerMeter: .009, fuelPickup: 12, repairPickup: 60, width: 2.72, length: 7, price: 1300,
     lateralGrip: .78, leanFactor: .55 },
   container: { kind: 'container', name: 'Container', capacity: 2, minSpeed: 5, cruiseSpeed: 11.5,
-    maxSpeed: 18, cruiseLoss: 1.8, cruiseFloor: 5, fuelCapacity: 45, durabilityCapacity: 300,
-    fuelPerMeter: .012, fuelPickup: 15, repairPickup: 70, width: 2.88, length: 15, price: 3000,
+    maxSpeed: 18, cruiseLoss: 1.8, cruiseFloor: 5, fuelCapacity: 36, durabilityCapacity: 240,
+    fuelPerMeter: .012, fuelPickup: 15, repairPickup: 70, width: 2.88, length: 15, price: 2200,
     lateralGrip: .65, leanFactor: .45 },
 };
 /** Preserve Candidate A resources in the noforce backup. All other vehicle fields share the catalog. */
-const backupResources: Partial<Record<VehicleKind, Pick<VehicleDefinition,
-  'fuelCapacity' | 'durabilityCapacity' | 'fuelPerMeter' | 'fuelPickup' | 'repairPickup'>>> = {
+const backupResources: Partial<Record<VehicleKind, Partial<Pick<VehicleDefinition,
+  'fuelCapacity' | 'durabilityCapacity' | 'fuelPerMeter' | 'fuelPickup' | 'repairPickup' | 'price'>>>> = {
   motorcycle: { fuelCapacity: 5.5, durabilityCapacity: 70, fuelPerMeter: .0045, fuelPickup: 3, repairPickup: 16 },
   motorbike: { fuelCapacity: 7.5, durabilityCapacity: 80, fuelPerMeter: .0048, fuelPickup: 3.4, repairPickup: 18 },
   car4: { fuelCapacity: 10, durabilityCapacity: 105, fuelPerMeter: .0055, fuelPickup: 3.6, repairPickup: 24 },
-  car7: { fuelCapacity: 13, durabilityCapacity: 125, fuelPerMeter: .0065, fuelPickup: 4.2, repairPickup: 28 },
+  car7: { fuelCapacity: 13, durabilityCapacity: 125, fuelPerMeter: .0065, fuelPickup: 4.2, repairPickup: 28, price: 1200 },
+  tricycle: { price: 450 },
+  bus: { fuelCapacity: 35, durabilityCapacity: 210, price: 2400 },
+  truck: { price: 1800 },
+  container: { fuelCapacity: 45, durabilityCapacity: 300, price: 3000 },
 };
 export const waterFuelPerSecond = (profile?: 'backup') => profile === 'backup' ? .8 : balance.waterFuelPerSecond;
 export function vehicleDefinition(kind: VehicleKind, profile?: 'backup'): VehicleDefinition {
@@ -126,7 +130,7 @@ export function effectiveVehicle(instance: VehicleInstance): VehicleDefinition {
 }
 export function buyVehicle(inventory: VehicleInstance[], money: number, kind: VehicleKind,
   newId: string, discardId?: string, balanceProfile?: 'backup'): { inventory: VehicleInstance[]; money: number } | null {
-  const price = vehicles[kind].price;
+  const price = vehicleDefinition(kind, balanceProfile).price;
   if (inventory.some(v => v.kind === kind)) return null;
   if (!Number.isFinite(money) || money < price || inventory.some(v => v.id === newId)) return null;
   if (inventory.length === 2 && (!discardId || !inventory.some(v => v.id === discardId))) return null;

@@ -1,5 +1,15 @@
 # Đường Về Nhà — Game Design
 
+> **Feedback 09/11/2026 — ĐÃ CHỐT hướng chỉnh:** dùng take chime `#4` chủ dự án gửi cho điểm; hạ cao độ bắt đầu và cả chuỗi, giảm âm lượng và làm dịu dải cao để nấc cuối bớt chói. Các mức chỉnh là TẠM, chờ chủ dự án nghe bản thử.
+
+> **Feedback 08/11/2026 — ĐÃ CHỐT hướng chỉnh:** dùng chime ElevenLabs do chủ dự án gửi cho điểm nhặt trên đường; tăng mật độ vùng gió và dân phòng. Mức tăng và cách cắt âm là TẠM, xem BALANCE_CONFIG.md. Tín hiệu nhìn thấy của điểm và cảnh báo gió/dân phòng vẫn cần đủ rõ khi tắt âm.
+
+> **Feedback 08/11/2026 — ĐÃ CHỐT hướng chỉnh:** trả mức mất tiền ổ gà như trước; phần lớn dải điểm chỉ một làn, dải hai/ba làn hiếm; viên điểm nổi quay tại chỗ chậm; ăn các mốc điểm liên tiếp cho âm cao dần, đạt nấc cao nhất thì giữ, trượt mốc kế tiếp thì bắt đầu lại. Số xác suất và pitch hiện là TẠM, xem BALANCE_CONFIG.md.
+
+> **Feedback trực tiếp 08/11/2026 — ĐÃ CHỐT hướng chỉnh, số TẠM:** giảm giá năm loại xe, giảm một nửa tiền mất do ổ gà, giảm bình xăng và HP buýt/container; điểm trên đường là hình thoi nhỏ bay trên mặt đường, phát sáng nhẹ, không vòng sáng dưới, ít dải 2–3 làn hơn; còi T to hơn mà không đổi voiceline. Xem BALANCE_CONFIG.md để biết số đang thử. Không đổi luật va chạm hoặc điểm thưởng mỗi viên trong lượt này.
+
+> **Thử nghiệm mới 08/11/2026 (TẠM):** ván chính nhận điểm bằng cách lái qua vật điểm rải trên đường; vật điểm có thể chồng vùng nguy hiểm để người chơi tự chọn bỏ điểm hoặc mạo hiểm. Không thưởng điểm chỉ vì đi xa/chạy nhanh/chở khách. Tiền mua xe và đồ vẫn theo quãng đường và khách như trước. Dân phòng phạt ít nhất 110 khi đủ tiền; trên 220 tiền thì lấy 50%, không trần. Tăng nhẹ mật độ special. Công thức điểm cũ được lưu trong [BALANCE_CONFIG.md](BALANCE_CONFIG.md). `ver.noforce` là backup, giữ luật cũ.
+
 > **Bản thử độ phủ P8 ngày 22/10/2026 — TẠM:** tăng cơ hội gặp vũng nước, đặc biệt vũng rộng hai làn dài 24 m và vũng toàn đường dài 30 m nếu có đường sống được; thử 12 pattern từ cơ chế đã có, vẫn phải đọc cảnh báo và có lựa chọn hợp lệ. Giữ xe chướng ngại có xăng, force/damage/grip hiện hành; bản `ver.noforce` là backup. Mục tiêu thời lượng 4 phút và độ thú vị/công bằng chưa nghiệm thu; xem `P8_BALANCE_TRIAL_REVIEW.md`.
 
 > **Thử cân bằng P8 ngày 21/10/2026:** chủ dự án đã cho áp dụng báo cáo cân bằng mới. Mục tiêu hiện hành thay mốc mua xe 1–1,5 phút bên dưới: giao dịch ô tô 4 chỗ khoảng 20–24 giây với người chơi chủ động đón khách; thời lượng ván trung vị thử khoảng 4 phút. Đây là mục tiêu thử, chưa phải kết quả đã đạt. Xe nặng cần chốt Q/E sớm hơn xe nhỏ; số cửa sổ còn TẠM. Xem `P8_BALANCE_TRIAL_REVIEW.md`.
@@ -224,6 +234,8 @@ R dùng món chọn trong shop, tối đa ba món. Tab luôn đổi xe, thay mô
 
 ## Feedback P5 — điều khiển, garage và thứ tự hoàn thiện (ĐÃ CHỐT)
 Thay luật P5 lượt đầu: R mở shop, bỏ C; kho hai ô cố định dùng 1/2, không chọn món bằng R/Tab và không dồn vị trí sau dùng. Danh mục shop hiển thị đủ tám loại hiện có, ba gác/container luôn có dòng tương ứng; loại đang sở hữu bị khoá mua ở UI lẫn transaction. Nâng cấp cho phép chọn một trong hai instance (đang lái/dự phòng), không tự thay xe hoặc hồi tài nguyên.
+
+**Bổ sung đã chốt:** mục Tiếp tế cũng cho chọn xe đang lái hoặc xe dự phòng. Bơm/sửa chỉ tác động lên instance đã chọn, thu tiền đúng một lần; sửa xe dự phòng còn xăng nhưng 0 HP cho phép dùng lại xe đó. Không tự đổi xe hoặc cấp thêm tài nguyên cho xe còn lại.
 Roadmap cuối: tuning độ khó/economy/giá trước → UI/visual art và review/chỉnh art direction → hoàn thiện/review/chỉnh SFX/VFX cuối cùng. Game hiện còn quá dễ và khó dần theo quãng đường chưa rõ theo feedback chủ dự án; coi đây là vấn đề chưa đạt, phải đánh giá lại ở gate tuning. Lượt này chỉ cập nhật kế hoạch và cơ chế P5 được yêu cầu, chưa tự tăng difficulty/damage hay thay giá. Quy trình duyệt art và rubric mỗi tiêu chí tối thiểu 6/10 vẫn giữ; chỉ sửa cue/input cần thiết trước giai đoạn art.
 Các ghi chú P5 lượt đầu phía trên về kho ba món, C/R cũ, shop roll hai loại xe và chỉ nâng xe đang chạy là lịch sử, được yêu cầu mới này thay thế.
 
@@ -256,6 +268,8 @@ Khách Grab được gọi chỉ xuất hiện ngẫu nhiên ở hai mép ngoài
 P5.2/Grab ven đường đã được chủ dự án nhận xét ổn và chuyển bước. P6 có công an/dân phòng, chuối trong hai ô 1/2, kẹt xe hai làn, xe chết máy, tai nạn và tàu với collider thật. Star vẫn trigger phạt/tịch thu/tai nạn/tàu; chỉ miễn damage/debuff và ngã thông thường. S ở gần ray cho phanh tới 0 để chờ; thả S tự tăng dần lại, W tăng nhanh hơn. Nitro vẫn chỉ boost, Space nhảy riêng.
 Thông số TẠM: công an 300, dân phòng 100, chuối 80 (một món/shop), event đầu 1.700 m, khoảng giữa 1.250 m trước khi director bỏ mẫu không phù hợp, hành lang 110 m. Tàu đóng 8 s/mở 8 s theo thời gian gameplay, clearance nhảy 1,8 m; xét toàn bộ chiều dài xe. Event đầu để sau shop 1.200 m, giữ cơ hội mua xe đầu 1–1,5 phút; chưa tuning curve P8. Không bắt buộc có nitro: có thể dừng chờ mở đường. Biển/icon và khối hình vẫn placeholder, không phải art tàu hoàn chỉnh.
 Theo mặc định bảo thủ trong design: thiếu tiền công an lấy tới 0, tịch thu instance hiện tại, xe dự phòng còn 50% lượng xăng đang có rồi tự chuyển; đủ tiền không giảm xăng dự phòng. Xe tịch thu được bỏ khỏi kho khi đã chuyển thành công, giải phóng slot; không có xe hợp lệ thì kết ván. Dân phòng chỉ lấy tới 0. Tai nạn HP=0 rồi thay xe/thua; tàu luôn thua dù có star/xe dự phòng. Event idempotent, ưu tiên tàu khi va chạm trùng thời điểm.
+
+**Tai nạn traffic xe mở — ĐÃ CHỐT:** tài xế xe chướng ngại loại xe máy, mô tô, ba gác văng ra và xe ngã khi va chạm. Nếu HP còn, tài xế đứng dậy, dựng xe, trở lại ghế lái và chạy tiếp bằng xăng còn lại. Nếu HP về 0, tài xế trở thành NPC đường phố cùng các khách được sinh từ xác xe; nếu người chơi là nguyên nhân làm xe hỏng, họ giữ cờ từ chối lên xe người chơi. Tài xế sinh từ xác chỉ một lần, không tự thưởng tiền/điểm.
 Xe chết máy tạo một NPC thực để F đón, không tự cộng khách/tiền/điểm; TẠM 25% thêm một chuối vào ô trống, kho đầy thì không ghi đè. Kẹt xe/tai nạn hiện chỉ che hai lane và để khoảng đủ rộng cho container; chưa sinh kẹt kín ba lane. P6.1–P6.3 theo roadmap làm barrier/chuyển lane, lực ngang và đồ rơi; P7 mới làm chuỗi secret/badge, chưa tự ghi thành tích nhảy tàu hay secret ở P6.
 Báo cáo kiểm tra và giới hạn: [PROTOTYPE_6_REVIEW.md](PROTOTYPE_6_REVIEW.md). Các trạng thái “P6 chưa làm” phía trên là lịch sử.
 

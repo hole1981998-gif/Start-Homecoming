@@ -1,9 +1,21 @@
 import type { VehicleDefinition } from './vehicles';
 
-export const scoreVersion = 'speed-v1' as const;
+export const scoreVersion = 'road-v2' as const;
 export const baseScorePerMeter = 0.65;
+export const roadScore = Object.freeze({ firstDistance: 96, gap: 8, value: 3, trailLength: 8, width: 1, length: 1, maxCombo: 8 });
+export const scoreAudio = Object.freeze({ sliceSeconds: .65, fadeAtSeconds: .42, volume: .07,
+  transposeSemitones: -2, lowpassHz: 3200, warmthHz: 700, warmthDb: 5 });
 
-/** Base catalogue stats keep upgrades, water and nitro from moving the reference speed. */
+export function scoreStation(distance: number): number {
+  return Math.round((distance - roadScore.firstDistance) / roadScore.gap);
+}
+
+export function scoreComboPitch(level: number): number {
+  return (.9 + .105 * (Math.min(roadScore.maxCombo, Math.max(1, level)) - 1)) *
+    2 ** (scoreAudio.transposeSemitones / 12);
+}
+
+/** Archived speed-v1 rule. Base catalogue stats keep upgrades, water and nitro from moving the reference speed. */
 export function scorePerMeter(speed: number, riders: number, vehicle: VehicleDefinition): number {
   const validRiders = Math.min(Math.max(0, riders), vehicle.capacity - 1);
   const cruise = Math.min(vehicle.maxSpeed, Math.max(vehicle.cruiseFloor,
