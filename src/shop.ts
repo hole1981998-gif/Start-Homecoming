@@ -11,7 +11,7 @@ export type ServiceKind = 'fuel' | 'repair';
 export type UpgradeKind = 'engine' | 'tank' | 'armour' | 'economy';
 export type ShopCommand = { sequence: number } & (
   { kind: 'vehicle'; vehicle: VehicleKind; discardId?: string } |
-  { kind: 'service'; item: ServiceKind } | { kind: 'power-item'; item: PowerItem } | { kind: 'upgrade'; upgrade: UpgradeKind; targetId?: string });
+  { kind: 'service'; item: ServiceKind; targetId?: string } | { kind: 'power-item'; item: PowerItem } | { kind: 'upgrade'; upgrade: UpgradeKind; targetId?: string });
 export const upgradeNames: Record<UpgradeKind, string> = {
   engine: 'Động cơ', tank: 'Bình xăng', armour: 'Gia cố', economy: 'Tiết kiệm xăng' };
 /** The noforce backup keeps its pre-C3 shop prices. */
@@ -46,7 +46,6 @@ export function transact(run: Run, command: ShopCommand): { run: Run; message: s
     !Number.isFinite(run.money) || run.money < 0) return fail('Giao dịch đã cũ hoặc ngoài cửa hàng.');
   const stock = shop.shopStock!, instances = sync(run);
   const active = instances.find(v => v.id === run.activeVehicleId)!;
-  const definition = effectiveVehicle(active);
   let next = { ...run };
   const updatedStock = { ...stock, vehicles: [...stock.vehicles] };
   let price = 0, message = '';
@@ -93,15 +92,22 @@ export function transact(run: Run, command: ShopCommand): { run: Run; message: s
     message = `${vehicles[target.kind].name}: ${upgradeNames[command.upgrade]} cấp ${level + 1}; không tự bơm/sửa thêm.`;
   } else {
     const fuel = command.item === 'fuel';
+    const target = instances.find(v => v.id === (command.targetId ?? active.id));
+    if (!target) return fail('Xe được chọn không còn trong kho.');
+    const targetDefinition = effectiveVehicle(target);
     price = fuel ? shopBalance.fuelPrice : shopBalance.repairPrice;
-      const gained = fuel ? Math.min(shopBalance.fuelAmount, definition.fuelCapacity - run.fuel) :
-        Math.min(shopBalance.repairAmount, definition.durabilityCapacity - run.durability);
+      const gained = fuel ? Math.min(shopBalance.fuelAmount, targetDefinition.fuelCapacity - target.fuel) :
+        Math.min(shopBalance.repairAmount, targetDefinition.durabilityCapacity - target.durability);
       if (gained <= 1e-9) return fail(fuel ? 'Bình đã đầy; không thu tiền.' : 'Xe còn nguyên độ bền; không thu tiền.');
-      if (fuel) { next.fuel += gained; next.motion = 'powered'; next.coastRemaining = balance.coastDistance; }
-      else next.durability += gained;
-      next.vehicleInstances = instances.map(v => v.id === active.id ? { ...v, fuel: next.fuel, durability: next.durability,
-        disabled: next.fuel <= 0 || next.durability <= 0 } : v);
-      message = fuel ? `Đã bơm +${gained.toFixed(1)} L.` : `Đã sửa +${gained.toFixed(0)} HP.`;
+      const newFuel = target.fuel + (fuel ? gained : 0), newDurability = target.durability + (fuel ? 0 : gained);
+      if (target.id === active.id) {
+        next.fuel = newFuel; next.durability = newDurability;
+        if (fuel) { next.motion = 'powered'; next.coastRemaining = balance.coastDistance; }
+      }
+      next.vehicleInstances = instances.map(v => v.id === target.id ? { ...v, fuel: newFuel, durability: newDurability,
+        disabled: newFuel <= 0 || newDurability <= 0 } : v);
+      message = (fuel ? `Đã bơm +${gained.toFixed(1)} L` : `Đã sửa +${gained.toFixed(0)} HP`) +
+        ` cho ${targetDefinition.name}${target.id === active.id ? '' : ' dự phòng'}.`;
   }
   if (run.money < price) return fail('Không đủ tiền.');
   next.money -= price;

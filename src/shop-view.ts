@@ -12,12 +12,14 @@ export class ShopView {
   private tab: 'service' | 'vehicle' | 'upgrade' | 'power-item' = 'service';
   private pending: VehicleKind | null = null;
   private upgradeTarget: string | null = null;
+  private serviceTarget: string | null = null;
   constructor(private host: HTMLElement, private read: () => Run,
     command: (command: ShopCommand) => void,
     private ui?: (cue: 'shop_category' | 'menu_select' | 'menu_back') => void) {
     host.addEventListener('change', event => {
       const select = event.target as HTMLSelectElement;
       if (select.id === 'shop-discard') { const confirm = host.querySelector<HTMLButtonElement>('[data-confirm]'); if (confirm) confirm.disabled = !select.value; return; }
+      if (select.id === 'shop-service-target') { this.serviceTarget = select.value; this.ui?.('shop_category'); this.render(); return; }
       if (select.id !== 'shop-upgrade-target') return;
       this.upgradeTarget = select.value; this.ui?.('shop_category'); this.render();
     });
@@ -35,14 +37,15 @@ export class ShopView {
         if (this.read().economySequence !== sequence) this.pending = null;
         this.render(); return;
       }
-      if (button.dataset.service) command({ kind: 'service', item: button.dataset.service as 'fuel' | 'repair', sequence });
+      if (button.dataset.service) command({ kind: 'service', item: button.dataset.service as 'fuel' | 'repair',
+        targetId: this.serviceTarget ?? run.activeVehicleId, sequence });
       if (button.dataset.power) command({ kind: 'power-item', item: button.dataset.power as PowerItem, sequence });
       if (button.dataset.upgrade) command({ kind: 'upgrade', upgrade: button.dataset.upgrade as UpgradeKind,
         targetId: this.upgradeTarget ?? run.activeVehicleId, sequence });
       this.render();
     });
   }
-  reset(): void { this.tab = 'service'; this.pending = null; this.upgradeTarget = this.read().activeVehicleId; }
+  reset(): void { this.tab = 'service'; this.pending = null; this.upgradeTarget = this.read().activeVehicleId; this.serviceTarget = this.read().activeVehicleId; }
   render(): void {
     const hadFocus = this.host.contains(document.activeElement);
     const run = this.read(), shop = reachableShop(run);
@@ -50,6 +53,11 @@ export class ShopView {
     const stock = shop.shopStock, instance = run.vehicleInstances.find(v => v.id === run.activeVehicleId)!, d = effectiveVehicle(instance);
     const upgradeTarget = run.vehicleInstances.find(v => v.id === this.upgradeTarget) ?? instance;
     this.upgradeTarget = upgradeTarget.id;
+    const serviceTarget = run.vehicleInstances.find(v => v.id === this.serviceTarget) ?? instance;
+    this.serviceTarget = serviceTarget.id;
+    const serviceDefinition = effectiveVehicle(serviceTarget);
+    const serviceFuel = serviceTarget.id === run.activeVehicleId ? run.fuel : serviceTarget.fuel;
+    const serviceDurability = serviceTarget.id === run.activeVehicleId ? run.durability : serviceTarget.durability;
       const icon = (name: UiIcon) => uiIcon(name).outerHTML;
     const vehicleIcon = (kind: VehicleKind) => `<img class="vehicle-thumbnail" data-vehicle-thumbnail="${kind}" alt="${vehicles[kind].name} — model 3D" width="360" height="240" />`;
     const button = (label: string, data: string, disabled = false) => `<button ${data}${disabled ? ' disabled' : ''}>${label}</button>`;
@@ -58,8 +66,9 @@ export class ShopView {
     const inventory = `<section class="shop-inventory" aria-label="Hai ô vật phẩm">${run.inventory.map((item,i) => `<div><kbd>${i+1}</kbd>${item ? icon(({nitro:'nitro',star:'star',banana:'banana',grab:'grab'} as const)[item]) : icon('parcel')}<span>${item ? itemNames[item]+(item === 'grab' ? ' ×'+run.grabUses[i] : '') : 'Trống'}</span></div>`).join('')}</section>`;
     let content = '';
     if (this.tab === 'service') {
-      content = card(icon('fuel'),'Bơm xăng',`Tới +${shopBalance.fuelAmount} L`,button(`${shopBalance.fuelPrice} · Bơm`,'data-service="fuel"',run.money < shopBalance.fuelPrice || run.fuel >= d.fuelCapacity-1e-9)) +
-        card(icon('repair'),'Sửa xe',`Tới +${shopBalance.repairAmount} HP`,button(`${shopBalance.repairPrice} · Sửa`,'data-service="repair"',run.money < shopBalance.repairPrice || run.durability >= d.durabilityCapacity-1e-9));
+      content = `<div class="shop-target"><label for="shop-service-target">Tiếp tế cho</label><select id="shop-service-target">${run.vehicleInstances.map(v => `<option value="${v.id}"${v.id === serviceTarget.id ? ' selected' : ''}>${vehicles[v.kind].name} · ${v.id === run.activeVehicleId ? 'đang lái' : 'dự phòng'}</option>`).join('')}</select><small>${serviceFuel.toFixed(1)} L · ${Math.ceil(serviceDurability)} HP</small></div>` +
+        card(icon('fuel'),'Bơm xăng',`Tới +${shopBalance.fuelAmount} L`,button(`${shopBalance.fuelPrice} · Bơm`,'data-service="fuel"',run.money < shopBalance.fuelPrice || serviceFuel >= serviceDefinition.fuelCapacity-1e-9)) +
+        card(icon('repair'),'Sửa xe',`Tới +${shopBalance.repairAmount} HP`,button(`${shopBalance.repairPrice} · Sửa`,'data-service="repair"',run.money < shopBalance.repairPrice || serviceDurability >= serviceDefinition.durabilityCapacity-1e-9));
     }
     if (this.tab === 'vehicle') {
       content = (Object.keys(vehicles) as VehicleKind[]).map(kind => {
@@ -93,7 +102,7 @@ export class ShopView {
     this.host.innerHTML = `<div class="shop-wallet">${icon('coins')}<strong>${money}</strong><span>tiền</span></div>${garage}${this.tab === 'power-item' ? inventory : ''}<nav aria-label="Danh mục cửa hàng">${(['service','vehicle','upgrade','power-item'] as const).map((tab,i) => button(icon((['repair','car','engine','bag'] as const)[i])+`<span>${['Tiếp tế','Xe','Nâng cấp','Vật phẩm'][i]}</span>`,`data-tab="${tab}" aria-pressed="${tab === this.tab}"`)).join('')}</nav><div class="shop-content${this.pending ? ' confirming' : ''}">${content}</div>`;
     fillShopThumbnails(this.host);
     if (this.pending) this.host.scrollTop = 0;
-    if (hadFocus) (this.host.querySelector<HTMLSelectElement>('#shop-discard, #shop-upgrade-target') ??
+    if (hadFocus) (this.host.querySelector<HTMLSelectElement>('#shop-discard, #shop-service-target, #shop-upgrade-target') ??
       this.host.querySelector<HTMLButtonElement>('nav button[aria-pressed="true"]'))?.focus({ preventScroll: true });
   }
 }

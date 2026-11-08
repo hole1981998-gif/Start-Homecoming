@@ -224,6 +224,8 @@ R dùng món chọn trong shop, tối đa ba món. Tab luôn đổi xe, thay mô
 
 ## Feedback P5 — điều khiển, garage và thứ tự hoàn thiện (ĐÃ CHỐT)
 Thay luật P5 lượt đầu: R mở shop, bỏ C; kho hai ô cố định dùng 1/2, không chọn món bằng R/Tab và không dồn vị trí sau dùng. Danh mục shop hiển thị đủ tám loại hiện có, ba gác/container luôn có dòng tương ứng; loại đang sở hữu bị khoá mua ở UI lẫn transaction. Nâng cấp cho phép chọn một trong hai instance (đang lái/dự phòng), không tự thay xe hoặc hồi tài nguyên.
+
+**Bổ sung đã chốt:** mục Tiếp tế cũng cho chọn xe đang lái hoặc xe dự phòng. Bơm/sửa chỉ tác động lên instance đã chọn, thu tiền đúng một lần; sửa xe dự phòng còn xăng nhưng 0 HP cho phép dùng lại xe đó. Không tự đổi xe hoặc cấp thêm tài nguyên cho xe còn lại.
 Roadmap cuối: tuning độ khó/economy/giá trước → UI/visual art và review/chỉnh art direction → hoàn thiện/review/chỉnh SFX/VFX cuối cùng. Game hiện còn quá dễ và khó dần theo quãng đường chưa rõ theo feedback chủ dự án; coi đây là vấn đề chưa đạt, phải đánh giá lại ở gate tuning. Lượt này chỉ cập nhật kế hoạch và cơ chế P5 được yêu cầu, chưa tự tăng difficulty/damage hay thay giá. Quy trình duyệt art và rubric mỗi tiêu chí tối thiểu 6/10 vẫn giữ; chỉ sửa cue/input cần thiết trước giai đoạn art.
 Các ghi chú P5 lượt đầu phía trên về kho ba món, C/R cũ, shop roll hai loại xe và chỉ nâng xe đang chạy là lịch sử, được yêu cầu mới này thay thế.
 
