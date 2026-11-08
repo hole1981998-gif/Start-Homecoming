@@ -12,6 +12,7 @@ import { trafficSpawnKinds, trafficTypes, vehicles, vehicleDefinition, waterFuel
 export { trafficTypes } from './vehicles';
 import { nearJunction, type RouteState, type Turn } from './route';
 import { moveTrafficWithFuel } from './traffic-fuel';
+import { advanceTrafficFall, openTraffic } from './traffic-recovery';
 const maxTrafficSpeed = Math.max(...Object.values(trafficTypes).map(type => type.speed));
 
 export type EntityKind = 'wind' | 'water' | 'pothole' | 'traffic' | 'cargo' | 'fuel' | 'repair' | 'score' | 'passenger' | 'shop' | 'police' | 'militia' | 'jam' | 'accident' | 'train' | 'broken';
@@ -29,6 +30,7 @@ export interface Entity {
   shopStock?: ShopStock; eventAt?: number;
   lateralPush?: number; motionWaiting?: boolean; crossMotion?: CrossMotion; crossingRole?: 'vendor'; groupId?: string; stunned?: boolean;
   trafficPairContacts?: string[]; trafficStoppedByCollision?: boolean; trafficPlayerSource?: boolean;
+  trafficFallAge?: number;
   serviceRole?: 'ambulance';
   cargoReleaseAt?: number; cargoDropped?: boolean; cargoType?: 'crate' | 'barrel'; cargoVelocityX?: number; cargoExpiresAt?: number; cargoSourceId?: string;
   displayName?: string; help?: string;
@@ -135,6 +137,8 @@ export function advanceTraffic(entities: Entity[], dt: number): void {
       if (car.wreckAge >= balance.trafficWreckSeconds) car.consumed = true;
       continue;
     }
+    advanceTrafficFall(car, dt);
+    if (car.trafficFallAge !== undefined) { car.speed = 0; continue; }
     const start = car.distance, contacts: string[] = [];
     moveTrafficWithFuel(car, entities, dt);
     let inWater = false;
@@ -164,7 +168,8 @@ function passengerHash(id: string): number {
 /** A wreck's passenger roster count is stable across repeated collision checks. */
 export function trafficPassengerCount(seed: number, car: Pick<Entity, 'id' | 'trafficKind'>): number {
   const limit = Math.min(balance.trafficPassengerLimit, vehicles[car.trafficKind ?? 'car4'].capacity - 1);
-  return limit > 0 ? 1 + passengerHash(`${seed}:${car.id}:occupants`) % limit : 0;
+  return (limit > 0 ? 1 + passengerHash(`${seed}:${car.id}:occupants`) % limit : 0) +
+    (openTraffic(car.trafficKind) ? 1 : 0);
 }
 /** Resolve each wreck once, after collision events. Unsafe exits wait; retired branches never spawn. */
 export function spawnWreckPassengers(world: World, now: number, vehicle: VehicleDefinition): void {
