@@ -2,6 +2,7 @@ import { balance, movingBalance } from './config';
 import { moveTrafficWithFuel } from './traffic-fuel';
 import { advanceTraffic, sweptContact, type Entity } from './world';
 import { trafficTypes } from './vehicles';
+import { advanceTrafficFall, openTraffic, startTrafficFall } from './traffic-recovery';
 
 interface Track { car: Entity; vx: number; vz: number }
 type Contact = { t: number; key: string; type: 'pair' | 'block' | 'enter' | 'exit' | 'death'; a: Track; b?: Track; patch?: Entity };
@@ -43,6 +44,7 @@ export function advanceInteractingTraffic(entities: Entity[], previous: Entity[]
       if (car.wreckAge >= balance.trafficWreckSeconds) car.consumed = true;
       tracks.push({ car, vx: 0, vz: 0 });
     } else {
+      advanceTrafficFall(car, dt);
       const proposed = { ...car };
       moveTrafficWithFuel(proposed, entities, dt, old.x + dx);
       const vz = (proposed.distance - car.distance) / dt;
@@ -57,8 +59,11 @@ export function advanceInteractingTraffic(entities: Entity[], previous: Entity[]
   }
   let time = 0;
   const stop = (track: Track) => {
-    track.vx = 0; track.vz = 0; track.car.speed = 0; track.car.baseSpeed = 0;
+    const open = openTraffic(track.car.trafficKind) && !track.car.wrecked && (track.car.hp ?? 0) > 0;
+    track.vx = 0; track.vz = 0; track.car.speed = 0;
+    if (!open) track.car.baseSpeed = 0;
     track.car.crossMotion = undefined; track.car.trafficStoppedByCollision = true; track.car.trafficMotion = 'stopped';
+    if (open) startTrafficFall(track.car);
   };
   const wreck = (track: Track, playerSource = false) => {
     const car = track.car;
@@ -84,6 +89,7 @@ export function advanceInteractingTraffic(entities: Entity[], previous: Entity[]
           (car.width + obstacle.width) / 2, (car.length + obstacle.length) / 2);
         if (hit) events.push({ t: hit[0] * remaining, key, type: 'block', a: track, patch: obstacle });
       }
+      if (car.trafficFallAge !== undefined) continue;
       let count = 0;
       for (const patch of holes) {
         const key = patchKey(car.id, patch.id);
@@ -123,7 +129,7 @@ export function advanceInteractingTraffic(entities: Entity[], previous: Entity[]
       const from = car.distance, nextX = car.x + track.vx * delta;
       if (!car.wrecked && !car.trafficStoppedByCollision && delta > 0) moveTrafficWithFuel(car, entities, delta, nextX);
       car.x = nextX; car.distance = from + track.vz * delta;
-      if (!car.wrecked) {
+      if (!car.wrecked && car.trafficFallAge === undefined) {
         const count = holes.filter(p => active.has(patchKey(car.id, p.id))).length;
         car.hp = Math.max(0, (car.hp ?? trafficTypes[car.trafficKind ?? 'car4'].hp) - count * balance.potholeDamagePerSecond * delta);
       }
@@ -135,7 +141,7 @@ export function advanceInteractingTraffic(entities: Entity[], previous: Entity[]
       const a = event.a;
       if (event.type === 'block') {
         blocked.add(event.key);
-        if (a.car.wrecked) continue;
+        if (a.car.wrecked || a.car.trafficFallAge !== undefined) continue;
         const terminal = event.patch!.kind === 'train' || event.patch!.kind === 'accident';
         a.car.hp = terminal ? 0 : Math.max(0, (a.car.hp ?? 0) - movingBalance.blockerDamage);
         if (a.car.hp === 0) wreck(a); else stop(a);
@@ -153,12 +159,12 @@ export function advanceInteractingTraffic(entities: Entity[], previous: Entity[]
         pairs.add(event.key);
         const sourceA = a.car.wreckedByPlayer === true || a.car.trafficPlayerSource === true;
         const sourceB = b.car.wreckedByPlayer === true || b.car.trafficPlayerSource === true;
-        if (!a.car.wrecked) {
+        if (!a.car.wrecked && a.car.trafficFallAge === undefined) {
           a.car.hp = Math.max(0, (a.car.hp ?? 0) - trafficTypes[b.car.trafficKind ?? 'car4'].damage);
           a.car.trafficPlayerSource ||= sourceB;
           if (a.car.hp === 0) wreck(a, sourceB);
         }
-        if (!b.car.wrecked) {
+        if (!b.car.wrecked && b.car.trafficFallAge === undefined) {
           b.car.hp = Math.max(0, (b.car.hp ?? 0) - trafficTypes[a.car.trafficKind ?? 'car4'].damage);
           b.car.trafficPlayerSource ||= sourceA;
           if (b.car.hp === 0) wreck(b, sourceA);

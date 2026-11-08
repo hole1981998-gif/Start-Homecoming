@@ -18,7 +18,7 @@ it('topples only wrecked two-wheel traffic, keeps it down and clears tilt for he
     expect(trafficBikeWreckPose(kind, true, 100, id)).toEqual(down);
     expect(trafficBikeWreckPose(kind, false, 100, id)).toEqual({ roll: 0, height: 0 });
   }
-  expect(trafficBikeWreckPose('tricycle', true, 2, 'bike-a')).toEqual({ roll: 0, height: 0 });
+  expect(Math.abs(trafficBikeWreckPose('tricycle', true, 2, 'bike-a').roll)).toBeCloseTo(.9);
   expect(trafficBikeWreckPose('car4', true, 2, 'bike-a')).toEqual({ roll: 0, height: 0 });
 });
 it('falls on the impact side, stays down until return, then lifts quickly without changing crash state', () => {

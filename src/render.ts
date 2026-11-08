@@ -12,7 +12,8 @@ import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep
 import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
 import { attachArticulatedContainerArt, attachVehicleArtToPrototype } from './art/prototype-adapter';
 import { createVehicleArt, setTrafficDriverSeated, type VehicleArt } from './art/vehicle-catalog';
-import { bikeLiftSeconds, trafficBikeWreckPose, twoWheelCrashPose } from './art/vehicle-recovery';
+import { bikeLiftSeconds, trafficBikeWreckPose, trafficDriverFallPose, twoWheelCrashPose } from './art/vehicle-recovery';
+import { openTraffic } from './traffic-recovery';
 import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './art/hazards';
 import { createOfficerArt, createTrainArt, createVendorArt, crossingVisualYaw,
   type MovingArt } from './art/moving-events';
@@ -400,6 +401,11 @@ export class RoadRenderer {
       art.root.rotation.y = Math.PI;
       g.add(art.root);
       g.userData.trafficArt = art;
+      if (openTraffic(trafficKind)) {
+        const driver = createPersonArt('driver', 'far');
+        driver.root.visible = false;
+        g.add(driver.root); g.userData.trafficFallenDriver = driver;
+      }
     } else if (kind === 'passenger') {
       const person = createPersonArt(passengerCast ?? 'commuter', 'far');
       g.add(person.root); g.userData.personArt = person;
@@ -833,8 +839,17 @@ export class RoadRenderer {
         art.setPaint(e.serviceRole === 'ambulance' ? '#d2dedd' : trafficTypes[e.trafficKind ?? 'car4'].color);
         const hpRatio = (e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp;
         art.setCondition(e.wrecked ? 'destroyed' : hpRatio < .45 ? 'damaged' : hpRatio < .8 ? 'used' : 'clean');
-        setTrafficDriverSeated(art, !e.wrecked && !e.wreckPassengersSpawned);
-        const wreckPose = trafficBikeWreckPose(e.trafficKind ?? 'car4', !!e.wrecked, e.wreckAge ?? 0, e.id);
+        setTrafficDriverSeated(art, !e.wrecked && e.trafficFallAge === undefined && !e.wreckPassengersSpawned);
+        const fallenDriver = entry.mesh.userData.trafficFallenDriver as PersonArt | undefined;
+        if (fallenDriver) {
+          fallenDriver.root.visible = e.trafficFallAge !== undefined && !e.wrecked;
+          if (fallenDriver.root.visible) {
+            const pose = trafficDriverFallPose(e.trafficFallAge!, e.id);
+            fallenDriver.root.position.set(pose.x, 0, pose.z);
+            fallenDriver.setPose(pose.pose, pose.phase);
+          }
+        }
+        const wreckPose = trafficBikeWreckPose(e.trafficKind ?? 'car4', !!e.wrecked, e.wreckAge ?? 0, e.id, e.trafficFallAge);
         art.root.rotation.set(0, Math.PI, wreckPose.roll, 'YXZ');
         art.root.position.y = wreckPose.height;
       }

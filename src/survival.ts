@@ -13,6 +13,7 @@ import { canChoose, compactRoute, initialRoute, junction, updateJunctionWindow, 
 import { effectiveVehicle, newVehicle, vehicleDefinition, vehicleRam, vehicles, waterFuelPerSecond, type VehicleDefinition, type VehicleInstance } from './vehicles';
 import { splitCrashRiders } from './passenger-outcomes';
 import { scorePerMeter, scoreVersion } from './scoring';
+import { startTrafficFall } from './traffic-recovery';
 import { canSecretEnd, guardedSecret, initialSecret, secretLanding, secretPickup, secretTrainOverlap, secretVehicle, type SecretState } from './secret';
 
 import { jumpHeight, hasBoost, hasStar, newPowers, powerBoundaries, type PowerItem, type Powers } from './items';
@@ -532,6 +533,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       e.hp = Math.max(0, (e.hp ?? target.hp) - ram.damage);
       if (world.integrated) e.trafficPlayerSource = true;
       if (e.hp === 0) { e.wrecked = true; e.wreckedByPlayer = true; e.wreckAge = 0; e.speed = 0; }
+      else startTrafficFall(e);
       const fullDamage = ram.breaksThrough && e.wrecked ? Math.ceil(target.damage * balance.trafficHeavySelfDamageFactor) : target.damage;
       const impactDamage = articulated && event.part === 'trailer' ? fullDamage / 2 : fullDamage;
       r.durability = Math.max(0, r.durability - impactDamage);

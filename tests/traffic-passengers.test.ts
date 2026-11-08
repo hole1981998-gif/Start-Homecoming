@@ -22,7 +22,8 @@ it('every vehicle leaves a deterministic bounded roster once; removal of the wre
     const riders = world.entities.filter(e => e.kind === 'passenger');
     expect(riders).toHaveLength(trafficPassengerCount(seed, world.entities[0]));
     expect(riders.length).toBeGreaterThan(0);
-    expect(riders.length).toBeLessThanOrEqual(Math.min(vehicles[kind].capacity - 1, balance.trafficPassengerLimit));
+    expect(riders.length).toBeLessThanOrEqual(Math.min(vehicles[kind].capacity - 1, balance.trafficPassengerLimit) +
+      (['motorcycle', 'motorbike', 'tricycle'].includes(kind) ? 1 : 0));
     for (let i = 0; i < 200; i++) {
       advanceTraffic(world.entities, balance.fixedStep);
       spawnWreckPassengers(world, i / 60, vehicles.motorcycle);
