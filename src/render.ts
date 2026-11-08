@@ -411,6 +411,7 @@ export class RoadRenderer {
         new THREE.MeshStandardMaterial({ color: '#dcc27d', emissive: '#9f7930', emissiveIntensity: .22,
           metalness: .12, roughness: .65 }));
       gem.position.y = .62; gem.rotation.y = Math.PI / 4; g.add(gem);
+      g.userData.scoreGem = gem;
     } else if (kind === 'passenger') {
       const person = createPersonArt(passengerCast ?? 'commuter', 'far');
       g.add(person.root); g.userData.personArt = person;
@@ -811,6 +812,7 @@ export class RoadRenderer {
         entityPose.z + Math.sin(entityPose.heading) * entityX);
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
+      if (e.kind === 'score') (entry.mesh.userData.scoreGem as THREE.Mesh).rotation.y = Math.PI / 4 + visualTime * .7;
       const contactShadow = entry.mesh.userData.roadContactShadow as THREE.Mesh | undefined;
       if (contactShadow) this.contactShadows.place(contactShadow, entry.mesh.position.x,
         entry.mesh.position.z, entry.mesh.rotation.y, e.width * 1.5, e.length * 1.4);

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { balance, eventBalance } from '../src/config';
-import { roadScore } from '../src/scoring';
+import { roadScore, scoreComboPitch } from '../src/scoring';
 import { specialPlan } from '../src/special-events';
 import { noInput } from '../src/simulation';
 import { initialRun, stepRun, type Run } from '../src/survival';
@@ -34,15 +34,16 @@ it('can place score on a hazardous patch without removing either object', () => 
 });
 
 it('builds seeded multi-lane score trails without moving them off hazards', () => {
+  const allLaneCounts = new Set<number>();
   for (const seed of [1, 17, 42]) {
     const points = fillWorld(initialWorld(seed, true), 1100).entities.filter(e => e.kind === 'score');
     expect(new Set(points.map(e => e.id)).size).toBe(points.length);
     const stations = new Map<number, number>();
     for (const point of points) stations.set(point.distance, (stations.get(point.distance) ?? 0) + 1);
-    expect([...stations.values()].some(count => count === 2)).toBe(true);
-    expect([...stations.values()].some(count => count === 3)).toBe(true);
+    for (const count of stations.values()) allLaneCounts.add(count);
     expect([...stations.keys()].some((distance, index, all) => index > 0 && distance - all[index - 1] === roadScore.gap)).toBe(true);
   }
+  expect(allLaneCounts).toEqual(new Set([1, 2, 3]));
 });
 
 it('mostly offers one-lane trails while retaining occasional two- and three-lane choices', () => {
@@ -50,9 +51,31 @@ it('mostly offers one-lane trails while retaining occasional two- and three-lane
   const counts = new Map<number, number>();
   for (const point of points) counts.set(point.distance, (counts.get(point.distance) ?? 0) + 1);
   const stations = [...counts.values()];
-  expect(stations.filter(count => count === 1).length / stations.length).toBeGreaterThan(.6);
+  expect(stations.filter(count => count === 1).length / stations.length).toBeGreaterThan(.8);
   expect(stations).toContain(2);
   expect(stations).toContain(3);
+});
+
+it('raises one cue per collected station, caps pitch, and resets after a missed station', () => {
+  const base = initialRun(17);
+  const points = Array.from({ length: 12 }, (_, index) => entity('score', `point-${index}`, 96 + index * 8,
+    index === 9 ? balance.laneWidth : 0));
+  points.push(entity('score', 'same-station', 96, .2));
+  let run: Run = { ...base, phase: 'running', distance: 90,
+    world: { ...base.world, entities: points, nextHazard: 1e9, nextSpecial: 1e9, nextScore: 1e9,
+      nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9 } };
+  while (run.distance < 165) run = stepRun(run, noInput());
+  expect(run.scorePickupSequence).toBe(9);
+  expect(run.scoreCombo).toBe(8);
+  expect(run.scorePickupLevel).toBe(8);
+  expect(run.score).toBe(10 * roadScore.value); // Two gems on the first station, one sound.
+  while (run.distance < 174) run = stepRun(run, noInput());
+  expect(run.scoreCombo).toBe(0);
+  while (run.distance < 186) run = stepRun(run, noInput());
+  expect(run.scorePickupSequence).toBe(11);
+  expect(run.scorePickupLevel).toBe(2);
+  expect(scoreComboPitch(1)).toBeLessThan(scoreComboPitch(8));
+  expect(scoreComboPitch(20)).toBe(scoreComboPitch(8));
 });
 
 it('lets a player take points while paying the water cost of the same lane', () => {

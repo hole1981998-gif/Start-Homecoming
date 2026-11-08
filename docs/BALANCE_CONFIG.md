@@ -1,5 +1,7 @@
 # Đường Về Nhà — Balance Config
 
+> **Feedback 08/11/2026 — bản thử TẠM:** phí ổ gà trả lại 10 tiền/lần chạm. Điểm 3 điểm/viên cách 8 m; các dải 8 mốc theo seed có khoảng 85% một làn, 10% hai làn, 5% ba làn. Viên hình thoi bay trên đường quay chậm 0,7 rad/s. Chuỗi âm nhặt điểm tăng pitch từ 0,9 tới 1,635 qua tám nấc; các lần kế tiếp giữ nấc tám, trượt mốc tiếp theo thì reset. Một mốc nhiều làn chỉ tăng nấc âm một lần. Dùng tạm clip `ui_soft_select.mp3` do ElevenLabs tạo trước đó; yêu cầu tạo clip chuyên biệt lần này bị ElevenLabs báo bận, chưa có âm mới.
+
 > **Bản thử theo feedback 08/11/2026 — TẠM:** giá ba gác 300, ô tô 7 chỗ 1100, buýt 2200, tải 1300, container 2200. Mất tiền khi chạm ổ gà giảm 10→5. Buýt còn 28 L/168 HP, container 36 L/240 HP (giảm 20% dung tích và HP; mức tiêu hao và lực va chạm giữ nguyên). Điểm trên đường vẫn 3 điểm mỗi viên, cách 8 m, nhưng khoảng 70% dải chỉ một làn, 20% hai làn, 10% ba làn. Viên điểm hình thoi nhỏ bay trên mặt đường, phát sáng nhẹ, không có vòng sáng dưới. Còi người chơi khi nhấn T tăng gain 0,72→1,05, voiceline giữ nguyên. `ver.noforce` giữ giá và tài nguyên xe cũ; kết quả chơi thử chưa được nghiệm thu.
 
 ## Thử nghiệm điểm trên đường và special dày hơn (TẠM, 08/11/2026)

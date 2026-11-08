@@ -35,11 +35,11 @@ describe('survival, continuous hazards and crash recovery', () => {
     const once = advance(empty([car]), .5); expect(once.durability).toBe(balance.durabilityCapacity - balance.trafficDamage); expect(once.crash).not.toBeNull();
     const twice = advance(once, 4); expect(twice.durability).toBe(once.durability); expect(twice.world.entities[0].lastHit).toBeGreaterThanOrEqual(0);
   });
-  it('charges the reduced pothole fee once even during prolonged contact', () => {
+  it('charges the restored pothole fee once even during prolonged contact', () => {
     const start = 20;
     const hole = { ...entity('pothole', 'long-hole', 0, 0), length: 24 };
     const after = advance({ ...empty([hole]), money: start }, .5);
-    expect(after.money).toBeCloseTo(start - 5 + after.distance * balance.moneyPerMeter);
+    expect(after.money).toBeCloseTo(start - 10 + after.distance * balance.moneyPerMeter);
     expect(after.durability).toBeLessThan(balance.durabilityCapacity - balance.potholeImpactDamage);
   });
   it('swept contacts catch thin obstacles crossed between endpoints, including sideways', () => {

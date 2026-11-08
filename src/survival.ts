@@ -12,7 +12,7 @@ import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, updateJunctionWindow, type RouteState, type Turn } from './route';
 import { effectiveVehicle, newVehicle, vehicleDefinition, vehicleRam, vehicles, waterFuelPerSecond, type VehicleDefinition, type VehicleInstance } from './vehicles';
 import { splitCrashRiders } from './passenger-outcomes';
-import { roadScore, scorePerMeter, scoreVersion } from './scoring';
+import { roadScore, scorePerMeter, scoreStation, scoreVersion } from './scoring';
 import { startTrafficFall } from './traffic-recovery';
 import { canSecretEnd, guardedSecret, initialSecret, secretLanding, secretPickup, secretTrainOverlap, secretVehicle, type SecretState } from './secret';
 
@@ -23,6 +23,7 @@ export interface CrashState { elapsed: number; side: -1 | 1; originDistance: num
   returningRiderIds: string[]; strandedRiderIds: string[] }
 export interface Run extends State {
   runId: string; seed: number; fuel: number; durability: number; score: number; money: number;
+  scoreCombo: number; scoreComboStation: number; scorePickupSequence: number; scorePickupLevel: number;
   activeSeconds: number; motion: 'powered' | 'coasting'; coastRemaining: number;
   world: World; result: RunResult | null; eventSequence: number; feedback: string; feedbackAt: number;
   feedbackKind: FeedbackKind | null; feedbackFlavor: string; feedbackCounts: Record<FeedbackKind, number>;
@@ -38,6 +39,7 @@ export interface Run extends State {
 export const initialRun = (seed = 17, runId = 'simulation', balanceProfile?: 'backup'): Run => ({ ...initialState(),
   runId, seed, fuel: newVehicle('motorcycle', `${runId}-motorcycle`, balanceProfile).fuel,
   durability: newVehicle('motorcycle', `${runId}-motorcycle`, balanceProfile).durability, score: 0,
+  scoreCombo: 0, scoreComboStation: -1, scorePickupSequence: 0, scorePickupLevel: 0,
   money: balance.initialMoney, activeSeconds: 0, motion: 'powered', coastRemaining: balance.coastDistance,
   world: fillWorld(initialWorld(seed, true, balanceProfile === 'backup' ? 'backup' : 'p8'), 0,
     vehicleDefinition('motorcycle', balanceProfile).fuelCapacity,
@@ -545,6 +547,13 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       else if (!(ram.breaksThrough && e.wrecked)) crashDriver(before.speed + (driven.speed - before.speed) * fraction);
     } else if (e.kind === 'score') {
       e.consumed = true; r.score += roadScore.value;
+      const station = scoreStation(e.distance);
+      if (station !== r.scoreComboStation) {
+        r.scoreCombo = station === r.scoreComboStation + 1 ? Math.min(roadScore.maxCombo, r.scoreCombo + 1) : 1;
+        r.scoreComboStation = station;
+        r.scorePickupLevel = r.scoreCombo;
+        r.scorePickupSequence++;
+      }
     } else if (e.kind === 'fuel') {
       const gained = Math.min(vehicle.fuelPickup, vehicle.fuelCapacity - r.fuel);
       r.fuel += gained; r.motion = 'powered'; r.coastRemaining = balance.coastDistance; e.consumed = true;
@@ -555,6 +564,12 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
     }
   }
   advance(1);
+  if (r.scoreComboStation >= 0 &&
+    r.distance > roadScore.firstDistance + (r.scoreComboStation + 1) * roadScore.gap +
+      (roadScore.length + vehicle.length) / 2) {
+    r.scoreCombo = 0;
+    r.scoreComboStation = -1;
+  }
   if (r.phase === 'running' && !r.crash) r.secret = secretLanding(r.secret, r.activeSeconds,
     r.distance, itemBalance.jumpSeconds);
   const crossing = junction(r.seed, r.route.index);

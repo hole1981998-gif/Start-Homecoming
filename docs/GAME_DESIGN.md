@@ -1,5 +1,7 @@
 # Đường Về Nhà — Game Design
 
+> **Feedback 08/11/2026 — ĐÃ CHỐT hướng chỉnh:** trả mức mất tiền ổ gà như trước; phần lớn dải điểm chỉ một làn, dải hai/ba làn hiếm; viên điểm nổi quay tại chỗ chậm; ăn các mốc điểm liên tiếp cho âm cao dần, đạt nấc cao nhất thì giữ, trượt mốc kế tiếp thì bắt đầu lại. Số xác suất và pitch hiện là TẠM, xem BALANCE_CONFIG.md.
+
 > **Feedback trực tiếp 08/11/2026 — ĐÃ CHỐT hướng chỉnh, số TẠM:** giảm giá năm loại xe, giảm một nửa tiền mất do ổ gà, giảm bình xăng và HP buýt/container; điểm trên đường là hình thoi nhỏ bay trên mặt đường, phát sáng nhẹ, không vòng sáng dưới, ít dải 2–3 làn hơn; còi T to hơn mà không đổi voiceline. Xem BALANCE_CONFIG.md để biết số đang thử. Không đổi luật va chạm hoặc điểm thưởng mỗi viên trong lượt này.
 
 > **Thử nghiệm mới 08/11/2026 (TẠM):** ván chính nhận điểm bằng cách lái qua vật điểm rải trên đường; vật điểm có thể chồng vùng nguy hiểm để người chơi tự chọn bỏ điểm hoặc mạo hiểm. Không thưởng điểm chỉ vì đi xa/chạy nhanh/chở khách. Tiền mua xe và đồ vẫn theo quãng đường và khách như trước. Dân phòng phạt ít nhất 110 khi đủ tiền; trên 220 tiền thì lấy 50%, không trần. Tăng nhẹ mật độ special. Công thức điểm cũ được lưu trong [BALANCE_CONFIG.md](BALANCE_CONFIG.md). `ver.noforce` là backup, giữ luật cũ.

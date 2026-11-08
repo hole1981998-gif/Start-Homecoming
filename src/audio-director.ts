@@ -2,6 +2,7 @@ import type { Run } from './survival';
 import type { VehicleKind } from './vehicles';
 import { activeVehicle } from './survival';
 import { itemBalance } from './config';
+import { scoreComboPitch } from './scoring';
 
 const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-2026-10-29/*.mp3',
@@ -102,6 +103,7 @@ const potholeCues: Record<string, string> = {
   'road/pothole_rattle_heavy_alt.wav': 'pothole_heavy_b.mp3',
 };
 const rewardCues: Record<string, string> = {
+  'score/collect': 'ui_soft_select.mp3',
   'item/fuel_pickup.wav': 'fuel_pickup_rise.mp3',
   'item/repair_pickup.wav': 'repair_pickup_rise.mp3',
   'pickup_01.wav': 'passenger_pickup_rise.mp3',
@@ -461,6 +463,7 @@ export class AudioDirector {
   private runId = '';
   private voiceSeed = 0;
   private lastSequence = -1;
+  private lastScorePickupSequence = 0;
   private lastJump = -100;
   private lastBoost = 0;
   private lastStar = 0;
@@ -508,7 +511,7 @@ export class AudioDirector {
       sfx.connect(this.context.destination); ambience.connect(this.context.destination); music.connect(this.context.destination);
       this.buses = { sfx, ambience, music };
       for (const name of [...impactFoleyNames, ...vehicleImpactNames, ...ownerPickupNames,
-        ...Object.values(playerHornClips).flat().map(clip => `player-horn/${clip}`)]) void this.buffer(name);
+        ...Object.values(playerHornClips).flat().map(clip => `player-horn/${clip}`), 'score/collect']) void this.buffer(name);
     }
     void this.context.resume();
   }
@@ -527,7 +530,7 @@ export class AudioDirector {
   }
 
   private async play(name: string, key = name, gap = .18, volume = 1, pan = 0, busKind: Bus = 'sfx',
-    onEnded?: () => void): Promise<void> {
+    onEnded?: () => void, playbackRate = 1): Promise<void> {
     const ctx = this.context, bus = this.buses?.[busKind];
     if (!ctx || !bus || ctx.state !== 'running') { onEnded?.(); return; }
     const now = ctx.currentTime;
@@ -559,6 +562,7 @@ export class AudioDirector {
     const panner = pan ? ctx.createStereoPanner() : undefined;
     if (panner) panner.pan.value = Math.max(-.8, Math.min(.8, pan));
     source.buffer = buffer;
+    if (playbackRate !== 1) source.playbackRate.setTargetAtTime(playbackRate, ctx.currentTime, .001);
     gain.gain.value = waterEntry ? 0 : volume * trim * (vehicleImpactGain[name] ?? 1);
     if (panner) gain.connect(panner).connect(bus);
     else gain.connect(bus);
@@ -831,7 +835,7 @@ export class AudioDirector {
     this.shopMusicPending = false; this.shopOpen = false;
     this.ambience.clear(); this.near.clear(); this.trafficPairs.clear(); this.trafficHoles.clear(); this.trafficBlocks.clear(); this.trafficHorned.clear(); this.trafficPassed.clear(); this.spoken.clear(); this.lastRiders.clear(); this.returningRiders = []; this.strandedRiders = []; this.entityState.clear(); this.cooldown.clear(); this.variantCount.clear(); this.sweepTick = 0;
     this.windStart = 0; this.nextLightningAt = 0; this.lightningCount = 0;
-    this.lastSequence = -1; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.indicatorActive = false; this.activeIndicator = undefined; this.vehicleId = ''; this.requestedKind = undefined; this.running = false; this.voiceSeed = 0;
+    this.lastSequence = -1; this.lastScorePickupSequence = 0; this.lastJump = -100; this.lastBoost = 0; this.lastStar = 0; this.lastMotion = ''; this.lastSpeed = 0; this.ended = false; this.airborne = false; this.crashed = false; this.inWind = false; this.waterActive = false; this.indicatorActive = false; this.activeIndicator = undefined; this.vehicleId = ''; this.requestedKind = undefined; this.running = false; this.voiceSeed = 0;
   }
 
   pause(): void {
@@ -877,6 +881,11 @@ export class AudioDirector {
     if (run.runId !== this.runId) { this.reset(); this.runId = run.runId; }
     this.voiceSeed = run.seed;
     const vehicle = activeVehicle(run);
+    if (run.scorePickupSequence !== this.lastScorePickupSequence) {
+      this.lastScorePickupSequence = run.scorePickupSequence;
+      void this.play('score/collect', 'score/collect', .1, .8, 0, 'sfx', undefined,
+        scoreComboPitch(run.scorePickupLevel));
+    }
     let pickupRiderId: string | undefined;
     if (run.eventSequence !== this.lastSequence) {
       this.lastSequence = run.eventSequence;

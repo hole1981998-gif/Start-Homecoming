@@ -6,6 +6,7 @@ import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
 import { noInput } from '../src/simulation';
 import { newVehicle } from '../src/vehicles';
+import { scoreComboPitch } from '../src/scoring';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -197,6 +198,15 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(.7);
   expect(fetched.some(path => path.includes('water_light_loop.mp3'))).toBe(false);
   expect(fetched.some(path => path.includes('skid.wav') || path.includes('police_warning'))).toBe(false);
+  await director.update({ ...base, scorePickupSequence: 1, scorePickupLevel: 1 });
+  await vi.waitFor(() => expect(sources.some(source => source.started &&
+    source.buffer?.path.includes('elevenlabs-rewards-2026-11-06/ui_soft_select.mp3') &&
+    source.playbackRate.targets.at(-1) === scoreComboPitch(1))).toBe(true));
+  FakeAudioContext.time += .4;
+  await director.update({ ...base, scorePickupSequence: 2, scorePickupLevel: 8 });
+  await vi.waitFor(() => expect(sources.some(source => source.started &&
+    source.buffer?.path.includes('elevenlabs-rewards-2026-11-06/ui_soft_select.mp3') &&
+    source.playbackRate.targets.at(-1) === scoreComboPitch(8))).toBe(true));
 
   const water = { ...entity('water', 'test-water', 0, 0), touching: true };
   await director.update({ ...base, eventSequence: 1, feedbackKind: 'water', world: { ...base.world, entities: [water] } });
