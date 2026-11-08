@@ -37,6 +37,29 @@ it('services clamp, refuse full resources and insufficient funds, and stale comm
   expect(run.fuel).toBe(1); expect(run.money).toBe(4000);
 });
 
+it('services a disabled reserve in place, then allows switching without a free refill', () => {
+  const base = atShop('shop-third');
+  const run = { ...base, vehicleInstances: base.vehicleInstances.map(v => v.id === 'qa-spare' ?
+    { ...v, fuel: 2, durability: 0, disabled: true } : v) };
+  const repaired = apply(run, { kind: 'service', item: 'repair', targetId: 'qa-spare' });
+  const spare = repaired.vehicleInstances.find(v => v.id === 'qa-spare')!;
+  expect(spare.durability).toBe(shopBalance.repairAmount);
+  expect(spare.fuel).toBe(2);
+  expect(spare.disabled).toBe(false);
+  expect(repaired.activeVehicleId).toBe(run.activeVehicleId);
+  expect(repaired.fuel).toBe(run.fuel);
+  expect(repaired.durability).toBe(run.durability);
+  expect(repaired.money).toBe(run.money - shopBalance.repairPrice);
+  expect(apply(repaired, { kind: 'service', item: 'fuel', targetId: 'missing' })).toBe(repaired);
+  const switched = switchVehicle({ ...leaveShop(repaired), phase: 'running' });
+  expect(switched.activeVehicleId).toBe(spare.id);
+  expect(switched.fuel).toBe(2);
+  expect(switched.durability).toBe(shopBalance.repairAmount);
+  const refuelled = apply(repaired, { kind: 'service', item: 'fuel', targetId: 'qa-spare' });
+  expect(refuelled.vehicleInstances.find(v => v.id === 'qa-spare')!.fuel).toBe(2 + shopBalance.fuelAmount);
+  expect(refuelled.fuel).toBe(run.fuel);
+});
+
 it('removed takeaway commands cannot charge, heal or create inventory, even from a stale UI', () => {
   const run = atShop(), before = structuredClone(run);
   for (const item of ['fuel', 'repair']) {
