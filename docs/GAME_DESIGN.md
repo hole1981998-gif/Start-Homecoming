@@ -1,5 +1,7 @@
 # Đường Về Nhà — Game Design
 
+> **Feedback 09/11/2026 — ĐÃ CHỐT hướng chỉnh:** dùng take chime `#4` chủ dự án gửi cho điểm; hạ cao độ bắt đầu và cả chuỗi, giảm âm lượng và làm dịu dải cao để nấc cuối bớt chói. Các mức chỉnh là TẠM, chờ chủ dự án nghe bản thử.
+
 > **Feedback 08/11/2026 — ĐÃ CHỐT hướng chỉnh:** dùng chime ElevenLabs do chủ dự án gửi cho điểm nhặt trên đường; tăng mật độ vùng gió và dân phòng. Mức tăng và cách cắt âm là TẠM, xem BALANCE_CONFIG.md. Tín hiệu nhìn thấy của điểm và cảnh báo gió/dân phòng vẫn cần đủ rõ khi tắt âm.
 
 > **Feedback 08/11/2026 — ĐÃ CHỐT hướng chỉnh:** trả mức mất tiền ổ gà như trước; phần lớn dải điểm chỉ một làn, dải hai/ba làn hiếm; viên điểm nổi quay tại chỗ chậm; ăn các mốc điểm liên tiếp cho âm cao dần, đạt nấc cao nhất thì giữ, trượt mốc kế tiếp thì bắt đầu lại. Số xác suất và pitch hiện là TẠM, xem BALANCE_CONFIG.md.

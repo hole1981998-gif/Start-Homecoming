@@ -75,6 +75,8 @@ it('raises one cue per collected station, caps pitch, and resets after a missed 
   expect(run.scorePickupSequence).toBe(11);
   expect(run.scorePickupLevel).toBe(2);
   expect(scoreComboPitch(1)).toBeLessThan(scoreComboPitch(8));
+  expect(scoreComboPitch(1)).toBeLessThan(.9);
+  expect(scoreComboPitch(8)).toBeLessThan(1.5);
   expect(scoreComboPitch(20)).toBe(scoreComboPitch(8));
 });
 

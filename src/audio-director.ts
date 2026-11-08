@@ -568,7 +568,14 @@ export class AudioDirector {
     gain.gain.value = waterEntry ? 0 : volume * trim * (vehicleImpactGain[name] ?? 1);
     if (panner) gain.connect(panner).connect(bus);
     else gain.connect(bus);
-    if (waterEntry) {
+    if (name === 'score/collect') {
+      const warmth = ctx.createBiquadFilter(), soften = ctx.createBiquadFilter();
+      warmth.type = 'lowshelf'; warmth.frequency.value = scoreAudio.warmthHz; warmth.gain.value = scoreAudio.warmthDb;
+      soften.type = 'lowpass'; soften.frequency.value = scoreAudio.lowpassHz;
+      source.connect(warmth).connect(soften).connect(gain);
+      source.onended = () => { this.oneShots.delete(source); source.disconnect(); warmth.disconnect(); soften.disconnect(); gain.disconnect(); panner?.disconnect();
+        if (generation === this.generation) onEnded?.(); };
+    } else if (waterEntry) {
       // The raw splash has a hard first transient; let the rolling water lead in.
       gain.gain.setTargetAtTime(volume * trim, ctx.currentTime, .12);
       const soften = ctx.createBiquadFilter();

@@ -203,6 +203,8 @@ it('routes driving, impact, indicator and train cues to their actual events', as
     source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3') &&
     source.playbackRate.targets.at(-1) === scoreComboPitch(1))).toBe(true));
   expect(sources.find(source => source.started && source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3'))?.startArgs).toEqual([0, 0, .65]);
+  expect(filters.some(filter => filter.type === 'lowshelf' && filter.frequency.value === 700 && filter.gain.value === 5)).toBe(true);
+  expect(filters.some(filter => filter.type === 'lowpass' && filter.frequency.value === 3200)).toBe(true);
   FakeAudioContext.time += .4;
   await director.update({ ...base, scorePickupSequence: 2, scorePickupLevel: 8 });
   await vi.waitFor(() => expect(sources.some(source => source.started &&
@@ -214,7 +216,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   expect(drivingStems[0].gain?.gain.targets.at(-1)).toBeCloseTo(1.25);
   await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('water_light_loop.mp3'))).toBe(true));
   expect(fetched.some(path => path.includes('water_entry_'))).toBe(false);
-  expect(filters.filter(filter => filter.type === 'lowpass')).toHaveLength(0);
+  expect(filters.filter(filter => filter.type === 'lowpass' && filter.frequency.value !== 3200)).toHaveLength(0);
   const rainSource = sources.find(source => source.buffer?.path.includes('rain_shower_loop.mp3'))!;
   expect(rainSource.loop).toBe(true);
   expect(rainSource.gain?.gain.targets.at(-1)).toBeCloseTo(2.5);

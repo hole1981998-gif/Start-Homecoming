@@ -1,5 +1,7 @@
 # Đường Về Nhà — Balance Config
 
+> **Âm điểm thử lại 09/11/2026 — TẠM:** chủ dự án thay chime bằng take `#4`; chuỗi tám nấc được hạ đồng loạt 2 bán âm. Pitch thực từ khoảng 0,802 đến 1,457 lần tốc độ gốc, thay cho 0,9–1,635. Sau khi nghe thử, giảm gain riêng của chime từ 0,8 qua 0,55, 0,28 và 0,12 xuống **0,07**, lọc dải cao từ 3,2 kHz và nâng dải thấp +5 dB dưới 700 Hz; giữ thời lượng cắt, fade và luật reset. Cần nghe trong game trước khi chốt âm sắc.
+
 > **Bản thử 08/11/2026 — TẠM:** chime điểm do chủ dự án tạo bằng ElevenLabs thay `ui_soft_select.mp3` tạm. File gốc khoảng 4 giây, mỗi điểm phát 0,65 giây đầu với fade từ 0,42 giây; pitch 8 nấc và luật reset giữ nguyên. Cơ hội gió mỗi lần director chọn hazard tăng 10→25%, cooldown 260→220 m; khoảng cách an toàn với special 48→40 m nhưng không cho wind chồng lên tàu hoặc sự kiện chắn đường. Dân phòng đi thành cặp trong khoảng 2/3 nhóm thay vì 1/3; số nhóm và lịch special giữ nguyên. Backup `ver.noforce` không đổi. Đây là số thử cần nghe và chơi lại trước khi chốt.
 
 > **Feedback 08/11/2026 — bản thử TẠM:** phí ổ gà trả lại 10 tiền/lần chạm. Điểm 3 điểm/viên cách 8 m; các dải 8 mốc theo seed có khoảng 85% một làn, 10% hai làn, 5% ba làn. Viên hình thoi bay trên đường quay chậm 0,7 rad/s. Chuỗi âm nhặt điểm tăng pitch từ 0,9 tới 1,635 qua tám nấc; các lần kế tiếp giữ nấc tám, trượt mốc tiếp theo thì reset. Một mốc nhiều làn chỉ tăng nấc âm một lần. Dùng tạm clip `ui_soft_select.mp3` do ElevenLabs tạo trước đó; yêu cầu tạo clip chuyên biệt lần này bị ElevenLabs báo bận, chưa có âm mới.
