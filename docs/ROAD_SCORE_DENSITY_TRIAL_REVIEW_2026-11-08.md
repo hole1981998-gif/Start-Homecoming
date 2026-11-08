@@ -1,5 +1,9 @@
 # Bản thử điểm trên đường và special dày hơn — 08/11/2026
 
+> Cập nhật theo feedback chủ dự án: phần đo bên dưới là vòng `road-v1` trước khi chỉnh. Bản `road-v2`, config `road-score-special-density-trial-2`, thử +3 mỗi vật, cách 8 m, các dải 64 m chiếm 1–3 làn theo seed. Bảng điểm tách version. Browser IAB seed 17: bấm Bắt đầu, giữ W 5 giây tới khoảng 180 m, thấy rõ dải hai làn kéo dài, nhặt 33 điểm, HUD và điều khiển vẫn hoạt động. Đây là một lượt quan sát, chưa chứng minh mọi seed đều dễ đọc hoặc độ khó đã đạt; không dùng kết luận nhịp độ của `road-v1` như dữ kiện của `road-v2`.
+
+**Tự review `road-v2`:** nhịp nhặt tăng rõ mà mỗi viên chỉ bằng 1/4 điểm trước; các đoạn 2–3 làn giảm yêu cầu đổi làn liên tục, còn điểm nằm trên hazard giữ lựa chọn mạo hiểm. UI hiện có thể đọc dải hai làn ở seed 17 nhưng nhiều vật sáng cùng lúc có thể làm rối cảnh báo hazard ở tốc độ cao. Lần chơi sau nên hỏi chủ dự án điểm có lấn cảnh báo nước/tàu không và có thấy đủ lý do để chịu va chạm không. Đây là nhận định từ một lượt browser và test seeded, chưa phải đánh giá người chơi.
+
 ## Phạm vi và dữ kiện
 
 - Nền: `origin/main` e0eb3f4580ee32b95660637b98cd548771bc900d; branch `codex/road-score-encounters`. Config `road-score-special-density-trial-1`; seed 17 cho browser, seed 1–100 cho độ phủ, 1–30 cho pilot. Số mới đều **TẠM**.

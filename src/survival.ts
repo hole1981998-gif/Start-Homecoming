@@ -17,7 +17,7 @@ import { canSecretEnd, guardedSecret, initialSecret, secretLanding, secretPickup
 
 import { jumpHeight, hasBoost, hasStar, newPowers, powerBoundaries, type PowerItem, type Powers } from './items';
 
-export interface RunResult { runId: string; seed: number; config: string; scoreVersion?: 'legacy-v1' | 'speed-v1' | typeof scoreVersion; reason: 'fuel' | 'damage' | 'train' | 'police' | 'secret'; distance: number; score: number; money: number; seconds: number }
+export interface RunResult { runId: string; seed: number; config: string; scoreVersion?: 'legacy-v1' | 'speed-v1' | 'road-v1' | typeof scoreVersion; reason: 'fuel' | 'damage' | 'train' | 'police' | 'secret'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
   returningRiderIds: string[]; strandedRiderIds: string[] }
 export interface Run extends State {

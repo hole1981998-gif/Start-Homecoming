@@ -197,15 +197,15 @@ function resultView(): void {
       result.reason === 'train' ? 'Tàu luôn kết thúc ván khi va chạm. Giữ S chờ mở đường hoặc nhảy bằng nitro + Space.' : result.reason === 'police' ? 'Không còn xe dự phòng hợp lệ. Dùng chuối trong cửa sổ cảnh báo ở lượt sau.' : result.reason === 'fuel' ? `Xe đã trôi thêm đủ ${balance.coastDistance} m sau khi hết xăng. Lượt sau hãy tìm bình xăng ven đường.` : 'Độ bền đã về 0 sau va chạm. Lượt sau hãy đọc cảnh báo và chừa thời gian đổi hướng.');
   const list = el<HTMLOListElement>('leaderboard-list'); list.replaceChildren();
   const boardVersion = result.scoreVersion ?? 'legacy-v1';
-  text('leaderboard-title', boardVersion === 'road-v1' ? 'Bảng điểm nhặt trên đường · trên máy này' : boardVersion === 'speed-v1' ? 'Bảng điểm tốc độ · trên máy này' : 'Bảng điểm cũ · trên máy này');
+  text('leaderboard-title', boardVersion.startsWith('road-') ? 'Bảng điểm nhặt trên đường · trên máy này' : boardVersion === 'speed-v1' ? 'Bảng điểm tốc độ · trên máy này' : 'Bảng điểm cũ · trên máy này');
   for (const [index, entry] of leaderboard(boardVersion).slice(0, 5).entries()) {
     const row = document.createElement('li');
     row.textContent = `${index + 1}. ${Math.floor(entry.score)} điểm · ${Math.floor(entry.distance)} m${entry.reason === 'secret' ? ' · ⌂' : ''}`;
     list.append(row);
   }
-  const legacy = boardVersion === 'road-v1' ? leaderboard('speed-v1').slice(0, 3) : boardVersion === 'speed-v1' ? leaderboard('legacy-v1').slice(0, 3) : [];
+  const legacy = boardVersion === 'road-v2' ? leaderboard('road-v1').slice(0, 3) : boardVersion === 'road-v1' ? leaderboard('speed-v1').slice(0, 3) : boardVersion === 'speed-v1' ? leaderboard('legacy-v1').slice(0, 3) : [];
   el('legacy-board').hidden = legacy.length === 0;
-  text('legacy-board-title', boardVersion === 'road-v1' ? 'Thành tích luật điểm tốc độ' : 'Thành tích luật điểm ban đầu');
+  text('legacy-board-title', boardVersion === 'road-v2' ? 'Thành tích điểm rải bản trước' : boardVersion === 'road-v1' ? 'Thành tích luật điểm tốc độ' : 'Thành tích luật điểm ban đầu');
   const oldList = el<HTMLOListElement>('legacy-list'); oldList.replaceChildren();
   for (const entry of legacy) {
     const row = document.createElement('li');

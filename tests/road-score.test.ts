@@ -33,6 +33,18 @@ it('can place score on a hazardous patch without removing either object', () => 
   expect(overlap).toBe(true);
 });
 
+it('builds seeded multi-lane score trails without moving them off hazards', () => {
+  for (const seed of [1, 17, 42]) {
+    const points = fillWorld(initialWorld(seed, true), 1100).entities.filter(e => e.kind === 'score');
+    expect(new Set(points.map(e => e.id)).size).toBe(points.length);
+    const stations = new Map<number, number>();
+    for (const point of points) stations.set(point.distance, (stations.get(point.distance) ?? 0) + 1);
+    expect([...stations.values()].some(count => count === 2)).toBe(true);
+    expect([...stations.values()].some(count => count === 3)).toBe(true);
+    expect([...stations.keys()].some((distance, index, all) => index > 0 && distance - all[index - 1] === roadScore.gap)).toBe(true);
+  }
+});
+
 it('lets a player take points while paying the water cost of the same lane', () => {
   const base = initialRun(17);
   const water = entity('water', 'wet', 4, 0);
