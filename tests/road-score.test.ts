@@ -45,6 +45,16 @@ it('builds seeded multi-lane score trails without moving them off hazards', () =
   }
 });
 
+it('mostly offers one-lane trails while retaining occasional two- and three-lane choices', () => {
+  const points = fillWorld(initialWorld(17, true), 3600).entities.filter(e => e.kind === 'score');
+  const counts = new Map<number, number>();
+  for (const point of points) counts.set(point.distance, (counts.get(point.distance) ?? 0) + 1);
+  const stations = [...counts.values()];
+  expect(stations.filter(count => count === 1).length / stations.length).toBeGreaterThan(.6);
+  expect(stations).toContain(2);
+  expect(stations).toContain(3);
+});
+
 it('lets a player take points while paying the water cost of the same lane', () => {
   const base = initialRun(17);
   const water = entity('water', 'wet', 4, 0);

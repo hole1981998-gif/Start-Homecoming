@@ -2,7 +2,7 @@ import { fillShopThumbnails } from './shop-thumbnails';
 import { uiIcon, type UiIcon } from './ui-icons';
 import { itemBalance, shopBalance } from './config';
 import type { Run } from './survival';
-import { effectiveVehicle, vehicles, type VehicleKind } from './vehicles';
+import { effectiveVehicle, vehicleDefinition, vehicles, type VehicleKind } from './vehicles';
 import { powerItemPrice, reachableShop, upgradeNames, upgradePrice, vehicleSummary, type ShopCommand, type UpgradeKind } from './shop';
 
 import { itemNames, type PowerItem } from './items';
@@ -72,14 +72,16 @@ export class ShopView {
     }
     if (this.tab === 'vehicle') {
       content = (Object.keys(vehicles) as VehicleKind[]).map(kind => {
-        const owned = run.vehicleInstances.some(v => v.kind === kind), sold = !stock.vehicles.includes(kind), v = vehicles[kind];
+        const owned = run.vehicleInstances.some(v => v.kind === kind), sold = !stock.vehicles.includes(kind);
+        const v = vehicleDefinition(kind, run.world.directorVersion === 'backup' ? 'backup' : undefined);
         return card(vehicleIcon(kind),v.name,`${v.capacity} chỗ · ${v.price} tiền`,
           button(owned ? 'Đang sở hữu' : sold ? 'Hết hàng' : run.money < v.price ? 'Thiếu tiền' : 'Chọn mua',`data-vehicle="${kind}" aria-label="Chọn mua ${v.name}"`,owned || sold || run.money < v.price),
           `<details><summary>Thông số</summary><p>${vehicleSummary(kind,run.world.directorVersion === 'backup' ? 'backup' : undefined)}</p></details>`);
       }).join('');
       if (this.pending) {
         const kind = this.pending;
-        content = `<section class="shop-confirm">${vehicleIcon(kind)}<h2>${vehicles[kind].name}</h2><strong>${vehicles[kind].price} tiền</strong><p>Chuyển sang xe mới · giữ ${run.riderIds.length} khách. Có thể quá tải.</p>` +
+        const v = vehicleDefinition(kind, run.world.directorVersion === 'backup' ? 'backup' : undefined);
+        content = `<section class="shop-confirm">${vehicleIcon(kind)}<h2>${v.name}</h2><strong>${v.price} tiền</strong><p>Chuyển sang xe mới · giữ ${run.riderIds.length} khách. Có thể quá tải.</p>` +
           (run.vehicleInstances.length === 2 ? `<label for="shop-discard">Kho đầy — chọn xe bỏ vĩnh viễn</label><select id="shop-discard"><option value="">Chọn xe bỏ…</option>${run.vehicleInstances.map(v => `<option value="${v.id}">${vehicles[v.kind].name}${v.id === run.activeVehicleId ? ' · đang lái' : ' · dự phòng'} · ${(v.id === run.activeVehicleId ? run.fuel : v.fuel).toFixed(1)} L / ${Math.ceil(v.id === run.activeVehicleId ? run.durability : v.durability)} HP</option>`).join('')}</select>` : '<p>Xe hiện tại ở lại trong kho.</p>') +
           `<div class="shop-confirm-actions">${button('Huỷ mua','data-cancel="true"')}${button('Xác nhận mua','data-confirm="true"',run.vehicleInstances.length === 2)}</div></section>`;
       }

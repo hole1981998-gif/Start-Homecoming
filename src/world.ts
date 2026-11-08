@@ -720,7 +720,8 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
         Math.abs(e.distance - at) <= e.length / 2 + roadScore.length / 2);
       const target = risky.length && index % 3 !== 0 ? risky[hash % risky.length] : undefined;
       const lane = target ? Math.round(target.x / balance.laneWidth) : hash % 3 - 1;
-      const laneCount = 1 + directorRoll(w.branchSeed, trail, 0x79a6e2b1) % 3;
+      const laneRoll = directorRoll(w.branchSeed, trail, 0x79a6e2b1) % 10;
+      const laneCount = laneRoll < 7 ? 1 : laneRoll < 9 ? 2 : 3;
       const start = laneCount === 3 ? -1 : laneCount === 2 ? (lane > 0 ? 0 : -1) : Math.max(-1, Math.min(1, lane));
       for (let offset = 0; offset < laneCount; offset++)
         w.entities.push(entity('score', branchEntityId(w, 'score', index * 3 + offset), at,

@@ -407,13 +407,10 @@ export class RoadRenderer {
         g.add(driver.root); g.userData.trafficFallenDriver = driver;
       }
     } else if (kind === 'score') {
-      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(.38),
-        new THREE.MeshStandardMaterial({ color: '#f4d366', emissive: '#b47b24', emissiveIntensity: .48,
-          metalness: .35, roughness: .3 }));
-      gem.position.y = .55; gem.rotation.z = Math.PI / 4; g.add(gem);
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(.4, .045, 6, 16),
-        new THREE.MeshBasicMaterial({ color: '#ffe9a1' }));
-      ring.rotation.x = Math.PI / 2; ring.position.y = .13; g.add(ring);
+      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(.27),
+        new THREE.MeshStandardMaterial({ color: '#dcc27d', emissive: '#9f7930', emissiveIntensity: .22,
+          metalness: .12, roughness: .65 }));
+      gem.position.y = .62; gem.rotation.y = Math.PI / 4; g.add(gem);
     } else if (kind === 'passenger') {
       const person = createPersonArt(passengerCast ?? 'commuter', 'far');
       g.add(person.root); g.userData.personArt = person;

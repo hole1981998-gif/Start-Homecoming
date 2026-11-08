@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'road-score-special-density-trial-2', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'shop-score-visibility-trial-3', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -17,7 +17,7 @@ export const balance = Object.freeze({
   passengerWanderRadius: 1.5, passengerWanderSpeed: 0.45, passengerKickSeconds: 0.65,
   passengerReturnChance: 0.5, passengerDownSeconds: 0.4, passengerStandSeconds: 0.55,
   coastDistance: 25, coastDrag: 3, coastCrawlSpeed: 2,
-  waterFuelPerSecond: 0.55, potholeImpactDamage: 6, potholeDamagePerSecond: 12, potholeMoneyLoss: 10,
+  waterFuelPerSecond: 0.55, potholeImpactDamage: 6, potholeDamagePerSecond: 12, potholeMoneyLoss: 5,
   trafficDamage: 20, trafficSpeed: 6, driverFallSeconds: 0.8, driverPauseSeconds: 0.5, driverReturnSeconds: 1.8,
   trafficWaterSpeedFactor: 0.6, trafficWreckSeconds: 2.5,
   trafficHeavySelfDamageFactor: 0.4,

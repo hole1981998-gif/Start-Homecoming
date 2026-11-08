@@ -5,7 +5,19 @@ import { noInput } from '../src/simulation';
 import { activeVehicle, initialRun, pickUpPassenger, stepRun, switchVehicle, type Run } from '../src/survival';
 import { enterShop, leaveShop, transact, type ShopCommand } from '../src/shop';
 import { entity, fillWorld, initialWorld, nextShopDistance } from '../src/world';
-import { effectiveVehicle, newVehicle, vehicles } from '../src/vehicles';
+import { buyVehicle, effectiveVehicle, newVehicle, vehicles, type VehicleKind } from '../src/vehicles';
+
+it('charges the revised catalog prices while keeping the noforce backup prices', () => {
+  const prices: Partial<Record<VehicleKind, [number, number]>> = {
+    tricycle: [300, 450], car7: [1100, 1200], bus: [2200, 2400],
+    truck: [1300, 1800], container: [2200, 3000],
+  };
+  for (const [kind, [current, backup]] of Object.entries(prices) as [VehicleKind, [number, number]][]) {
+    const owned = [newVehicle('motorcycle', 'starter')];
+    expect(buyVehicle(owned, 4000, kind, `new-${kind}`)?.money).toBe(4000 - current);
+    expect(buyVehicle(owned, 4000, kind, `backup-${kind}`, undefined, 'backup')?.money).toBe(4000 - backup);
+  }
+});
 
 const atShop = (scenario = 'shop') => enterShop({ ...developmentScenario(initialRun(17, 'shop-test'), scenario), phase: 'running' });
 type WithoutSequence<T> = T extends unknown ? Omit<T, 'sequence'> : never;

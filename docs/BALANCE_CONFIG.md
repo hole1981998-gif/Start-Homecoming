@@ -1,5 +1,7 @@
 # Đường Về Nhà — Balance Config
 
+> **Bản thử theo feedback 08/11/2026 — TẠM:** giá ba gác 300, ô tô 7 chỗ 1100, buýt 2200, tải 1300, container 2200. Mất tiền khi chạm ổ gà giảm 10→5. Buýt còn 28 L/168 HP, container 36 L/240 HP (giảm 20% dung tích và HP; mức tiêu hao và lực va chạm giữ nguyên). Điểm trên đường vẫn 3 điểm mỗi viên, cách 8 m, nhưng khoảng 70% dải chỉ một làn, 20% hai làn, 10% ba làn. Viên điểm hình thoi nhỏ bay trên mặt đường, phát sáng nhẹ, không có vòng sáng dưới. Còi người chơi khi nhấn T tăng gain 0,72→1,05, voiceline giữ nguyên. `ver.noforce` giữ giá và tài nguyên xe cũ; kết quả chơi thử chưa được nghiệm thu.
+
 ## Thử nghiệm điểm trên đường và special dày hơn (TẠM, 08/11/2026)
 
 Ván chính: điểm không còn tự tăng theo quãng đường. Bản thử mới `road-v2`: vật điểm đầu ở 96 m, sau đó cách nhau 8 m, mỗi vật +3 điểm khi thân xe thực sự chạm. Cứ 8 mốc liên tiếp thành một dải dài khoảng 64 m, có 1–3 làn điểm theo seed; vì thế có đoạn 2–3 làn cùng kéo dài. Vị trí làn được seed độc lập với RNG chướng ngại; điểm có thể nằm ngay trong hazard kể cả nước, ổ gà, xe, công an/dân phòng hoặc tàu. Không xóa vật điểm để mở đường an toàn: người chơi được quyền bỏ điểm. Nhảy vượt mặt vật điểm không nhặt. Điểm không đổi tiền; tiền nền/khách, giá xe/vật phẩm và pickup tài nguyên giữ nguyên. `ver.noforce` giữ luật cũ. Bản thử `road-v1` trước đó cách 24 m, +12 mỗi vật, một làn mỗi mốc; bảng điểm tách riêng vì thang điểm đã đổi.

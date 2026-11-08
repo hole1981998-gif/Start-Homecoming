@@ -651,7 +651,7 @@ export class AudioDirector {
     });
   }
 
-  playerCall(kind: VehicleKind): void {
+  playerCall(kind: VehicleKind, backup = false): void {
     const ctx = this.context;
     if (!ctx || ctx.state !== 'running' ||
       ctx.currentTime - (this.cooldown.get('player-call') ?? -100) < .35) return;
@@ -667,7 +667,7 @@ export class AudioDirector {
       this.variantCount.get(`last:${hornKey}`) ?? -1);
     this.variantCount.set(hornKey, hornCount + 1);
     this.variantCount.set(`last:${hornKey}`, hornIndex);
-    void this.play(`player-horn/${playerHornClips[family][hornIndex]}`, 'player-horn', .35, .72);
+    void this.play(`player-horn/${playerHornClips[family][hornIndex]}`, 'player-horn', .35, backup ? .72 : 1.05);
     this.voice('playerCall', this.runId, .9, 0, 0, undefined, playerCallClips[index]);
   }
 

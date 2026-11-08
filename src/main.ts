@@ -306,7 +306,7 @@ window.addEventListener('keydown', event => {
   if (!event.repeat && event.code === 'Tab') { state = switchVehicle(state); return; }
   if (!event.repeat && event.code === 'KeyF') { state = pickUpPassenger(state); return; }
   if (!event.repeat && event.code === 'KeyG') { state = dropPassenger(state); return; }
-  if (!event.repeat && event.code === 'KeyT') { event.preventDefault(); audio.playerCall(activeVehicle(state).kind); return; }
+  if (!event.repeat && event.code === 'KeyT') { event.preventDefault(); audio.playerCall(activeVehicle(state).kind, state.world.directorVersion === 'backup'); return; }
   if (!event.repeat && (event.code === 'KeyQ' || event.code === 'KeyE')) {
     event.preventDefault(); const before = state;
     const turn = event.code === 'KeyQ' ? 'left' : 'right';

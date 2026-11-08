@@ -470,7 +470,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
     if (event.type === 'enter-pothole') {
       potholeCount++;
       if (e.lastHit < 0 && !hasStar(r)) {
-        const loss = Math.min(r.money, balance.potholeMoneyLoss);
+        const loss = Math.min(r.money, r.world.directorVersion === 'backup' ? 10 : balance.potholeMoneyLoss);
         r.durability = Math.max(0, r.durability - balance.potholeImpactDamage);
         r.money -= loss; e.lastHit = r.activeSeconds;
         feedback('pothole', `Ổ gà · −${balance.potholeImpactDamage} HP · −${balance.potholeDamagePerSecond} HP/s${loss ? ` · −${loss.toFixed(1)} tiền` : ''}`);

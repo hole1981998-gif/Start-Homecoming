@@ -1,5 +1,7 @@
 # Đường Về Nhà — Game Design
 
+> **Feedback trực tiếp 08/11/2026 — ĐÃ CHỐT hướng chỉnh, số TẠM:** giảm giá năm loại xe, giảm một nửa tiền mất do ổ gà, giảm bình xăng và HP buýt/container; điểm trên đường là hình thoi nhỏ bay trên mặt đường, phát sáng nhẹ, không vòng sáng dưới, ít dải 2–3 làn hơn; còi T to hơn mà không đổi voiceline. Xem BALANCE_CONFIG.md để biết số đang thử. Không đổi luật va chạm hoặc điểm thưởng mỗi viên trong lượt này.
+
 > **Thử nghiệm mới 08/11/2026 (TẠM):** ván chính nhận điểm bằng cách lái qua vật điểm rải trên đường; vật điểm có thể chồng vùng nguy hiểm để người chơi tự chọn bỏ điểm hoặc mạo hiểm. Không thưởng điểm chỉ vì đi xa/chạy nhanh/chở khách. Tiền mua xe và đồ vẫn theo quãng đường và khách như trước. Dân phòng phạt ít nhất 110 khi đủ tiền; trên 220 tiền thì lấy 50%, không trần. Tăng nhẹ mật độ special. Công thức điểm cũ được lưu trong [BALANCE_CONFIG.md](BALANCE_CONFIG.md). `ver.noforce` là backup, giữ luật cũ.
 
 > **Bản thử độ phủ P8 ngày 22/10/2026 — TẠM:** tăng cơ hội gặp vũng nước, đặc biệt vũng rộng hai làn dài 24 m và vũng toàn đường dài 30 m nếu có đường sống được; thử 12 pattern từ cơ chế đã có, vẫn phải đọc cảnh báo và có lựa chọn hợp lệ. Giữ xe chướng ngại có xăng, force/damage/grip hiện hành; bản `ver.noforce` là backup. Mục tiêu thời lượng 4 phút và độ thú vị/công bằng chưa nghiệm thu; xem `P8_BALANCE_TRIAL_REVIEW.md`.
