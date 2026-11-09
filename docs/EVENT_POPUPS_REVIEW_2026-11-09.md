@@ -156,3 +156,18 @@ UI/UX self-review: replay now behaves as its label promises across reloads; firs
 Existing item/Grab input tests now declare their already-read tutorial preconditions entirely in the modern acknowledgement list, rather than splitting old and new schemas. Their input/consumption assertions are unchanged. Targeted persistence/item/Grab suite passed before full completion.
 
 Final verification: lint/typecheck/build exit0; pnpm test --maxWorkers=1 exit0,84files/474tests in241.64s. Current production build retains existing chunk warning. CI on new pushed revision not yet observed; human review pending, not merged.
+
+## Second-vehicle Tab guide and all falling-cargo feedback
+
+Owner requested a Tab introduction after the first purchase of a second vehicle and reported missing truck cargo impact feedback. Root cause: popup mapper accepted only cargoType=barrel; normal trucks drop cargoType=crate, which had no popup. All actual cargo impacts now map to the existing owner THÙNG LĂN illustration/caption. Same-hit zero-HP cargo feedback is retained in popup metadata, analogous to accident precedence; damage and driving physics unchanged.
+
+Successful vehicle transaction growing fleet1→2 schedules the switching guide. It appears after the purchase decision finishes, while still safely parked in the shop; dismissing returns to the shop rather than unexpectedly resuming the road. Explains Tab, passengers following, per-instance fuel/HP/upgrades and capacity. Acknowledgement switching persists with other discovery keys. Starting with two QA vehicles, failed/cancelled buys or replacement purchase2→2 do not schedule it; reset clears pending guide state.
+
+Current browser in-app Chromium seed17:
+- shop fixture Start/R, buyBa gác as second vehicle; tab-guide.png shows tutorial after successful payment. Dismiss returned to store; Continue then actual Tab switched back to motorcycle with about1.0L/30HP and riders2/2 retained. Unit integration also verifies Tab ignored while card up, original fuel/HP retained, acknowledgement saved and cancellation not retriggering.
+- p63-crate-right: observed actual truck release, drove straight at cruise until contact around78m. crate-contact.png shows THÙNG LĂN and HP123→115 (actual8HP crate impact). Initial fast-W pass did not produce cargo because existing fairness guard suppresses drops too close to player; normal cruising produced and contacted cargo as intended. One later capture missed the short popup; replay with impact wait captured it. No spawn rules changed.
+- Re-enabled guides through Help after QA so owner can see the new tutorial, then opened visible shop fixture. Temporary QA tab closed; owner's existing game not navigated away.
+
+Game designer self-review: second-vehicle guidance occurs at the purchase learning moment without changing transactions/resources; cargo consequences now have expected feedback. UI/UX self-review from current screenshots: action remains visible and shop context preserved; ordinary crate shares approved barrel art per request, no new production art. No independent expert or all-device claim. Added actual crate contact, terminal crate metadata and end-to-end purchase/dismiss/Tab tests. Gate outputs in evidence/second-vehicle-cargo-feedback. Human review pending, not merged; previous PR403 limitation remains.
+
+Final gates Windows bundled Node/pnpm: lint/typecheck/build exit0; pnpm test --maxWorkers=1 exit0,85files/477tests in244.22s. Targeted20tests passed. Existing build chunk warning remains. CI on new push not yet observed; human review pending, not merged.

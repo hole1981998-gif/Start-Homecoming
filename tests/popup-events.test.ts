@@ -27,21 +27,21 @@ it('records actual pickup/drop and successful item uses only, without changing s
 });
 it.each([
  ['police',{},'police'],['militia',{},'militia'],['pothole',{},'pothole'],
- ['cargo',{cargoType:'barrel'},'barrel'],['jam',{crossingRole:'vendor'},'vendor'],
+ ['cargo',{cargoType:'barrel'},'barrel'],['cargo',{cargoType:'crate'},'barrel'],['jam',{crossingRole:'vendor'},'vendor'],
  ['traffic',{},'accident'],['jam',{},'barrier'],['traffic',{serviceRole:'ambulance'},'ambulance'],
  ['train',{},'train'],['accident',{},'accident'],['fuel',{},'fuel'],['repair',{},'repair'],
 ] as [EntityKind,object,PopupKind][])('maps actual %s contact with subtype %j to %s',(kind,extra,wanted)=>{
  let source=run(kind,extra);source.fuel=1;source.durability=30;
  source=stepRun(source,noInput());expect(source.popupEvent?.kind).toBe(wanted);
 });
-it('records depletion including automatic replacement, and ignores water/crates',()=>{
+it('records depletion including automatic replacement, and ignores water',()=>{
  let source=run();source.fuel=.00001;
  const empty=stepRun(source,noInput());expect(empty.popupEvent?.kind).toBe('empty');
  source=run('pothole');source.durability=1;source.vehicleInstances.push(newVehicle('car4','spare'));
  const broken=stepRun(source,noInput());expect(broken.popupEvent?.kind).toBe('damage');
  expect(broken.activeVehicleId).toBe('spare');
  expect(feedbackPopup('water')).toBeUndefined();expect(feedbackPopup('traffic',entity('traffic','t',0,0))).toBe('accident');
- expect(feedbackPopup('cargo',{...entity('cargo','c',0,0),cargoType:'crate'})).toBeUndefined();
+ expect(feedbackPopup('cargo',{...entity('cargo','c',0,0),cargoType:'crate'})).toBe('barrel');
 });
 
 it.each(['police','militia'] as const)('records actual paid amount for %s, capped by available money',kind=>{
@@ -58,4 +58,9 @@ it('police-last scenario confiscates both owned vehicles and ends with police il
  expect(source.feedbackCounts.police).toBe(2);expect(source.vehicleInstances.every(v=>v.disabled)).toBe(true);
  expect(source.vehicleInstances.some(v=>v.id===originalActive)).toBe(false);
  expect(source.popupEvent?.kind).toBe('police');expect(source.popupEvent?.moneyLoss).toBeGreaterThanOrEqual(0);
+});
+
+it('keeps falling-cargo feedback when the same hit destroys the vehicle',()=>{
+ const source=run('cargo',{cargoType:'crate'});source.durability=1;
+ const next=stepRun(source,noInput());expect(next.result?.reason).toBe('damage');expect(next.popupEvent?.kind).toBe('barrel');
 });

@@ -3,8 +3,9 @@ import { uiIcon, type UiIcon } from './ui-icons';
 import type { EntityKind } from './world';
 import type { PowerItem } from './items';
 
-export type Discovery = 'passenger' | 'wind' | 'train' | 'officers' | 'obstacles' | 'shop' | 'supplies' | 'junction' | PowerItem;
+export type Discovery = 'passenger' | 'wind' | 'train' | 'officers' | 'obstacles' | 'shop' | 'supplies' | 'junction' | 'switching' | PowerItem;
 export const discoveryCards: Record<Discovery, { title: string; copy: string; icon: UiIcon }> = {
+  switching: {title:'Có hai xe rồi, đổi bằng Tab nhé!',copy:'Bạn đã có xe dự phòng. Khi đang lái, bấm Tab để đổi qua lại giữa hai xe còn chạy được. Khách sẽ đi theo bạn sang xe kia.\n\nMỗi xe giữ riêng xăng, độ bền và nâng cấp; đổi xe không được nạp lại miễn phí. Nhớ xem sức chứa để tránh quá tải nhé.',icon:'car'},
   passenger: { title: 'Cho đi nhờ nhé?', copy: 'Lại gần khách rồi bấm F để đón lên xe. Muốn cho một người xuống, bấm G. Chở khách giúp bạn kiếm thêm tiền.\n\nMỗi xe có sức chứa riêng, tính cả người lái. Càng đông xe càng chậm; quá tải còn làm tốn xăng hơn, nên nhớ chừa chỗ nhé.', icon: 'passenger' },
   obstacles: { title: 'Cẩn thận đường phía trước', copy: 'Vũng nước làm hao thêm xăng; cán ổ gà vừa mất độ bền, vừa rơi tiền. Đụng xe, vật cản hay đồ rơi có thể làm bạn ngã và mất độ bền.\n\nRiêng điểm tai nạn có thể làm hỏng xe ngay. Giảm tốc bằng S, lái A/D để tìm khoảng trống; đừng cố lấy điểm nếu đường quá chật.', icon: 'obstacles' },
   officers: { title: 'Có chốt phía trước', copy: `Đụng công an là mất tiền và bị thu xe đang lái. Còn xe dự phòng chạy được thì đổi sang xe đó; hết xe là thua.\n\nDân phòng không thu xe: họ lấy 50% tiền, tối thiểu ${eventBalance.militiaFine} khi bạn có đủ; thiếu thì lấy hết số đang có. Mua chuối trong cửa hàng rồi bấm 1 hoặc 2 khi đến gần chốt để né. Ngôi sao không giúp tránh bị bắt.`, icon: 'shield' },

@@ -355,7 +355,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
   let confiscatedId: string | null = null;
   const finish = (reason: RunResult['reason']) => {
     if (r.result) return;
-    if (reason === 'damage' && !(r.popupEvent?.kind === 'accident' && r.popupEvent.at === r.activeSeconds)) recordPopup(r,'damage');
+    if (reason === 'damage' && !((r.popupEvent?.kind === 'accident' || r.popupEvent?.kind === 'barrel') && r.popupEvent.at === r.activeSeconds)) recordPopup(r,'damage');
     r.phase = 'ended'; r.speed = 0;
     if (reason !== 'train' && reason !== 'secret' && r.vehicleInstances.some(v => v.id !== r.activeVehicleId && !v.disabled && v.fuel > 0 && v.durability > 0)) {
       replacementPending = true; return;

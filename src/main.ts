@@ -71,6 +71,7 @@ const audio = new AudioDirector();
 type Screen = 'start' | 'pause' | 'help' | 'card' | 'result' | 'shop' | null;
 let screen: Screen = 'start';
 let discovery: Discovery | null = null;
+let secondVehicleGuidePending=false;
 let savedRunId = '';
 const seen = readDiscoveries(), clock = new FixedClock(), listeners = new AbortController();
 const flavorToggle = el<HTMLInputElement>('flavor-toggle'); flavorToggle.checked = showFlavor();
@@ -104,8 +105,9 @@ if (effectsToggle) {
 }
 const roadHud = new RoadHud(el('world-cues'));
 const shopView = new ShopView(el('shop-panel'), () => state, command => {
-  const sequence = state.economySequence;
+  const sequence = state.economySequence, ownedBefore=state.vehicleInstances.length;
   const result = transact(state, command); state = result.run; previous = state;
+  if(command.kind==='vehicle' && state.economySequence!==sequence && ownedBefore===1 && state.vehicleInstances.length===2)secondVehicleGuidePending=true;
   text('shop-status', result.message);
   audio.ui(state.economySequence === sequence ? 'purchase_fail' : command.kind === 'vehicle' ? 'vehicle_purchase' :
     command.kind === 'upgrade' ? 'shop_upgrade' : command.kind === 'service' ? 'shop_service' : 'purchase_success');
@@ -173,7 +175,7 @@ function resume(cue?: UiCue | null): void {
     'menu_back' : previousScreen === 'start' ? 'menu_select' : 'resume'));
 }
 function reset(): void {
-  discovery = null;
+  discovery = null;secondVehicleGuidePending=false;
   audio.reset();
   force = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
   state = newRun(); previous = state;
@@ -253,10 +255,17 @@ function openHelp(): void {
   audio.ui('help_open');
 }
 function dismissCard(silentUi = false): void {
+  const returnToShop=discovery==='switching' && Boolean(state.shopId);
   if (discovery) { seen.add(discovery); saveDiscoveries(seen); } discovery = null;
+  if(returnToShop){show('shop','Cửa hàng ven đường','Tiếp tế rồi lên đường.');shopView.render();audio.enterShop();return;}
   if (document.hidden || !document.hasFocus()) show('pause', 'Sẵn sàng tiếp tục?', 'Chọn tiếp tục khi quay lại màn chơi.'); else resume(silentUi ? null : undefined);
 }
 function discover(): void {
+  if(secondVehicleGuidePending && screen==='shop' && !shopView.hasPendingPurchase()){
+    secondVehicleGuidePending=false;
+    if(!seen.has('switching')){discovery='switching';show('card',discoveryCards.switching.title,discoveryCopy('switching'));el('discovery-art').replaceChildren(discoveryIllustration('switching'));text('discovery-hint','Game đang dừng. Bấm Đã hiểu để quay lại cửa hàng.');audio.ui('card_open');}
+    return;
+  }
   if (state.phase !== 'running' || state.crash) return;
   // No discovery overlay over an active turn decision. Freeze before showing a card.
   const next = junction(state.seed, state.route.index);
