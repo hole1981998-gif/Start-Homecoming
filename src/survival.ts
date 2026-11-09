@@ -1,3 +1,4 @@
+import { feedbackPopup, recordPopup, withPopup, type PopupEvent } from './popup-events';
 import { environmentalPush, pushTrafficWithWind } from './environment-forces';
 import { advanceCrossMotion, crossBoundaries, retireCrossers } from './cross-motion';
 import { advanceInteractingTraffic } from './traffic-interactions';
@@ -26,6 +27,7 @@ export interface Run extends State {
   scoreCombo: number; scoreComboStation: number; scorePickupSequence: number; scorePickupLevel: number;
   activeSeconds: number; motion: 'powered' | 'coasting'; coastRemaining: number;
   world: World; result: RunResult | null; eventSequence: number; feedback: string; feedbackAt: number;
+  popupEvent?: PopupEvent;
   feedbackKind: FeedbackKind | null; feedbackFlavor: string; feedbackCounts: Record<FeedbackKind, number>;
   crash: CrashState | null; recovering: boolean; riderIds: string[]; lostPassengers: number; crashRng: number; crashNumber: number;
   protectedEntities: string[];
@@ -94,9 +96,9 @@ export function switchVehicle(run: Run, targetId?: string, automatic = false): R
 
 function passengerEvent(run: Run, kind: 'passenger' | 'drop', message: string): Run {
   const count = run.feedbackCounts[kind];
-  return { ...run, eventSequence: run.eventSequence + 1, feedbackKind: kind, feedback: message,
+  return withPopup({ ...run, eventSequence: run.eventSequence + 1, feedbackKind: kind, feedback: message,
     feedbackAt: run.activeSeconds, feedbackFlavor: captions[kind][count % captions[kind].length],
-    feedbackCounts: { ...run.feedbackCounts, [kind]: count + 1 } };
+    feedbackCounts: { ...run.feedbackCounts, [kind]: count + 1 } }, kind === 'passenger' ? 'pickup' : 'drop');
 }
 
 /** F is an explicit interaction, not a contact pickup. */
@@ -343,7 +345,8 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
     vehicle.kind, r.activeVehicleId, r.riderIds.length);
   // A depleted imported/test state starts coasting immediately, never receives cruise thrust.
   if (r.fuel <= 0 && r.motion === 'powered') { r.motion = 'coasting'; r.coastRemaining = balance.coastDistance; r.speed = Math.min(before.speed, driven.speed); }
-  const feedback = (kind: FeedbackKind, text: string) => {
+  const feedback = (kind: FeedbackKind, text: string, target?: Entity, popupAllowed = true) => {
+    const popup = feedbackPopup(kind,target); if (popup && popupAllowed) recordPopup(r,popup);
     const count = r.feedbackCounts[kind]; r.feedbackCounts = { ...r.feedbackCounts, [kind]: count + 1 };
     r.eventSequence++; r.feedbackKind = kind; r.feedback = text; r.feedbackAt = r.activeSeconds;
     r.feedbackFlavor = captions[kind][count % captions[kind].length];
@@ -352,6 +355,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
   let confiscatedId: string | null = null;
   const finish = (reason: RunResult['reason']) => {
     if (r.result) return;
+    if (reason === 'damage' && !(r.popupEvent?.kind === 'accident' && r.popupEvent.at === r.activeSeconds)) recordPopup(r,'damage');
     r.phase = 'ended'; r.speed = 0;
     if (reason !== 'train' && reason !== 'secret' && r.vehicleInstances.some(v => v.id !== r.activeVehicleId && !v.disabled && v.fuel > 0 && v.durability > 0)) {
       replacementPending = true; return;
@@ -500,11 +504,11 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
         }
       } else if (e.kind === 'accident') {
         if (canSecretEnd(r.secret, r.activeVehicleId, r.riderIds.length)) {
-          feedback('accident', 'Đã về nhà!'); finish('secret');
+          feedback('accident', 'Đã về nhà!',undefined,false); finish('secret');
         } else { r.durability = 0; feedback('accident', 'Xe hỏng · 0 HP'); finish('damage'); }
       }
       else if (e.kind === 'jam') {
-        feedback('jam', 'Kẹt xe · ngã xe');
+        feedback('jam', 'Kẹt xe · ngã xe',e);
         if (!hasStar(r)) crashDriver(before.speed + (driven.speed - before.speed) * fraction);
       } else if (e.kind === 'broken') {
         const npc = entity('passenger', e.id + '-passenger', e.distance + 4, e.x < 0 ? balance.laneWidth : -balance.laneWidth);
@@ -523,7 +527,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
         const damage = (e.cargoType === 'barrel' ? cargoBalance.barrelDamage : cargoBalance.crateDamage) *
           (articulated && event.part === 'trailer' ? .5 : 1);
         r.durability = Math.max(0, r.durability - damage);
-        feedback('cargo', `Đồ rơi · −${damage} HP`);
+        feedback('cargo', `Đồ rơi · −${damage} HP`,e);
         if (r.durability === 0) finish('damage');
         else if (e.cargoType === 'barrel') crashDriver(before.speed + (driven.speed - before.speed) * fraction);
       }
@@ -542,7 +546,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       const impactDamage = articulated && event.part === 'trailer' ? fullDamage / 2 : fullDamage;
       r.durability = Math.max(0, r.durability - impactDamage);
       e.lastHit = r.activeSeconds;
-      feedback('traffic', `${names.traffic} · −${impactDamage} HP`);
+      feedback('traffic', `${names.traffic} · −${impactDamage} HP`,e);
       if (r.durability === 0) finish('damage');
       else if (!(ram.breaksThrough && e.wrecked)) crashDriver(before.speed + (driven.speed - before.speed) * fraction);
     } else if (e.kind === 'score') {
@@ -582,6 +586,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       history: choice === 'straight' ? r.route.history : [...r.route.history, { distance: crossing.distance, turn: choice }] };
     if (choice === 'straight' && crossing.blockedStraight && !hasStar(r)) {
       r.durability = Math.max(0, r.durability - balance.trafficDamage);
+      recordPopup(r,'barrier');
       feedback('traffic', `Đường thẳng bị chắn · −${balance.trafficDamage} HP`);
       if (r.durability === 0) finish('damage'); else crashDriver(r.speed);
     }

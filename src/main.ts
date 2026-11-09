@@ -1,3 +1,4 @@
+import { EventPopup } from './event-popup';
 import './style.css';
 import { approachCueScale, roadCueDistance } from './cue-scale';
 import './ui-flat.css';
@@ -35,6 +36,7 @@ const el = <T extends Element = HTMLElement>(id: string): T => {
 };
 const text = (id: string, value: string) => { const node = el(id); if (node.textContent !== value) node.textContent = value; };
 const canvas = el<HTMLCanvasElement>('scene'), modal = el('modal');
+const eventPopup = new EventPopup(el('game'),modal.querySelector<HTMLElement>('.panel')!);
 const play = el<HTMLButtonElement>('play'), pause = el<HTMLButtonElement>('pause'), restart = el<HTMLButtonElement>('restart');
 const versionLink = document.createElement('a');
 versionLink.className = 'version-link';
@@ -420,8 +422,8 @@ function frame(now: number): void {
       canvas.dataset.performanceSamples = JSON.stringify(diagnosticSamples);
     }
   }
-  updateHud(); animation = requestAnimationFrame(frame);
+  updateHud(); eventPopup.update(state,now,flavorToggle.checked); animation = requestAnimationFrame(frame);
   canvas.dataset.forceContacts = `${force?.contactPairs ?? 0}`;
 }
 reset(); updateHud(); animation = requestAnimationFrame(frame);
-if (import.meta.hot) import.meta.hot.dispose(() => { cancelAnimationFrame(animation); listeners.abort(); clearTimeout(cardTimer); graphics.dispose(); audio.dispose(); });
+if (import.meta.hot) import.meta.hot.dispose(() => { cancelAnimationFrame(animation); listeners.abort(); clearTimeout(cardTimer); graphics.dispose(); audio.dispose(); eventPopup.dispose(); });

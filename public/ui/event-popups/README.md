@@ -1,0 +1,1 @@
+Owner-provided event illustrations, supplied 2026-11-09. Original PNG pixels preserved; filenames normalized. UI crops the illustration region using CSS and renders the exact requested caption separately, following layout.png. No generated replacement art.

@@ -228,3 +228,5 @@ Hai URL thử `ver.force.html` và `ver.noforce.html` chạy cùng gameplay P7 v
 **Điều chỉnh sức nặng traffic trong `ver.force`:** thử tại `?scenario=traffic-ram&seed=17`; traffic nặng gấp đôi trong solver, một cú húc phá gây chậm xe lớn và chỉ đẩy xác một đoạn ngắn, sau đó xe lớn tiếp tục đi. Kiểm tra thêm xe máy/ô tô và xe đang chạy cùng/ngược chiều trước khi chốt hệ số ở P8. Không đưa thay đổi này vào `ver.noforce`.
 
 **Lượt chỉnh tiếp theo:** `ver.force` bổ sung động lượng trượt sau húc: xe hỏng trôi rồi dừng, xe còn HP trượt rồi tiếp tục chạy theo tốc độ nền. Ca mới `?scenario=force-car-ram&seed=17` cho ô tô 4 chỗ đuổi ô tô cùng chiều, cạnh ca buýt `traffic-ram`. Tại P8 vẫn cần thử nhiều loại xe/tốc độ và nguy cơ va chạm dây chuyền trước khi chốt lực; bản `ver.noforce` không đổi.
+
+- 09/11/2026: popup feedback 19 hình/chữ chủ dự án gửi, latest-event replacement và thời hạn UI 3s; xem EVENT_POPUPS_REVIEW_2026-11-09.md. Không đổi gameplay/balance.

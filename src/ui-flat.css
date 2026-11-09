@@ -174,3 +174,11 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 #junction-branches span.selected{background:#216b62;color:#fff;--qte-pulse-low:.55;animation:qte-selected-pulse 1.2s ease-in-out infinite}
 @keyframes qte-selected-pulse{0%,100%{filter:brightness(var(--qte-brightness))}50%{filter:brightness(calc(var(--qte-brightness) * var(--qte-pulse-low)))}}
 @media(prefers-reduced-motion:reduce){#junction-branches span.selected{animation-duration:2.4s;--qte-pulse-low:.8}}
+
+/* Owner-provided event feedback: illustration crop plus exact caption, no input capture. */
+#event-popup{position:absolute;z-index:9;top:11%;left:50%;transform:translateX(-50%);width:46%;max-width:220px;text-align:center;pointer-events:none;color:#ffe071;font-size:clamp(14px,2.5vh,24px);font-weight:900;line-height:1.12;text-shadow:0 2px 3px #18302bb3}
+.event-popup-art{aspect-ratio:2.7;overflow:hidden;border:1px solid #effff8;border-radius:16px;background:#3799a5}
+.event-popup-art img{display:block;width:100%;height:auto}
+#event-popup strong{display:block;margin-top:6px;font:inherit}
+#game:has(#junction-branches:not([hidden])) #event-popup[data-terminal=false]{width:36%;font-size:clamp(12px,2vh,18px)}
+#event-popup[data-terminal=true]{position:relative;top:auto;left:auto;transform:none;width:65%;margin:0 auto 16px;max-width:220px}

@@ -1,3 +1,4 @@
+import { withPopup } from './popup-events';
 import { bananaTarget } from './special-events';
 import { eventBalance } from './config';
 import { itemBalance } from './config';
@@ -24,19 +25,19 @@ export function usePowerItem(run: Run, slot: number): Run {
   if (item === 'banana') {
     const target = bananaTarget(run);
     if (!target) return run;
-    return { ...run, eventSequence: run.eventSequence + 1, feedbackKind: target.kind === 'militia' ? 'militia' : 'police', feedbackAt: run.activeSeconds,
+    return withPopup({ ...run, eventSequence: run.eventSequence + 1, feedbackKind: target.kind === 'militia' ? 'militia' : 'police', feedbackAt: run.activeSeconds,
       feedback: 'Chuối · tránh bị bắt', feedbackFlavor: '',
       inventory: run.inventory.map((v, i) => i === slot ? null : v),
       world: { ...run.world, entities: run.world.entities.map(e => target.groupId ?
         e.groupId === target.groupId && (e.kind === 'police' || e.kind === 'militia') ? { ...e, stunned: true } : e :
-        e.id === target.id ? { ...e, consumed: true } : e) } };
+        e.id === target.id ? { ...e, consumed: true } : e) } },'banana');
   }
-  if (item === 'grab') return callGrab(run, slot);
+  if (item === 'grab') { const next=callGrab(run,slot); return next===run?run:withPopup(next,'grab'); }
   if (!item || (item === 'nitro' && (hasBoost(run) || run.fuel <= 0 || run.motion !== 'powered')) ||
     (item === 'star' && hasStar(run))) return run;
-  return { ...run, inventory: run.inventory.map((value, i) => i === slot ? null : value),
+  return withPopup({ ...run, inventory: run.inventory.map((value, i) => i === slot ? null : value),
     powers: item === 'nitro' ? { ...run.powers, boostUntil: run.activeSeconds + itemBalance.boostSeconds } :
-      { ...run.powers, starUntil: run.activeSeconds + itemBalance.starSeconds } };
+      { ...run.powers, starUntil: run.activeSeconds + itemBalance.starSeconds } },item);
 }
 /** Space starts flight independently; neither jumping nor landing extends the boost. */
 export function requestJump(run: Run): Run {

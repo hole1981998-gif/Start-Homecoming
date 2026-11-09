@@ -54,6 +54,7 @@ it('a real moving train requires witnessed high crossing and landing beyond its 
   let flying = armed;
   for (let i = 0; i < 240 && flying.phase === 'running'; i++) flying = stepRun(flying, noInput());
   expect(flying.result?.reason).toBe('secret');
+  expect(flying.popupEvent?.kind).not.toBe('accident');
   expect(flying.secret.step).toBe(3);
   expect(flying.durability).toBeGreaterThan(0);
   expect(flying.riderIds).toHaveLength(3);
