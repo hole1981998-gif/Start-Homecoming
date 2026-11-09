@@ -39,3 +39,16 @@ Game designer self-review from these inputs and simulation assertions: feedback 
 Art integration self-assessment from current screenshots (not independent review): silhouette/readability 8/10; value/contrast 8; color/mood 7; shape language 8; light/weather/material 7; UI/typography 8; consistency 7; accessibility/performance 6. Reasons: owner art reads clearly at compact size, warm captions contrast with dark road, bright event cards are more saturated than the game but transient. Text remains live and popup is optional; nineteen PNGs add about 3.2 MB, and screen reader/performance profiling is not certified. No criterion below 6; owner retains final art approval.
 
 Human review: pending for this revision. Merge: not performed. PR creation status recorded in handoff.
+## Corrected visuals — 09/11/2026 follow-up
+
+Owner replaced all 19 source files and requested 60–65% size. Continued the same unmerged feature branch; fetched origin/main remains ba22ba5. Every normalized asset matches the new supplied file byte-for-byte (dimensions and hashes in evidence/event-popup-visual-refresh/asset-validation.txt).
+
+Supersedes the initial cropped-art/live-visible-caption layout: render the complete supplied PNG, including its baked caption and border. Intrinsic height:auto preserves differing aspect ratios. Removed the extra CSS border, colored background and fixed aspect crop that caused the lower edge artifact. The live caption remains visually hidden for assistive technology. All gameplay/QTE/result width limits are scaled by .625 (46% to 28.75%, 220px to 137.5px); event mappings and three-second replacement logic unchanged.
+
+Manual current in-app Chromium, passenger scenario, seed17: Start + F shows corrected pickup; G replaces with corrected drop; expires and Escape pauses correctly. Current image natural size501x255 rendered124.594x63.406px, preserving ratio; parent border0px. Screenshots pickup.png/drop.png show complete art without an extra lower frame. Game left open paused for owner. Other nineteen originals verified by byte comparison; each individual event was not manually re-driven this visual-only revision.
+
+Game designer self-review: smaller feedback exposes more road; no balance or timing changes. UI/UX self-review from these current screenshots: reduced obstruction and single intact image remove mismatched border/caption seams; baked caption is smaller, owner can assess readability in live play. Self-assessed art rubric: silhouette7, contrast7, mood7, shape8, materials7, typography6, consistency8, accessibility/performance6 out of10. Compact caption is the limiting criterion; assistive text retained. No independent expert review claimed.
+
+Validation Windows bundled Node/pnpm: lint/typecheck/build exit0; existing chunk-size warning retained. Full tests result in evidence/event-popup-visual-refresh/tests.txt. No new simulation logic or tests for constants introduced. Human review pending; not merged. Earlier PR creation remains blocked by GitHub connector permission403.
+
+Final visual-refresh full-suite result: pnpm test --maxWorkers=1 exit0, 83 files / 465 tests passed in 231.81s. lint/typecheck/build also exit0 on this CSS/assets revision.

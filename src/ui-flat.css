@@ -175,10 +175,10 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 @keyframes qte-selected-pulse{0%,100%{filter:brightness(var(--qte-brightness))}50%{filter:brightness(calc(var(--qte-brightness) * var(--qte-pulse-low)))}}
 @media(prefers-reduced-motion:reduce){#junction-branches span.selected{animation-duration:2.4s;--qte-pulse-low:.8}}
 
-/* Owner-provided event feedback: illustration crop plus exact caption, no input capture. */
-#event-popup{position:absolute;z-index:9;top:11%;left:50%;transform:translateX(-50%);width:46%;max-width:220px;text-align:center;pointer-events:none;color:#ffe071;font-size:clamp(14px,2.5vh,24px);font-weight:900;line-height:1.12;text-shadow:0 2px 3px #18302bb3}
-.event-popup-art{aspect-ratio:2.7;overflow:hidden;border:1px solid #effff8;border-radius:16px;background:#3799a5}
+/* Owner-provided event feedback: complete illustration with baked caption; accessible live caption, no input capture. */
+#event-popup{position:absolute;z-index:9;top:11%;left:50%;transform:translateX(-50%);width:28.75%;max-width:137.5px;text-align:center;pointer-events:none;color:#ffe071;font-size:clamp(14px,2.5vh,24px);font-weight:900;line-height:1.12;text-shadow:0 2px 3px #18302bb3}
+.event-popup-art{border:0;background:none}
 .event-popup-art img{display:block;width:100%;height:auto}
-#event-popup strong{display:block;margin-top:6px;font:inherit}
-#game:has(#junction-branches:not([hidden])) #event-popup[data-terminal=false]{width:36%;font-size:clamp(12px,2vh,18px)}
-#event-popup[data-terminal=true]{position:relative;top:auto;left:auto;transform:none;width:65%;margin:0 auto 16px;max-width:220px}
+#event-popup strong{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+#game:has(#junction-branches:not([hidden])) #event-popup[data-terminal=false]{width:22.5%;font-size:clamp(12px,2vh,18px)}
+#event-popup[data-terminal=true]{position:relative;top:auto;left:auto;transform:none;width:40.625%;margin:0 auto 10px;max-width:137.5px}

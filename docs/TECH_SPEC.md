@@ -242,3 +242,5 @@ Bản `p62-forces-2` thay thế quy tắc lực của `p62-forces-1` ở trên. 
 
 ## Popup sự kiện chủ dự án gửi — 09/11/2026
 Simulation chỉ ghi metadata `popupEvent` (sequence riêng, kind, activeSeconds) tại sự kiện đã được chấp nhận. Không đổi eventSequence của audio, RNG hoặc luật giao dịch/va chạm. UI EventPopup hiển thị một popup duy nhất, thay ngay sự kiện mới, tự ẩn sau 3000ms theo đồng hồ giao diện; reset theo runId. Ảnh gốc ở public/ui/event-popups, CSS crop phần minh họa, chữ là text riêng. Popup terminal đặt trong bảng kết quả, không trì hoãn kết ván/ghi kết quả. Tùy chọn Popup vui tắt phần minh họa/chữ, HUD tài nguyên vẫn có.
+
+Popup visual follow-up 09/11: corrected owner PNGs now render whole with intrinsic aspect ratio, no extra CSS frame/background or visible duplicate caption. Accessible live caption retained; all popup widths reduced to 62.5% of the initial integration.
