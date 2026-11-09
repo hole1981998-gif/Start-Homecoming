@@ -4,7 +4,7 @@ import { approachCueScale, roadCueDistance } from './cue-scale';
 import './ui-flat.css';
 import { prepareContentIcons, renderItemSlots } from './ui-icons';
 import { prepareUiShell } from './ui-shell';
-import { discoveryCards, discoveryCategory, readDiscoveries, saveDiscoveries, discoveryIllustration, type Discovery } from './discovery';
+import { discoveryCards, discoveryCopy, discoveryCategory, readDiscoveries, saveDiscoveries, discoveryIllustration, type Discovery } from './discovery';
 import { balance } from './config';
 import { FixedClock, noInput } from './simulation';
 import { activeVehicle, dropPassenger, initialRun, passengerDrive, pickUpPassenger, selectTurn, stepRun, switchVehicle } from './survival';
@@ -70,7 +70,7 @@ let state = newRun(), previous = state, input = noInput();
 const audio = new AudioDirector();
 type Screen = 'start' | 'pause' | 'help' | 'card' | 'result' | 'shop' | null;
 let screen: Screen = 'start';
-let discovery: Discovery | null = null, cardTimer: ReturnType<typeof setTimeout> | undefined;
+let discovery: Discovery | null = null;
 let savedRunId = '';
 const seen = readDiscoveries(), clock = new FixedClock(), listeners = new AbortController();
 const flavorToggle = el<HTMLInputElement>('flavor-toggle'); flavorToggle.checked = showFlavor();
@@ -173,7 +173,7 @@ function resume(cue?: UiCue | null): void {
     'menu_back' : previousScreen === 'start' ? 'menu_select' : 'resume'));
 }
 function reset(): void {
-  clearTimeout(cardTimer); discovery = null;
+  discovery = null;
   audio.reset();
   force = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
   state = newRun(); previous = state;
@@ -242,11 +242,18 @@ function openHelp(): void {
     const section = document.createElement('section'), heading = document.createElement('h2'), copy = document.createElement('p');
     heading.textContent = title; copy.textContent = description; section.append(heading, copy); helpDetails.append(section);
   }
+  const replayGuides=document.createElement('button');replayGuides.textContent='Giới thiệu lại khi gặp';
+  replayGuides.addEventListener('click',()=>{seen.clear();saveDiscoveries(seen);replayGuides.textContent='Đã bật lại giới thiệu lần đầu';replayGuides.disabled=true;});
+  helpDetails.append(replayGuides);
+  for(const key of Object.keys(discoveryCards) as Discovery[]){
+    const detail=document.createElement('details'),summary=document.createElement('summary'),copy=document.createElement('p');
+    summary.textContent=discoveryCards[key].title;copy.textContent=discoveryCopy(key,state.world.directorVersion==='backup');detail.append(summary,copy);helpDetails.append(detail);
+  }
   show('help', 'Cách cầm lái', 'Game đã tạm dừng. Xem lại phím và luật chơi rồi quay lại khi sẵn sàng.');
   audio.ui('help_open');
 }
 function dismissCard(silentUi = false): void {
-  if (discovery) { seen.add(discovery); saveDiscoveries(seen); } discovery = null; clearTimeout(cardTimer);
+  if (discovery) { seen.add(discovery); saveDiscoveries(seen); } discovery = null;
   if (document.hidden || !document.hasFocus()) show('pause', 'Sẵn sàng tiếp tục?', 'Chọn tiếp tục khi quay lại màn chơi.'); else resume(silentUi ? null : undefined);
 }
 function discover(): void {
@@ -258,15 +265,16 @@ function discover(): void {
   const candidate = state.world.entities.filter(e => !e.consumed && (e.kind !== 'passenger' || e.pickupable !== false) &&
     discoveryCategory(e.kind) !== null && !seen.has(discoveryCategory(e.kind)!) && e.distance > state.distance &&
     e.distance - state.distance <= warningDistance(state.speed, e, activeVehicle(state).length)).sort((a, b) => a.distance - b.distance)[0];
-  const key = item ?? (candidate ? discoveryCategory(candidate.kind) : null);
+  const approachingTurn=!seen.has('junction') && next.distance>state.distance && next.distance-state.distance<=Math.max(110,state.speed*6);
+  const key = item ?? (candidate ? discoveryCategory(candidate.kind) : null) ?? (approachingTurn?'junction':null);
   if (!key) return;
   discovery = key; state = { ...state, phase: 'paused' };
   audio.pause();
-  show('card', discoveryCards[key].title, discoveryCards[key].copy);
+  show('card', discoveryCards[key].title, discoveryCopy(key,state.world.directorVersion==='backup'));
   audio.ui('card_open');
   el('discovery-art').replaceChildren(discoveryIllustration(key));
-  text('discovery-hint', 'Đã dừng an toàn · chỉ giới thiệu một lần.');
-  cardTimer = setTimeout(() => dismissCard(true), balance.discoverySeconds * 1000);
+  text('discovery-hint', 'Game đang dừng. Bấm Đã hiểu khi bạn sẵn sàng đi tiếp.');
+
 }
 play.addEventListener('click', () => {
   audio.unlock();
@@ -439,4 +447,4 @@ function frame(now: number): void {
   canvas.dataset.forceContacts = `${force?.contactPairs ?? 0}`;
 }
 reset(); updateHud(); animation = requestAnimationFrame(frame);
-if (import.meta.hot) import.meta.hot.dispose(() => { cancelAnimationFrame(animation); listeners.abort(); clearTimeout(cardTimer); graphics.dispose(); audio.dispose(); eventPopup.dispose(); });
+if (import.meta.hot) import.meta.hot.dispose(() => { cancelAnimationFrame(animation); listeners.abort(); graphics.dispose(); audio.dispose(); eventPopup.dispose(); });

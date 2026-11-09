@@ -36,7 +36,7 @@ export function renderItemSlots(host: HTMLElement, inventory: readonly ('nitro'|
   host.dataset.items = signature; host.setAttribute('role','group');
   host.replaceChildren();
   for (const [index,item] of inventory.entries()) {
-    const slot = document.createElement('span'); slot.className = 'item-slot'; slot.dataset.slot = String(index);
+    const slot = document.createElement('span'); slot.className = 'item-slot'; slot.dataset.slot = String(index); if(item)slot.dataset.item=item;
     slot.setAttribute('aria-hidden','true');
     const key = document.createElement('kbd'); key.textContent = String(index+1); slot.append(key);
     if (item) slot.append(uiIcon(item));

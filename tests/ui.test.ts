@@ -113,10 +113,14 @@ it('real input/UI wiring: release, blur, pause button, help, focus trap and repe
   expect(el('junction-branches').hidden).toBe(false);
   expect(el('junction-branches').classList.contains('active')).toBe(false);
   tick(6);
+  expect(el('modal-title').textContent).toBe('Sắp tới ngã rẽ rồi');
+  const beforeGuide=el('distance').textContent;tick(2);expect(el('distance').textContent).toBe(beforeGuide);
+  click('play');
+  for(let i=0;i<120 && !el('junction-branches').classList.contains('active');i++)tick(.1);
   expect(el('junction-branches').classList.contains('active')).toBe(true);
   key('keydown','KeyQ'); key('keyup','KeyQ'); tick(.1);
   expect(el('junction-left').classList.contains('selected')).toBe(true);
-  tick(1.6);
+  for(let i=0;i<120 && el('junction-branches').classList.contains('active');i++)tick(.1);
   expect(el('junction-branches').classList.contains('active')).toBe(false);
   expect(el('junction-left').classList.contains('selected')).toBe(true);
   expect(document.getElementById('road-action')).toBeNull();

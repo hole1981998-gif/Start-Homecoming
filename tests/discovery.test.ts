@@ -23,7 +23,8 @@ it('first discovery pauses before danger, closes safely, and result/restart cann
   const atCard = el('distance').textContent, fuelAtCard = el('fuel-value').textContent;
   tick(10); expect(el('distance').textContent).toBe(atCard); expect(el('fuel-value').textContent).toBe(fuelAtCard);
   expect(Number(atCard)).toBeLessThan(60); // safely before the first passenger
-  vi.advanceTimersByTime(8000); tick(1); expect(el('modal').hidden).toBe(true);
+  vi.advanceTimersByTime(8000); tick(1); expect(el('modal').hidden).toBe(false);
+  expect(el('distance').textContent).toBe(atCard);el('play').click();tick(1);expect(el('modal').hidden).toBe(true);
   expect(JSON.parse(localStorage.getItem('dvn.discovery.v2') ?? '[]')).toContain('passenger');
   // Remain in the middle. Dismiss every new kind once; middle traffic eventually destroys the bike.
   for (let second = 0; second < 600 && el('play').textContent !== 'Chơi lại'; second++) {

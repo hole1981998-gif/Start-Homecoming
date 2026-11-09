@@ -248,3 +248,5 @@ Popup visual follow-up 09/11: corrected owner PNGs now render whole with intrins
 Popup follow-up: ordinary traffic contact uses accident feedback; dedicated special-event art retained. Common road container width for gameplay/QTE/results, soft320ms entry once per event, disabled by prefers-reduced-motion.
 
 UI follow-up: optional PopupEvent.moneyLoss records actual paid police/militia fee; pending ShopView purchase blocks resume/help until confirm or cancel. Service/upgrade target controls share styling and resources. Result DOM prioritizes score/distance/time and leaderboard, then permanent reason illustration and secondary details. No balance changes.
+
+Discovery: first shop/supplies/junction introductions and persistent acknowledgements; score pickup excluded from obstacle grouping. Explicit dismissal replaces8s auto-resume. Help can reset guide acknowledgements only and re-read collapsible card text. Item slot data-item controls occupied color without shifting slots.

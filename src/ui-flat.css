@@ -236,3 +236,14 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 #modal[data-view=result] #result-badge{order:8}#modal[data-view=result] #legacy-board{order:9}
 #modal[data-view=result] .panel-actions{order:10}#modal[data-view=result] .audio-options{order:11}#modal[data-view=result] #feedback-options{order:12}
 #modal[data-view=result] .modal-version-link{order:13}
+/* Occupied inventory slots are colored, stable controls, without pulsing. */
+.item-slot[data-item]{background:#305766;border:1px solid #93cbd3;box-shadow:0 2px 8px #071d2966}
+.item-slot[data-item=nitro]{background:#2e5e81;border-color:#79c8f0}
+.item-slot[data-item=star]{background:#66512c;border-color:#e2c779}
+.item-slot[data-item=banana]{background:#576734;border-color:#c4d58b}
+.item-slot[data-item=grab]{background:#296752;border-color:#80d8ad}
+.item-slot[data-item] kbd{color:#fff;font-weight:800}.item-slot[data-item] small{color:#eaf5e7}
+#modal[data-view=card] #modal-description{white-space:pre-line;line-height:1.55;font-size:14px}
+#modal[data-view=card] #discovery-art{height:90px;margin:12px 0}
+#modal[data-view=card] #discovery-art .volume-icon{width:90px;height:72px}
+#modal[data-view=card] #discovery-hint{color:#a9d8c4!important}
