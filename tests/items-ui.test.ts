@@ -14,7 +14,7 @@ it('real keys use fixed slots once, paused time freezes effects, and restart cle
   document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
   history.replaceState({}, '', '/?scenario=items&seed=17');
   localStorage.setItem('dvn.cards.v1', JSON.stringify(['water', 'pothole', 'traffic', 'shop']));
-  localStorage.setItem('dvn.discovery.v2', '["nitro","star"]');
+  localStorage.setItem('dvn.discovery.v2', '["obstacles","shop","nitro","star"]');
   let now = 0, frame: FrameRequestCallback = () => {};
   vi.stubGlobal('performance', { now: () => now });
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { frame = cb; return 1; });

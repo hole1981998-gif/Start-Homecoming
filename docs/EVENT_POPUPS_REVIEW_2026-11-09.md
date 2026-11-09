@@ -142,3 +142,17 @@ Self-review UI/UX from current screenshots: two short paragraphs with compact ic
 Full initial regression:83files passed, one UI/QTE test paused at the newly introduced junction card instead of reaching its old timed assertion. Updated that test to assert the new card freezes distance, explicitly dismiss it, then exercise Q selection in the actual open window and verify selected state survives closing. Affected final UI/discovery suite passed4tests; full final rerun recorded in tests-final.txt. This preserves the input/window assertions rather than suppressing the new guide.
 
 Final gates Windows bundled Node/pnpm: lint exit0, typecheck exit0, production build exit0(existing chunk warning), full final suite84files/473tests exit0 in246.24s. Earlier failed full output retained in tests.txt; corrected final output tests-final.txt. No required local check remains missing. CI on new pushed revision not yet observed; human review pending, not merged.
+
+## Guide replay survives page reload
+
+Owner reported no passenger/shop/water introductions. Existing acknowledgements intentionally hide repeat guides; water shares the obstacle card. Found a real replay bug: readDiscoveries always imported legacy dvn.cards.v1 even after Help saved an explicit empty dvn.discovery.v2 list. Reload could therefore silently mark reset guides read again.
+
+Fix: if modern saved data exists (including[]), it is authoritative; legacy acknowledgements migrate only when modern data is absent. No score/progress/run data deleted. Added regression with legacy passenger/shop/water marks, explicit empty save, reload and subsequent single-card acknowledgement. No changes to first-time frequency or hazard grouping.
+
+Current manual in-app Chromium, normal game seed17: used Help→Giới thiệu lại khi gặp, reloaded page, started. Passenger card appeared at0m (passenger-after-reload.png). Explicitly dismissed, continued; obstacle card appeared at108m (obstacles.png). Dismissed then real W input reached shop introduction at200m before first store (shop.png). All are screenshots of current normal game, not separate synthetic fixtures. Re-enabled introductions again via Help for the owner and opened a fresh visible game at readiness. User's earlier game not navigated away.
+
+UI/UX self-review: replay now behaves as its label promises across reloads; first-event cards pause before encounters and buttons remain readable. Game designer self-review: tutorial history only, no damage/economy/spawn changes; no independent reviewer claimed. Tests and evidence in evidence/guide-replay-persistence. Human review pending, not merged; previous PR403 limitation remains.
+
+Existing item/Grab input tests now declare their already-read tutorial preconditions entirely in the modern acknowledgement list, rather than splitting old and new schemas. Their input/consumption assertions are unchanged. Targeted persistence/item/Grab suite passed before full completion.
+
+Final verification: lint/typecheck/build exit0; pnpm test --maxWorkers=1 exit0,84files/474tests in241.64s. Current production build retains existing chunk warning. CI on new pushed revision not yet observed; human review pending, not merged.

@@ -31,8 +31,11 @@ export function discoveryCategory(kind: EntityKind): Discovery | null {
 export function readDiscoveries(): Set<Discovery> {
   const seen = new Set<Discovery>();
   try {
-    const data: unknown = JSON.parse(localStorage.getItem('dvn.discovery.v2') ?? '[]');
+    const saved=localStorage.getItem('dvn.discovery.v2');
+    const data: unknown = JSON.parse(saved ?? '[]');
     if (Array.isArray(data)) for (const key of data) if (typeof key === 'string' && Object.hasOwn(discoveryCards, key)) seen.add(key as Discovery);
+    // A saved empty list is an explicit replay request; never re-import old acknowledgements.
+    if(saved!==null)return seen;
     const legacy: unknown = JSON.parse(localStorage.getItem('dvn.cards.v1') ?? '[]');
     const kinds: EntityKind[] = ['fuel','repair','shop','passenger', 'wind', 'train', 'police', 'militia', 'water', 'pothole', 'traffic', 'cargo', 'jam', 'accident', 'broken'];
     if (Array.isArray(legacy)) for (const key of legacy) if (kinds.includes(key as EntityKind)) {

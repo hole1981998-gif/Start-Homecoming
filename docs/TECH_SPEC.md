@@ -250,3 +250,5 @@ Popup follow-up: ordinary traffic contact uses accident feedback; dedicated spec
 UI follow-up: optional PopupEvent.moneyLoss records actual paid police/militia fee; pending ShopView purchase blocks resume/help until confirm or cancel. Service/upgrade target controls share styling and resources. Result DOM prioritizes score/distance/time and leaderboard, then permanent reason illustration and secondary details. No balance changes.
 
 Discovery: first shop/supplies/junction introductions and persistent acknowledgements; score pickup excluded from obstacle grouping. Explicit dismissal replaces8s auto-resume. Help can reset guide acknowledgements only and re-read collapsible card text. Item slot data-item controls occupied color without shifting slots.
+
+Guide replay persistence: dvn.discovery.v2 is authoritative whenever present, including an empty acknowledgement list. Legacy dvn.cards.v1 migrates only if the modern key is absent, preventing replay resets from being undone on reload.

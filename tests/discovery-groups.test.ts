@@ -21,3 +21,11 @@ it('persists each item introduction independently across reloads, ignoring inval
   expect([...readDiscoveries()]).toEqual(['star']);
   localStorage.setItem('dvn.discovery.v2', '{bad'); expect([...readDiscoveries()]).toEqual([]);
 });
+
+it('keeps an explicit replay reset across reloads even when old legacy acknowledgements exist',()=>{
+ localStorage.clear();localStorage.setItem('dvn.cards.v1','["passenger","shop","water"]');
+ expect([...readDiscoveries()]).toEqual(['passenger','shop','obstacles']);
+ saveDiscoveries(new Set());expect([...readDiscoveries()]).toEqual([]);
+ const seen=readDiscoveries();seen.add('passenger');saveDiscoveries(seen);
+ expect([...readDiscoveries()]).toEqual(['passenger']);expect(readDiscoveries().has('shop')).toBe(false);
+});

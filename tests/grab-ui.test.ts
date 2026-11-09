@@ -13,7 +13,7 @@ it('real input calls Grab once, shows charges/type, requires F, keeps riders thr
   document.body.innerHTML = new DOMParser().parseFromString(readFileSync('index.html', 'utf8'), 'text/html').body.innerHTML;
   history.replaceState({}, '', '/?scenario=grab&seed=17');
   localStorage.setItem('dvn.cards.v1', JSON.stringify(['passenger', 'water', 'traffic', 'pothole', 'shop']));
-  localStorage.setItem('dvn.discovery.v2', '["grab"]');
+  localStorage.setItem('dvn.discovery.v2', '["passenger","obstacles","shop","grab"]');
   let now = 0, frame: FrameRequestCallback = () => {};
   vi.stubGlobal('performance', { now: () => now });
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { frame = cb; return 1; });
