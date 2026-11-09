@@ -41,4 +41,3 @@ it('shows immediately, fades smoothly in the final 700ms, and replaces a fading 
  view.update(next,4799);expect(Number(view.root.style.opacity)).toBeGreaterThan(0);expect(Number(view.root.style.opacity)).toBeLessThan(.01);
  view.update(next,4800);expect(view.root.hidden).toBe(true);expect(view.root.style.opacity).toBe('0');view.dispose();
 });
-
