@@ -246,3 +246,5 @@ Simulation chỉ ghi metadata `popupEvent` (sequence riêng, kind, activeSeconds
 Popup visual follow-up 09/11: corrected owner PNGs now render whole with intrinsic aspect ratio, no extra CSS frame/background or visible duplicate caption. Accessible live caption retained; all popup widths reduced to 62.5% of the initial integration.
 
 Popup follow-up: ordinary traffic contact uses accident feedback; dedicated special-event art retained. Common road container width for gameplay/QTE/results, soft320ms entry once per event, disabled by prefers-reduced-motion.
+
+UI follow-up: optional PopupEvent.moneyLoss records actual paid police/militia fee; pending ShopView purchase blocks resume/help until confirm or cancel. Service/upgrade target controls share styling and resources. Result DOM prioritizes score/distance/time and leaderboard, then permanent reason illustration and secondary details. No balance changes.

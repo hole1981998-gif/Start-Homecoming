@@ -41,3 +41,11 @@ it('shows immediately, fades smoothly in the final 700ms, and replaces a fading 
  view.update(next,4799);expect(Number(view.root.style.opacity)).toBeGreaterThan(0);expect(Number(view.root.style.opacity)).toBeLessThan(.01);
  view.update(next,4800);expect(view.root.hidden).toBe(true);expect(view.root.style.opacity).toBe('0');view.dispose();
 });
+
+it('shows the actual fine beneath the art and clears it for subsequent unrelated feedback',()=>{
+ document.body.innerHTML='<div id="game"></div><div id="result"></div>';
+ const view=new EventPopup(document.getElementById('game')!,document.getElementById('result')!);
+ const run=withPopup({...initialRun(17),phase:'running' as const},'militia');run.popupEvent!.moneyLoss=37.5;
+ view.update(run,0);expect(view.root.querySelector('.popup-money-loss')!.textContent).toBe('−37,5 tiền');
+ view.update(withPopup(run,'pickup'),10);expect((view.root.querySelector('.popup-money-loss') as HTMLElement).hidden).toBe(true);view.dispose();
+});

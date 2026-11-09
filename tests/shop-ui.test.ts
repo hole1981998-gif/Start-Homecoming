@@ -37,6 +37,11 @@ it('R opens shop without fuel/repair packs, empty item keys do not heal, and ser
   expect(el('money').textContent).toBe('3.740'); expect(el('hp-value').textContent).toBe('50 HP');
   expect(el('fuel-value').textContent).toBe('5,0 L');
   expect((document.querySelector('[data-service="fuel"]') as HTMLButtonElement).disabled).toBe(false);
+  click('[data-tab="vehicle"]');click('[data-vehicle="tricycle"]');
+  expect(el('play').hidden).toBe(true);expect((el('play') as HTMLButtonElement).disabled).toBe(true);
+  key('Escape');tick(.2);expect(el('shop-panel').hidden).toBe(false);
+  expect(document.querySelector('[data-confirm]')).not.toBeNull();
+  click('[data-cancel]');expect(el('play').hidden).toBe(false);
   key('Escape'); tick(.2);
   expect(el('item-cue').hidden).toBe(true);
   expect(document.activeElement).toBe(el('scene'));

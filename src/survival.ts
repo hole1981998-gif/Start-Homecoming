@@ -345,8 +345,8 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
     vehicle.kind, r.activeVehicleId, r.riderIds.length);
   // A depleted imported/test state starts coasting immediately, never receives cruise thrust.
   if (r.fuel <= 0 && r.motion === 'powered') { r.motion = 'coasting'; r.coastRemaining = balance.coastDistance; r.speed = Math.min(before.speed, driven.speed); }
-  const feedback = (kind: FeedbackKind, text: string, target?: Entity, popupAllowed = true) => {
-    const popup = feedbackPopup(kind,target); if (popup && popupAllowed) recordPopup(r,popup);
+  const feedback = (kind: FeedbackKind, text: string, target?: Entity, popupAllowed = true, moneyLoss?: number) => {
+    const popup = feedbackPopup(kind,target); if (popup && popupAllowed) recordPopup(r,popup,moneyLoss);
     const count = r.feedbackCounts[kind]; r.feedbackCounts = { ...r.feedbackCounts, [kind]: count + 1 };
     r.eventSequence++; r.feedbackKind = kind; r.feedback = text; r.feedbackAt = r.activeSeconds;
     r.feedbackFlavor = captions[kind][count % captions[kind].length];
@@ -495,7 +495,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
             r.money > eventBalance.militiaHalfMoneyThreshold ? r.money * .5 : eventBalance.militiaFine;
         const short = r.money < fine, paid = Math.min(fine, r.money);
         r.money -= paid;
-        feedback(e.kind, '−' + paid.toFixed(1) + ' tiền' + (e.kind === 'police' ? ' · tịch thu xe' : ''));
+        feedback(e.kind, '−' + paid.toFixed(1) + ' tiền' + (e.kind === 'police' ? ' · tịch thu xe' : ''),undefined,true,paid);
         if (e.kind === 'police') {
           confiscatedId = r.activeVehicleId;
           r.vehicleInstances = saveVehicle(r).map(v => v.id === r.activeVehicleId ? { ...v, disabled: true } :

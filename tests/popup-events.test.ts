@@ -42,3 +42,9 @@ it('records depletion including automatic replacement, and ignores water/crates'
  expect(feedbackPopup('water')).toBeUndefined();expect(feedbackPopup('traffic',entity('traffic','t',0,0))).toBe('accident');
  expect(feedbackPopup('cargo',{...entity('cargo','c',0,0),cargoType:'crate'})).toBeUndefined();
 });
+
+it.each(['police','militia'] as const)('records actual paid amount for %s, capped by available money',kind=>{
+ const source=run(kind);source.money=3;
+ const next=stepRun(source,noInput());
+ expect(next.popupEvent?.kind).toBe(kind);expect(next.popupEvent?.moneyLoss).toBe(3);expect(next.money).toBeLessThan(.1);
+});

@@ -8,11 +8,11 @@ export const popupCaptions = {
  star:'SUPERSTAR!!!',banana:'NÉ CHỐT!',grab:'NHẬN CUỐC!',
 } as const;
 export type PopupKind = keyof typeof popupCaptions;
-export interface PopupEvent { sequence: number; kind: PopupKind; at: number }
+export interface PopupEvent { sequence: number; kind: PopupKind; at: number; moneyLoss?: number }
 interface PopupState { popupEvent?: PopupEvent; activeSeconds: number }
 /** Presentation metadata only, with its own sequence so audio/gameplay event ids stay unchanged. */
-export function recordPopup(state: PopupState, kind: PopupKind): void {
- state.popupEvent={sequence:(state.popupEvent?.sequence??0)+1,kind,at:state.activeSeconds};
+export function recordPopup(state: PopupState, kind: PopupKind, moneyLoss?: number): void {
+ state.popupEvent={sequence:(state.popupEvent?.sequence??0)+1,kind,at:state.activeSeconds,...(moneyLoss!==undefined?{moneyLoss}:{})};
 }
 export function withPopup<T extends PopupState>(state:T,kind:PopupKind):T {
  const next={...state};recordPopup(next,kind);return next;

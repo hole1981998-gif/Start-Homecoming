@@ -15,7 +15,7 @@ export class ShopView {
   private serviceTarget: string | null = null;
   constructor(private host: HTMLElement, private read: () => Run,
     command: (command: ShopCommand) => void,
-    private ui?: (cue: 'shop_category' | 'menu_select' | 'menu_back') => void) {
+    private ui?: (cue: 'shop_category' | 'menu_select' | 'menu_back') => void, private pendingChange?: (pending:boolean)=>void) {
     host.addEventListener('change', event => {
       const select = event.target as HTMLSelectElement;
       if (select.id === 'shop-discard') { const confirm = host.querySelector<HTMLButtonElement>('[data-confirm]'); if (confirm) confirm.disabled = !select.value; return; }
@@ -27,6 +27,7 @@ export class ShopView {
       const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
       if (!button || button.disabled) return;
       const run = read(), sequence = run.economySequence;
+      if (this.pending && button.dataset.tab) return;
       if (button.dataset.tab) { if (this.tab !== button.dataset.tab) this.ui?.('shop_category'); this.tab = button.dataset.tab as typeof this.tab; this.pending = null; this.render(); return; }
       if (button.dataset.vehicle) { this.pending = button.dataset.vehicle as VehicleKind; this.ui?.('menu_select'); this.render(); return; }
       if (button.dataset.cancel) { this.pending = null; this.ui?.('menu_back'); this.render(); return; }
@@ -45,6 +46,7 @@ export class ShopView {
       this.render();
     });
   }
+  hasPendingPurchase(): boolean { return this.pending!==null; }
   reset(): void { this.tab = 'service'; this.pending = null; this.upgradeTarget = this.read().activeVehicleId; this.serviceTarget = this.read().activeVehicleId; }
   render(): void {
     const hadFocus = this.host.contains(document.activeElement);
@@ -89,7 +91,7 @@ export class ShopView {
     if (this.tab === 'upgrade') {
       const upgradeIcons = {engine:'engine',tank:'fuel',armour:'shield',economy:'economy'} as const;
       const details = {engine:'+8% tốc độ tối đa',tank:'+15% bình · không bơm thêm',armour:'+15% HP tối đa · không tự sửa',economy:'−8% tiêu hao nền'};
-      content = `<div class="shop-target"><label for="shop-upgrade-target">Nâng cấp cho</label><select id="shop-upgrade-target">${run.vehicleInstances.map(v => `<option value="${v.id}"${v.id === upgradeTarget.id ? ' selected' : ''}>${vehicles[v.kind].name} · ${v.id === run.activeVehicleId ? 'đang lái' : 'dự phòng'}</option>`).join('')}</select></div>` +
+      content = `<div class="shop-target"><label for="shop-upgrade-target">Nâng cấp cho</label><select id="shop-upgrade-target">${run.vehicleInstances.map(v => `<option value="${v.id}"${v.id === upgradeTarget.id ? ' selected' : ''}>${vehicles[v.kind].name} · ${v.id === run.activeVehicleId ? 'đang lái' : 'dự phòng'}</option>`).join('')}</select><small>${(upgradeTarget.id === run.activeVehicleId ? run.fuel : upgradeTarget.fuel).toFixed(1)} L · ${Math.ceil(upgradeTarget.id === run.activeVehicleId ? run.durability : upgradeTarget.durability)} HP</small></div>` +
         (Object.keys(upgradeNames) as UpgradeKind[]).map(kind => {
           const level=upgradeTarget.upgrades[kind] ?? 0, price=upgradePrice(kind,level);
           return card(icon(upgradeIcons[kind]),upgradeNames[kind],`${details[kind]} / cấp`,button(price === undefined ? 'Tối đa' : `${price} · Nâng cấp`,`data-upgrade="${kind}" aria-label="Nâng cấp ${upgradeNames[kind]}"`,price === undefined || run.money < price),`<span class="shop-level">Cấp ${level}/3</span>`);
@@ -103,8 +105,13 @@ export class ShopView {
     const garage = `<details class="shop-garage" aria-label="Kho xe, tối đa hai xe"><summary><strong>${d.name}</strong><span>${run.fuel.toFixed(1)} L · ${Math.ceil(run.durability)} HP</span><b>Kho ${run.vehicleInstances.length}/2</b></summary>${run.vehicleInstances.map(v => `<div class="garage-vehicle${v.id === run.activeVehicleId ? ' is-active' : ''}">${vehicleIcon(v.kind)}<div><strong>${vehicles[v.kind].name}</strong><small>${v.id === run.activeVehicleId ? 'Đang lái' : 'Dự phòng'} · ${(v.id === run.activeVehicleId ? run.fuel : v.fuel).toFixed(1)} L · ${Math.ceil(v.id === run.activeVehicleId ? run.durability : v.durability)} HP</small></div></div>`).join('')}</details>`;
     this.host.innerHTML = `<div class="shop-wallet">${icon('coins')}<strong>${money}</strong><span>tiền</span></div>${garage}${this.tab === 'power-item' ? inventory : ''}<nav aria-label="Danh mục cửa hàng">${(['service','vehicle','upgrade','power-item'] as const).map((tab,i) => button(icon((['repair','car','engine','bag'] as const)[i])+`<span>${['Tiếp tế','Xe','Nâng cấp','Vật phẩm'][i]}</span>`,`data-tab="${tab}" aria-pressed="${tab === this.tab}"`)).join('')}</nav><div class="shop-content${this.pending ? ' confirming' : ''}">${content}</div>`;
     fillShopThumbnails(this.host);
-    if (this.pending) this.host.scrollTop = 0;
-    if (hadFocus) (this.host.querySelector<HTMLSelectElement>('#shop-discard, #shop-service-target, #shop-upgrade-target') ??
+    this.pendingChange?.(this.pending!==null);
+    if (this.pending) {
+      this.host.querySelectorAll('.shop-garage,nav').forEach(node=>node.remove());
+      this.host.scrollTop=0;
+      (this.host.querySelector<HTMLSelectElement>('#shop-discard') ?? this.host.querySelector<HTMLButtonElement>('[data-cancel]'))?.focus({preventScroll:true});
+    }
+    if (hadFocus && !this.pending) (this.host.querySelector<HTMLSelectElement>('#shop-discard, #shop-service-target, #shop-upgrade-target') ??
       this.host.querySelector<HTMLButtonElement>('nav button[aria-pressed="true"]'))?.focus({ preventScroll: true });
   }
 }

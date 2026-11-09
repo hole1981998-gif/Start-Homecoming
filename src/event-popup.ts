@@ -7,12 +7,13 @@ export class EventPopup {
  readonly root=document.createElement('aside');
  private image=document.createElement('img');
  private caption=document.createElement('strong');
+ private loss=document.createElement('span');
  private runId='';private sequence=0;private until=0;
  constructor(private game:HTMLElement,private resultPanel:HTMLElement){
   this.root.id='event-popup';this.root.hidden=true;
   this.root.setAttribute('role','status');this.root.setAttribute('aria-live','polite');this.root.setAttribute('aria-atomic','true');
   const art=document.createElement('div');art.className='event-popup-art';this.image.alt='';this.image.draggable=false;
-  art.append(this.image);this.root.append(art,this.caption);game.append(this.root);
+  art.append(this.image);this.root.append(art,this.caption);this.loss.className='popup-money-loss';this.loss.hidden=true;this.root.append(this.loss);game.append(this.root);
  }
  update(run:Run,now:number,enabled=true):void {
   if(this.runId!==run.runId){this.runId=run.runId;this.sequence=0;this.until=0;this.root.hidden=true;}
@@ -22,6 +23,7 @@ export class EventPopup {
    this.sequence=event.sequence;this.until=now+popupDurationMs;
    this.image.src='/ui/event-popups/'+event.kind+'.png';this.caption.textContent=popupCaptions[event.kind];
    this.root.dataset.kind=event.kind;
+   this.loss.hidden=event.moneyLoss===undefined;this.loss.textContent=event.moneyLoss===undefined?'':'−'+new Intl.NumberFormat('vi-VN',{maximumFractionDigits:1}).format(event.moneyLoss)+' tiền';
    this.root.dataset.pulse=String(event.sequence%2);
   }
   this.root.hidden=!enabled || !event || now>=this.until;

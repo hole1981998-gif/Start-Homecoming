@@ -109,7 +109,7 @@ const shopView = new ShopView(el('shop-panel'), () => state, command => {
   text('shop-status', result.message);
   audio.ui(state.economySequence === sequence ? 'purchase_fail' : command.kind === 'vehicle' ? 'vehicle_purchase' :
     command.kind === 'upgrade' ? 'shop_upgrade' : command.kind === 'service' ? 'shop_service' : 'purchase_success');
-}, cue => audio.ui(cue));
+}, cue => audio.ui(cue), pending => {play.hidden=pending;play.disabled=pending;});
 function openShop(): void {
   const next = enterShop(state); if (next === state) return;
   state = next; shopView.reset();
@@ -135,6 +135,8 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   modal.querySelector('.panel')!.scrollTop = 0;
   text('modal-title', title); text('modal-description', description);
   text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('force-tail-') ? `ver.${version} · THỬ ĐIỀU KHIỂN XE LỚN` : state.world.prototype.version.startsWith('force-npc-') ? `ver.${version} · THỬ VA CHẠM NPC` : state.world.prototype.version.startsWith('force-car-') ? `ver.${version} · THỬ VA CHẠM XE` : state.world.prototype.version.startsWith('handling-') ? 'THỬ ĐỘ BÁM VÀ QUÁN TÍNH' : state.world.prototype.version.startsWith('p8-') ? 'P8 · THỬ CÂN BẰNG' : state.world.prototype.version.startsWith('p7-') ? 'P7 · THỬ KẾT VÁN' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · THỬ ĐỒ RƠI' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'CHUYẾN ĐI CỦA BẠN');
+  if(document.getElementById('result-money-detail'))el('result-money-detail').hidden=view!=='result';
+  if(document.getElementById('result-reason-art'))el('result-reason-art').hidden=view!=='result';
   el('shop-panel').hidden = view !== 'shop'; el('shop-status').hidden = view !== 'shop';
   el('instructions').hidden = view !== 'help';
   helpDetails.hidden = view !== 'help';
@@ -143,7 +145,7 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   el('result-badge').hidden = view !== 'result' || state.result?.reason !== 'secret';
   el('leaderboard').hidden = view !== 'result';
   el('effects-toggle').parentElement!.hidden = !['pause', 'help', 'start'].includes(view);
-  play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
+  play.disabled=false;play.hidden = view === 'help'; closeHelp.hidden = view !== 'help';
   el('panel-help').hidden = !['pause', 'result', 'start'].includes(view);
   el('panel-restart').hidden = view !== 'pause';
   el('feedback-options').hidden = !['start', 'pause', 'help', 'result'].includes(view);
@@ -159,7 +161,7 @@ function pauseRun(silentUi = false): void {
   if (!silentUi) audio.ui('pause');
 }
 function resume(cue?: UiCue | null): void {
-  if (document.hidden || state.phase === 'ended') return;
+  if (document.hidden || state.phase === 'ended' || (state.shopId && shopView.hasPendingPurchase())) return;
   const previousScreen = screen;
   audio.unlock();
   audio.leaveShop();
@@ -197,6 +199,14 @@ function resultView(): void {
   show('result', result.reason === 'secret' ? 'Đã về nhà!' : result.reason === 'train' ? 'Va chạm tàu hoả' : result.reason === 'police' ? 'Xe bị tịch thu' : result.reason === 'fuel' ? 'Hết xăng, hết đà' : 'Xe không chạy tiếp được',
     result.reason === 'secret' ? 'Bạn đã hoàn tất chuỗi bí mật và nhận huy hiệu Đã về nhà.' :
       result.reason === 'train' ? 'Tàu luôn kết thúc ván khi va chạm. Giữ S chờ mở đường hoặc nhảy bằng nitro + Space.' : result.reason === 'police' ? 'Không còn xe dự phòng hợp lệ. Dùng chuối trong cửa sổ cảnh báo ở lượt sau.' : result.reason === 'fuel' ? `Xe đã trôi thêm đủ ${balance.coastDistance} m sau khi hết xăng. Lượt sau hãy tìm bình xăng ven đường.` : 'Độ bền đã về 0 sau va chạm. Lượt sau hãy đọc cảnh báo và chừa thời gian đổi hướng.');
+  let reasonArt=document.getElementById('result-reason-art') as HTMLImageElement|null;
+  if(!reasonArt){reasonArt=document.createElement('img');reasonArt.id='result-reason-art';el('result-summary').after(reasonArt);}
+  const reasonImage=result.reason==='train'?'train':result.reason==='police'?'police':result.reason==='fuel'?'empty':result.reason==='secret'?'pickup':state.popupEvent?.kind==='accident'?'accident':'damage';
+  reasonArt.hidden=false;
+  let moneyDetail=document.getElementById('result-money-detail');
+  if(!moneyDetail){moneyDetail=document.createElement('dl');moneyDetail.id='result-money-detail';moneyDetail.append(el('result-money').parentElement!);el('result-summary').after(moneyDetail);}
+  moneyDetail.hidden=false;
+  reasonArt.src='/ui/event-popups/'+reasonImage+'.png';reasonArt.alt=el('modal-title').textContent??'';
   const list = el<HTMLOListElement>('leaderboard-list'); list.replaceChildren();
   const boardVersion = result.scoreVersion ?? 'legacy-v1';
   text('leaderboard-title', boardVersion.startsWith('road-') ? 'Bảng điểm nhặt trên đường · trên máy này' : boardVersion === 'speed-v1' ? 'Bảng điểm tốc độ · trên máy này' : 'Bảng điểm cũ · trên máy này');
@@ -205,6 +215,8 @@ function resultView(): void {
     row.textContent = `${index + 1}. ${Math.floor(entry.score)} điểm · ${Math.floor(entry.distance)} m${entry.reason === 'secret' ? ' · ⌂' : ''}`;
     list.append(row);
   }
+  const resultPanel=modal.querySelector<HTMLElement>('.panel')!;
+  for(const node of [el('modal-label'),el('modal-title'),el('result-summary'),el('leaderboard'),play,reasonArt,el('modal-description'),moneyDetail,el('result-badge'),el('legacy-board'),el('panel-help').parentElement!,audioOptions,el('feedback-options')])resultPanel.append(node);
   const legacy = boardVersion === 'road-v2' ? leaderboard('road-v1').slice(0, 3) : boardVersion === 'road-v1' ? leaderboard('speed-v1').slice(0, 3) : boardVersion === 'speed-v1' ? leaderboard('legacy-v1').slice(0, 3) : [];
   el('legacy-board').hidden = legacy.length === 0;
   text('legacy-board-title', boardVersion === 'road-v2' ? 'Thành tích điểm rải bản trước' : boardVersion === 'road-v1' ? 'Thành tích luật điểm tốc độ' : 'Thành tích luật điểm ban đầu');
@@ -216,6 +228,7 @@ function resultView(): void {
   }
 }
 function openHelp(): void {
+  if(state.shopId && shopView.hasPendingPurchase())return;
   audio.unlock();
   if (state.shopId) state = leaveShop(state);
   pauseRun(true);
