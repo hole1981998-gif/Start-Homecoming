@@ -52,3 +52,17 @@ Game designer self-review: smaller feedback exposes more road; no balance or tim
 Validation Windows bundled Node/pnpm: lint/typecheck/build exit0; existing chunk-size warning retained. Full tests result in evidence/event-popup-visual-refresh/tests.txt. No new simulation logic or tests for constants introduced. Human review pending; not merged. Earlier PR creation remains blocked by GitHub connector permission403.
 
 Final visual-refresh full-suite result: pnpm test --maxWorkers=1 exit0, 83 files / 465 tests passed in 231.81s. lint/typecheck/build also exit0 on this CSS/assets revision.
+
+## Traffic feedback, consistent size and soft entry — follow-up
+
+Same unmerged popup feature, origin/main fetched before changes. Ordinary traffic contacts now map to accident feedback, including different traffic models/directions/wrecks because mapping uses the common traffic event. Existing explicitly illustrated special contacts (ambulance, vendor, barrel, train, barrier) retain their dedicated captions. Missing-target traffic feedback (blocked junction) does not incorrectly become a vehicle accident. Same-tick accident remains visible if HP also reaches zero.
+
+Sizing investigation: asset aspect ratios range about1.83–1.96, producing only modest height differences at equal width. The large discrepancy came from QTE and terminal width overrides. Removed both shrink factors; all contexts now use the road's inline container width, min(28.75cqw,137.5px), while preserving intrinsic image proportions and complete borders. No new image processing.
+
+Entry motion: one320ms ease-out bounce per event, .96→1.02→1 scale and +3→−1→0px travel. No looping or exit jump. Alternating animation names retrigger even identical successive events. OS reduced-motion disables it. Current in-app browser reports prefers-reduced-motion=true, confirmed computed duration0s; therefore normal-motion subjective feel was NOT manually observed in this environment. Static CSS defines the limited motion above.
+
+Current manual check: Chromium in-app, traffic-ram seed17, Start and W700ms actually collided with small traffic car; bus HP168→160 and accident popup appeared. Current screenshot evidence/popup-collision-bounce/traffic.png. Road width433px, popup width124.594px. Escape pause worked, game left open. No balance changes. Test coverage adds actual ordinary-traffic contact to existing subtype tests. Prior secret-ending guard remains.
+
+Self-review, game designer: hit feedback now covers ordinary vehicles without changing collision damage or RNG. UI/UX: consistent viewport-relative width avoids state-dependent shrinking; one brief low-amplitude entrance avoids continuous distraction. Limitation: motion feel with OS reduction disabled and every vehicle model not manually driven. No independent reviewer claimed. Automated gate outputs stored beside screenshot; human review pending, not merged. PR remains unavailable due earlier connector403.
+
+Final validation: lint/typecheck/build and pnpm test --maxWorkers=1 all exit0; 83 files / 466 tests passed in231.49s on this revision.

@@ -22,7 +22,7 @@ export function feedbackPopup(kind:FeedbackKind,target?:Entity):PopupKind|undefi
   case 'passenger':return 'pickup';case 'drop':return 'drop';case 'coast':return 'empty';
   case 'police':case 'militia':case 'pothole':case 'accident':case 'train':case 'fuel':case 'repair':return kind;
   case 'jam':return target?.crossingRole==='vendor'?'vendor':'barrier';
-  case 'traffic':return target?.serviceRole==='ambulance'?'ambulance':undefined;
+  case 'traffic':return target?.serviceRole==='ambulance'?'ambulance':target?.kind==='traffic'?'accident':undefined;
   case 'cargo':return target?.cargoType==='barrel'?'barrel':undefined;
   default:return undefined;
  }

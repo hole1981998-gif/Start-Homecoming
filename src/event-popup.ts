@@ -21,6 +21,7 @@ export class EventPopup {
    this.sequence=event.sequence;this.until=now+popupDurationMs;
    this.image.src='/ui/event-popups/'+event.kind+'.png';this.caption.textContent=popupCaptions[event.kind];
    this.root.dataset.kind=event.kind;
+   this.root.dataset.pulse=String(event.sequence%2);
   }
   this.root.hidden=!enabled || !event || now>=this.until;
   const terminal=run.phase==='ended';this.root.dataset.terminal=String(terminal);
