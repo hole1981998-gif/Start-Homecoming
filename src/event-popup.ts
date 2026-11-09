@@ -1,6 +1,7 @@
 import { popupCaptions } from './popup-events';
 import type { Run } from './survival';
-const popupDurationMs = 3000;
+const popupDurationMs = 2500;
+const popupFadeMs = 700;
 /** One replaceable toast. Wall-clock expiry keeps terminal/paused events finite too. */
 export class EventPopup {
  readonly root=document.createElement('aside');
@@ -24,6 +25,7 @@ export class EventPopup {
    this.root.dataset.pulse=String(event.sequence%2);
   }
   this.root.hidden=!enabled || !event || now>=this.until;
+  this.root.style.opacity=String(Math.max(0,Math.min(1,(this.until-now)/popupFadeMs)));
   const terminal=run.phase==='ended';this.root.dataset.terminal=String(terminal);
   const host=terminal?this.resultPanel:this.game;
   if(this.root.parentElement!==host){if(terminal)host.prepend(this.root);else host.append(this.root);}

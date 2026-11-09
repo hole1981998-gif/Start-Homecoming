@@ -178,16 +178,16 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 /* Owner-provided event feedback: complete illustration with baked caption; accessible live caption, no input capture. */
 #event-popup{position:absolute;z-index:9;top:11%;left:50%;transform:translateX(-50%);width:min(28.75cqw,137.5px);text-align:center;pointer-events:none;color:#ffe071;font-size:clamp(14px,2.5vh,24px);font-weight:900;line-height:1.12;text-shadow:0 2px 3px #18302bb3}
 .event-popup-art{border:0;background:none}
-.event-popup-art img{display:block;width:100%;height:auto}
+.event-popup-art img{display:block;width:100%;height:auto;clip-path:inset(2.5% round 10% / 20%)}
 #event-popup strong{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 #game:has(#junction-branches:not([hidden])) #event-popup[data-terminal=false]{font-size:clamp(12px,2vh,18px)}
 #event-popup[data-terminal=true]{position:relative;top:auto;left:auto;transform:none;margin:0 auto 10px}
 
 /* Share the road viewport sizing even when hosted inside the narrower result panel. */
 #game{container-type:inline-size}
-#event-popup .event-popup-art{animation-duration:320ms;animation-timing-function:ease-out;transform-origin:center}
+#event-popup .event-popup-art{animation-duration:580ms;animation-timing-function:ease-out;transform-origin:center}
 #event-popup[data-pulse="0"] .event-popup-art{animation-name:popup-soft-a}
 #event-popup[data-pulse="1"] .event-popup-art{animation-name:popup-soft-b}
-@keyframes popup-soft-a{0%{transform:translateY(3px) scale(.96)}60%{transform:translateY(-1px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
-@keyframes popup-soft-b{0%{transform:translateY(3px) scale(.96)}60%{transform:translateY(-1px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
+@keyframes popup-soft-a{0%{transform:translateY(11px) scale(.90)}35%{transform:translateY(-10px) scale(1.09)}65%{transform:translateY(5px) scale(.975)}85%{transform:translateY(-2px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
+@keyframes popup-soft-b{0%{transform:translateY(11px) scale(.90)}35%{transform:translateY(-10px) scale(1.09)}65%{transform:translateY(5px) scale(.975)}85%{transform:translateY(-2px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){#event-popup .event-popup-art{animation:none}}

@@ -1,0 +1,10 @@
+
+ RUN  v3.2.4 C:/Users/Admin/Documents/Codex/2026-10-17/c-to-n-b-b-t/outputs/duong-ve-nha
+
+ ✓ tests/event-popup.test.ts (3 tests) 25ms
+ ✓ tests/popup-events.test.ts (14 tests) 13ms
+
+ Test Files  2 passed (2)
+      Tests  17 passed (17)
+   Start at  21:41:05
+   Duration  1.46s (transform 322ms, setup 0ms, collect 466ms, tests 38ms, environment 462ms, prepare 180ms)
