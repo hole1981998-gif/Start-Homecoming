@@ -196,9 +196,9 @@ function resultView(): void {
   if (savedRunId !== state.runId && recordResult(result)) savedRunId = state.runId;
   text('result-distance', `${Math.floor(result.distance)} m`); text('result-score', `${Math.floor(result.score)}`);
   text('result-money', formatter.format(result.money)); text('result-time', `${Math.floor(result.seconds / 60)}:${String(Math.floor(result.seconds % 60)).padStart(2, '0')}`);
-  show('result', result.reason === 'secret' ? 'Đã về nhà!' : result.reason === 'train' ? 'Va chạm tàu hoả' : result.reason === 'police' ? 'Xe bị tịch thu' : result.reason === 'fuel' ? 'Hết xăng, hết đà' : 'Xe không chạy tiếp được',
+  show('result', result.reason === 'secret' ? 'Đã về nhà!' : result.reason === 'train' ? 'Va chạm tàu hoả' : result.reason === 'police' ? 'Hết xe để về nhà!' : result.reason === 'fuel' ? 'Hết xăng, hết đà' : 'Xe không chạy tiếp được',
     result.reason === 'secret' ? 'Bạn đã hoàn tất chuỗi bí mật và nhận huy hiệu Đã về nhà.' :
-      result.reason === 'train' ? 'Tàu luôn kết thúc ván khi va chạm. Giữ S chờ mở đường hoặc nhảy bằng nitro + Space.' : result.reason === 'police' ? 'Không còn xe dự phòng hợp lệ. Dùng chuối trong cửa sổ cảnh báo ở lượt sau.' : result.reason === 'fuel' ? `Xe đã trôi thêm đủ ${balance.coastDistance} m sau khi hết xăng. Lượt sau hãy tìm bình xăng ven đường.` : 'Độ bền đã về 0 sau va chạm. Lượt sau hãy đọc cảnh báo và chừa thời gian đổi hướng.');
+      result.reason === 'train' ? 'Tàu luôn kết thúc ván khi va chạm. Giữ S chờ mở đường hoặc nhảy bằng nitro + Space.' : result.reason === 'police' ? 'Công an đã tịch thu xe đang lái; không còn xe dự phòng có thể chạy. Lượt sau hãy dùng chuối để né chốt kịp lúc.' : result.reason === 'fuel' ? `Xe đã trôi thêm đủ ${balance.coastDistance} m sau khi hết xăng. Lượt sau hãy tìm bình xăng ven đường.` : 'Độ bền đã về 0 sau va chạm. Lượt sau hãy đọc cảnh báo và chừa thời gian đổi hướng.');
   let reasonArt=document.getElementById('result-reason-art') as HTMLImageElement|null;
   if(!reasonArt){reasonArt=document.createElement('img');reasonArt.id='result-reason-art';el('result-summary').after(reasonArt);}
   const reasonImage=result.reason==='train'?'train':result.reason==='police'?'police':result.reason==='fuel'?'empty':result.reason==='secret'?'pickup':state.popupEvent?.kind==='accident'?'accident':'damage';

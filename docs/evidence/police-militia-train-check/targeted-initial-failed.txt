@@ -1,0 +1,49 @@
+
+ RUN  v3.2.4 C:/Users/Admin/Documents/Codex/2026-10-17/c-to-n-b-b-t/outputs/duong-ve-nha
+
+ ❯ tests/popup-events.test.ts (17 tests | 1 failed) 39ms
+   ✓ records actual pickup/drop and successful item uses only, without changing simulation audio ids 7ms
+   ✓ maps actual police contact with subtype {} to police 3ms
+   ✓ maps actual militia contact with subtype {} to militia 0ms
+   ✓ maps actual pothole contact with subtype {} to pothole 0ms
+   ✓ maps actual cargo contact with subtype {"cargoType":"barrel"} to barrel 1ms
+   ✓ maps actual jam contact with subtype {"crossingRole":"vendor"} to vendor 0ms
+   ✓ maps actual traffic contact with subtype {} to accident 1ms
+   ✓ maps actual jam contact with subtype {} to barrier 0ms
+   ✓ maps actual traffic contact with subtype {"serviceRole":"ambulance"} to ambulance 0ms
+   ✓ maps actual train contact with subtype {} to train 0ms
+   ✓ maps actual accident contact with subtype {} to accident 0ms
+   ✓ maps actual fuel contact with subtype {} to fuel 0ms
+   ✓ maps actual repair contact with subtype {} to repair 0ms
+   ✓ records depletion including automatic replacement, and ignores water/crates 1ms
+   ✓ records actual paid amount for police, capped by available money 0ms
+   ✓ records actual paid amount for militia, capped by available money 0ms
+   × police-last scenario confiscates both owned vehicles and ends with police illustration metadata 23ms
+     → expected [ { id: 'qa-event-reserve', …(5) } ] to have a length of 2 but got 1
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/popup-events.test.ts > police-last scenario confiscates both owned vehicles and ends with police illustration metadata
+AssertionError: expected [ { id: 'qa-event-reserve', …(5) } ] to have a length of 2 but got 1
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ tests/popup-events.test.ts:57:34
+     55|  for(let i=0;i<1800 && source.phase!=='ended';i++)source=stepRun(sourc…
+     56|  expect(source.phase).toBe('ended');expect(source.result?.reason).toBe…
+     57|  expect(source.vehicleInstances).toHaveLength(2);expect(source.vehicle…
+       |                                  ^
+     58|  expect(source.popupEvent?.kind).toBe('police');expect(source.popupEve…
+     59| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 16 passed (17)
+   Start at  22:10:40
+   Duration  653ms (transform 228ms, setup 0ms, collect 318ms, tests 39ms, environment 0ms, prepare 110ms)

@@ -222,7 +222,7 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 .shop-confirm-actions [data-confirm]{background:#7cc7ad!important;color:#16362e!important}
 #shop-panel:has(.confirming) .shop-wallet{margin-bottom:8px}
 .world-cue.shop>span:not(.shop-label){font-size:19px;font-weight:900;line-height:1.1}
-.popup-money-loss{display:block;margin:6px auto 0;width:max-content;max-width:160%;padding:4px 9px;border-radius:8px;background:#462b31;color:#ffd7a4;font-size:18px;font-weight:900;white-space:nowrap;text-shadow:0 1px 2px #0008}
+.popup-money-loss{display:block;margin:6px auto 0;width:max-content;max-width:160%;padding:0;border:0;background:none;color:#ffd7a4;font-size:14px;font-weight:500;white-space:nowrap;text-shadow:0 1px 2px #0008}
 #modal[data-view=result] .panel{display:flex;flex-direction:column;gap:12px}
 #modal[data-view=result] #modal-label{order:0}#modal[data-view=result] #modal-title{order:1;margin:0;font-size:24px}
 #modal[data-view=result] #result-summary{order:2;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0}

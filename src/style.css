@@ -1,4 +1,5 @@
-:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#f6f5e9;background:#152126;font-synthesis:none;color-scheme:dark}
+@font-face{font-family:"Manrope";src:url("/fonts/manrope/Manrope-Variable.ttf") format("truetype");font-style:normal;font-weight:200 800;font-display:swap}
+:root{font-family:"Manrope",system-ui,sans-serif;color:#f6f5e9;background:#152126;font-synthesis:none;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0}button{font:inherit;cursor:pointer;border:1px solid #83979c;background:#25383e;color:#f0f3ed;border-radius:6px;padding:9px 10px;min-height:40px}button:hover{background:#3a5057}button:disabled{opacity:.4;cursor:default}button:focus-visible{outline:3px solid #f2cd7b;outline-offset:2px}[hidden]{display:none!important}
 #app{min-height:100dvh;display:flex;align-items:center;justify-content:center;gap:48px;padding:12px}#game{position:relative;height:min(calc(100dvh - 24px),960px);aspect-ratio:9/16;overflow:hidden;background:#566770;border:1px solid #677a80;--bike-x:50%;--bike-tail-y:84%}canvas{display:block;width:100%;height:100%;outline:none}canvas:focus-visible{outline:2px solid #dec183;outline-offset:-3px}
 .sr-only{position:absolute!important;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;pointer-events:none}
@@ -31,7 +32,7 @@ footer{position:absolute;bottom:10px;left:14px;right:14px;display:flex;align-ite
 
 /* P5.1 functional cue: keep inventory/timers away from fuel/HP beneath the car. */
 #item-cue{top:23%;bottom:auto;left:12px;right:12px;margin:0;text-align:center;font-size:11px;line-height:1.4;text-shadow:0 1px 3px #172329}
-.version-badge, .version-link { position: absolute; z-index: 2; font: 600 12px/1.2 system-ui, sans-serif; color: #f1e8c9; background: #172329c9; padding: 6px 8px; border-radius: 6px; }
+.version-badge, .version-link { position: absolute; z-index: 2; font: 600 12px/1.2 "Manrope", sans-serif; color: #f1e8c9; background: #172329c9; padding: 6px 8px; border-radius: 6px; }
 .version-badge { left: 8px; bottom: 54px; pointer-events: none; }
 .version-link { right: 8px; bottom: 54px; text-decoration: none; }
 .version-link:focus-visible { outline: 2px solid #f5d786; }
@@ -56,3 +57,5 @@ footer{position:absolute;bottom:10px;left:14px;right:14px;display:flex;align-ite
 .panel>label{font-size:12px;line-height:1.6;display:block;margin-top:12px}
 .panel input[type=checkbox]{width:18px;height:18px;vertical-align:middle;accent-color:#dec183}
 @media(max-height:650px){.panel{padding:18px}.panel h1{font-size:26px}.actions{gap:4px}footer{right:10px;bottom:7px}.modal-version-link{font-size:11px}}
+
+input,select,textarea{font-family:inherit}

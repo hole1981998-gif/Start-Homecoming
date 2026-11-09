@@ -4,6 +4,7 @@ import {entity,initialWorld,type EntityKind} from '../src/world';
 import {noInput} from '../src/simulation';
 import {usePowerItem} from '../src/items';
 import {newVehicle} from '../src/vehicles';
+import {developmentScenario} from '../src/development';
 import {feedbackPopup, type PopupKind} from '../src/popup-events';
 function run(kind?:EntityKind,extra={}) : Run {
  const base=initialRun(17),obstacle=kind?{...entity(kind,'event',0,0),speed:0,eventAt:0,...extra}:null;
@@ -47,4 +48,14 @@ it.each(['police','militia'] as const)('records actual paid amount for %s, cappe
  const source=run(kind);source.money=3;
  const next=stepRun(source,noInput());
  expect(next.popupEvent?.kind).toBe(kind);expect(next.popupEvent?.moneyLoss).toBe(3);expect(next.money).toBeLessThan(.1);
+});
+
+it('police-last scenario confiscates both owned vehicles and ends with police illustration metadata',()=>{
+ let source={...developmentScenario(initialRun(17),'events-police-last'),phase:'running' as const} as Run;
+ const originalActive=source.activeVehicleId;
+ for(let i=0;i<1800 && source.phase!=='ended';i++)source=stepRun(source,{...noInput(),accelerate:true});
+ expect(source.phase).toBe('ended');expect(source.result?.reason).toBe('police');
+ expect(source.feedbackCounts.police).toBe(2);expect(source.vehicleInstances.every(v=>v.disabled)).toBe(true);
+ expect(source.vehicleInstances.some(v=>v.id===originalActive)).toBe(false);
+ expect(source.popupEvent?.kind).toBe('police');expect(source.popupEvent?.moneyLoss).toBeGreaterThanOrEqual(0);
 });

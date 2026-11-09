@@ -228,7 +228,7 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
     obstacle.eventAt = 0;
     return { ...run, money: 200, inventory: kind === 'train' ? ['nitro', 'star'] : ['banana', 'star'],
       vehicleInstances: [...run.vehicleInstances, newVehicle('car4', 'qa-event-reserve')],
-      world: { ...run.world, entities: [obstacle], nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9,
+      world: { ...run.world, entities: scenario === 'events-police-last' ? [obstacle, {...obstacle,id:'qa-last-police',distance:130}] : [obstacle], nextSpecial: 1e9, nextHazard: 1e9, nextFuel: 1e9,
         nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9 } };
   }
   if (scenario === 'grab-crash') {
