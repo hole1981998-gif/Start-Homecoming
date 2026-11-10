@@ -239,7 +239,7 @@ function openHelp(): void {
   for (const [title, description] of [
     [vehicle.name, `${vehicle.capacity} chỗ, tính cả tài xế · bình ${formatter.format(vehicle.fuelCapacity)} L · hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Trung vị khi trống ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h; thêm khách làm giảm trung vị, quá tải tăng hao xăng.`],
     ['Đường và phục hồi', `Nước hao xăng; ổ gà trừ HP khi tiếp xúc; va xe có thể làm ngã. Trong lúc ngã, trôi và quay lại, xe miễn tác động xấu; tàu vẫn kết ván khi va chạm. Hết xăng trôi thêm ${balance.coastDistance} m. HP về 0 hoặc hết đà: tự đổi sang xe còn chạy được, nếu có.`],
-    ['Vật phẩm', 'Phím 1/2 dùng ô tương ứng. Grab gọi khách phía trước, cần F để đón. Space chỉ nhảy khi nitro đang bật; nitro không vượt xe cao. Star không bỏ qua sự kiện.'],
+    ['Vật phẩm', `Phím 1/2 dùng ô tương ứng. Grab gọi khách phía trước, cần F để đón. Space chỉ nhảy khi nitro đang bật; ${state.world.directorVersion === 'backup' ? 'nitro không vượt xe cao' : 'canh đúng cú nhảy cao có thể vượt xe lớn'}. Star không bỏ qua sự kiện.`],
   ]) {
     const section = document.createElement('section'), heading = document.createElement('h2'), copy = document.createElement('p');
     heading.textContent = title; copy.textContent = description; section.append(heading, copy); helpDetails.append(section);

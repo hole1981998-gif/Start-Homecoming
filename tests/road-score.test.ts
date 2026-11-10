@@ -108,7 +108,7 @@ it('lets a player take points while paying the water cost of the same lane', () 
 
 it('keeps all special outcomes in a seeded cycle while adding one train', () => {
   for (const seed of [1, 17, 42]) {
-    const cycle = Array.from({ length: 25 }, (_, index) => specialPlan(index, seed).kind);
+    const cycle = Array.from({ length: 25 }, (_, index) => specialPlan(index + 14, seed).kind);
     for (const kind of ['police', 'militia', 'accident'] as const)
       expect(cycle.filter(value => value === kind)).toHaveLength(4);
     expect(cycle.filter(value => value === 'train')).toHaveLength(5);

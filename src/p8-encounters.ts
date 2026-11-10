@@ -162,7 +162,7 @@ export function makeP8Encounter(seed: number, index: number, at: number, playerD
     case 10: water(0, lane, 3.2, 24); car(12 + phase, -lane, 'car7'); break;
     case 11: {
       const officer = add('militia', 13 + phase, 0);
-      const group = movingEvent(officer, index, seed, now);
+      const group = movingEvent(officer, index, seed, now).slice(0, at < 8000 ? 1 : 2);
       for (const member of group) member.patternId = id;
       actors.splice(0, 1, ...group); water(0, lane, 3.2, 24); break;
     }

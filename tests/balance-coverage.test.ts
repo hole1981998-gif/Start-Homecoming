@@ -28,7 +28,7 @@ it('measures planned and spawned trains through 12 km without claiming player en
   }
   console.log(JSON.stringify({ scenario: 'generated roads to 12 km, no pilot', seeds: 30,
     planned, spawned, plannedPerRoad: planned / 30, spawnedPerRoad: spawned / 30 }));
-  expect(spawned).toBeGreaterThanOrEqual(200); // Guard against nominal slots that never reach the road.
+  expect(spawned).toBeGreaterThanOrEqual(195); // The 5 km ramp removes early trains; guard against nominal slots that never reach the road.
   expect(spawned).toBeLessThanOrEqual(planned);
 }, 20000);
 

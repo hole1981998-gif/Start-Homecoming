@@ -1,10 +1,38 @@
 import { expect, it } from 'vitest';
 import { movingEvent } from '../src/moving-events';
-import { p8EncounterDistance } from '../src/p8-encounters';
-import { specialDistance } from '../src/special-events';
+import { makeP8Encounter, p8EncounterDistance } from '../src/p8-encounters';
+import { specialDistance, specialPlan } from '../src/special-events';
 import { scoreDistance } from '../src/scoring';
 import { entity, fillWorld, initialWorld } from '../src/world';
 import { vehicles } from '../src/vehicles';
+
+it('keeps the original event rhythm before 5 km and adds trains only afterward', () => {
+  const early = Array.from({ length: 14 }, (_, index) => specialPlan(index, 17));
+  expect(early.map(event => event.distance)).toEqual(Array.from({ length: 14 }, (_, i) => 650 + i * 320));
+  expect(early.map(event => event.kind)).toEqual([
+    'jam', 'broken', 'police', 'train', 'militia', 'accident', 'jam',
+    'police', 'jam', 'train', 'militia', 'accident', 'jam', 'broken',
+  ]);
+  for (let seed = 1; seed <= 30; seed++)
+    expect(early.map((_, index) => specialPlan(index, seed).kind)).toEqual(
+      early.map((_, index) => specialPlan(index, seed, true).kind));
+  const late = Array.from({ length: 25 }, (_, offset) => specialPlan(offset + 14, 17));
+  expect(late[0].distance).toBeGreaterThan(5000);
+  expect(late.filter(event => event.kind === 'train')).toHaveLength(5);
+});
+
+it('does not add a second militia to road templates before the 8 km challenge step', () => {
+  const make = (kind: Parameters<typeof entity>[0], id: string, distance: number, x: number) =>
+    entity(kind, id, distance, x);
+  let latePairs = 0;
+  for (let seed = 1; seed <= 60; seed++) {
+    const early = makeP8Encounter(seed, 44, 4000, 3900, 0, [], make, 11);
+    const late = makeP8Encounter(seed, 44, 9000, 8900, 0, [], make, 11);
+    expect(early.actors.filter(actor => actor.kind === 'militia')).toHaveLength(1);
+    latePairs += Number(late.actors.filter(actor => actor.kind === 'militia').length === 2);
+  }
+  expect(latePairs).toBeGreaterThan(40);
+});
 
 it('increases late officer group size and stagger/fast mix without changing the backup', () => {
   for (const kind of ['police', 'militia'] as const) {

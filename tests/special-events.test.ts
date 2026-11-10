@@ -182,7 +182,7 @@ it('event stream is reproducible, covers all types, respects cooldown and leaves
 });
 
 it('keeps every former non-train outcome while adding a fifth train and spacing spawned trains', () => {
-  const current = Array.from({ length: 25 }, (_, index) => specialPlan(index, 17));
+  const current = Array.from({ length: 25 }, (_, index) => specialPlan(index + 14, 17));
   const backup = Array.from({ length: 24 }, (_, index) => specialPlan(index, 17, true));
   expect(current.filter(plan => plan.kind === 'train')).toHaveLength(5);
   expect(current.filter(plan => plan.kind !== 'train').map(plan => `${plan.kind}:${plan.variant ?? ''}`).sort())

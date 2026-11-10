@@ -15,6 +15,41 @@ const outcomes: readonly { kind: SpecialKind; variant?: JamVariant }[] = [
 // Two old cycles preserve all twenty non-train outcomes; the extra slot adds one train.
 const lateOutcomes = [...outcomes, ...outcomes, { kind: 'train' as const }];
 const lastEarlyIndex = Math.floor((eventBalance.lateGapDistance - eventBalance.firstDistance) / eventBalance.gap);
+const lateOffsets = new Map<number, number>();
+function scheduleAt(schedule: typeof outcomes, index: number, seed: number, offset: number) {
+  const position = (seed & 8) ? schedule.length - 1 - index % schedule.length : index % schedule.length;
+  return schedule[(position + offset) % schedule.length];
+}
+function cooldown(kind: SpecialKind): number {
+  return kind === 'police' ? eventBalance.policeCooldown :
+    kind === 'train' ? eventBalance.trainCooldown :
+      kind === 'accident' ? eventBalance.accidentCooldown : 0;
+}
+function lateOffset(seed: number): number {
+  const cached = lateOffsets.get(seed);
+  if (cached !== undefined) return cached;
+  const lastEarly = Array.from({ length: 3 }, (_, i) => lastEarlyIndex - 2 + i);
+  const original = (seed >>> 0) % lateOutcomes.length;
+  for (let shift = 0; shift < lateOutcomes.length; shift++) {
+    const offset = (original + shift) % lateOutcomes.length;
+    const previous = new Map<SpecialKind, number>();
+    for (const index of lastEarly) previous.set(scheduleAt(outcomes, index, seed,
+      (seed >>> 0) % outcomes.length).kind, specialDistance(index));
+    let valid = true;
+    for (let index = lastEarlyIndex + 1; index <= lastEarlyIndex + 3; index++) {
+      const kind = scheduleAt(lateOutcomes, index, seed, offset).kind;
+      const distance = specialDistance(index);
+      if (distance - (previous.get(kind) ?? -Infinity) < cooldown(kind)) { valid = false; break; }
+      previous.set(kind, distance);
+    }
+    if (valid) {
+      if (lateOffsets.size >= 128) lateOffsets.clear();
+      lateOffsets.set(seed, offset);
+      return offset;
+    }
+  }
+  throw new Error('No safe late event schedule');
+}
 const lastEarlyDistance = eventBalance.firstDistance + lastEarlyIndex * eventBalance.gap;
 const firstFinalIndex = lastEarlyIndex + Math.ceil((eventBalance.finalGapDistance - lastEarlyDistance) / eventBalance.lateGap);
 const firstFinalDistance = lastEarlyDistance + (firstFinalIndex - lastEarlyIndex) * eventBalance.lateGap;
@@ -53,10 +88,10 @@ export function bananaTarget(run: Run): Entity | undefined {
 /** Deterministic, separate event stream. Two-lane patterns always leave one whole lane. */
 export function specialPlan(index: number, seed: number, backup = false): { kind: SpecialKind; variant?: JamVariant; distance: number; x: number } {
   const hash = (Math.imul(seed ^ Math.imul(index + 1, 0x9e3779b1), 1664525) + 1013904223) >>> 0;
-  const schedule = backup ? outcomes : lateOutcomes;
-  const offset = (seed >>> 0) % schedule.length;
-  const position = (seed & 8) ? schedule.length - 1 - index % schedule.length : index % schedule.length;
-  return { ...schedule[(position + offset) % schedule.length],
-    distance: specialDistance(index, backup),
+  const distance = specialDistance(index, backup);
+  const schedule = backup || distance < eventBalance.lateGapDistance ? outcomes : lateOutcomes;
+  const offset = schedule === lateOutcomes ? lateOffset(seed) : (seed >>> 0) % schedule.length;
+  return { ...scheduleAt(schedule, index, seed, offset),
+    distance,
     x: ((hash & 1) ? 1 : -1) * balance.laneWidth / 2 };
 }
