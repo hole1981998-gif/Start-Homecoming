@@ -5,10 +5,32 @@ import { entity, fillWorld, initialWorld } from '../src/world';
 import { makeP8Encounter, p8EncounterDistance } from '../src/p8-encounters';
 import { developmentScenario } from '../src/development';
 import { initialRun } from '../src/survival';
+import { vehicles } from '../src/vehicles';
 
 const requestedRoads = Number(process.env.P8_COVERAGE_SEEDS ?? 100);
 const roadCount = Number.isInteger(requestedRoads) && requestedRoads >= 1 && requestedRoads <= 1000 ?
   requestedRoads : 100;
+
+it('measures planned and spawned trains through 12 km without claiming player encounters', () => {
+  let planned = 0, spawned = 0;
+  for (let seed = 1; seed <= 30; seed++) {
+    let world = initialWorld(seed, true);
+    const seen = new Set<string>();
+    for (let distance = 0; distance <= 12000; distance += 40) {
+      world = fillWorld(world, distance, vehicles.car4.fuelCapacity, vehicles.car4.durabilityCapacity,
+        1, vehicles.car4, distance / vehicles.car4.cruiseSpeed, vehicles.car4.cruiseSpeed);
+      for (const e of world.entities) if (e.kind === 'train' && !seen.has(e.id) && e.distance <= 12000)
+        seen.add(e.id);
+    }
+    spawned += seen.size;
+    for (let index = 0; specialPlan(index, seed).distance <= 12000; index++)
+      if (specialPlan(index, seed).kind === 'train') planned++;
+  }
+  console.log(JSON.stringify({ scenario: 'generated roads to 12 km, no pilot', seeds: 30,
+    planned, spawned, plannedPerRoad: planned / 30, spawnedPerRoad: spawned / 30 }));
+  expect(spawned).toBeGreaterThanOrEqual(200); // Guard against nominal slots that never reach the road.
+  expect(spawned).toBeLessThanOrEqual(planned);
+}, 20000);
 
 it(`samples planned and spawned special coverage on ${roadCount} deterministic 3 km roads`, () => {
   const variants = ['barrier', 'vendor', 'ambulance'] as const;
@@ -87,7 +109,7 @@ it(`samples planned and spawned special coverage on ${roadCount} deterministic 3
     patterns:[...patterns].sort((a,b)=>a-b),roadsWithVariant}));
   expect(spawned).toBeGreaterThan(0);
   expect(spawned).toBeGreaterThanOrEqual(6.8 * roadCount);
-  if (roadCount === 100) for (const count of Object.values(specialCounts)) expect(count).toBeGreaterThanOrEqual(120);
+  if (roadCount === 100) for (const count of Object.values(specialCounts)) expect(count).toBeGreaterThanOrEqual(110);
   expect(water).toBeGreaterThanOrEqual(15 * roadCount);
   expect(wind).toBeGreaterThanOrEqual(2 * roadCount);
   expect(wideLongWater).toBeGreaterThanOrEqual(2.5 * roadCount);
@@ -104,7 +126,7 @@ it(`samples planned and spawned special coverage on ${roadCount} deterministic 3
   expect(trafficGroupCount / measuredGroups).toBeLessThan(.76);
   expect(coveredMetres / (2650 * roadCount)).toBeGreaterThan(.4);
   expect(coveredMetres / (2650 * roadCount)).toBeLessThan(.7);
-  expect(Object.values(roadsWithVariant).every(count => count / roadCount >= .45 && count / roadCount <= .65)).toBe(true);
+  expect(Object.values(roadsWithVariant).every(count => count / roadCount >= .45 && count / roadCount <= .70)).toBe(true);
   console.log(JSON.stringify({ config: balance.version, scenario: `${roadCount} seeded generated roads to 3 km; spawned is not a player encounter`,
     planned, spawned, normalPlannedPerRoad: Array.from({ length: 150 }, (_, i) => p8EncounterDistance(i)).filter(x => x <= 3000).length,
     normal, water, wideLongWater, pairs, triples, layerDistribution,

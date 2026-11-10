@@ -5,11 +5,28 @@ import { movingEvent } from './moving-events';
 import type { Run } from './survival';
 import { entity, fillWorld, initialWorld, passengerMotion, trafficTypes } from './world';
 import { junction, junctionWindow } from './route';
-import { newVehicle, vehicles, type VehicleKind } from './vehicles';
+import { effectiveVehicle, newVehicle, vehicles, type VehicleKind } from './vehicles';
 import { balance, itemBalance, movingBalance, stressBalance } from './config';
 import { secretPickup, secretVehicle } from './secret';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
+  if (scenario === 'late-balance') {
+    const car = newVehicle('car4', 'qa-late-car'), bike = newVehicle('motorcycle', 'qa-late-bike');
+    for (const vehicle of [car, bike]) {
+      vehicle.upgrades = { engine: 1, tank: 1, armour: 1, economy: 1 };
+      const definition = effectiveVehicle(vehicle);
+      vehicle.fuel = definition.fuelCapacity; vehicle.durability = definition.durabilityCapacity;
+    }
+    let world = initialWorld(run.seed, true);
+    for (let at = 0; at <= 5000; at += 40)
+      world = fillWorld(world, at, car.fuel, car.durability, 1, effectiveVehicle(car), 400 + at / 16, 16);
+    return { ...run, distance: 5000, activeSeconds: 400, money: 500, riderIds: ['qa-late-1', 'qa-late-2', 'qa-late-3'],
+      vehicleInstances: [car, bike], activeVehicleId: car.id, fuel: car.fuel, durability: car.durability,
+      speed: vehicles.car4.cruiseSpeed, route: { ...run.route, index: 6 },
+      world: { ...world, entities: world.entities.filter(e => e.distance + e.length / 2 >= 4988),
+        prototype: { version: 'late-world-light-trial-1', title: 'Thử cân bằng sau 5 km',
+          description: 'Checkpoint thử: ô tô 4 chỗ, xe máy dự phòng, ba khách, hai xe nâng cấp cấp 1 và đủ tài nguyên. Đường, tàu và tiếp tế sau 5 km sinh theo seed; đây không phải ván từ đầu.' } } };
+  }
   if (scenario === 'traffic-open-recovery') {
     const riders = (['motorbike', 'tricycle'] as const).map((kind, i) => {
       const car = entity('traffic', `qa-open-rider-${kind}`, 20 + i * 16, i ? -3.2 : 3.2);

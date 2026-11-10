@@ -164,7 +164,7 @@ it('event stream is reproducible, covers all types, respects cooldown and leaves
     for (let i = 0; i < 30; i++) {
       const plan = specialPlan(i, seed); kinds.add(plan.kind);
       if (plan.variant) variants.add(plan.variant);
-      if (i) expect(plan.distance - specialPlan(i - 1, seed).distance).toBeGreaterThanOrEqual(eventBalance.gap);
+      if (i) expect(plan.distance - specialPlan(i - 1, seed).distance).toBeGreaterThanOrEqual(eventBalance.lateGap);
       const cooldown = plan.kind === 'police' ? eventBalance.policeCooldown :
         plan.kind === 'train' ? eventBalance.trainCooldown :
           plan.kind === 'accident' ? eventBalance.accidentCooldown : 0;
@@ -179,6 +179,28 @@ it('event stream is reproducible, covers all types, respects cooldown and leaves
   }
   expect([...kinds].sort()).toEqual([...specialKinds].sort());
   expect([...variants].sort()).toEqual(['ambulance', 'barrier', 'vendor']);
+});
+
+it('keeps every former non-train outcome while adding a fifth train and spacing spawned trains', () => {
+  const current = Array.from({ length: 25 }, (_, index) => specialPlan(index, 17));
+  const backup = Array.from({ length: 24 }, (_, index) => specialPlan(index, 17, true));
+  expect(current.filter(plan => plan.kind === 'train')).toHaveLength(5);
+  expect(current.filter(plan => plan.kind !== 'train').map(plan => `${plan.kind}:${plan.variant ?? ''}`).sort())
+    .toEqual(backup.filter(plan => plan.kind !== 'train').map(plan => `${plan.kind}:${plan.variant ?? ''}`).sort());
+  expect(specialPlan(13, 17).distance).toBeLessThan(eventBalance.lateGapDistance);
+  expect(specialPlan(14, 17).distance - specialPlan(13, 17).distance).toBe(eventBalance.lateGap);
+  for (const seed of [1, 17, 29]) {
+    let world = initialWorld(seed, true), last = -Infinity;
+    const seen = new Set<string>();
+    for (let distance = 0; distance <= 12000; distance += 80) {
+      world = fillWorld(world, distance);
+      for (const train of world.entities.filter(e => e.kind === 'train' && !seen.has(e.id))) {
+        expect(train.distance - last).toBeGreaterThanOrEqual(eventBalance.trainCooldown);
+        last = train.distance; seen.add(train.id);
+      }
+    }
+    expect(seen.size).toBeGreaterThanOrEqual(4);
+  }
 });
 
 it('P6 simulation: 30 seeds × eight vehicles × six event types, with and without the appropriate response', () => {

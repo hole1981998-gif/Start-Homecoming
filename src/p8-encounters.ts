@@ -1,4 +1,5 @@
 import { balance, densityBalance, earlyBalance, forceBalance, movingBalance } from './config';
+import { lateNormalAt, nextNormalIndex, waterLengthFactor } from './late-clock';
 import { directorRoll } from './balance-director';
 import { crossX } from './cross-motion';
 import { movingEvent } from './moving-events';
@@ -10,7 +11,13 @@ export function p8EncounterDistance(index: number): number {
   if (index < 2) return balance.firstHazard + index * balance.hazardGap;
   if (index <= 55) return 350 + (index - 2) * 28.16;
   if (index <= 120) return 1842.48 + (index - 55) * 23.76;
-  return 3386.88 + (index - 120) * 20.24;
+  return lateNormalAt(index);
+}
+export function p8EncounterIndexAtOrAfter(distance: number): number {
+  if (distance <= 350) return distance <= balance.firstHazard ? 0 : distance <= balance.firstHazard + balance.hazardGap ? 1 : 2;
+  if (distance <= 1842.48) return Math.max(2, 2 + Math.ceil((distance - 350) / 28.16));
+  if (distance <= 3386.88) return Math.max(56, 55 + Math.ceil((distance - 1842.48) / 23.76));
+  return Math.max(121, nextNormalIndex(distance));
 }
 for (let index = 3; index < 250; index++) {
   const gapSeconds = (p8EncounterDistance(index) - p8EncounterDistance(index - 1)) /
@@ -104,7 +111,7 @@ export function makeP8Encounter(seed: number, index: number, at: number, playerD
     e.patternId = id; actors.push(e); return e;
   };
   const water = (offset: number, x: number, width = 3.2, length = 24) => {
-    const e = add('water', offset, x); e.width = width; e.length = length * .9; return e;
+    const e = add('water', offset, x); e.width = width; e.length = length * .9 * waterLengthFactor(at); return e;
   };
   const hole = (offset: number, x: number) => {
     const e = add('pothole', offset, x); e.width = 2.3; e.length = 4; return e;
@@ -174,7 +181,7 @@ export function p8ProtectedCorridor(actors: Entity[], shopAt: number, specialAt:
   specialKind: EntityKind): boolean {
   return actors.some(e => {
     const shop = Math.abs(e.distance - shopAt) < (e.length + 4) / 2 + 8;
-    const trainWater = specialKind === 'train' && e.kind === 'water' &&
+    const trainWater = specialKind === 'train' && e.kind === 'water' && e.width >= lane * 3 - .01 &&
       e.distance + e.length / 2 >= specialAt - 62 && e.distance - e.length / 2 <= specialAt + 12;
     const special = trainWater || Math.abs(e.distance - specialAt) < e.length / 2 +
       (e.kind === 'water' ? 12 : densityBalance.specialClearance / 2);

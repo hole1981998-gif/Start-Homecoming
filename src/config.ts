@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'score-chime-wind-militia-trial-5', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'late-world-light-trial-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -80,16 +80,27 @@ if (forceTailSweep.lowSpeed >= forceTailSweep.fullSpeed ||
 
 /** P5 trial prices/effects from BALANCE_CONFIG. Amounts L / HP, distances m. */
 export const shopBalance = Object.freeze({ firstDistance: 280, secondDistance: 1050,
-  minGap: 720, maxGap: 1080, reach: 30, lateralReach: 1.8, clearance: 45,
+  minGap: 720, maxGap: 1080, reach: 30, activeReach: 16, lateralReach: 1.8, clearance: 45,
   fuelPrice: 120, repairPrice: 140,
   fuelAmount: 4, repairAmount: 20,
   enginePrices: [200, 400, 700] as const, tankPrices: [180, 350, 600] as const,
   armourPrices: [180, 350, 600] as const, economyPrices: [220, 420, 750] as const,
   enginePerLevel: .08, tankPerLevel: .15, armourPerLevel: .15, economyPerLevel: .08 });
+/** Visible road and supply spacing only; rates, pickup amounts and damage stay fixed. Metres. */
+export const lateWorldBalance = Object.freeze({ firstThreshold: 5000, secondThreshold: 8000,
+  normalGap: [20.24, 19, 18] as const, waterLengthFactor: [1, 1.2, 1.35] as const,
+  fuelGap: [480, 600, 720] as const, repairGap: [1000, 1200, 1400] as const,
+  shopMinGap: [720, 900, 1080] as const, shopMaxGap: [1080, 1260, 1440] as const });
+if (lateWorldBalance.secondThreshold <= lateWorldBalance.firstThreshold ||
+    Object.values(lateWorldBalance).some(value => typeof value === 'number' ? !Number.isFinite(value) || value <= 0 :
+      value.some(number => !Number.isFinite(number) || number <= 0)) ||
+    lateWorldBalance.shopMinGap.some((gap, index) => gap > lateWorldBalance.shopMaxGap[index]))
+  throw new Error('Invalid late world bounds');
 for (const value of Object.values(shopBalance).flatMap(v => typeof v === 'number' ? [v] : [...v])) {
   if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid shop config');
 }
 if (shopBalance.minGap > shopBalance.maxGap || shopBalance.economyPerLevel * 3 >= 1 ||
+    shopBalance.activeReach > shopBalance.reach ||
     shopBalance.secondDistance - shopBalance.firstDistance < shopBalance.minGap ||
     shopBalance.secondDistance - shopBalance.firstDistance > shopBalance.maxGap ||
     !Number.isInteger(shopBalance.minGap) ||
@@ -139,14 +150,16 @@ if (!Number.isInteger(itemBalance.grabUses) || itemBalance.grabMinAhead > itemBa
 
 /** P6 trial values: money, metres, seconds, probability. */
 export const eventBalance = Object.freeze({ policeFine: 300, militiaFine: 110, militiaHalfMoneyThreshold: 220, reserveFuelFactor: .5,
-  firstDistance: 650, gap: 320, minimumGap: 220, policeCooldown: 900, trainCooldown: 600, accidentCooldown: 600,
+  firstDistance: 650, gap: 320, lateGap: 300, lateGapDistance: 5000,
+  minimumGap: 220, policeCooldown: 900, trainCooldown: 600, accidentCooldown: 600,
   reactionSeconds: 3.5, bananaReach: 45, bananaPrice: 25,
   trainPeriod: 16, trainClosedSeconds: 8, trainClearance: 1.8, brokenItemChance: .25,
   corridor: 110 });
 for (const value of Object.values(eventBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid event config');
 if (eventBalance.trainClosedSeconds >= eventBalance.trainPeriod || eventBalance.reserveFuelFactor > 1 ||
     eventBalance.brokenItemChance > 1 || eventBalance.trainClearance >= itemBalance.jumpHeight ||
-    eventBalance.gap < eventBalance.minimumGap || eventBalance.minimumGap < balance.warningSeconds * balance.maxSpeed ||
+    eventBalance.gap < eventBalance.minimumGap || eventBalance.lateGap < eventBalance.minimumGap ||
+    eventBalance.lateGap > eventBalance.gap || eventBalance.minimumGap < balance.warningSeconds * balance.maxSpeed ||
     eventBalance.policeCooldown < eventBalance.gap || eventBalance.trainCooldown < eventBalance.gap ||
     eventBalance.accidentCooldown < eventBalance.gap) throw new Error('Invalid event bounds');
 if (densityBalance.specialClearance >= eventBalance.corridor) throw new Error('Special clearance erases normal hazards');

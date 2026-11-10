@@ -12,6 +12,27 @@ const outcomes: readonly { kind: SpecialKind; variant?: JamVariant }[] = [
   { kind: 'broken' }, { kind: 'police' }, { kind: 'train' },
   { kind: 'militia' }, { kind: 'accident' }, { kind: 'jam', variant: 'ambulance' },
 ];
+// Two old cycles preserve all twenty non-train outcomes; the extra slot adds one train.
+const lateOutcomes = [...outcomes, ...outcomes, { kind: 'train' as const }];
+const lastEarlyIndex = Math.floor((eventBalance.lateGapDistance - eventBalance.firstDistance) / eventBalance.gap);
+const lastEarlyDistance = eventBalance.firstDistance + lastEarlyIndex * eventBalance.gap;
+export function specialDistance(index: number, backup = false): number {
+  return backup ? backupEventBalance.firstDistance + index * backupEventBalance.gap :
+    lastEarlyDistance + Math.min(0, index - lastEarlyIndex) * eventBalance.gap +
+    Math.max(0, index - lastEarlyIndex) * eventBalance.lateGap;
+}
+export function specialIndexNear(distance: number, backup = false): number {
+  if (backup) return Math.max(0, Math.round((distance - backupEventBalance.firstDistance) / backupEventBalance.gap));
+  return Math.max(0, distance <= lastEarlyDistance ?
+    Math.round((distance - eventBalance.firstDistance) / eventBalance.gap) :
+    lastEarlyIndex + Math.round((distance - lastEarlyDistance) / eventBalance.lateGap));
+}
+export function specialIndexAtOrAfter(distance: number, backup = false): number {
+  if (backup) return Math.max(0, Math.ceil((distance - backupEventBalance.firstDistance) / backupEventBalance.gap));
+  return Math.max(0, distance <= lastEarlyDistance ?
+    Math.ceil((distance - eventBalance.firstDistance) / eventBalance.gap) :
+    lastEarlyIndex + Math.ceil((distance - lastEarlyDistance) / eventBalance.lateGap));
+}
 export const isSpecial = (kind: EntityKind): kind is SpecialKind => (specialKinds as readonly string[]).includes(kind);
 /** Clock is gameplay time: pause/help/shop never advance the crossing. */
 export function trainClosed(e: Entity, seconds: number): boolean {
@@ -27,11 +48,10 @@ export function bananaTarget(run: Run): Entity | undefined {
 /** Deterministic, separate event stream. Two-lane patterns always leave one whole lane. */
 export function specialPlan(index: number, seed: number, backup = false): { kind: SpecialKind; variant?: JamVariant; distance: number; x: number } {
   const hash = (Math.imul(seed ^ Math.imul(index + 1, 0x9e3779b1), 1664525) + 1013904223) >>> 0;
-  const schedule = backup ? backupEventBalance : eventBalance;
-  // Every twelve slots include all outcomes; the new schedule gives each kind more chances.
-  const offset = (seed >>> 0) % outcomes.length;
-  const position = (seed & 8) ? outcomes.length - 1 - index % outcomes.length : index % outcomes.length;
-  return { ...outcomes[(position + offset) % outcomes.length],
-    distance: schedule.firstDistance + index * schedule.gap,
+  const schedule = backup ? outcomes : lateOutcomes;
+  const offset = (seed >>> 0) % schedule.length;
+  const position = (seed & 8) ? schedule.length - 1 - index % schedule.length : index % schedule.length;
+  return { ...schedule[(position + offset) % schedule.length],
+    distance: specialDistance(index, backup),
     x: ((hash & 1) ? 1 : -1) * balance.laneWidth / 2 };
 }

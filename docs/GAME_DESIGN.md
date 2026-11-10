@@ -1,5 +1,7 @@
 # Đường Về Nhà — Game Design
 
+> **Thử cân bằng sau 5 km ngày 10/11/2026 — số TẠM:** tăng áp lực bằng nhóm chướng ngại và đoạn nước dài nhìn thấy được, cùng lịch tiếp tế/shop thưa hơn; tăng cơ hội tàu và thu cửa bấm R. Giữ nguyên công thức hao xăng theo mét/nước, lượng hồi từng món, thu nhập, sát thương từng loại và giá. Không có phí chạy chậm hay hao xăng theo thời gian mới. Xem [BALANCE_CONFIG.md](BALANCE_CONFIG.md) và [LATE_WORLD_LIGHT_REVIEW_2026-11-10.md](LATE_WORLD_LIGHT_REVIEW_2026-11-10.md).
+
 > **Feedback 09/11/2026 — ĐÃ CHỐT popup sự kiện:** dùng 19 hình chủ dự án gửi, bố cục minh họa phía trên/chữ phía dưới như layout mẫu. Mỗi popup khoảng 3 giây; sự kiện mới thay ngay popup cũ, không xếp hàng và không pause gameplay. Chỉ phát sau hành động/va chạm/nhặt đồ thành công, không dùng thay cảnh báo hazard hoặc che QTE. Bộ chữ/ánh xạ và bằng chứng kiểm tra: EVENT_POPUPS_REVIEW_2026-11-09.md. Yêu cầu này thay việc tắt popup feedback của lượt UI trước; không khôi phục tag chỉ dẫn F/né chốt.
 
 > **Feedback 09/11/2026 — ĐÃ CHỐT hướng chỉnh:** dùng take chime `#4` chủ dự án gửi cho điểm; hạ cao độ bắt đầu và cả chuỗi, giảm âm lượng và làm dịu dải cao để nấc cuối bớt chói. Các mức chỉnh là TẠM, chờ chủ dự án nghe bản thử.

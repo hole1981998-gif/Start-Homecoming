@@ -94,12 +94,12 @@ it('lets a player take points while paying the water cost of the same lane', () 
   expect(after.money).toBeCloseTo(base.money + after.distance * balance.moneyPerMeter);
 });
 
-it('keeps all special outcomes in a seeded cycle while tightening the normal schedule', () => {
+it('keeps all special outcomes in a seeded cycle while adding one train', () => {
   for (const seed of [1, 17, 42]) {
-    const cycle = Array.from({ length: 12 }, (_, index) => specialPlan(index, seed).kind);
-    for (const kind of ['police', 'militia', 'train'] as const)
-      expect(cycle.filter(value => value === kind)).toHaveLength(2);
-    expect(cycle.filter(value => value === 'accident')).toHaveLength(2);
+    const cycle = Array.from({ length: 25 }, (_, index) => specialPlan(index, seed).kind);
+    for (const kind of ['police', 'militia', 'accident'] as const)
+      expect(cycle.filter(value => value === kind)).toHaveLength(4);
+    expect(cycle.filter(value => value === 'train')).toHaveLength(5);
     expect(specialPlan(1, seed).distance - specialPlan(0, seed).distance).toBe(eventBalance.gap);
     expect(specialPlan(1, seed).distance).toBeLessThan(specialPlan(1, seed, true).distance);
   }
