@@ -14,6 +14,8 @@
 
 - Trình duyệt trong ứng dụng, `seed=17`, checkpoint 5 km: đã mở bản chơi, quan sát HUD ở 5.000 m với ô tô 4 chỗ/ba khách; một ván người dùng chơi kết thúc ở 9.005 m, 1.144 điểm, HP 0. Đây là quan sát trạng thái cuối, không phải Codex tự lái ván đó.
 - Codex tự thao tác fixture `?scenario=nitro-high&seed=17`: hai lần bấm nitro/W/Space đều va container do canh thời điểm chưa đúng. Test mô phỏng có kiểm soát vượt được với thời điểm hợp lệ; **chưa xác nhận bằng tay cảm giác dễ nhảy sau tăng 0,1 s**. Restart, QTE và shop chưa kiểm tra thủ công trong lượt B.
+- Kiểm tra bổ sung trên revision `ab4ae92`, IAB, seed 17: fixture `shop` mở bằng R, bơm +4,0 L làm tiền 4.000,5→3.880,5 và xăng 1,0→5,0 L; Esc tạm dừng và nút Chơi lại từ đầu đưa tiền/xăng về 4.000/1,0. Fixture `blocked-window` hiện Q/E và đếm ngược 0,4 s; bấm Q trễ dẫn tới va chạm, 123→103 HP và tài xế ngã. Checkpoint 12 km: xe chạy 12.000→12.190 m, va chạm làm xe dự phòng xe máy tự thay; checkpoint 15 km: va chạm ở khoảng 15.023 m, HP 212→192, tài xế ngã. Đây là các đoạn ngắn, không chứng minh độ công bằng của toàn bộ mốc khó.
+- Thử lại `nitro-high` trên revision `ab4ae92` vẫn va container do canh thời điểm; lúc mở thẻ lần đầu phát hiện lời hướng dẫn sai rằng nitro không vượt được xe cao. Đã sửa lời hướng dẫn trên bản chính, bản backup giữ câu cũ. Chưa có bằng chứng chơi tay vượt container ở revision này.
 - **Tự review game designer:** số gói điểm thưa giúp giữ lựa chọn lấy điểm hay tránh nguy hiểm, còn điểm di chuyển làm ván không bị rỗng điểm; cần người chơi xác nhận gói +50 có đủ hấp dẫn và mốc 15 km không tăng áp lực đột ngột. Cú nhảy cao hơn nhưng cửa sổ canh thời điểm vẫn hẹp trên container; đề xuất thử thêm cue thời điểm cất cánh trước khi tăng tiếp khoảng bay.
 - **Tự review UX:** HUD hiển thị điểm, tiền, quãng đường trực tiếp trên cảnh; nhãn +50 tồn tại ngắn dưới điểm. Trên fixture nhảy, hướng dẫn hiện đủ phím nhưng chưa chỉ điểm canh Space bằng graphic. Ưu tiên cao: quan sát người chơi thử lại container và cue của nó. Chưa có audit screenshot từng bước trong lượt này; ảnh đơn không chứng minh timing/input.
 
@@ -23,7 +25,7 @@
 |---|---|---|
 | Lint | `pnpm lint` | pass, exit 0 |
 | Typecheck | `pnpm typecheck` | pass, exit 0 |
-| Tests | `pnpm exec vitest run --configLoader native --maxWorkers=4 --reporter=dot` | pass, exit 0; 87 files, 490 tests, 111,35 s |
+| Tests | `pnpm exec vitest run --configLoader native --maxWorkers=4 --reporter=dot` | pass, exit 0; 87 files, 490 tests, 128,10 s trên revision sau sửa hướng dẫn |
 | Build | `pnpm build` | pass, exit 0; cảnh báo chunk Three 568 kB |
 
-Chưa đủ manual check cho nhảy container theo cảm giác người chơi, QTE, shop và restart ở revision B. Cần giữ PR chờ review đúng revision cuối; không tự merge khi các điều kiện của `AGENTS.md` chưa đủ.
+Đã kiểm tra thủ công shop, restart, QTE bị lỡ và các đoạn đầu của mốc 12/15 km. Chưa đủ manual check cho cảm giác nhảy container thành công và QTE rẽ thành công; các đoạn 12/15 km chưa đánh giá được độ công bằng trên ván dài. Cần giữ PR chờ review đúng revision cuối; không tự merge khi các điều kiện của `AGENTS.md` chưa đủ.
