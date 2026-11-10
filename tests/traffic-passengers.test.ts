@@ -90,9 +90,10 @@ it('ram victims refuse F permanently while pothole victims accept; neither grant
     const npc = run.world.entities.find(e => e.kind === 'passenger')!;
     expect(npc).toBeDefined(); expect(run.riderIds).toHaveLength(0);
     expect(run.money).toBeCloseTo(balance.initialMoney + run.distance * balance.moneyPerMeter);
-    expect(run.score).toBe(0);
+    expect(run.score).toBeGreaterThan(0);
     const at = { ...run, crash: null, x: npc.x, distance: npc.distance };
     const picked = pickUpPassenger(at);
+    expect(picked.score).toBe(run.score);
     if (scenario === 'traffic-passengers') {
       expect(run.world.entities.find(e => e.kind === 'traffic')?.wreckedByPlayer).toBe(true);
       expect(run.world.entities.filter(e => e.kind === 'passenger').every(e => e.pickupable === false)).toBe(true);

@@ -3,7 +3,7 @@ import { balance, lateWorldBalance, shopBalance } from '../src/config';
 import { fuelAt, nextFuelIndex, nextRepairIndex, repairAt, shopGaps } from '../src/late-clock';
 import { p8EncounterDistance, p8EncounterIndexAtOrAfter } from '../src/p8-encounters';
 import { initialRoute } from '../src/route';
-import { specialIndexAtOrAfter, specialPlan } from '../src/special-events';
+import { specialDistance, specialIndexAtOrAfter, specialPlan } from '../src/special-events';
 import { fillWorld, forkWorld, initialWorld, nextShopDistance } from '../src/world';
 import { vehicles } from '../src/vehicles';
 
@@ -27,6 +27,15 @@ it('keeps threshold stations, changes only later gaps, and inverts each schedule
   const normalAtEight = p8EncounterIndexAtOrAfter(8000);
   expect(p8EncounterDistance(normalAtEight + 1) - p8EncounterDistance(normalAtEight)).toBe(18);
   expect(p8EncounterDistance(1e9)).toBeGreaterThan(1e9);
+  const normalAtFifteen = p8EncounterIndexAtOrAfter(15000);
+  expect(p8EncounterDistance(normalAtFifteen + 1) - p8EncounterDistance(normalAtFifteen)).toBe(16.5);
+  const specialAtFifteen = specialIndexAtOrAfter(15000);
+  expect(specialDistance(specialAtFifteen + 1) - specialDistance(specialAtFifteen)).toBe(280);
+  for (const at of [14999, 15000, 15010, 15999, 18000]) {
+    const normal = p8EncounterIndexAtOrAfter(at), special = specialIndexAtOrAfter(at);
+    expect(p8EncounterDistance(normal)).toBeGreaterThanOrEqual(at);
+    expect(specialDistance(special)).toBeGreaterThanOrEqual(at);
+  }
 });
 
 it('preserves the first two shops, uses later gap stages, and forks without replaying supplies', () => {

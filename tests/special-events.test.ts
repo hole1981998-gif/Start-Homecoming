@@ -135,7 +135,7 @@ it('correctly timed nitro+Space clears the actual train; early/late jump and tal
   expect(run.phase).toBe('running'); expect(run.distance).toBeGreaterThan(25);
   const late = ready('train', 4); late.inventory = ['nitro', null];
   expect(seconds(requestJump(usePowerItem(late, 0)), 1).result?.reason).toBe('train');
-  const long = ready('train', 14, true, 'container'); long.inventory = ['nitro', null];
+  const long = ready('train', 10, true, 'container'); long.inventory = ['nitro', null];
   expect(seconds(requestJump(usePowerItem(long, 0)), 2).result?.reason).toBe('train');
 });
 it('broken event spawns exactly one manual F passenger, no automatic reward, and never duplicates loot', () => {

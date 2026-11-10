@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { balance } from '../src/config';
 import { noInput, type Input } from '../src/simulation';
+import { scorePerMeter } from '../src/scoring';
+import { vehicles } from '../src/vehicles';
 import { initialRun, pickUpPassenger, stepRun, type Run } from '../src/survival';
 import { entity, fillWorld, initialWorld, leavesOpenLane, sweptContact, trafficTypes, warningDistance, type Entity } from '../src/world';
 
@@ -15,7 +17,7 @@ function advance(run: Run, seconds: number, input: Input = noInput()): Run {
 describe('survival, continuous hazards and crash recovery', () => {
   it('money/score/fuel follow actual travel; pause/ready/end have no side effects', () => {
     const r = advance(empty(), 10);
-    expect(r.distance).toBeCloseTo(140); expect(r.score).toBe(0);
+    expect(r.distance).toBeCloseTo(140); expect(r.score).toBeCloseTo(140 * scorePerMeter(14, 0, vehicles.motorcycle));
     expect(r.money).toBeCloseTo(balance.initialMoney + 140 * balance.moneyPerMeter); expect(r.fuel).toBeCloseTo(balance.fuelCapacity - 140 * balance.fuelPerMeter);
     for (const phase of ['ready', 'paused', 'ended'] as const) {
       const stopped = { ...r, phase }; expect(advance(stopped, 10)).toBe(stopped);
@@ -71,7 +73,7 @@ describe('survival, continuous hazards and crash recovery', () => {
     const r = stepRun({ ...empty([entity('pothole', 'deadly', 1.95, 0), entity('repair', 'late', 1.6, 0)]), durability: balance.potholeImpactDamage, speed: 20 }, { ...noInput(), accelerate: true });
     expect(r.phase).toBe('ended'); expect(r.result?.reason).toBe('damage'); expect(r.distance).toBeCloseTo(.05);
     expect(r.world.entities[1].consumed).toBe(false); expect(r.durability).toBe(0);
-    expect(r.result?.score).toBe(0); expect(r.distance).toBeLessThan(.333);
+    expect(r.result?.score).toBeCloseTo(r.distance * scorePerMeter(20, 0, vehicles.motorcycle)); expect(r.distance).toBeLessThan(.333);
   });
   it('pickups apply once and clamp HP/fuel; restart discards all old entities/results', () => {
     const r = advance({ ...empty([entity('repair', 'fix', 0, 0), entity('fuel', 'gas', 0, 0)]), durability: 60, fuel: 4 }, .1);

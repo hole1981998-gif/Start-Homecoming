@@ -19,8 +19,11 @@ export function movingEvent(event: Entity, index: number, seed: number, now: num
     event.displayName = 'Tàu chạy ngang'; event.help = 'S phanh dừng chờ đuôi tàu; hoặc nitro rồi Space khi đủ khoảng vượt. Chạm thân tàu kết ván.';
   } else if (event.kind === 'police' || event.kind === 'militia') {
     const groupRoll = (hash >>> 2) % 3;
-    const count = event.kind === 'militia' && !legacyVendor ? groupRoll !== 0 ? 2 : 1 : groupRoll === 0 ? 2 : 1;
-    const variant = (hash >>> 5) % 3;
+    const late = !legacyVendor && event.distance >= 8000;
+    const count = late ? (hash >>> 2) % 100 < 80 ? 2 : 1 :
+      event.kind === 'militia' && !legacyVendor ? groupRoll !== 0 ? 2 : 1 : groupRoll === 0 ? 2 : 1;
+    const variantRoll = (hash >>> 9) % 100;
+    const variant = late ? variantRoll < 15 ? 0 : variantRoll < 50 ? 1 : 2 : (hash >>> 5) % 3;
     return Array.from({ length: count }, (_, i) => {
       const npc = { ...event, id: event.id + '-npc-' + i, groupId: event.id, width: c.npcWidth, length: c.npcDepth,
         x: i ? c.patrolBound : -c.patrolBound };

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { earlyBalance, movingBalance } from '../src/config';
 import { crossX, type CrossMotion } from '../src/cross-motion';
 import { softenEarlyEncounter } from '../src/p8-encounters';
-import { scorePerMeter } from '../src/scoring';
+import { baseScorePerMeter, scorePerMeter } from '../src/scoring';
 import { vehicles } from '../src/vehicles';
 import { entity } from '../src/world';
 
@@ -34,13 +34,13 @@ describe('C3 targeted balance', () => {
   it('scores every catalogue vehicle relative to its loaded cruise, capped above base maximum', () => {
     for (const vehicle of Object.values(vehicles)) {
       expect(scorePerMeter(vehicle.minSpeed, 0, vehicle)).toBe(0);
-      expect(scorePerMeter(vehicle.cruiseSpeed, 0, vehicle)).toBeCloseTo(.65);
-      expect(scorePerMeter(vehicle.maxSpeed * 2, 0, vehicle)).toBeCloseTo(.975);
+      expect(scorePerMeter(vehicle.cruiseSpeed, 0, vehicle)).toBeCloseTo(baseScorePerMeter);
+      expect(scorePerMeter(vehicle.maxSpeed * 2, 0, vehicle)).toBeCloseTo(baseScorePerMeter * 1.5);
       const riders = Math.max(0, vehicle.capacity - 1);
       const cruise = Math.min(vehicle.maxSpeed, Math.max(vehicle.cruiseFloor,
         vehicle.cruiseSpeed - riders * vehicle.cruiseLoss));
-      expect(scorePerMeter(cruise, riders, vehicle)).toBeCloseTo(.65 * (1 + .02 * Math.min(riders, 4)));
-      expect(scorePerMeter(vehicle.maxSpeed * 2, riders + 10, vehicle)).toBeLessThanOrEqual(1.053 + 1e-9);
+      expect(scorePerMeter(cruise, riders, vehicle)).toBeCloseTo(baseScorePerMeter * (1 + .02 * Math.min(riders, 4)));
+      expect(scorePerMeter(vehicle.maxSpeed * 2, riders + 10, vehicle)).toBeLessThanOrEqual(baseScorePerMeter * 1.5 * 1.08 + 1e-9);
     }
   });
 

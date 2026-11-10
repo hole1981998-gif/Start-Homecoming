@@ -101,8 +101,19 @@ export function makeP8Encounter(seed: number, index: number, at: number, playerD
   const phase = (directorRoll(seed, index, 0x58f261ad) % 7) - 3;
   const waterChoices = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
     4, 6, 7, 8, 10, 11] as const;
-  let id = requestedId ?? (roll % 100 < (at < 1700 ? 58 : 68) ?
-    waterChoices[(roll >>> 8) % waterChoices.length] : 15 + (roll >>> 8) % 2);
+  const earlyChoice = roll % 100 < (at < 1700 ? 58 : 68) ?
+    waterChoices[(roll >>> 8) % waterChoices.length] : 15 + (roll >>> 8) % 2;
+  const weightedChoice = () => {
+    const triple = new Set([1, 2, 4, 5, 6, 12, 13]);
+    const choices = [...waterChoices, 15, 16].map(id => ({ id,
+      weight: (id >= 15 ? 16 : 68 / waterChoices.length) *
+        (id === 6 || id === 15 ? 1.35 : 1) * (at >= 12000 && triple.has(id) ? 1.15 : 1) }));
+    let remaining = (directorRoll(seed, index, 0x6f431b82) / 0x100000000) *
+      choices.reduce((sum, choice) => sum + choice.weight, 0);
+    for (const choice of choices) { remaining -= choice.weight; if (remaining < 0) return choice.id; }
+    return 16;
+  };
+  let id = requestedId ?? (at >= 8000 ? weightedChoice() : earlyChoice);
   for (let tries = 0; tries < 16 && recent.includes(id); tries++) id = id === 13 ? 15 : id === 16 ? 1 : id + 1;
   const actors: Entity[] = [];
   const add = (kind: EntityKind, offset: number, x: number) => {
@@ -151,8 +162,9 @@ export function makeP8Encounter(seed: number, index: number, at: number, playerD
     case 10: water(0, lane, 3.2, 24); car(12 + phase, -lane, 'car7'); break;
     case 11: {
       const officer = add('militia', 13 + phase, 0);
-      actors[0] = movingEvent(officer, index, seed, now)[0];
-      actors[0].patternId = id; water(0, lane, 3.2, 24); break;
+      const group = movingEvent(officer, index, seed, now);
+      for (const member of group) member.patternId = id;
+      actors.splice(0, 1, ...group); water(0, lane, 3.2, 24); break;
     }
     case 12: water(0, -lane, 3.2, 24); water(18, lane, 3.2, 24); car(18 + phase, 0, 'car4'); break;
     case 13: water(0, -lane / 2, 5.7, 24); car(12 + phase, lane, 'motorbike', false);

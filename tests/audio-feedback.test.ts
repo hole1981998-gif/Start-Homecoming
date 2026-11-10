@@ -206,10 +206,10 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   expect(filters.some(filter => filter.type === 'lowshelf' && filter.frequency.value === 700 && filter.gain.value === 5)).toBe(true);
   expect(filters.some(filter => filter.type === 'lowpass' && filter.frequency.value === 3200)).toBe(true);
   FakeAudioContext.time += .4;
-  await director.update({ ...base, scorePickupSequence: 2, scorePickupLevel: 8 });
+  await director.update({ ...base, scorePickupSequence: 2, scorePickupLevel: 1 });
   await vi.waitFor(() => expect(sources.some(source => source.started &&
     source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3') &&
-    source.playbackRate.targets.at(-1) === scoreComboPitch(8))).toBe(true));
+    source.playbackRate.targets.at(-1) === scoreComboPitch(1))).toBe(true));
 
   const water = { ...entity('water', 'test-water', 0, 0), touching: true };
   await director.update({ ...base, eventSequence: 1, feedbackKind: 'water', world: { ...base.world, entities: [water] } });

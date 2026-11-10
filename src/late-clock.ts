@@ -1,24 +1,29 @@
 import { balance, lateWorldBalance as c } from './config';
 
 /** Piecewise station clock. The station at each threshold is kept; only following gaps change. */
-function schedule(first: number, gaps: readonly [number, number, number], origin = 0) {
+function schedule(first: number, gaps: readonly [number, number, number, number], origin = 0) {
   const i5 = origin + Math.ceil((c.firstThreshold - first) / gaps[0]);
   const d5 = first + (i5 - origin) * gaps[0];
   const i8 = i5 + Math.ceil((c.secondThreshold - d5) / gaps[1]);
   const d8 = d5 + (i8 - i5) * gaps[1];
+  const i15 = i8 + Math.ceil((c.thirdThreshold - d8) / gaps[2]);
+  const d15 = d8 + (i15 - i8) * gaps[2];
   return {
     at(index: number) {
       return index <= i5 ? first + (index - origin) * gaps[0] :
-        index <= i8 ? d5 + (index - i5) * gaps[1] : d8 + (index - i8) * gaps[2];
+        index <= i8 ? d5 + (index - i5) * gaps[1] :
+          index <= i15 ? d8 + (index - i8) * gaps[2] : d15 + (index - i15) * gaps[3];
     },
     atOrAfter(distance: number) {
       return Math.max(origin, distance <= d5 ? origin + Math.ceil((distance - first) / gaps[0]) :
         distance <= d8 ? i5 + Math.ceil((distance - d5) / gaps[1]) :
-          i8 + Math.ceil((distance - d8) / gaps[2]));
+          distance <= d15 ? i8 + Math.ceil((distance - d8) / gaps[2]) :
+            i15 + Math.ceil((distance - d15) / gaps[3]));
     },
   };
 }
-const fuel = schedule(0, c.fuelGap), repair = schedule(balance.firstRepair, c.repairGap);
+const fuel = schedule(0, [...c.fuelGap, c.fuelGap[2]] as const),
+  repair = schedule(balance.firstRepair, [...c.repairGap, c.repairGap[2]] as const);
 const normal = schedule(3386.88, c.normalGap, 120);
 export const fuelAt = fuel.at;
 export const repairAt = repair.at;

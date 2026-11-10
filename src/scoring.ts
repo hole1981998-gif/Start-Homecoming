@@ -1,13 +1,27 @@
 import type { VehicleDefinition } from './vehicles';
 
-export const scoreVersion = 'road-v2' as const;
-export const baseScorePerMeter = 0.65;
-export const roadScore = Object.freeze({ firstDistance: 96, gap: 8, value: 3, trailLength: 8, width: 1, length: 1, maxCombo: 8 });
+export const scoreVersion = 'hybrid-v1' as const;
+export const baseScorePerMeter = 0.20;
+export const roadScore = Object.freeze({ firstDistance: 450, gaps: [[600, 900], [750, 1050], [900, 1200]] as const,
+  value: 50, width: 1, length: 1, maxCombo: 8 });
 export const scoreAudio = Object.freeze({ sliceSeconds: .65, fadeAtSeconds: .42, volume: .07,
   transposeSemitones: -2, lowpassHz: 3200, warmthHz: 700, warmthDb: 5 });
 
-export function scoreStation(distance: number): number {
-  return Math.round((distance - roadScore.firstDistance) / roadScore.gap);
+/** Separate seeded stream; a packet's stage is set at the previous packet. */
+export function scoreDistance(index: number, seed: number): number {
+  let at = roadScore.firstDistance;
+  for (let i = 0; i < index; i++) {
+    const stage = at >= 8000 ? 2 : at >= 5000 ? 1 : 0;
+    const [minimum, maximum] = roadScore.gaps[stage];
+    const hash = (Math.imul(seed ^ Math.imul(i + 1, 0x9e3779b1), 1664525) + 1013904223) >>> 0;
+    at += minimum + hash % (maximum - minimum + 1);
+  }
+  return at;
+}
+export function scoreIndexAtOrAfter(distance: number, seed: number): number {
+  let index = 0;
+  while (scoreDistance(index, seed) < distance) index++;
+  return index;
 }
 
 export function scoreComboPitch(level: number): number {
@@ -15,8 +29,9 @@ export function scoreComboPitch(level: number): number {
     2 ** (scoreAudio.transposeSemitones / 12);
 }
 
-/** Archived speed-v1 rule. Base catalogue stats keep upgrades, water and nitro from moving the reference speed. */
+/** Hybrid movement rule. Base catalogue stats keep upgrades, water and nitro from moving the reference speed. */
 export function scorePerMeter(speed: number, riders: number, vehicle: VehicleDefinition): number {
+  if (speed <= vehicle.minSpeed) return 0;
   const validRiders = Math.min(Math.max(0, riders), vehicle.capacity - 1);
   const cruise = Math.min(vehicle.maxSpeed, Math.max(vehicle.cruiseFloor,
     vehicle.cruiseSpeed - validRiders * vehicle.cruiseLoss));

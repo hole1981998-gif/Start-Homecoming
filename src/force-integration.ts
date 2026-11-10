@@ -1,5 +1,6 @@
 import * as CANNON from 'cannon-es';
-import { balance, forceTailSweep } from './config';
+import { balance, forceTailSweep, itemBalance } from './config';
+import { jumpHeight } from './items';
 import { activeVehicle, stepRun, type Run } from './survival';
 import type { Input } from './simulation';
 import { vehicleRam, vehicles, type VehicleKind } from './vehicles';
@@ -62,6 +63,7 @@ export class ForceIntegration {
     world.defaultContactMaterial.restitution = .12;
     (world.solver as CANNON.GSSolver).iterations = 10;
     const origin = before.distance;
+    const flightHeight = jumpHeight({ ...before, activeSeconds: before.activeSeconds + dt / 2 });
     const actors: Actor[] = [];
     const add = (id: string, kind: Actor['kind'], x: number, distance: number, width: number,
       length: number, bodyMass: number, vx: number, vz: number, entity?: Dynamic) => {
@@ -72,6 +74,12 @@ export class ForceIntegration {
       body.fixedRotation = true; body.updateMassProperties(); body.velocity.set(vx, 0, vz);
       body.collisionFilterGroup = kind === 'player' ? 1 : kind === 'traffic' ? 2 : kind === 'cargo' ? 4 : 8;
       if (kind === 'player') body.collisionFilterMask = ~1;
+      if (kind === 'traffic' && entity && flightHeight >=
+          (['bus', 'truck', 'container'].includes(entity.trafficKind ?? 'car4') ?
+            itemBalance.highTrafficClearance : itemBalance.lowTrafficClearance))
+        body.collisionFilterMask = ~1;
+      if (kind === 'cargo' && flightHeight >= itemBalance.groundClearance)
+        body.collisionFilterMask = ~1;
       // NPCs are swept targets, not rigid barriers that can stop a vehicle.
       if (kind === 'passenger') body.collisionResponse = false;
       // Arcade already owns the slide/recovery after a fall; avoid repeatedly shoving a target during it.

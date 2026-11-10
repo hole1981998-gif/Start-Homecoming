@@ -6,7 +6,7 @@ import { fuelAt, nextFuelIndex, nextRepairIndex, repairAt, shopGaps, waterLength
 import { fillStressWorld } from './stress-world';
 import { movingEvent } from './moving-events';
 import { isSpecial, specialIndexAtOrAfter, specialIndexNear, specialPlan } from './special-events';
-import { roadScore } from './scoring';
+import { roadScore, scoreDistance, scoreIndexAtOrAfter } from './scoring';
 import { eventBalance } from './config';
 import { balance, cargoBalance, densityBalance, earlyBalance, forceBalance, hazardSizes, itemBalance, shopBalance, stressBalance } from './config';
 import { trafficSpawnKinds, trafficTypes, vehicles, vehicleDefinition, waterFuelPerSecond, type VehicleDefinition, type VehicleKind } from './vehicles';
@@ -120,7 +120,7 @@ export function forkWorld(world: World, route: RouteState, turn: Turn, junctionD
     nextStress: world.stress ? Math.max(0, Math.ceil((split - stressBalance.first) / stressBalance.gap)) : world.nextStress,
     nextHazard, nextFuel: world.directorVersion === 'backup' ? Math.max(1, Math.ceil(split / balance.fuelInterval)) : nextFuelIndex(split),
     nextRepair: world.directorVersion === 'backup' ? Math.max(0, Math.ceil((split - balance.firstRepair) / balance.repairInterval)) : nextRepairIndex(split),
-    nextScore: Math.max(0, Math.ceil((split - roadScore.firstDistance) / roadScore.gap)),
+    nextScore: world.nextScore === 1e9 ? 1e9 : scoreIndexAtOrAfter(split, branchSeed),
     nextPassenger: Math.max(0, Math.ceil((split - balance.firstPassenger) / balance.passengerInterval)),
     nextShop: shopIndex, nextShopDistance: shopDistance, rng: branchSeed, branchSeed, branchId, branchVariant,
     pendingWind: false, pendingCargo: false, lastWindDistance: split - densityBalance.windCooldown,
@@ -460,7 +460,8 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     const hazard = entity(kind, branchEntityId(w, 'hazard', index), spawnAt, lane * balance.laneWidth);
     if (kind === 'wind') {
       hazard.x = 0; hazard.width = forceBalance.windWidth; hazard.length = forceBalance.zoneLength;
-      hazard.lateralPush = random() % 2 ? forceBalance.windPush : -forceBalance.windPush;
+      hazard.lateralPush = (random() % 2 ? 1 : -1) *
+        (backupDirector ? forceBalance.backupWindPush : forceBalance.windPush);
       hazard.displayName = 'Gió ngang';
     }
     if (kind === 'traffic') {
@@ -740,25 +741,21 @@ export function fillWorld(world: World, distance: number, fuel: number = balance
     car.balanceProfile = 'backup';
     car.fuel = vehicleDefinition(car.trafficKind ?? 'car4', 'backup').fuelCapacity;
   }
-  if (w.integrated && w.directorVersion !== 'backup' && !w.stress && !w.prototype) {
+  if (w.integrated && w.directorVersion !== 'backup' && !w.stress &&
+      (!w.prototype || w.prototype.version === balance.version && w.prototype.version.startsWith('hybrid-late-b'))) {
     // Independent seeded stream: score may sit on a hazard, including a dangerous one.
     if (w.nextScore === undefined) w.nextScore = 0;
-    while (roadScore.firstDistance + w.nextScore * roadScore.gap <= ahead) {
+    while (w.nextScore < 1e9 && scoreDistance(w.nextScore, w.branchSeed) <= ahead) {
       const index = w.nextScore++;
-      const at = roadScore.firstDistance + index * roadScore.gap;
-      const trail = Math.floor(index / roadScore.trailLength);
-      const hash = directorRoll(w.branchSeed, trail, 0x4af39d27);
+      const at = scoreDistance(index, w.branchSeed);
+      const hash = directorRoll(w.branchSeed, index, 0x4af39d27);
       const risky = w.entities.filter(e => !e.consumed &&
         ['water', 'pothole', 'traffic', 'cargo', 'jam', 'accident', 'police', 'militia', 'train'].includes(e.kind) &&
         Math.abs(e.distance - at) <= e.length / 2 + roadScore.length / 2);
       const target = risky.length && index % 3 !== 0 ? risky[hash % risky.length] : undefined;
       const lane = target ? Math.round(target.x / balance.laneWidth) : hash % 3 - 1;
-      const laneRoll = directorRoll(w.branchSeed, trail, 0x79a6e2b1) % 20;
-      const laneCount = laneRoll < 17 ? 1 : laneRoll < 19 ? 2 : 3;
-      const start = laneCount === 3 ? -1 : laneCount === 2 ? (lane > 0 ? 0 : -1) : Math.max(-1, Math.min(1, lane));
-      for (let offset = 0; offset < laneCount; offset++)
-        w.entities.push(entity('score', branchEntityId(w, 'score', index * 3 + offset), at,
-          (start + offset) * balance.laneWidth));
+      w.entities.push(entity('score', branchEntityId(w, 'score', index), at,
+        Math.max(-1, Math.min(1, lane)) * balance.laneWidth));
     }
   }
   return w;

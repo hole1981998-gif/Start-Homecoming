@@ -1,11 +1,12 @@
 import { expect, it } from 'vitest';
 import { balance, itemBalance } from '../src/config';
-import { clears, hasBoost, hasStar, jumpHeight, requestJump, usePowerItem } from '../src/items';
+import { clears, hasBoost, hasStar, jumpDuration, jumpHeight, requestJump, usePowerItem } from '../src/items';
 import { initialRun, stepRun, switchVehicle, type Run } from '../src/survival';
 import { FixedClock, noInput } from '../src/simulation';
 import { entity, initialWorld } from '../src/world';
 import { newVehicle, vehicles, type VehicleKind } from '../src/vehicles';
 import { developmentScenario } from '../src/development';
+import { ForceIntegration } from '../src/force-integration';
 import { enterShop, transact } from '../src/shop';
 import { junction } from '../src/route';
 
@@ -31,6 +32,57 @@ it('nitro boosts on the ground until Space; jumping does not reset the boost tim
   const landed = seconds(jumping, itemBalance.jumpSeconds);
   expect(jumpHeight(landed)).toBe(0);
   expect(requestJump(landed).powers.jumpAt).toBeCloseTo(landed.activeSeconds);
+});
+it('the longer jump clears a moving container started two metres farther away', () => {
+  for (const kind of ['motorcycle', 'car4', 'car7'] as const) {
+    const vehicle = vehicles[kind], target = entity('traffic', `container-${kind}`, 0, 0);
+    target.trafficKind = 'container'; target.width = vehicles.container.width;
+    target.length = vehicles.container.length; target.hp = 300;
+    target.speed = 4; target.baseSpeed = 4; target.fuel = vehicles.container.fuelCapacity;
+    target.trafficMotion = 'powered';
+    const speed = vehicle.maxSpeed * itemBalance.boostFactor;
+    target.distance = (vehicle.length + target.length) / 2 + (speed - target.speed) * .39 + 2;
+    let run = ready(kind);
+    run = { ...run, speed, world: { ...initialWorld(17, true), entities: [target],
+      nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9,
+      nextSpecial: 1e9, nextScore: 1e9, nextShopDistance: 1e9 } };
+    run = requestJump(usePowerItem(run, 0));
+    const hp = run.durability;
+    for (let i = 0; i < 100; i++) run = stepRun(run, { ...noInput(), accelerate: true });
+    expect(run.crash, kind).toBeNull();
+    expect(run.durability, kind).toBe(hp);
+    expect(run.distance - target.distance).toBeGreaterThan((vehicle.length + target.length) / 2);
+  }
+});
+it('retains the shorter historical noforce jump', () => {
+  const backup = initialRun(17, 'backup-jump', 'backup');
+  const old = { ...backup, activeSeconds: .8, powers: { ...backup.powers, jumpAt: 0 } };
+  expect(jumpHeight(old)).toBeCloseTo(2.4);
+  expect(jumpDuration(old)).toBe(1.6);
+  const current = { ...old, world: { ...old.world, directorVersion: 'p8' as const } };
+  expect(jumpHeight({ ...current, activeSeconds: jumpDuration(current) / 2 })).toBeCloseTo(5.2);
+  expect(jumpDuration(current)).toBe(1.7);
+  expect((jumpDuration(current) - jumpDuration(old)) * 20).toBeCloseTo(2);
+});
+it('keeps Cannon from pushing a bike or moving container while the jump clears its roof', () => {
+  const kind = 'motorcycle', vehicle = vehicles[kind];
+  const target = entity('traffic', 'force-container', 0, 0);
+  target.trafficKind = 'container'; target.width = vehicles.container.width;
+  target.length = vehicles.container.length; target.hp = 300;
+  target.speed = 4; target.baseSpeed = 4; target.fuel = vehicles.container.fuelCapacity;
+  target.trafficMotion = 'powered';
+  const speed = vehicle.maxSpeed * itemBalance.boostFactor;
+  target.distance = (vehicle.length + target.length) / 2 + (speed - target.speed) * .42;
+  let run = ready(kind);
+  run = { ...run, speed, world: { ...initialWorld(17, true), entities: [target],
+    nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9,
+    nextSpecial: 1e9, nextScore: 1e9, nextShopDistance: 1e9 } };
+  run = requestJump(usePowerItem(run, 0));
+  const integration = new ForceIntegration(), hp = run.durability;
+  for (let i = 0; i < 100; i++) run = integration.step(run, { ...noInput(), accelerate: true });
+  expect(run.crash).toBeNull();
+  expect(run.durability).toBe(hp);
+  expect(integration.contactPairs).toBe(0);
 });
 it('Space requires active nitro and driving state; a late jump lands normally after boost expires', () => {
   const plain = ready(); expect(requestJump(plain)).toBe(plain);
@@ -106,7 +158,7 @@ it('jump clears a short hole but landing in a long hole resumes contact damage f
 });
 it('jump does not grant blanket immunity to tall traffic and crash cancels boost/flight', () => {
   let run = requestJump(usePowerItem(ready(), 0));
-  const truck = entity('traffic', 'tall', 18, 0); truck.trafficKind = 'container'; truck.width = 2; truck.length = 2;
+  const truck = entity('traffic', 'tall', 5, 0); truck.trafficKind = 'container'; truck.width = 2; truck.length = 2;
   truck.speed = 0; truck.baseSpeed = 0; truck.hp = 300;
   run.world.entities = [truck]; run = seconds(run, 1);
   expect(run.crash).not.toBeNull(); expect(hasBoost(run)).toBe(false); expect(jumpHeight(run)).toBe(0);
