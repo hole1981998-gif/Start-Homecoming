@@ -41,12 +41,13 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
         float worldGrade = 1.0 - vividPaint * .92;
         float warmHue = smoothstep(-.025, .10, color.r - color.b);
         float coolHue = 1.0 - smoothstep(-.06, .08, color.r - color.b);
-        // Cool shadows and cyan/green scenery face warm lit surfaces. Hue
-        // gates keep sky and water from turning orange.
-        color *= mix(vec3(1.0), vec3(.73, 1.04, 1.09),
-          worldGrade * coolHue * (.38 + .42 * shadow));
-        color *= mix(vec3(1.0), vec3(1.16, .91, .77),
-          worldGrade * warmHue * (.18 + .48 * highlight));
+        // Keep the overall split tone restrained. Give dark neutral areas a
+        // separate cool bias so road shadows read green-cyan, not just blue.
+        color *= mix(vec3(1.0), vec3(.78, 1.04, 1.09),
+          worldGrade * (coolHue * .25 + shadow * .54));
+        // Warmth follows existing warm hues; sky and water stay cool.
+        color *= mix(vec3(1.0), vec3(1.12, .94, .84),
+          worldGrade * warmHue * (.12 + .35 * highlight));
         color += shadow * worldGrade * vec3(.002, .009, .010);
         // A gentle irregular glimmer follows the sun, never a full-screen flash.
         float glimmer = .5 + .5 * sin(uTime * 1.8 + sin(uTime * .73) * .8);
@@ -58,7 +59,7 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
           + bright(vUv + vec2(radius.x, -radius.y))
           + bright(vUv + vec2(-radius.x, radius.y))) * .25;
         float softEdge = exp(-pow(sideX / .28, 2.0) - pow((vUv.y - .68) / .3, 2.0));
-        color += (halo * side * .20 + vec3(1.0, .72, .55) * softEdge * .045) * pulse * uBloom;
+        color += (halo * side * .20 + vec3(1.0, .76, .62) * softEdge * .038) * pulse * uBloom;
         gl_FragColor = vec4(color, source.a);
       }`,
   });
