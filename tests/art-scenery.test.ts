@@ -7,6 +7,36 @@ import { createBendSceneryStrip, createSceneryCluster, optimizeNearScenery, scen
 import { shadePlacedStormCityFacades } from '../src/art/storm-lighting';
 
 describe('essential roadside scenery', () => {
+  it('culls reverse faces of closed native building boxes while retaining visible backs and two-sided roofs', () => {
+    for (const side of [-1, 1] as const) {
+      const art = createSceneryCluster('city', side, 'near', 14);
+      const front = art.root.getObjectByName('plaster') as THREE.Mesh;
+      const rear = art.root.getObjectByName('back_window') as THREE.Mesh;
+      const rearRecesses = art.root.getObjectByName('backlot_rear_recesses') as THREE.InstancedMesh;
+      const roof = art.root.getObjectByName('pitched_sheet_roof') as THREE.Mesh;
+      expect((front.material as THREE.Material).side).toBe(THREE.FrontSide);
+      expect((rear.material as THREE.Material).side).toBe(THREE.FrontSide);
+      expect((rearRecesses.material as THREE.Material).side).toBe(THREE.FrontSide);
+      expect((roof.material as THREE.Material).side).toBe(THREE.DoubleSide);
+      const closedBoxes: THREE.Mesh[] = [];
+      art.root.traverse(object => {
+        if (object instanceof THREE.Mesh && object.geometry instanceof THREE.BoxGeometry)
+          closedBoxes.push(object);
+      });
+      expect(closedBoxes.length).toBeGreaterThan(100);
+      expect(closedBoxes.every(mesh => (mesh.material as THREE.Material).side === THREE.FrontSide))
+        .toBe(true);
+      // A turn may show the back of a building. Both outward-facing walls stay ray-visible.
+      front.updateMatrixWorld(true);
+      const origin = front.getWorldPosition(new THREE.Vector3());
+      for (const face of [-1, 1]) {
+        const ray = new THREE.Raycaster(origin.clone().add(new THREE.Vector3(0, 0, face * 8)),
+          new THREE.Vector3(0, 0, -face));
+        expect(ray.intersectObject(front).length).toBeGreaterThan(0);
+      }
+      art.dispose();
+    }
+  });
   it('shades broad code-native walls on the sunny roadside while leaving shop trim and opposite row alone', () => {
     const right = createSceneryCluster('city', -1, 'near', 14);
     const left = createSceneryCluster('city', 1, 'near', 14);
