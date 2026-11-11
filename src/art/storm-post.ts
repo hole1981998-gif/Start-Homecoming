@@ -44,7 +44,7 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
         // Keep the overall split tone restrained. Give dark neutral areas a
         // separate cool bias so road shadows read green-cyan, not just blue.
         color *= mix(vec3(1.0), vec3(.78, 1.04, 1.09),
-          worldGrade * (coolHue * .25 + shadow * .54));
+          worldGrade * (coolHue * .25 + shadow * .62));
         // Warmth follows existing warm hues; sky and water stay cool.
         color *= mix(vec3(1.0), vec3(1.12, .94, .84),
           worldGrade * warmHue * (.12 + .35 * highlight));
