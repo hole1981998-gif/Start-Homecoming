@@ -9,7 +9,7 @@ it('coalesces variants and migrates old read cards and keeps new shop/supply int
   expect(seen.has(discoveryCategory('police')!)).toBe(true);
   for (const kind of ['traffic','pothole','water','jam','accident','broken'] as const) expect(seen.has(discoveryCategory(kind)!)).toBe(true);
   expect(discoveryCategory('fuel')).toBe('supplies'); expect(discoveryCategory('repair')).toBe('supplies'); expect(discoveryCategory('shop')).toBe('shop');
-  expect(seen.has('supplies')).toBe(true);expect(seen.has('shop')).toBe(false);expect(discoveryCategory('score')).toBeNull();
+  expect(seen.has('supplies')).toBe(true);expect(seen.has('shop')).toBe(false);expect(discoveryCategory('score')).toBe('score');
   expect(seen.has('wind')).toBe(false); expect(seen.has('train')).toBe(false);
 });
 it('persists each item introduction independently across reloads, ignoring invalid data', () => {

@@ -176,6 +176,7 @@ function resume(cue?: UiCue | null): void {
 }
 function reset(): void {
   discovery = null;secondVehicleGuidePending=false;
+  endedAt = null;
   audio.reset();
   force = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
   state = newRun(); previous = state;
@@ -295,7 +296,10 @@ el('panel-restart').addEventListener('click', () => { reset(); audio.ui('restart
 el('help').addEventListener('click', openHelp, { signal: listeners.signal });
 el('panel-help').addEventListener('click', openHelp, { signal: listeners.signal });
 closeHelp.addEventListener('click', () => {
-  if (state.phase === 'ended') resultView(); else if (state.phase === 'ready') reset(); else show('pause', 'Nghỉ một nhịp', 'Chọn tiếp tục khi bạn sẵn sàng.');
+  if (state.phase === 'ended') {
+    if (endedAt !== null && performance.now() - endedAt < 2000) { screen = null; modal.hidden = true; }
+    else resultView();
+  } else if (state.phase === 'ready') reset(); else show('pause', 'Nghỉ một nhịp', 'Chọn tiếp tục khi bạn sẵn sàng.');
 }, { signal: listeners.signal });
 const menu = el('controls-menu'), menuToggle = el<HTMLButtonElement>('controls-toggle'), menuPanel = el('controls-panel');
 function setMenu(open: boolean): void {
@@ -423,6 +427,7 @@ function updateHud(): void {
   pause.title = state.phase === 'paused' ? 'Tiếp tục · Esc' : 'Tạm dừng · Esc';
 }
 let last = performance.now(), animation = 0;
+let endedAt: number | null = null;
 const diagnostics = new URLSearchParams(location.search).has('diagnostics');
 const frameTimes: number[] = [], renderTimes: number[] = []; let measuredFrames = 0;
 let diagnosticRunId = '';
@@ -431,10 +436,12 @@ function frame(now: number): void {
   const elapsed = (now - last) / 1000; last = now; const start = performance.now();
   const alpha = state.phase === 'running' ? clock.advance(elapsed, () => { previous = state; state = force ? force.step(state, input) : stepRun(state, input); }) : 1;
   void audio.update(state, input);
-  if (state.phase === 'ended' && screen !== 'result' && screen !== 'help') {
-    resultView();
-  } else discover();
-  graphics.draw(state, previous, state.phase === 'running' ? alpha : 1, input);
+  if (state.phase === 'ended') {
+    endedAt ??= now;
+    if (now - endedAt >= 2000 && screen !== 'result' && screen !== 'help') resultView();
+  } else { endedAt = null; discover(); }
+  graphics.draw(state, previous, state.phase === 'running' ? alpha : 1, input,
+    state.phase === 'ended' && endedAt !== null ? Math.min(2, (now - endedAt) / 1000) : 0);
   if (diagnostics && diagnosticRunId !== state.runId) {
     diagnosticRunId = state.runId; measuredFrames = 0;
     frameTimes.length = renderTimes.length = diagnosticSamples.length = 0;

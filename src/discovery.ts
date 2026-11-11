@@ -3,8 +3,9 @@ import { uiIcon, type UiIcon } from './ui-icons';
 import type { EntityKind } from './world';
 import type { PowerItem } from './items';
 
-export type Discovery = 'passenger' | 'wind' | 'train' | 'officers' | 'obstacles' | 'shop' | 'supplies' | 'junction' | 'switching' | PowerItem;
+export type Discovery = 'passenger' | 'score' | 'wind' | 'train' | 'officers' | 'obstacles' | 'shop' | 'supplies' | 'junction' | 'switching' | PowerItem;
 export const discoveryCards: Record<Discovery, { title: string; copy: string; icon: UiIcon }> = {
+  score: { title: 'Điểm được tính thế nào?', copy: 'Lái xe để tích điểm theo quãng đường. Ở tốc độ tối thiểu, bạn không nhận điểm di chuyển; chạy nhanh hơn và chở khách sẽ tăng điểm kiếm được.\n\nViên sáng trên đường cho thêm 50 điểm khi xe chạm vào. Bạn không cần nhặt hết: hãy ưu tiên đường an toàn. Điểm và tiền là hai thứ riêng.', icon: 'star' },
   switching: {title:'Có hai xe rồi, đổi bằng Tab nhé!',copy:'Bạn đã có xe dự phòng. Khi đang lái, bấm Tab để đổi qua lại giữa hai xe còn chạy được. Khách sẽ đi theo bạn sang xe kia.\n\nMỗi xe giữ riêng xăng, độ bền và nâng cấp; đổi xe không được nạp lại miễn phí. Nhớ xem sức chứa để tránh quá tải nhé.',icon:'car'},
   passenger: { title: 'Cho đi nhờ nhé?', copy: 'Lại gần khách rồi bấm F để đón lên xe. Muốn cho một người xuống, bấm G. Chở khách giúp bạn kiếm thêm tiền.\n\nMỗi xe có sức chứa riêng, tính cả người lái. Càng đông xe càng chậm; quá tải còn làm tốn xăng hơn, nên nhớ chừa chỗ nhé.', icon: 'passenger' },
   obstacles: { title: 'Cẩn thận đường phía trước', copy: 'Vũng nước làm hao thêm xăng; cán ổ gà vừa mất độ bền, vừa rơi tiền. Đụng xe, vật cản hay đồ rơi có thể làm bạn ngã và mất độ bền.\n\nRiêng điểm tai nạn có thể làm hỏng xe ngay. Giảm tốc bằng S, lái A/D để tìm khoảng trống; đừng cố lấy điểm nếu đường quá chật.', icon: 'obstacles' },
@@ -24,7 +25,7 @@ export function discoveryCopy(key:Discovery,backup=false):string {
  return key==='officers' && backup ? `Đụng công an là mất tiền và bị thu xe đang lái. Hết xe còn chạy được thì chuyến đi kết thúc. Dân phòng chỉ thu tiền, mức ${backupEventBalance.militiaFine}; không đủ thì họ lấy số đang có. Mua chuối ở cửa hàng và bấm 1 hoặc 2 khi đến gần chốt để né. Ngôi sao không tránh được chốt.` : discoveryCards[key].copy;
 }
 export function discoveryCategory(kind: EntityKind): Discovery | null {
-  if (kind === 'score') return null;
+  if (kind === 'score') return 'score';
   if (kind === 'shop') return 'shop';
   if (kind === 'fuel' || kind === 'repair') return 'supplies';
   if (kind === 'police' || kind === 'militia') return 'officers';

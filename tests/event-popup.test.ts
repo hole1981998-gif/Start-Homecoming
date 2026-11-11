@@ -27,7 +27,7 @@ it('replaces immediately, expires after 3 wall-clock seconds without refreshing 
  view.dispose();expect(document.getElementById('event-popup')).toBeNull();
 });
 it('ships the owner illustrations for every supported event',()=>{
- for(const kind of Object.keys(popupCaptions))expect(existsSync('public/ui/event-popups/'+kind+'.png'),kind).toBe(true);
+ for(const kind of Object.keys(popupCaptions))if(kind!=='score')expect(existsSync('public/ui/event-popups/'+kind+'.png'),kind).toBe(true);
 });
 
 it('shows immediately, fades smoothly in the final 700ms, and replaces a fading event at full opacity',()=>{
@@ -48,4 +48,18 @@ it('shows the actual fine beneath the art and clears it for subsequent unrelated
  const run=withPopup({...initialRun(17),phase:'running' as const},'militia');run.popupEvent!.moneyLoss=37.5;
  view.update(run,0);expect(view.root.querySelector('.popup-money-loss')!.textContent).toBe('−37,5 tiền');
  view.update(withPopup(run,'pickup'),10);expect((view.root.querySelector('.popup-money-loss') as HTMLElement).hidden).toBe(true);view.dispose();
+});
+it('shows a score pickup with a built-in marker and keeps the terminal popup on the road until results appear',()=>{
+ document.body.innerHTML='<div id="game"></div><div id="modal" hidden><div id="result"></div></div>';
+ const game=document.getElementById('game')!,modal=document.getElementById('modal')!,result=document.getElementById('result')!;
+ const view=new EventPopup(game,result);
+ const score=withPopup({...initialRun(17),phase:'running' as const},'score');
+ view.update(score,100);
+ expect(view.root.textContent).toContain('+50 ĐIỂM');
+ expect(view.root.querySelector('.score-mark')?.textContent).toBe('✦');
+ expect((view.root.querySelector('img') as HTMLImageElement).hidden).toBe(true);
+ const ended=withPopup({...score,phase:'ended' as const},'train');
+ view.update(ended,200);expect(view.root.parentElement).toBe(game);
+ modal.hidden=false;view.update(ended,2100);expect(view.root.parentElement).toBe(result);
+ view.dispose();
 });

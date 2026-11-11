@@ -2,7 +2,7 @@ import type { Run } from './survival';
 import type { VehicleKind } from './vehicles';
 import { activeVehicle } from './survival';
 import { jumpDuration } from './items';
-import { scoreAudio, scoreComboPitch } from './scoring';
+import { scoreAudio } from './scoring';
 
 const files = import.meta.glob([
   '../project-reference/sfx/elevenlabs-2026-10-29/*.mp3',
@@ -895,8 +895,7 @@ export class AudioDirector {
     const vehicle = activeVehicle(run);
     if (run.scorePickupSequence !== this.lastScorePickupSequence) {
       this.lastScorePickupSequence = run.scorePickupSequence;
-      void this.play('score/collect', 'score/collect', .1, scoreAudio.volume, 0, 'sfx', undefined,
-        scoreComboPitch(run.scorePickupLevel));
+      void this.play('score/collect', 'score/collect', .1, scoreAudio.volume);
     }
     let pickupRiderId: string | undefined;
     if (run.eventSequence !== this.lastSequence) {

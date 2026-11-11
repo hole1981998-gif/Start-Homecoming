@@ -1,7 +1,7 @@
 import type { Entity } from './world';
 import type { FeedbackKind } from './feedback';
 export const popupCaptions = {
- pickup:'ĐÓN KHÁCH',drop:'CHIM CÚC!',militia:'XIN TÍ PHÍ',police:'VỀ ĐỒN NHÉ',
+ pickup:'ĐÓN KHÁCH',score:'+50 ĐIỂM',drop:'CHIM CÚC!',militia:'XIN TÍ PHÍ',police:'VỀ ĐỒN NHÉ',
  pothole:'VA Ổ GÀ',barrel:'THÙNG LĂN',accident:'TAI NẠNN',vendor:'ỐI HÀNG RONG',
  ambulance:'CỨUUUUUU',barrier:'ĐÀO ĐƯỜNG HẢ?!',train:'TÀUUUUUU!!!',repair:'SỬA CHỮA NÈ',
  fuel:'TIẾP TẾ XĂNG',empty:'HẾT XĂNG RỒI!',damage:'TOANGGGG XE',nitro:'BOOOOST!!!',

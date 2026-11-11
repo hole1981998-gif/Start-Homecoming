@@ -6,7 +6,6 @@ import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
 import { noInput } from '../src/simulation';
 import { newVehicle } from '../src/vehicles';
-import { scoreComboPitch } from '../src/scoring';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -201,7 +200,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   await director.update({ ...base, scorePickupSequence: 1, scorePickupLevel: 1 });
   await vi.waitFor(() => expect(sources.some(source => source.started &&
     source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3') &&
-    source.playbackRate.targets.at(-1) === scoreComboPitch(1))).toBe(true));
+    source.playbackRate.targets.length === 0)).toBe(true));
   expect(sources.find(source => source.started && source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3'))?.startArgs).toEqual([0, 0, .65]);
   expect(filters.some(filter => filter.type === 'lowshelf' && filter.frequency.value === 700 && filter.gain.value === 5)).toBe(true);
   expect(filters.some(filter => filter.type === 'lowpass' && filter.frequency.value === 3200)).toBe(true);
@@ -209,7 +208,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   await director.update({ ...base, scorePickupSequence: 2, scorePickupLevel: 1 });
   await vi.waitFor(() => expect(sources.some(source => source.started &&
     source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3') &&
-    source.playbackRate.targets.at(-1) === scoreComboPitch(1))).toBe(true));
+    source.playbackRate.targets.length === 0)).toBe(true));
 
   const water = { ...entity('water', 'test-water', 0, 0), touching: true };
   await director.update({ ...base, eventSequence: 1, feedbackKind: 'water', world: { ...base.world, entities: [water] } });

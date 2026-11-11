@@ -555,6 +555,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       r.scorePickupLevel = 1;
       r.scorePickupAt = r.activeSeconds;
       r.scorePickupSequence++;
+      recordPopup(r, 'score');
     } else if (e.kind === 'fuel') {
       const gained = Math.min(vehicle.fuelPickup, vehicle.fuelCapacity - r.fuel);
       r.fuel += gained; r.motion = 'powered'; r.coastRemaining = balance.coastDistance; e.consumed = true;

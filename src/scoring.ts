@@ -4,8 +4,8 @@ export const scoreVersion = 'hybrid-v1' as const;
 export const baseScorePerMeter = 0.20;
 export const roadScore = Object.freeze({ firstDistance: 450, gaps: [[600, 900], [750, 1050], [900, 1200]] as const,
   value: 50, width: 1, length: 1, maxCombo: 8 });
-export const scoreAudio = Object.freeze({ sliceSeconds: .65, fadeAtSeconds: .42, volume: .07,
-  transposeSemitones: -2, lowpassHz: 3200, warmthHz: 700, warmthDb: 5 });
+export const scoreAudio = Object.freeze({ sliceSeconds: .65, fadeAtSeconds: .42, volume: .14,
+  lowpassHz: 3200, warmthHz: 700, warmthDb: 5 });
 
 /** Separate seeded stream; a packet's stage is set at the previous packet. */
 export function scoreDistance(index: number, seed: number): number {
@@ -22,11 +22,6 @@ export function scoreIndexAtOrAfter(distance: number, seed: number): number {
   let index = 0;
   while (scoreDistance(index, seed) < distance) index++;
   return index;
-}
-
-export function scoreComboPitch(level: number): number {
-  return (.9 + .105 * (Math.min(roadScore.maxCombo, Math.max(1, level)) - 1)) *
-    2 ** (scoreAudio.transposeSemitones / 12);
 }
 
 /** Hybrid movement rule. Base catalogue stats keep upgrades, water and nitro from moving the reference speed. */
