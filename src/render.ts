@@ -12,6 +12,7 @@ import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep
 import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
 import { attachArticulatedContainerArt, attachVehicleArtToPrototype } from './art/prototype-adapter';
 import { createVehicleArt, setTrafficDriverSeated, type VehicleArt } from './art/vehicle-catalog';
+import { attachAmbulanceService } from './art/ambulance-service';
 import { bikeLiftSeconds, trafficBikeWreckPose, trafficDriverFallPose, twoWheelCrashPose } from './art/vehicle-recovery';
 import { openTraffic } from './traffic-recovery';
 import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './art/hazards';
@@ -396,14 +397,16 @@ export class RoadRenderer {
       g.userData.cargoCrate = crate; g.userData.cargoBarrel = barrel;
     } else if (kind === 'traffic') {
       const d = trafficTypes[trafficKind], w = d.width;
-      const service = new THREE.Group(); g.add(service); g.userData.service = service;
-      const serviceX = box(.65, .12, .22, '#ba625e', service); serviceX.position.y = 1.7;
-      const serviceZ = box(.22, .12, .65, '#ba625e', service); serviceZ.position.y = 1.7;
       const hpBack = part(w, .09, .04, '#29373e', 0, 2.6, 0);
       const hpFill = part(w, .1, .045, '#a0d2ae', 0, 2.6, 0);
       g.userData.hpBack = hpBack; g.userData.hpFill = hpFill;
       const art = createVehicleArt(trafficKind, 'traffic', 'far', d.color);
       art.root.rotation.y = Math.PI;
+      if (trafficKind === 'car7') {
+        const service = attachAmbulanceService(art.body);
+        service.root.visible = false;
+        g.userData.service = service;
+      }
       g.add(art.root);
       g.userData.trafficArt = art;
       if (openTraffic(trafficKind)) {
@@ -843,7 +846,11 @@ export class RoadRenderer {
       }
       if (e.kind === 'shop') entry.mesh.rotation.y += e.x > 0 ? -Math.PI / 2 : Math.PI / 2;
       if (e.kind === 'traffic') {
-        (entry.mesh.userData.service as THREE.Group).visible = e.serviceRole === 'ambulance';
+        const service = entry.mesh.userData.service as ReturnType<typeof attachAmbulanceService> | undefined;
+        if (service) {
+          service.root.visible = e.serviceRole === 'ambulance';
+          if (service.root.visible) service.setVisualTime(visualTime);
+        }
         const hpFill = entry.mesh.userData.hpFill as THREE.Mesh, hpBack = entry.mesh.userData.hpBack as THREE.Mesh;
         hpFill.visible = hpBack.visible = !!s.world.prototype;
         hpFill.scale.x = Math.max(0, (e.hp ?? 0) / trafficTypes[e.trafficKind ?? 'car4'].hp);

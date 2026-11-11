@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { movingBalance } from '../src/config';
 import { createAmbulanceArt, createOfficerArt, createTrainArt, createVendorArt,
   crossingVisualYaw } from '../src/art/moving-events';
+import { attachAmbulanceService } from '../src/art/ambulance-service';
+import { createVehicleArt } from '../src/art/vehicle-catalog';
 
 describe('moving event art uses prototype contracts', () => {
   it('keeps a finite crossing train within the existing world-space footprint in either direction', () => {
@@ -38,6 +40,39 @@ describe('moving event art uses prototype contracts', () => {
     asset.setState('damaged');
     expect(asset.root.getObjectByName('service_damage')?.visible).toBe(true);
     asset.dispose();
+  });
+  it('alternates the bright roof beacon from simulation time on the real traffic car7', () => {
+    const traffic = createVehicleArt('car7', 'traffic', 'far');
+    const service = attachAmbulanceService(traffic.body);
+    const red = service.root.getObjectByName('beacon_red') as THREE.Mesh;
+    const blue = service.root.getObjectByName('beacon_blue') as THREE.Mesh;
+    const redMaterial = red.material as THREE.MeshStandardMaterial;
+    const blueMaterial = blue.material as THREE.MeshStandardMaterial;
+    const wash = service.root.getObjectByName('ambulance_beacon_wash') as THREE.PointLight;
+    expect(new THREE.Box3().setFromObject(red).min.y).toBeGreaterThan(1.9);
+    service.setVisualTime(.05);
+    expect(redMaterial.emissiveIntensity).toBeGreaterThan(blueMaterial.emissiveIntensity);
+    expect(wash.position.x).toBeLessThan(0);
+    service.setVisualTime(.25);
+    expect(blueMaterial.emissiveIntensity).toBeGreaterThan(redMaterial.emissiveIntensity);
+    expect(wash.position.x).toBeGreaterThan(0);
+    const flash = blueMaterial.emissiveIntensity;
+    service.setVisualTime(.25);
+    expect(blueMaterial.emissiveIntensity).toBe(flash);
+    traffic.dispose();
+  });
+  it('puts distinct, raised hats above both officers instead of flat head plates', () => {
+    for (const kind of ['police', 'militia'] as const) {
+      const asset = createOfficerArt(kind, 'far');
+      const head = asset.root.getObjectByName('head')!;
+      const hat = asset.root.getObjectByName(kind === 'police' ? 'police_cap' : 'militia_wide_hat')!;
+      asset.root.updateMatrixWorld(true);
+      const headTop = new THREE.Box3().setFromObject(head).max.y;
+      const hatTop = new THREE.Box3().setFromObject(hat).max.y;
+      expect(hatTop).toBeGreaterThan(headTop);
+      expect(asset.root.getObjectByName(kind === 'police' ? 'police_cap_visor' : 'militia_hat_crown')).toBeDefined();
+      asset.dispose();
+    }
   });
   it('provides readable officer/vendor states without owning NPC motion time', () => {
     for (const kind of ['police', 'militia'] as const) {
