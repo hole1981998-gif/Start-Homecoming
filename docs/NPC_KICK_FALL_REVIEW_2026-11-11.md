@@ -8,7 +8,7 @@ Phím G vẫn cho một khách xuống và giữ nguyên tiền, điểm, vị t
 
 - Base `main`/`origin/main`: `3e3dc6e`; branch `codex/npc-kick-fall`. Test G với seed 17 xác nhận tư thế trước/sau từng mốc, độ nghiêng lúc chạm đất, đứng thẳng cuối pha, vị trí đứng yên trong lúc hồi phục và thời gian cấm đón lại.
 - Windows/PowerShell, pnpm 11.25.0: `pnpm lint` (exit 0), `pnpm typecheck` (exit 0), `pnpm test tests/passengers.test.ts tests/art-runtime-people.test.ts tests/passenger-outcomes.test.ts --maxWorkers=2 --testTimeout=15000` (14/14 ca, exit 0), `pnpm test --maxWorkers=2 --testTimeout=15000 --reporter=dot` (87 tệp, 492 ca, exit 0), `pnpm build` (exit 0). Build còn cảnh báo sẵn có về chunk Three.js trên 500 kB.
-- **CHƯA KIỂM TRA THỦ CÔNG** trong browser ở lượt này: trình duyệt tích hợp không khả dụng từ phiên kiểm tra này. Ảnh tĩnh hay test mô phỏng không chứng minh được cảm giác chuyển động trong game.
+- Người điều phối đã mở trình duyệt tích hợp trên Windows tại `?scenario=visual-vehicles-car4&seed=17`, bắt đầu ván, đóng card đầu và bấm G. HUD giảm từ 4/4 xuống 3/4, phản hồi “Khách xuống xe · −1 người” xuất hiện, game vẫn chạy. NPC bay nhanh ra mép khung hình nên **chưa xác nhận thủ công toàn bộ pha nằm rồi đứng dậy**; các mốc tư thế được bảo vệ bởi test. Cần chơi lại ở tốc độ thấp để đánh giá cảm giác chuyển động.
 
 ## Tự review từ test mô phỏng và mã nguồn
 
