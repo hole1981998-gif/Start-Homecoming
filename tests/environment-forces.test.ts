@@ -22,7 +22,7 @@ it('AD can beat opposite push; no wind fuel/HP tax and no residual displacement 
  const r=ready();r.distance=60;
  expect(seconds(r,.5,{...noInput(),left:true}).x).toBeLessThan(r.x);
  const calm={...r,world:{...r.world,entities:[]}};const a=seconds(r,1),b=seconds(calm,1);
- expect(a.fuel).toBeCloseTo(b.fuel);expect(a.durability).toBe(b.durability);expect(a.x).toBeCloseTo(1.5);
+ expect(a.fuel).toBeCloseTo(b.fuel);expect(a.durability).toBe(b.durability);expect(a.x).toBeCloseTo(forceBalance.windPush);
  const out={...a,distance:130};expect(seconds(out,.5).x).toBeCloseTo(out.x);
 });
 it('star/pause/crash suppress pushes; protected crash footprint does not suppress wind after boarding',()=>{
@@ -30,7 +30,7 @@ it('star/pause/crash suppress pushes; protected crash footprint does not suppres
  const protectedRun={...r,protectedEntities:['p62-zone']};expect(seconds(protectedRun,.25).x).toBeGreaterThan(0);
  const paused={...r,phase:'paused' as const};expect(seconds(paused,2)).toBe(paused);
  r={...r,powers:{...r.powers,starUntil:.25}};
- expect(seconds(r,.25).x).toBeCloseTo(0);expect(seconds(r,.5).x).toBeCloseTo(.375);
+ expect(seconds(r,.25).x).toBeCloseTo(0);expect(seconds(r,.5).x).toBeCloseTo(forceBalance.windPush*.25);
  const crashRun=seconds(ready('p62-crash'),5);expect(crashRun.crash).not.toBeNull();
  const calm={...crashRun,world:{...crashRun.world,entities:crashRun.world.entities.filter(e=>!e.lateralPush)}};
  expect(seconds(crashRun,.5).x).toBeCloseTo(seconds(calm,.5).x);

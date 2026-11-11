@@ -1,7 +1,7 @@
 import type { Run } from './survival';
 import type { VehicleKind } from './vehicles';
 import { activeVehicle } from './survival';
-import { itemBalance } from './config';
+import { jumpDuration } from './items';
 import { scoreAudio, scoreComboPitch } from './scoring';
 
 const files = import.meta.glob([
@@ -1050,7 +1050,7 @@ export class AudioDirector {
     if (run.motion === 'coasting' && this.lastMotion !== 'coasting') void this.play('vehicle/coast.wav');
     this.lastMotion = run.motion; this.lastSpeed = run.speed;
     if (run.powers.jumpAt > this.lastJump) { this.lastJump = run.powers.jumpAt; void this.play('item/jump.wav'); }
-    const airborne = run.activeSeconds > run.powers.jumpAt && run.activeSeconds < run.powers.jumpAt + itemBalance.jumpSeconds;
+    const airborne = run.activeSeconds > run.powers.jumpAt && run.activeSeconds < run.powers.jumpAt + jumpDuration(run);
     if (this.airborne && !airborne) void this.play('item/landing.wav');
     this.airborne = airborne;
     if (run.powers.boostUntil > this.lastBoost) { this.lastBoost = run.powers.boostUntil; void this.play('item/nitro_activate.wav'); }

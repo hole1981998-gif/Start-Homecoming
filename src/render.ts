@@ -6,7 +6,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { balance, movingBalance } from './config';
 import { jumpHeight, hasStar, hasBoost } from './items';
 import { activeVehicle, type Run } from './survival';
-import { passengerPose, trafficTypes, warningDistance, type EntityKind, type TrafficKind } from './world';
+import { passengerPose, trafficTypes, warningDistance, type Entity, type EntityKind, type TrafficKind } from './world';
 import { junction, pathPose } from './route';
 import { car7BodyCenterX, containerParts, heavyFrontCenterX } from './tail-sweep';
 import { LANDSCAPE_REGION_METRES, landscapeColors, roadsidePoint, roadsideRegions, type LandscapeKind } from './landscape';
@@ -47,6 +47,11 @@ import type { VehicleKind } from './vehicles';
 interface JunctionView { group: THREE.Group; straightStub: THREE.Group; barrier: THREE.Mesh;
   turnRoad: JunctionTurnArt;
   landscapeStub: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshLambertMaterial>[] }
+
+// A seeded slot can change hazard kind after restart, a shop choice, or a route fork.
+// Keep its visual identity separate from the simulation's reusable slot id.
+const visualEntityKey = (entity: Pick<Entity, 'id' | 'kind' | 'trafficKind'>): string =>
+  `${entity.kind}:${entity.kind === 'traffic' ? entity.trafficKind ?? 'car4' : ''}:${entity.id}`;
 
 export class RoadRenderer {
   private renderer: THREE.WebGLRenderer;
@@ -798,12 +803,13 @@ export class RoadRenderer {
     const visibleEntities = [...s.world.entities.map(entity => ({ entity, route: s.route })), ...s.world.retired];
     for (const { entity: e, route } of visibleEntities) {
       if (e.consumed || e.motionWaiting) continue;
-      live.add(e.id);
-      let entry = this.entityMeshes.get(e.id);
+      const key = visualEntityKey(e);
+      live.add(key);
+      let entry = this.entityMeshes.get(key);
       if (!entry) { entry = { kind: e.kind, trafficKind: e.trafficKind,
         mesh: this.entityMesh(e.kind, e.trafficKind, e.width, e.length,
           e.kind === 'passenger' ? roadsideArchetype(e.riderId ?? e.id) : undefined) };
-        this.entityMeshes.set(e.id, entry); }
+        this.entityMeshes.set(key, entry); }
       const entityPose = pathPose(e.distance, route, s.seed);
       const pose = passengerPose(e, s.activeSeconds);
       const entityX = e.x + (e.kind === 'shop' ? Math.sign(e.x) * 2.8 : 0);
@@ -990,7 +996,7 @@ export class RoadRenderer {
         }
       }
       for (const e of s.world.entities) {
-        const entry = this.entityMeshes.get(e.id);
+        const entry = this.entityMeshes.get(visualEntityKey(e));
         if (e.motionWaiting && !e.consumed && !e.stunned && e.crossMotion &&
           (e.kind === 'train' || e.kind === 'traffic') && e.distance + e.length / 2 >= s.distance &&
           e.distance - s.distance <= warningDistance(s.speed, e, vehicle.length)) {
@@ -1049,7 +1055,7 @@ export class RoadRenderer {
           if (emitting && !e.wrecked && Math.abs(e.speed) > 1 && e.trafficContacts?.length) {
             for (const patchId of e.trafficContacts) {
               const patch = s.world.entities.find(other => other.id === patchId && other.kind === 'water');
-              const patchMesh = this.entityMeshes.get(patchId)?.mesh;
+              const patchMesh = this.entityMeshes.get(`water::${patchId}`)?.mesh;
               if (!patch || !patchMesh) continue;
               patchMesh.updateWorldMatrix(true, false);
               const sockets = Object.entries(art.sockets).filter(([name]) => name.startsWith('wheel_spray'));

@@ -1,5 +1,7 @@
 # Đường Về Nhà — Roadmap
 
+> **Bản thử cân bằng B 10/11/2026:** khôi phục điểm di chuyển và dùng gói điểm thưa, tăng nhảy nitro và thêm các nấc sức ép 8/12/15 km trên nền WORLD-LIGHT. Các số là TẠM, cần chủ dự án chơi thử trước khi khóa; [báo cáo B](LATE_ROUND_B_REVIEW_2026-11-10.md). Các dòng 08/11 về `road-v2` phía dưới là lịch sử.
+
 > **Bản thử mới 08/11/2026:** trên `main` mới nhất, mở lại tuning special và đổi điểm ván chính thành vật nhặt trên đường. Mức phạt dân phòng đổi theo ví; tiền kiếm và giá hàng giữ nguyên. Bản đối chiếu `ver.noforce` giữ luật cũ. Thông số và công thức cũ xem [BALANCE_CONFIG.md](BALANCE_CONFIG.md); chưa coi số thử là đã cân bằng.
 
 > **UI follow-up 30/10/2026 — chờ review:** thumbnail shop/kho/xác nhận mua được render từ đúng tám model player hiện có; hai slot item chuyển xuống mép dưới. Tag xăng/sửa tròn lớn hơn, cửa hàng là nhãn đỏ dài có chữ; QTE chỉ còn Q/E tròn trắng hai bên. Các tag tăng kích thước theo khoảng cách, không phụ thuộc tăng/giảm tốc và không đổi cửa sổ QTE. Xem `UI_FOLLOWUP_REVIEW_2026-10-30.md`; không thay model, VFX, balance hoặc cơ chế.

@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { balance, shopBalance } from '../src/config';
 import { noInput } from '../src/simulation';
 import { activeVehicle, initialRun, pickUpPassenger, stepRun, type Run } from '../src/survival';
-import { enterShop, reachableShop, transact } from '../src/shop';
+import { enterShop, reachableShop, shopReach, transact } from '../src/shop';
 import { warningDistance } from '../src/world';
 import { vehicles } from '../src/vehicles';
 
@@ -12,7 +12,7 @@ it('samples actual first-car purchases on seeded hazardous routes, separately fr
     let run: Run = { ...initialRun(seed), phase: 'running' }, purchased = false;
     for (let tick = 0; tick < 60 * 140 && run.phase === 'running' && run.distance < 1250; tick++) {
       const nearby = run.world.entities.filter(e => !e.consumed && !e.wrecked &&
-        e.distance > run.distance - (e.kind === 'shop' ? shopBalance.reach : 6) &&
+        e.distance > run.distance - (e.kind === 'shop' ? shopReach(e.distance, run.world.directorVersion === 'backup') : 6) &&
         e.distance - run.distance < Math.max(80, warningDistance(run.speed, e)));
       let target = [-balance.laneWidth, 0, balance.laneWidth].map(x => {
         let cost = Math.abs(x - run.x) * .08;

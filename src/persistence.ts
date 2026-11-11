@@ -12,7 +12,7 @@ function validResult(value: unknown): value is RunResult {
   if (!value || typeof value !== 'object') return false;
   const r = value as RunResult;
   return typeof r.runId === 'string' && typeof r.config === 'string' && Number.isFinite(r.seed) &&
-    (r.scoreVersion === undefined || r.scoreVersion === 'legacy-v1' || r.scoreVersion === 'speed-v1' || r.scoreVersion === 'road-v1' || r.scoreVersion === 'road-v2') &&
+    (r.scoreVersion === undefined || r.scoreVersion === 'legacy-v1' || r.scoreVersion === 'speed-v1' || r.scoreVersion === 'road-v1' || r.scoreVersion === 'road-v2' || r.scoreVersion === 'hybrid-v1') &&
     ['fuel', 'damage', 'train', 'police', 'secret'].includes(r.reason) && [r.distance, r.score, r.money, r.seconds].every(n => Number.isFinite(n) && n >= 0);
 }
 export function results(): RunResult[] {

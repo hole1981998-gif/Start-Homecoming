@@ -191,7 +191,7 @@ function reset(): void {
     return;
   }
   document.title = isMainGame ? 'Đường Về Nhà' : `ver.${version} · Đường Về Nhà`;
-  show('start', 'Đường về nhà', `${isMainGame ? 'Lái qua vật điểm vàng để ghi điểm. Có điểm nằm trên chướng ngại: chọn mạo hiểm hoặc bỏ qua. Tiền vẫn kiếm từ quãng đường và khách. Đón người đi nhờ, tìm xăng và chọn lối về nhà.' : `ver.${version}: bản đối chiếu điều khiển, chọn cùng seed để so sánh.`}${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
+  show('start', 'Đường về nhà', `${isMainGame ? 'Đi nhanh hơn trung vị để tăng điểm theo quãng đường; ở tốc độ tối thiểu không cộng điểm di chuyển. Gói điểm thưa trên đường cho thêm điểm khi chạm, có thể nằm trên chướng ngại. Tiền vẫn kiếm từ quãng đường và khách. Đón người đi nhờ, tìm xăng và chọn lối về nhà.' : `ver.${version}: bản đối chiếu điều khiển, chọn cùng seed để so sánh.`}${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
@@ -211,7 +211,7 @@ function resultView(): void {
   reasonArt.src='/ui/event-popups/'+reasonImage+'.png';reasonArt.alt=el('modal-title').textContent??'';
   const list = el<HTMLOListElement>('leaderboard-list'); list.replaceChildren();
   const boardVersion = result.scoreVersion ?? 'legacy-v1';
-  text('leaderboard-title', boardVersion.startsWith('road-') ? 'Bảng điểm nhặt trên đường · trên máy này' : boardVersion === 'speed-v1' ? 'Bảng điểm tốc độ · trên máy này' : 'Bảng điểm cũ · trên máy này');
+  text('leaderboard-title', boardVersion === 'hybrid-v1' ? 'Bảng điểm tốc độ và gói nhặt · trên máy này' : boardVersion.startsWith('road-') ? 'Bảng điểm nhặt trên đường · trên máy này' : boardVersion === 'speed-v1' ? 'Bảng điểm tốc độ · trên máy này' : 'Bảng điểm cũ · trên máy này');
   for (const [index, entry] of leaderboard(boardVersion).slice(0, 5).entries()) {
     const row = document.createElement('li');
     row.textContent = `${index + 1}. ${Math.floor(entry.score)} điểm · ${Math.floor(entry.distance)} m${entry.reason === 'secret' ? ' · ⌂' : ''}`;
@@ -219,9 +219,9 @@ function resultView(): void {
   }
   const resultPanel=modal.querySelector<HTMLElement>('.panel')!;
   for(const node of [el('modal-label'),el('modal-title'),el('result-summary'),el('leaderboard'),play,reasonArt,el('modal-description'),moneyDetail,el('result-badge'),el('legacy-board'),el('panel-help').parentElement!,audioOptions,el('feedback-options')])resultPanel.append(node);
-  const legacy = boardVersion === 'road-v2' ? leaderboard('road-v1').slice(0, 3) : boardVersion === 'road-v1' ? leaderboard('speed-v1').slice(0, 3) : boardVersion === 'speed-v1' ? leaderboard('legacy-v1').slice(0, 3) : [];
+  const legacy = boardVersion === 'hybrid-v1' ? leaderboard('road-v2').slice(0, 3) : boardVersion === 'road-v2' ? leaderboard('road-v1').slice(0, 3) : boardVersion === 'road-v1' ? leaderboard('speed-v1').slice(0, 3) : boardVersion === 'speed-v1' ? leaderboard('legacy-v1').slice(0, 3) : [];
   el('legacy-board').hidden = legacy.length === 0;
-  text('legacy-board-title', boardVersion === 'road-v2' ? 'Thành tích điểm rải bản trước' : boardVersion === 'road-v1' ? 'Thành tích luật điểm tốc độ' : 'Thành tích luật điểm ban đầu');
+  text('legacy-board-title', boardVersion === 'hybrid-v1' ? 'Thành tích điểm rải bản trước' : boardVersion === 'road-v2' ? 'Thành tích điểm rải bản trước' : boardVersion === 'road-v1' ? 'Thành tích luật điểm tốc độ' : 'Thành tích luật điểm ban đầu');
   const oldList = el<HTMLOListElement>('legacy-list'); oldList.replaceChildren();
   for (const entry of legacy) {
     const row = document.createElement('li');
@@ -239,7 +239,7 @@ function openHelp(): void {
   for (const [title, description] of [
     [vehicle.name, `${vehicle.capacity} chỗ, tính cả tài xế · bình ${formatter.format(vehicle.fuelCapacity)} L · hao ${fuelRateFormatter.format(vehicle.fuelPerMeter * 100)} L/100 m. Trung vị khi trống ${formatter.format(vehicle.cruiseSpeed * 3.6)} km/h; thêm khách làm giảm trung vị, quá tải tăng hao xăng.`],
     ['Đường và phục hồi', `Nước hao xăng; ổ gà trừ HP khi tiếp xúc; va xe có thể làm ngã. Trong lúc ngã, trôi và quay lại, xe miễn tác động xấu; tàu vẫn kết ván khi va chạm. Hết xăng trôi thêm ${balance.coastDistance} m. HP về 0 hoặc hết đà: tự đổi sang xe còn chạy được, nếu có.`],
-    ['Vật phẩm', 'Phím 1/2 dùng ô tương ứng. Grab gọi khách phía trước, cần F để đón. Space chỉ nhảy khi nitro đang bật; nitro không vượt xe cao. Star không bỏ qua sự kiện.'],
+    ['Vật phẩm', `Phím 1/2 dùng ô tương ứng. Grab gọi khách phía trước, cần F để đón. Space chỉ nhảy khi nitro đang bật; ${state.world.directorVersion === 'backup' ? 'nitro không vượt xe cao' : 'canh đúng cú nhảy cao có thể vượt xe lớn'}. Star không bỏ qua sự kiện.`],
   ]) {
     const section = document.createElement('section'), heading = document.createElement('h2'), copy = document.createElement('p');
     heading.textContent = title; copy.textContent = description; section.append(heading, copy); helpDetails.append(section);
@@ -390,6 +390,9 @@ function updateHud(): void {
   }
   text('speed', speedText(state.phase === 'running' ? state.speed : 0)); text('distance', `${Math.floor(state.distance + 1e-8)}`);
   text('score', `${Math.floor(state.score + 1e-8)}`); text('money', formatter.format(state.money));
+  const scoreGain = document.getElementById('score-gain');
+  if (scoreGain) scoreGain.hidden = state.scorePickupSequence === 0 ||
+    state.activeSeconds - state.scorePickupAt > .8;
   const occupants = state.crash ? 0 : state.riderIds.length + 1;
   text('rider-count', `${occupants}/${vehicle.capacity}`);
   text('vehicle-name', vehicle.name);

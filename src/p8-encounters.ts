@@ -1,4 +1,5 @@
 import { balance, densityBalance, earlyBalance, forceBalance, movingBalance } from './config';
+import { lateNormalAt, nextNormalIndex, waterLengthFactor } from './late-clock';
 import { directorRoll } from './balance-director';
 import { crossX } from './cross-motion';
 import { movingEvent } from './moving-events';
@@ -10,7 +11,13 @@ export function p8EncounterDistance(index: number): number {
   if (index < 2) return balance.firstHazard + index * balance.hazardGap;
   if (index <= 55) return 350 + (index - 2) * 28.16;
   if (index <= 120) return 1842.48 + (index - 55) * 23.76;
-  return 3386.88 + (index - 120) * 20.24;
+  return lateNormalAt(index);
+}
+export function p8EncounterIndexAtOrAfter(distance: number): number {
+  if (distance <= 350) return distance <= balance.firstHazard ? 0 : distance <= balance.firstHazard + balance.hazardGap ? 1 : 2;
+  if (distance <= 1842.48) return Math.max(2, 2 + Math.ceil((distance - 350) / 28.16));
+  if (distance <= 3386.88) return Math.max(56, 55 + Math.ceil((distance - 1842.48) / 23.76));
+  return Math.max(121, nextNormalIndex(distance));
 }
 for (let index = 3; index < 250; index++) {
   const gapSeconds = (p8EncounterDistance(index) - p8EncounterDistance(index - 1)) /
@@ -94,8 +101,19 @@ export function makeP8Encounter(seed: number, index: number, at: number, playerD
   const phase = (directorRoll(seed, index, 0x58f261ad) % 7) - 3;
   const waterChoices = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
     4, 6, 7, 8, 10, 11] as const;
-  let id = requestedId ?? (roll % 100 < (at < 1700 ? 58 : 68) ?
-    waterChoices[(roll >>> 8) % waterChoices.length] : 15 + (roll >>> 8) % 2);
+  const earlyChoice = roll % 100 < (at < 1700 ? 58 : 68) ?
+    waterChoices[(roll >>> 8) % waterChoices.length] : 15 + (roll >>> 8) % 2;
+  const weightedChoice = () => {
+    const triple = new Set([1, 2, 4, 5, 6, 12, 13]);
+    const choices = [...waterChoices, 15, 16].map(id => ({ id,
+      weight: (id >= 15 ? 16 : 68 / waterChoices.length) *
+        (id === 6 || id === 15 ? 1.35 : 1) * (at >= 12000 && triple.has(id) ? 1.15 : 1) }));
+    let remaining = (directorRoll(seed, index, 0x6f431b82) / 0x100000000) *
+      choices.reduce((sum, choice) => sum + choice.weight, 0);
+    for (const choice of choices) { remaining -= choice.weight; if (remaining < 0) return choice.id; }
+    return 16;
+  };
+  let id = requestedId ?? (at >= 8000 ? weightedChoice() : earlyChoice);
   for (let tries = 0; tries < 16 && recent.includes(id); tries++) id = id === 13 ? 15 : id === 16 ? 1 : id + 1;
   const actors: Entity[] = [];
   const add = (kind: EntityKind, offset: number, x: number) => {
@@ -104,7 +122,7 @@ export function makeP8Encounter(seed: number, index: number, at: number, playerD
     e.patternId = id; actors.push(e); return e;
   };
   const water = (offset: number, x: number, width = 3.2, length = 24) => {
-    const e = add('water', offset, x); e.width = width; e.length = length * .9; return e;
+    const e = add('water', offset, x); e.width = width; e.length = length * .9 * waterLengthFactor(at); return e;
   };
   const hole = (offset: number, x: number) => {
     const e = add('pothole', offset, x); e.width = 2.3; e.length = 4; return e;
@@ -144,8 +162,9 @@ export function makeP8Encounter(seed: number, index: number, at: number, playerD
     case 10: water(0, lane, 3.2, 24); car(12 + phase, -lane, 'car7'); break;
     case 11: {
       const officer = add('militia', 13 + phase, 0);
-      actors[0] = movingEvent(officer, index, seed, now)[0];
-      actors[0].patternId = id; water(0, lane, 3.2, 24); break;
+      const group = movingEvent(officer, index, seed, now).slice(0, at < 8000 ? 1 : 2);
+      for (const member of group) member.patternId = id;
+      actors.splice(0, 1, ...group); water(0, lane, 3.2, 24); break;
     }
     case 12: water(0, -lane, 3.2, 24); water(18, lane, 3.2, 24); car(18 + phase, 0, 'car4'); break;
     case 13: water(0, -lane / 2, 5.7, 24); car(12 + phase, lane, 'motorbike', false);
@@ -174,7 +193,7 @@ export function p8ProtectedCorridor(actors: Entity[], shopAt: number, specialAt:
   specialKind: EntityKind): boolean {
   return actors.some(e => {
     const shop = Math.abs(e.distance - shopAt) < (e.length + 4) / 2 + 8;
-    const trainWater = specialKind === 'train' && e.kind === 'water' &&
+    const trainWater = specialKind === 'train' && e.kind === 'water' && e.width >= lane * 3 - .01 &&
       e.distance + e.length / 2 >= specialAt - 62 && e.distance - e.length / 2 <= specialAt + 12;
     const special = trainWater || Math.abs(e.distance - specialAt) < e.length / 2 +
       (e.kind === 'water' ? 12 : densityBalance.specialClearance / 2);

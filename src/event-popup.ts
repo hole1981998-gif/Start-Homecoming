@@ -1,6 +1,6 @@
 import { popupCaptions } from './popup-events';
 import type { Run } from './survival';
-const popupDurationMs = 2500;
+const popupDurationMs = 3000;
 const popupFadeMs = 700;
 /** One replaceable toast. Wall-clock expiry keeps terminal/paused events finite too. */
 export class EventPopup {

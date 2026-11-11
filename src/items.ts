@@ -12,10 +12,13 @@ export const itemNames: Record<PowerItem, string> = { nitro: 'Nitro boost', star
 export const newPowers = (): Powers => ({ boostUntil: 0, starUntil: 0, jumpAt: -100 });
 export const hasStar = (run: Run): boolean => run.activeSeconds < run.powers.starUntil - 1e-9;
 export const hasBoost = (run: Run): boolean => run.activeSeconds < run.powers.boostUntil - 1e-9;
+export const jumpDuration = (run: Run): number => run.world.directorVersion === 'backup' ? itemBalance.backupJumpSeconds : itemBalance.jumpSeconds;
 export function jumpHeight(run: Run): number {
   const age = run.activeSeconds - run.powers.jumpAt;
-  return age > 1e-9 && age < itemBalance.jumpSeconds - 1e-9 ?
-    itemBalance.jumpHeight * Math.sin(Math.PI * age / itemBalance.jumpSeconds) : 0;
+  const duration = jumpDuration(run);
+  return age > 1e-9 && age < duration - 1e-9 ?
+    (run.world.directorVersion === 'backup' ? itemBalance.backupJumpHeight : itemBalance.jumpHeight) *
+      Math.sin(Math.PI * age / duration) : 0;
 }
 /** Ordinary collision clearance; terminal/event policies are deliberately separate. */
 export function clears(run: Run, height: number): boolean { return jumpHeight(run) >= height - 1e-9; }
@@ -42,17 +45,20 @@ export function usePowerItem(run: Run, slot: number): Run {
 /** Space starts flight independently; neither jumping nor landing extends the boost. */
 export function requestJump(run: Run): Run {
   if (run.phase !== 'running' || run.crash || run.result || !hasBoost(run) || run.fuel <= 0 || run.motion !== 'powered' ||
-    run.activeSeconds - run.powers.jumpAt < itemBalance.jumpSeconds - 1e-9) return run;
+    run.activeSeconds - run.powers.jumpAt < jumpDuration(run) - 1e-9) return run;
   return { ...run, powers: { ...run.powers, jumpAt: run.activeSeconds },
     secret: secretJump(run.secret, run.activeSeconds, run.distance) };
 }
 /** Split a fixed tick at effect/clearance boundaries so landing and expiration cannot grant a spare tick. */
 export function powerBoundaries(run: Run, dt: number): number[] {
-  if (run.activeSeconds >= Math.max(run.powers.boostUntil, run.powers.starUntil, run.powers.jumpAt + itemBalance.jumpSeconds)) return [];
+  const duration = jumpDuration(run);
+  if (run.activeSeconds >= Math.max(run.powers.boostUntil, run.powers.starUntil, run.powers.jumpAt + duration)) return [];
   const times = [run.powers.boostUntil, run.powers.starUntil];
-  for (const height of [itemBalance.groundClearance, itemBalance.pickupClearance, itemBalance.lowTrafficClearance, eventBalance.trainClearance]) {
-    const ascent = Math.asin(height / itemBalance.jumpHeight) * itemBalance.jumpSeconds / Math.PI;
-    times.push(run.powers.jumpAt + ascent, run.powers.jumpAt + itemBalance.jumpSeconds - ascent);
+  const apex = run.world.directorVersion === 'backup' ? itemBalance.backupJumpHeight : itemBalance.jumpHeight;
+  for (const height of [itemBalance.groundClearance, itemBalance.pickupClearance,
+    itemBalance.lowTrafficClearance, itemBalance.highTrafficClearance, eventBalance.trainClearance].filter(h => h <= apex)) {
+    const ascent = Math.asin(height / apex) * duration / Math.PI;
+    times.push(run.powers.jumpAt + ascent, run.powers.jumpAt + duration - ascent);
   }
   return [...new Set(times.filter(t => t > run.activeSeconds + 1e-9 && t < run.activeSeconds + dt - 1e-9))].sort((a, b) => a - b);
 }

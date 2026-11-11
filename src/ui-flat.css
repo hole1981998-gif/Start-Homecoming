@@ -6,6 +6,8 @@ button:disabled{opacity:.48}
 .score-primary{left:50%;transform:translateX(-50%);align-items:center}
 .score-primary #score{font-size:40px;color:var(--paper);letter-spacing:-1.5px}
 .score-primary span{font-size:10px;letter-spacing:2px;font-weight:800}
+.score-primary #score-gain{position:absolute;top:59px;color:#f3d891;font-size:13px;font-style:normal;font-weight:800;white-space:nowrap}
+.score-primary #score-gain[hidden]{display:none}
 .totals #distance{font-size:15px;color:var(--paper)}
 .totals>div:first-child span{font-size:11px}
 .speed strong{font-size:27px}.speed span{font-size:10px}

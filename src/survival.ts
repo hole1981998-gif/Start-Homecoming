@@ -13,18 +13,18 @@ import { captions, initialFeedbackCounts, type FeedbackKind } from './feedback';
 import { canChoose, compactRoute, initialRoute, junction, updateJunctionWindow, type RouteState, type Turn } from './route';
 import { effectiveVehicle, newVehicle, vehicleDefinition, vehicleRam, vehicles, waterFuelPerSecond, type VehicleDefinition, type VehicleInstance } from './vehicles';
 import { splitCrashRiders } from './passenger-outcomes';
-import { roadScore, scorePerMeter, scoreStation, scoreVersion } from './scoring';
+import { roadScore, scorePerMeter, scoreVersion } from './scoring';
 import { startTrafficFall } from './traffic-recovery';
 import { canSecretEnd, guardedSecret, initialSecret, secretLanding, secretPickup, secretTrainOverlap, secretVehicle, type SecretState } from './secret';
 
-import { jumpHeight, hasBoost, hasStar, newPowers, powerBoundaries, type PowerItem, type Powers } from './items';
+import { jumpDuration, jumpHeight, hasBoost, hasStar, newPowers, powerBoundaries, type PowerItem, type Powers } from './items';
 
-export interface RunResult { runId: string; seed: number; config: string; scoreVersion?: 'legacy-v1' | 'speed-v1' | 'road-v1' | typeof scoreVersion; reason: 'fuel' | 'damage' | 'train' | 'police' | 'secret'; distance: number; score: number; money: number; seconds: number }
+export interface RunResult { runId: string; seed: number; config: string; scoreVersion?: 'legacy-v1' | 'speed-v1' | 'road-v1' | 'road-v2' | typeof scoreVersion; reason: 'fuel' | 'damage' | 'train' | 'police' | 'secret'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
   returningRiderIds: string[]; strandedRiderIds: string[] }
 export interface Run extends State {
   runId: string; seed: number; fuel: number; durability: number; score: number; money: number;
-  scoreCombo: number; scoreComboStation: number; scorePickupSequence: number; scorePickupLevel: number;
+  scoreCombo: number; scoreComboStation: number; scorePickupSequence: number; scorePickupLevel: number; scorePickupAt: number;
   activeSeconds: number; motion: 'powered' | 'coasting'; coastRemaining: number;
   world: World; result: RunResult | null; eventSequence: number; feedback: string; feedbackAt: number;
   popupEvent?: PopupEvent;
@@ -41,7 +41,7 @@ export interface Run extends State {
 export const initialRun = (seed = 17, runId = 'simulation', balanceProfile?: 'backup'): Run => ({ ...initialState(),
   runId, seed, fuel: newVehicle('motorcycle', `${runId}-motorcycle`, balanceProfile).fuel,
   durability: newVehicle('motorcycle', `${runId}-motorcycle`, balanceProfile).durability, score: 0,
-  scoreCombo: 0, scoreComboStation: -1, scorePickupSequence: 0, scorePickupLevel: 0,
+  scoreCombo: 0, scoreComboStation: -1, scorePickupSequence: 0, scorePickupLevel: 0, scorePickupAt: -100,
   money: balance.initialMoney, activeSeconds: 0, motion: 'powered', coastRemaining: balance.coastDistance,
   world: fillWorld(initialWorld(seed, true, balanceProfile === 'backup' ? 'backup' : 'p8'), 0,
     vehicleDefinition('motorcycle', balanceProfile).fuelCapacity,
@@ -168,7 +168,7 @@ export function stepRun(before: Run, input: Input, forceMode = false): Run {
   }
   if (before.world.experimentalMotion) trainCuts.push(...crossBoundaries(before.world.entities, before.activeSeconds, balance.fixedStep));
   if (trainCuts.length === 0 && before.activeSeconds >= before.powers.boostUntil && before.activeSeconds >= before.powers.starUntil &&
-      before.activeSeconds >= before.powers.jumpAt + itemBalance.jumpSeconds) return stepRunSegment(before, input, balance.fixedStep, forceMode);
+      before.activeSeconds >= before.powers.jumpAt + jumpDuration(before)) return stepRunSegment(before, input, balance.fixedStep, forceMode);
   const cuts = [...new Set([...trainCuts, ...powerBoundaries(before, balance.fixedStep)])].sort((a, b) => a - b);
   if (cuts.length === 0) return stepRunSegment(before, input, balance.fixedStep, forceMode);
   const end = before.activeSeconds + balance.fixedStep;
@@ -396,7 +396,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
   type Event = { t: number; index: number; part: 'head' | 'trailer'; type: 'enter-water' | 'exit-water' | 'enter-pothole' | 'exit-pothole' | 'hit' };
   const events: Event[] = [];
   const flightAge = before.activeSeconds - before.powers.jumpAt;
-  const sampledHeight = flightAge >= 0 && flightAge < itemBalance.jumpSeconds ?
+  const sampledHeight = flightAge >= 0 && flightAge < jumpDuration(before) ?
     jumpHeight({ ...before, activeSeconds: before.activeSeconds + dt / 2 }) : 0;
   for (let index = 0; index < r.world.entities.length; index++) {
     const e = r.world.entities[index];
@@ -448,9 +448,10 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
         balance.scorePerMeter * (1 + r.riderIds.length * balance.riderScoreBonus) :
         scorePerMeter(before.speed + (driven.speed - before.speed) * (fraction + segment / 2),
           r.riderIds.length, vehicleDefinition(vehicle.kind));
-      if (r.world.directorVersion === 'backup') r.score += ds * segment * scoringRate;
-      r.money += ds * segment * (balance.moneyPerMeter + r.riderIds.length * balance.riderMoneyPerMeter +
-        (r.grabRiderIds.length ? r.grabRiderIds.filter(id => r.riderIds.includes(id)).length : 0) * balance.riderMoneyPerMeter * (itemBalance.grabMoneyMultiplier - 1)); r.activeSeconds += dt * segment;
+      r.score += ds * segment * scoringRate;
+      const riderIncome = r.world.directorVersion === 'backup' ? balance.backupRiderMoneyPerMeter : balance.riderMoneyPerMeter;
+      r.money += ds * segment * (balance.moneyPerMeter + r.riderIds.length * riderIncome +
+        (r.grabRiderIds.length ? r.grabRiderIds.filter(id => r.riderIds.includes(id)).length : 0) * riderIncome * (itemBalance.grabMoneyMultiplier - 1)); r.activeSeconds += dt * segment;
       if (powered) r.fuel = Math.max(0, r.fuel - fuelRate * segment);
       else r.coastRemaining = Math.max(0, r.coastRemaining - ds * segment);
       r.durability = Math.max(0, r.durability - damageRate * segment);
@@ -551,13 +552,9 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       else if (!(ram.breaksThrough && e.wrecked)) crashDriver(before.speed + (driven.speed - before.speed) * fraction);
     } else if (e.kind === 'score') {
       e.consumed = true; r.score += roadScore.value;
-      const station = scoreStation(e.distance);
-      if (station !== r.scoreComboStation) {
-        r.scoreCombo = station === r.scoreComboStation + 1 ? Math.min(roadScore.maxCombo, r.scoreCombo + 1) : 1;
-        r.scoreComboStation = station;
-        r.scorePickupLevel = r.scoreCombo;
-        r.scorePickupSequence++;
-      }
+      r.scorePickupLevel = 1;
+      r.scorePickupAt = r.activeSeconds;
+      r.scorePickupSequence++;
     } else if (e.kind === 'fuel') {
       const gained = Math.min(vehicle.fuelPickup, vehicle.fuelCapacity - r.fuel);
       r.fuel += gained; r.motion = 'powered'; r.coastRemaining = balance.coastDistance; e.consumed = true;
@@ -568,14 +565,8 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
     }
   }
   advance(1);
-  if (r.scoreComboStation >= 0 &&
-    r.distance > roadScore.firstDistance + (r.scoreComboStation + 1) * roadScore.gap +
-      (roadScore.length + vehicle.length) / 2) {
-    r.scoreCombo = 0;
-    r.scoreComboStation = -1;
-  }
   if (r.phase === 'running' && !r.crash) r.secret = secretLanding(r.secret, r.activeSeconds,
-    r.distance, itemBalance.jumpSeconds);
+    r.distance, jumpDuration(r));
   const crossing = junction(r.seed, r.route.index);
   r.route = updateJunctionWindow(r.route, r.distance, r.speed, crossing, vehicle.kind);
   // Barrier sits just beyond the branch point; resolve it at its visible position.

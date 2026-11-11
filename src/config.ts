@@ -1,6 +1,6 @@
 /** All tunable values are TEMPORARY. Distances m, times s, speeds m/s. */
 export const balance = Object.freeze({
-  version: 'score-chime-wind-militia-trial-5', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
+  version: 'hybrid-late-b-trial-1', laneWidth: 3.2, laneCount: 3, vehicleWidth: 0.28 * 3.2, vehicleLength: 2,
   // P1 currently has only the motorcycle; these move into its definition with the garage.
   minSpeed: 8, cruiseSpeed: 14, maxSpeed: 20, acceleration: 5, braking: 10,
   returnAcceleration: 3, returnDeceleration: 4,
@@ -9,7 +9,7 @@ export const balance = Object.freeze({
   fixedStep: 1 / 60, maxFrameSeconds: 0.1, maxSubsteps: 6,
   fuelCapacity: 7.15, durabilityCapacity: 122.5, fuelPerMeter: 0.0036,
   initialMoney: 280, scorePerMeter: 1, moneyPerMeter: 0.02,
-  riderScoreBonus: 0.04, riderMoneyPerMeter: 0.20, motorcycleCapacity: 2, riderLimit: 24,
+  riderScoreBonus: 0.04, riderMoneyPerMeter: 0.18, backupRiderMoneyPerMeter: 0.20, motorcycleCapacity: 2, riderLimit: 24,
   riderCruiseLoss: 2, riderCruiseFloor: 8, overloadSpeedPenalty: 0.08, overloadFuelPenalty: 0.15,
   minSpeedFactor: 0.4, maxFuelLoadFactor: 3,
   firstPassenger: 60, passengerInterval: 360, passengerReach: 12, passengerLateralReach: 1.8,
@@ -80,16 +80,28 @@ if (forceTailSweep.lowSpeed >= forceTailSweep.fullSpeed ||
 
 /** P5 trial prices/effects from BALANCE_CONFIG. Amounts L / HP, distances m. */
 export const shopBalance = Object.freeze({ firstDistance: 280, secondDistance: 1050,
-  minGap: 720, maxGap: 1080, reach: 30, lateralReach: 1.8, clearance: 45,
+  minGap: 720, maxGap: 1080, reach: 30, activeReach: 16, lateralReach: 1.8, clearance: 45,
   fuelPrice: 120, repairPrice: 140,
   fuelAmount: 4, repairAmount: 20,
   enginePrices: [200, 400, 700] as const, tankPrices: [180, 350, 600] as const,
   armourPrices: [180, 350, 600] as const, economyPrices: [220, 420, 750] as const,
   enginePerLevel: .08, tankPerLevel: .15, armourPerLevel: .15, economyPerLevel: .08 });
+/** Visible road and supply spacing only; rates, pickup amounts and damage stay fixed. Metres. */
+export const lateWorldBalance = Object.freeze({ firstThreshold: 5000, secondThreshold: 8000, thirdThreshold: 15000,
+  normalGap: [20.24, 19, 18, 16.5] as const, waterLengthFactor: [1, 1.2, 1.35] as const,
+  fuelGap: [480, 600, 720] as const, repairGap: [1000, 1200, 1400] as const,
+  shopMinGap: [720, 900, 1080] as const, shopMaxGap: [1080, 1260, 1440] as const });
+if (lateWorldBalance.secondThreshold <= lateWorldBalance.firstThreshold ||
+    lateWorldBalance.thirdThreshold <= lateWorldBalance.secondThreshold ||
+    Object.values(lateWorldBalance).some(value => typeof value === 'number' ? !Number.isFinite(value) || value <= 0 :
+      value.some(number => !Number.isFinite(number) || number <= 0)) ||
+    lateWorldBalance.shopMinGap.some((gap, index) => gap > lateWorldBalance.shopMaxGap[index]))
+  throw new Error('Invalid late world bounds');
 for (const value of Object.values(shopBalance).flatMap(v => typeof v === 'number' ? [v] : [...v])) {
   if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid shop config');
 }
 if (shopBalance.minGap > shopBalance.maxGap || shopBalance.economyPerLevel * 3 >= 1 ||
+    shopBalance.activeReach > shopBalance.reach ||
     shopBalance.secondDistance - shopBalance.firstDistance < shopBalance.minGap ||
     shopBalance.secondDistance - shopBalance.firstDistance > shopBalance.maxGap ||
     !Number.isInteger(shopBalance.minGap) ||
@@ -126,12 +138,12 @@ for (const variants of Object.values(hazardSizes)) for (const [width, length] of
 }
 
 /** P5.1 trial: seconds, metres, multiplier and in-run money. Not tuned. */
-export const itemBalance = Object.freeze({ boostSeconds: 4, starSeconds: 5, jumpSeconds: 1.6,
-  jumpHeight: 2.4, groundClearance: .15, pickupClearance: .8, lowTrafficClearance: 1.8, highTrafficClearance: 3.5, boostFactor: 1.3, nitroPrice: 50, starPrice: 80,
+export const itemBalance = Object.freeze({ boostSeconds: 4, starSeconds: 5, jumpSeconds: 1.7, backupJumpSeconds: 1.6,
+  jumpHeight: 5.2, backupJumpHeight: 2.4, groundClearance: .15, pickupClearance: .8, lowTrafficClearance: 1.8, highTrafficClearance: 3.5, boostFactor: 1.3, nitroPrice: 50, starPrice: 80,
   grabPrice: 120, grabUses: 3, grabShopStock: 1, grabMoneyMultiplier: 10, grabMinAhead: 45, grabMaxAhead: 120,
   grabSearchStep: 10, grabClearance: 1, grabCooldown: 2, grabSteeringMarginSeconds: .5 });
 for (const value of Object.values(itemBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid power item config');
-if (itemBalance.jumpSeconds > itemBalance.boostSeconds || itemBalance.jumpHeight <= itemBalance.lowTrafficClearance || itemBalance.boostFactor <= 1)
+if (itemBalance.jumpSeconds > itemBalance.boostSeconds || itemBalance.jumpHeight <= itemBalance.highTrafficClearance || itemBalance.boostFactor <= 1)
   throw new Error('Invalid power item bounds');
 
 if (!Number.isInteger(itemBalance.grabUses) || itemBalance.grabMinAhead > itemBalance.grabMaxAhead ||
@@ -139,14 +151,18 @@ if (!Number.isInteger(itemBalance.grabUses) || itemBalance.grabMinAhead > itemBa
 
 /** P6 trial values: money, metres, seconds, probability. */
 export const eventBalance = Object.freeze({ policeFine: 300, militiaFine: 110, militiaHalfMoneyThreshold: 220, reserveFuelFactor: .5,
-  firstDistance: 650, gap: 320, minimumGap: 220, policeCooldown: 900, trainCooldown: 600, accidentCooldown: 600,
+  firstDistance: 650, gap: 320, lateGap: 300, lateGapDistance: 5000, finalGap: 280, finalGapDistance: 15000,
+  minimumGap: 220, policeCooldown: 900, trainCooldown: 600, accidentCooldown: 600,
   reactionSeconds: 3.5, bananaReach: 45, bananaPrice: 25,
   trainPeriod: 16, trainClosedSeconds: 8, trainClearance: 1.8, brokenItemChance: .25,
   corridor: 110 });
 for (const value of Object.values(eventBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid event config');
 if (eventBalance.trainClosedSeconds >= eventBalance.trainPeriod || eventBalance.reserveFuelFactor > 1 ||
     eventBalance.brokenItemChance > 1 || eventBalance.trainClearance >= itemBalance.jumpHeight ||
-    eventBalance.gap < eventBalance.minimumGap || eventBalance.minimumGap < balance.warningSeconds * balance.maxSpeed ||
+    eventBalance.gap < eventBalance.minimumGap || eventBalance.lateGap < eventBalance.minimumGap ||
+    eventBalance.finalGap < eventBalance.minimumGap || eventBalance.finalGap > eventBalance.lateGap ||
+    eventBalance.finalGapDistance <= eventBalance.lateGapDistance ||
+    eventBalance.lateGap > eventBalance.gap || eventBalance.minimumGap < balance.warningSeconds * balance.maxSpeed ||
     eventBalance.policeCooldown < eventBalance.gap || eventBalance.trainCooldown < eventBalance.gap ||
     eventBalance.accidentCooldown < eventBalance.gap) throw new Error('Invalid event bounds');
 if (densityBalance.specialClearance >= eventBalance.corridor) throw new Error('Special clearance erases normal hazards');
@@ -179,7 +195,7 @@ export const stressBalance = Object.freeze({ first: 80, gap: 24, trafficPerStati
 for (const value of Object.values(stressBalance)) if (!Number.isFinite(value) || value <= 0) throw new Error('Invalid stress config');
 
 /** P6.2 push speeds m/s and zone geometry m; provisional. */
-export const forceBalance = Object.freeze({ windPush: 1.5, maxPush: 2.2, zoneStart: 45, zoneLength: 65, windWidth: 9.6, integratedEveryHazards: 9, integratedOffset: 3 });
+export const forceBalance = Object.freeze({ windPush: 1.65, backupWindPush: 1.5, maxPush: 2.2, zoneStart: 45, zoneLength: 65, windWidth: 9.6, integratedEveryHazards: 9, integratedOffset: 3 });
 for(const value of Object.values(forceBalance)) if(!Number.isFinite(value)||value<=0)throw new Error('Invalid force config');
 if(forceBalance.maxPush>=balance.lateralSpeed||forceBalance.windWidth>balance.laneWidth*balance.laneCount)throw new Error('Force must remain countersteerable');
 if (!Number.isInteger(forceBalance.integratedEveryHazards) || !Number.isInteger(forceBalance.integratedOffset) ||

@@ -5,11 +5,29 @@ import { movingEvent } from './moving-events';
 import type { Run } from './survival';
 import { entity, fillWorld, initialWorld, passengerMotion, trafficTypes } from './world';
 import { junction, junctionWindow } from './route';
-import { newVehicle, vehicles, type VehicleKind } from './vehicles';
+import { effectiveVehicle, newVehicle, vehicles, type VehicleKind } from './vehicles';
 import { balance, itemBalance, movingBalance, stressBalance } from './config';
 import { secretPickup, secretVehicle } from './secret';
 /** Manual QA fixtures. Imported only through a DEV branch; no player-facing control. */
 export function developmentScenario(run: Run, scenario: string | null, checkpoint = 0): Run {
+  if (scenario === 'late-balance') {
+    const start = [5000, 8000, 12000, 15000].includes(checkpoint) ? checkpoint : 5000;
+    const car = newVehicle('car4', 'qa-late-car'), bike = newVehicle('motorcycle', 'qa-late-bike');
+    for (const vehicle of [car, bike]) {
+      vehicle.upgrades = { engine: 1, tank: 1, armour: 1, economy: 1 };
+      const definition = effectiveVehicle(vehicle);
+      vehicle.fuel = definition.fuelCapacity; vehicle.durability = definition.durabilityCapacity;
+    }
+    let world = initialWorld(run.seed, true);
+    for (let at = 0; at <= start; at += 40)
+      world = fillWorld(world, at, car.fuel, car.durability, 1, effectiveVehicle(car), 400 + at / 16, 16);
+    return { ...run, distance: start, activeSeconds: 400 + (start - 5000) / 16, money: 500, riderIds: ['qa-late-1', 'qa-late-2', 'qa-late-3'],
+      vehicleInstances: [car, bike], activeVehicleId: car.id, fuel: car.fuel, durability: car.durability,
+      speed: vehicles.car4.cruiseSpeed, route: { ...run.route, index: Math.floor(start / balance.junctionInterval) },
+      world: { ...world, entities: world.entities.filter(e => e.distance + e.length / 2 >= start - 12),
+        prototype: { version: balance.version, title: `Thử cân bằng từ ${start / 1000} km`,
+          description: 'Checkpoint thử: ô tô 4 chỗ, xe máy dự phòng, ba khách, hai xe nâng cấp cấp 1 và đủ tài nguyên. Đường, tàu, điểm và tiếp tế sinh theo seed; đây không phải ván từ đầu.' } } };
+  }
   if (scenario === 'traffic-open-recovery') {
     const riders = (['motorbike', 'tricycle'] as const).map((kind, i) => {
       const car = entity('traffic', `qa-open-rider-${kind}`, 20 + i * 16, i ? -3.2 : 3.2);
@@ -247,6 +265,20 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
       vehicleInstances: [...run.vehicleInstances, newVehicle('car4', 'qa-grab-spare')],
       world: { ...run.world, entities: scenario === 'grab-blocked' ? [wall] : [], nextSpecial: 1e9, nextHazard: 1e9,
         nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9 } };
+  }
+  if (scenario === 'nitro-high' || scenario === 'nitro-high-car4' || scenario === 'nitro-high-car7') {
+    const kind: VehicleKind = scenario === 'nitro-high-car4' ? 'car4' : scenario === 'nitro-high-car7' ? 'car7' : 'motorcycle';
+    const chosen = newVehicle(kind, 'qa-nitro-high');
+    const truck = entity('traffic', 'qa-nitro-container', 58, 0);
+    truck.trafficKind = 'container'; truck.width = trafficTypes.container.width;
+    truck.length = trafficTypes.container.length; truck.hp = trafficTypes.container.hp;
+    truck.speed = 4; truck.baseSpeed = 4;
+    return { ...run, inventory: ['nitro', null], vehicleInstances: [chosen], activeVehicleId: chosen.id,
+      fuel: chosen.fuel, durability: chosen.durability, speed: vehicles[kind].cruiseSpeed,
+      world: { ...run.world, entities: [truck], nextSpecial: 1e9, nextHazard: 1e9, nextScore: 1e9,
+        nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9,
+        prototype: { version: 'nitro-high-trial-1', title: `Nhảy qua container · ${vehicles[kind].name}`,
+          description: 'Bấm 1 bật nitro, giữ W và nhấn Space đúng lúc để cả thân xe vượt container đang chạy cùng chiều. Chạm lúc lên hoặc đáp vẫn gây va chạm.' } } };
   }
   if (scenario === 'items' || scenario === 'items-container') {
     const chosen = newVehicle(scenario === 'items-container' ? 'container' : 'motorcycle', 'qa-items');

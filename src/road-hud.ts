@@ -1,8 +1,8 @@
 import { approachCueScale, roadCueDistance } from './cue-scale';
 import { createElement, ChevronDown } from 'lucide';
 import { uiIcon } from './ui-icons';
-import { balance, shopBalance } from './config';
-import { reachableShop } from './shop';
+import { balance } from './config';
+import { reachableShop, shopReach } from './shop';
 import type { Run } from './survival';
 
 interface Projection { project(x: number, y: number, z: number): { x: number; y: number } }
@@ -29,7 +29,7 @@ export class RoadHud {
     if (s.phase === 'running' && !s.crash) {
       for (const [kind, cue] of this.cues) {
         const e = s.world.entities.filter(e => e.kind === kind && !e.consumed && !e.wrecked &&
-          e.distance + (kind === 'shop' ? shopBalance.reach : e.length / 2) >= s.distance &&
+          e.distance + (kind === 'shop' ? shopReach(e.distance, s.world.directorVersion === 'backup') : e.length / 2) >= s.distance &&
           e.distance - s.distance <= roadCueDistance).sort((a,b) => a.distance-b.distance)[0];
         if (!e) continue;
         const p = projection.project(e.x, .15, -(e.distance-s.distance));

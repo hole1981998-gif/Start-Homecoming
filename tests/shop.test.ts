@@ -1,9 +1,11 @@
 import { expect, it } from 'vitest';
 import { balance, shopBalance } from '../src/config';
+import { shopGaps } from '../src/late-clock';
 import { developmentScenario } from '../src/development';
 import { noInput } from '../src/simulation';
+import { usePowerItem } from '../src/items';
 import { activeVehicle, initialRun, pickUpPassenger, stepRun, switchVehicle, type Run } from '../src/survival';
-import { enterShop, leaveShop, transact, type ShopCommand } from '../src/shop';
+import { enterShop, leaveShop, shopReach, transact, type ShopCommand } from '../src/shop';
 import { entity, fillWorld, initialWorld, nextShopDistance } from '../src/world';
 import { buyVehicle, effectiveVehicle, newVehicle, vehicles, type VehicleKind } from '../src/vehicles';
 
@@ -206,8 +208,10 @@ it('shop generation is seeded, has bounded gaps away from junctions and does not
     let previous: number = shopBalance.firstDistance;
     for (let i = 0; i < 20; i++) {
       const distance = nextShopDistance(previous, i, seed);
-      expect(distance - previous).toBeGreaterThanOrEqual(i === 0 ? shopBalance.secondDistance - shopBalance.firstDistance : shopBalance.minGap);
-      expect(distance - previous).toBeLessThanOrEqual(shopBalance.maxGap);
+      const [minimum, maximum] = i === 0 ? [shopBalance.secondDistance - shopBalance.firstDistance,
+        shopBalance.secondDistance - shopBalance.firstDistance] : shopGaps(previous);
+      expect(distance - previous).toBeGreaterThanOrEqual(minimum);
+      expect(distance - previous).toBeLessThanOrEqual(maximum);
       expect(Math.min(distance % 800, 800 - distance % 800)).toBeGreaterThanOrEqual(60);
       previous = distance;
     }
@@ -216,10 +220,56 @@ it('shop generation is seeded, has bounded gaps away from junctions and does not
 
 it('the shop remains interactable after passing it until the advertised reach expires', () => {
   const run = atShop(), at = run.world.entities[0].distance;
-  const world = fillWorld(run.world, at + 25);
-  const behind = { ...leaveShop(run), world, phase: 'running' as const, distance: at + 25 };
+  const reach = shopReach(at);
+  const world = fillWorld(run.world, at + reach);
+  const behind = { ...leaveShop(run), world, phase: 'running' as const, distance: at + reach };
   expect(enterShop(behind).shopId).toBe(run.shopId);
-  expect(fillWorld(world, at + shopBalance.reach + 1).entities.some(e => e.id === run.shopId)).toBe(false);
+  expect(fillWorld(world, at + reach + 1).entities.some(e => e.id === run.shopId)).toBe(false);
+});
+
+it('uses the same 16 m R window at the first, middle and late shops, including stale transactions', () => {
+  for (const at of [shopBalance.firstDistance, 1050, 5100, 9000]) {
+    const reach = shopReach(at), shop = entity('shop', `shop-${at}`, at, 0);
+    expect(reach).toBe(shopBalance.activeReach);
+    shop.shopStock = { vehicles: [], items: { nitro: 1, star: 1 } };
+    const base = { ...initialRun(17), phase: 'running' as const, x: 0,
+      world: { ...initialWorld(17), entities: [shop] } };
+    for (const offset of [-reach, reach]) expect(enterShop({ ...base, distance: at + offset }).shopId).toBe(shop.id);
+    for (const offset of [-reach - .01, reach + .01]) {
+      const outside = { ...base, distance: at + offset };
+      expect(enterShop(outside).shopId).toBeNull();
+      const forged = { ...outside, phase: 'paused' as const, shopId: shop.id };
+      expect(transact(forged, { kind: 'service', item: 'fuel', sequence: forged.economySequence }).run).toBe(forged);
+    }
+  }
+  for (const at of [shopBalance.firstDistance, 5100]) {
+    const shop = entity('shop', `backup-shop-${at}`, at, 0);
+    shop.shopStock = { vehicles: [], items: { nitro: 1, star: 1 } };
+    const backup = { ...initialRun(17, 'backup-test', 'backup'), phase: 'running' as const,
+      world: { ...initialWorld(17, false, 'backup'), entities: [shop] } };
+    expect(shopReach(at, true)).toBe(shopBalance.reach);
+    expect(enterShop({ ...backup, distance: at + shopBalance.reach }).shopId).toBe(shop.id);
+    expect(enterShop({ ...backup, distance: at + shopBalance.reach + .01 }).shopId).toBeNull();
+  }
+});
+
+it('can brake from nitro into a late shop and open R without moving the paused window', () => {
+  const shop = entity('shop', 'late-shop', 5100, 0);
+  shop.shopStock = { vehicles: [], items: { nitro: 1, star: 1 } };
+  let run: Run = { ...initialRun(17), phase: 'running', distance: 5050, x: 0,
+    inventory: ['nitro', null], world: { ...initialWorld(17), entities: [shop],
+      nextHazard: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9,
+      nextSpecial: 1e9, nextScore: 1e9, nextShopDistance: 1e9 } };
+  run = usePowerItem(run, 0);
+  while (shop.distance - run.distance > 24) run = stepRun(run, { ...noInput(), accelerate: true });
+  for (let tick = 0; tick < 120 && !run.shopId; tick++) {
+    run = stepRun(run, { ...noInput(), brake: true });
+    run = enterShop(run);
+  }
+  expect(run.shopId).toBe(shop.id);
+  const paused = run.distance;
+  for (let tick = 0; tick < 60; tick++) run = stepRun(run, noInput());
+  expect(run.distance).toBe(paused);
 });
 
 it('a real first car purchase follows one pickup and reaches the first shop within 30 seconds', () => {

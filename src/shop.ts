@@ -26,7 +26,12 @@ export function upgradePrice(kind: UpgradeKind, level: number): number | undefin
 export function reachableShop(run: Run): Entity | undefined {
   if (run.crash || run.result) return;
   return run.world.entities.find(e => e.kind === 'shop' && !e.consumed && e.shopStock &&
-    Math.abs(e.distance - run.distance) <= shopBalance.reach && Math.abs(e.x - run.x) <= shopBalance.lateralReach);
+    Math.abs(e.distance - run.distance) <= shopReach(e.distance, run.world.directorVersion === 'backup') &&
+    Math.abs(e.x - run.x) <= shopBalance.lateralReach);
+}
+/** One shop-coordinate rule shared by input, HUD, transaction and world retention. */
+export function shopReach(_shopDistance: number, backup = false): number {
+  return backup ? shopBalance.reach : shopBalance.activeReach;
 }
 export function enterShop(run: Run): Run {
   const shop = reachableShop(run);
