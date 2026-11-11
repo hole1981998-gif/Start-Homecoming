@@ -48,7 +48,9 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
         // Warmth follows existing warm hues; sky and water stay cool.
         color *= mix(vec3(1.0), vec3(1.12, .94, .84),
           worldGrade * warmHue * (.12 + .35 * highlight));
-        color += shadow * worldGrade * vec3(.002, .009, .010);
+        // Multipliers barely show on near-black cast shadows. A small teal
+        // offset gives them a visible hue while keeping the road dark.
+        color = max(color + shadow * worldGrade * vec3(-.012, .018, .026), vec3(0.0));
         // A gentle irregular glimmer follows the sun, never a full-screen flash.
         float glimmer = .5 + .5 * sin(uTime * 1.8 + sin(uTime * .73) * .8);
         float pulse = .12 + .88 * smoothstep(.15, .95, glimmer);
