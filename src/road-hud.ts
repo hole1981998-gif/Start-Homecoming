@@ -9,18 +9,23 @@ interface Projection { project(x: number, y: number, z: number): { x: number; y:
 const icons = { fuel: 'fuel', repair: 'repair', shop: 'bag' } as const;
 /** Only supply/shop tags; no floating action instructions. */
 export class RoadHud {
-  private cues = new Map<string, { root: HTMLDivElement; value: HTMLSpanElement }>();
+  private cues = new Map<string, { root: HTMLDivElement; value: HTMLSpanElement; key?: HTMLElement }>();
   constructor(host: HTMLElement) {
     for (const [kind, icon] of Object.entries(icons)) {
       const root = document.createElement('div'), value = document.createElement('span');
       root.className = `world-cue ${kind}`; root.hidden = true; root.dataset.kind = kind;
       root.setAttribute('role', 'img');
       const badge = document.createElement('span');
-      if (kind === 'shop') { badge.className = 'shop-label'; badge.textContent = 'CỬA HÀNG'; }
+      const key = kind === 'shop' ? document.createElement('kbd') : undefined;
+      if (kind === 'shop') {
+        badge.className = 'shop-label'; badge.textContent = 'CỬA HÀNG';
+        key!.className = 'shop-key'; key!.textContent = 'R'; key!.hidden = true;
+        value.className = 'shop-distance';
+      }
       else { badge.className = 'supply-badge'; badge.append(uiIcon(icon)); }
-      root.append(badge, value,
+      root.append(badge, ...(key ? [key] : []), value,
         createElement([ChevronDown[0], { ...ChevronDown[1], class: 'pointer', 'aria-hidden': 'true' }, ChevronDown[2]]));
-      host.append(root); this.cues.set(kind, { root, value });
+      host.append(root); this.cues.set(kind, { root, value, key });
     }
 
   }
@@ -36,8 +41,10 @@ export class RoadHud {
         cue.root.style.setProperty('--cue-scale', String(approachCueScale(e.distance-s.distance)));
         cue.root.hidden = false; cue.root.style.left = `${p.x}%`; cue.root.style.top = `${p.y}%`;
         const distance = Math.max(0, Math.ceil(e.distance-s.distance));
-        cue.value.textContent = kind === 'shop' && reachableShop(s)?.id === e.id ? 'R · GHÉ' : `${distance} m`;
-        cue.root.setAttribute('aria-label', `${kind === 'fuel' ? 'Xăng' : kind === 'repair' ? 'Sửa chữa' : 'Cửa hàng'} · ${distance} m`);
+        const canEnterShop = kind === 'shop' && reachableShop(s)?.id === e.id;
+        if (cue.key) cue.key.hidden = !canEnterShop;
+        cue.value.textContent = `${distance} m`;
+        cue.root.setAttribute('aria-label', `${kind === 'fuel' ? 'Xăng' : kind === 'repair' ? 'Sửa chữa' : 'Cửa hàng'} · ${distance} m${canEnterShop ? ' · bấm R để ghé' : ''}`);
       }
 
     }
