@@ -404,11 +404,11 @@ const voiceBoost = (event: VoiceEvent): number => event === 'call' ? 2.6 : event
     event === 'militiaHit' || event === 'policeHit' || event === 'vendorHit' ? 1.45 : 1;
 const kickLineBoost = (name: string): number => name.endsWith('/kick_line_01') ? 2.2 : 1.4;
 
-/** Deterministic, irregular spacing so lightning is occasional without a clocklike repeat. */
+/** Deterministic, irregular spacing over the continuous distant thunder bed. */
 export function stormStrikeDelay(seed: number, strikeIndex: number): number {
   let hash = 2166136261;
   for (const char of `${seed}:${strikeIndex}`) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
-  return (strikeIndex === 0 ? 14 : 27) + (hash >>> 0) % (strikeIndex === 0 ? 9 : 17);
+  return (strikeIndex === 0 ? 8 : 16) + (hash >>> 0) % (strikeIndex === 0 ? 7 : 11);
 }
 
 /** Taper loop endpoints to zero so compressed MP3 boundary samples cannot click. */

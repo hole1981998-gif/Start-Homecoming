@@ -80,11 +80,11 @@ it('makes a roadside call grow louder on approach and fade after passing', () =>
 
 it('spaces storm strikes across a run and keeps each seed reproducible', () => {
   const first = stormStrikeDelay(17, 0);
-  expect(first).toBeGreaterThanOrEqual(14);
-  expect(first).toBeLessThanOrEqual(22);
+  expect(first).toBeGreaterThanOrEqual(8);
+  expect(first).toBeLessThanOrEqual(14);
   expect(stormStrikeDelay(17, 0)).toBe(first);
-  expect(stormStrikeDelay(17, 1)).toBeGreaterThanOrEqual(27);
-  expect(stormStrikeDelay(17, 1)).toBeLessThanOrEqual(43);
+  expect(stormStrikeDelay(17, 1)).toBeGreaterThanOrEqual(16);
+  expect(stormStrikeDelay(17, 1)).toBeLessThanOrEqual(26);
 });
 
 it('routes puddle loops by vehicle weight', () => {
@@ -539,6 +539,8 @@ it('routes driving, impact, indicator and train cues to their actual events', as
 
   await director.update({ ...base, activeSeconds: 80 });
   await vi.waitFor(() => expect(fetched.some(path => path.includes('lightning_distant_a.mp3'))).toBe(true));
+  expect(thunderSource.stopped).toBe(false);
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('lightning_distant_a.mp3'))).toBe(true));
   const firstStrikeCount = fetched.filter(path => path.includes('lightning_distant_')).length;
   await director.update({ ...base, activeSeconds: 80 });
   expect(fetched.filter(path => path.includes('lightning_distant_'))).toHaveLength(firstStrikeCount);

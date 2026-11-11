@@ -823,8 +823,8 @@ export class RoadRenderer {
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
       if (e.kind === 'score') {
-        (entry.mesh.userData.scoreGem as THREE.Mesh).rotation.y = Math.PI / 4 + visualTime * .7;
-        (entry.mesh.userData.scoreHalo as THREE.Mesh).rotation.y = -visualTime * .35;
+        (entry.mesh.userData.scoreGem as THREE.Mesh).rotation.y = Math.PI / 4 + visualTime * .95;
+        (entry.mesh.userData.scoreHalo as THREE.Mesh).rotation.y = -visualTime * .45;
       }
       const contactShadow = entry.mesh.userData.roadContactShadow as THREE.Mesh | undefined;
       if (contactShadow) this.contactShadows.place(contactShadow, entry.mesh.position.x,
