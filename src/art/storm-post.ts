@@ -30,22 +30,27 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
         vec4 source = texture2D(tDiffuse, vUv);
         vec3 color = source.rgb;
         float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
-        float shadow = 1.0 - smoothstep(.025, .30, luminance);
-        float highlight = smoothstep(.08, .60, luminance);
-        float cyan = smoothstep(.015, .13, min(color.g, color.b) - color.r);
-        float green = smoothstep(.015, .14, color.g - max(color.r, color.b));
-        // Reference palette: deep teal shade, restrained olive foliage and
-        // sandy cream light. Hue masks keep turquoise water out of the gold wheel.
-        color = vec3(color.r * 1.02 + color.b * .015, color.g, color.b * .96);
-        color *= mix(vec3(1.0), vec3(.58, .99, 1.02), cyan);
-        vec3 olive = mix(vec3(luminance), color, .72) * vec3(1.04, 1.0, .88);
-        color = mix(color, olive, green * .8);
-        color *= mix(vec3(1.0), vec3(.83, 1.01, .94), shadow * .65);
-        color += shadow * vec3(.006, .014, .012);
-        color *= mix(vec3(1.0), vec3(1.22, 1.08, .70), highlight * (1.0 - cyan * .80));
-        float gradedLuma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-        color = mix(vec3(gradedLuma), color, .86 + cyan * .15);
-        color *= .95 - cyan * .10;
+        float shadow = 1.0 - smoothstep(.06, .34, luminance);
+        float highlight = smoothstep(.18, .62, luminance);
+        float chroma = max(max(color.r, color.g), color.b)
+          - min(min(color.r, color.g), color.b);
+        // Bright vehicle paint carries its own hue. Grade the quieter world
+        // more strongly without washing saturated paint out.
+        float vividPaint = smoothstep(.10, .30, chroma)
+          * smoothstep(.05, .24, luminance);
+        float worldGrade = 1.0 - vividPaint * .92;
+        float warmHue = smoothstep(-.025, .10, color.r - color.b);
+        float coolHue = 1.0 - smoothstep(-.06, .08, color.r - color.b);
+        // Keep the overall split tone restrained. Give dark neutral areas a
+        // separate cool bias so road shadows read green-cyan, not just blue.
+        color *= mix(vec3(1.0), vec3(.78, 1.04, 1.09),
+          worldGrade * (coolHue * .25 + shadow * .62));
+        // Warmth follows existing warm hues; sky and water stay cool.
+        color *= mix(vec3(1.0), vec3(1.12, .94, .84),
+          worldGrade * warmHue * (.12 + .35 * highlight));
+        // Multipliers barely show on near-black cast shadows. A small teal
+        // offset gives them a visible hue while keeping the road dark.
+        color = max(color + shadow * worldGrade * vec3(-.012, .018, .026), vec3(0.0));
         // A gentle irregular glimmer follows the sun, never a full-screen flash.
         float glimmer = .5 + .5 * sin(uTime * 1.8 + sin(uTime * .73) * .8);
         float pulse = .12 + .88 * smoothstep(.15, .95, glimmer);
@@ -56,7 +61,7 @@ export function createStormPostProcessing(renderer: THREE.WebGLRenderer,
           + bright(vUv + vec2(radius.x, -radius.y))
           + bright(vUv + vec2(-radius.x, radius.y))) * .25;
         float softEdge = exp(-pow(sideX / .28, 2.0) - pow((vUv.y - .68) / .3, 2.0));
-        color += (halo * side * .20 + vec3(1.0, .94, .79) * softEdge * .055) * pulse * uBloom;
+        color += (halo * side * .20 + vec3(1.0, .76, .62) * softEdge * .038) * pulse * uBloom;
         gl_FragColor = vec4(color, source.a);
       }`,
   });
