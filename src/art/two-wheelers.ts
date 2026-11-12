@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { smoothGameModelByAngle } from './crease-smoothing';
 import type { VehicleCondition } from './condition';
 
 export type TwoWheelerKind = 'motorcycle' | 'motorbike';
@@ -196,5 +197,6 @@ export function createTwoWheelerArt(kind: TwoWheelerKind, lod: 'near' | 'far' = 
     } });
     geometries.forEach(geometry => geometry.dispose()); materials.forEach(material => material.dispose());
   };
+  smoothGameModelByAngle(root);
   return { root, body, frontSteer, frontWheel, rearWheel, sockets, seats, setPaint, setCondition, dispose };
 }

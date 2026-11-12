@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { smoothGameModelByAngle } from './crease-smoothing';
 import type { VehicleCondition } from './condition';
 
 /** VEH-03 art sample. Metres, +Y up, +Z forward; no gameplay transforms live here. */
@@ -291,5 +292,6 @@ export function createCar4Art(lod: 'near' | 'far' = 'near'): Car4Art {
     geometries.forEach(geometry => geometry.dispose());
     materials.forEach(material => material.dispose());
   };
+  smoothGameModelByAngle(root);
   return { root, body, wheels, sockets, seats, setFinish, setPaint, setCondition, dispose };
 }

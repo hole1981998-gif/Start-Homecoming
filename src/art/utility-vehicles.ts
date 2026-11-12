@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { smoothGameModelByAngle } from './crease-smoothing';
 import type { VehicleCondition } from './condition';
 
 export type UtilityVehicleKind = 'tricycle' | 'bus' | 'truck' | 'container';
@@ -395,5 +396,6 @@ export function createUtilityVehicleArt(kind: UtilityVehicleKind, role: VehicleR
     } });
     geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
   };
+  smoothGameModelByAngle(root);
   return { root, body, tractor, trailer, wheels, seats, sockets, setPaint, setCondition, dispose };
 }

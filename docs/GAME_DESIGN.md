@@ -1,5 +1,7 @@
 # Đường Về Nhà — Game Design
 
+> **Thử shading 12/11/2026 — TẠM, cần duyệt hình:** làm mượt góc dưới 35° trên model xe, người và asset 3D nhập vào game; giữ cạnh lớn sắc để còn đọc được silhouette low-poly. Không đổi hình khối, vật liệu màu, collider hay bản `ver.noforce` backup. Đây là thử visual, cần so ảnh và kiểm tra hiệu năng trước khi chốt.
+
 > **Yêu cầu cân bằng B 10/11/2026 — hướng ĐÃ CHỐT, số TẠM:** điểm trở lại theo quãng đường/tốc độ, min không có điểm di chuyển; gói +50 thưa thay dải điểm 8 m. Tăng nhảy nitro qua xe cao, tăng nhẹ gió, giảm nhẹ tiền khách; sau 8/12/15 km tăng áp lực bằng gió/nhóm officer/template/mật độ có giới hạn. WORLD-LIGHT và cửa shop ±16 m toàn ván giữ. Bản `ver.noforce` là backup. Xem [BALANCE_CONFIG.md](BALANCE_CONFIG.md) và [báo cáo B](LATE_ROUND_B_REVIEW_2026-11-10.md).
 
 > **Thử cân bằng sau 5 km ngày 10/11/2026 — số TẠM:** tăng áp lực bằng nhóm chướng ngại và đoạn nước dài nhìn thấy được, cùng lịch tiếp tế/shop thưa hơn; tăng cơ hội tàu và thu cửa bấm R. Giữ nguyên công thức hao xăng theo mét/nước, lượng hồi từng món, thu nhập, sát thương từng loại và giá. Không có phí chạy chậm hay hao xăng theo thời gian mới. Xem [BALANCE_CONFIG.md](BALANCE_CONFIG.md) và [LATE_WORLD_LIGHT_REVIEW_2026-11-10.md](LATE_WORLD_LIGHT_REVIEW_2026-11-10.md).
