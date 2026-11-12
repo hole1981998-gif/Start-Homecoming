@@ -452,11 +452,11 @@ export class RoadRenderer {
     this.cloudShadows?.applyTo(g);
     this.scene.add(g); return g;
   }
-  draw(s: Run, previous: Run, alpha: number, steering = { left: false, right: false }, terminalVisualSeconds = 0): void {
+  draw(s: Run, previous: Run, alpha: number, steering = { left: false, right: false }): void {
     this.viewState = s;
     // Character gestures communicate movement and pickup state; they stay
     // visible even when optional screen motion is reduced by the OS.
-    const visualTime = s.activeSeconds + terminalVisualSeconds;
+    const visualTime = s.activeSeconds;
     const lowFx = this.lowEffects || !!this.reducedMotion?.matches;
     // Density is reduced, never the clock: static rain looks like suspended scratches.
     const weatherTime = visualTime;

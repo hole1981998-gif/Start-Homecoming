@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { balance, eventBalance } from '../src/config';
 import { roadScore, scoreDistance, scoreIndexAtOrAfter, scorePerMeter } from '../src/scoring';
-import { vehicles } from '../src/vehicles';
+import { effectiveVehicle, newVehicle, vehicles } from '../src/vehicles';
 import { specialPlan } from '../src/special-events';
 import { noInput } from '../src/simulation';
 import { initialRun, stepRun, type Run } from '../src/survival';
@@ -50,12 +50,18 @@ it('spawns one sparse seeded packet at each stage and inverts its branch index',
   }
 });
 
-it('grants movement score from catalog speed, never at min or while paused', () => {
+it('makes cruise nearly scoreless and rewards speed above the catalog max after engine upgrades', () => {
   const car = vehicles.car4;
   expect(scorePerMeter(car.minSpeed, 0, car)).toBe(0);
-  expect(scorePerMeter(car.cruiseSpeed, 0, car)).toBeCloseTo(.2);
-  expect(scorePerMeter(car.maxSpeed, 0, car)).toBeCloseTo(.3);
-  expect(scorePerMeter(car.maxSpeed * 2, 3, car)).toBeCloseTo(.3 * 1.06);
+  expect(scorePerMeter(car.cruiseSpeed, 0, car)).toBeCloseTo(.01);
+  expect(scorePerMeter(car.maxSpeed, 0, car)).toBeCloseTo(.4);
+  expect(scorePerMeter((car.cruiseSpeed + car.maxSpeed) / 2, 0, car)).toBeGreaterThan(.01);
+  const upgraded = newVehicle('car4', 'engine'); upgraded.upgrades.engine = 3;
+  const faster = effectiveVehicle(upgraded);
+  expect(faster.maxSpeed).toBeGreaterThan(car.maxSpeed);
+  expect(scorePerMeter(faster.maxSpeed, 0, faster)).toBeGreaterThan(scorePerMeter(car.maxSpeed, 0, car));
+  expect(scorePerMeter(faster.maxSpeed * 1.3, 0, faster)).toBeGreaterThan(scorePerMeter(faster.maxSpeed, 0, faster));
+  expect(scorePerMeter(car.cruiseSpeed - car.cruiseLoss, 1, car)).toBeCloseTo(.0102);
   const base = initialRun(17), blank = { ...base.world, entities: [], nextHazard: 1e9,
     nextSpecial: 1e9, nextScore: 1e9, nextFuel: 1e9, nextRepair: 1e9,
     nextPassenger: 1e9, nextShopDistance: 1e9 };
@@ -64,6 +70,25 @@ it('grants movement score from catalog speed, never at min or while paused', () 
   expect(run.score).toBeGreaterThanOrEqual(0);
   const paused = { ...run, phase: 'paused' as const };
   expect(stepRun(paused, noInput())).toEqual(paused);
+});
+
+it('uses the upgraded vehicle in the actual run score without changing money per metre', () => {
+  const runAtMax = (engine: number) => {
+    const base = initialRun(17), instance = newVehicle('car4', `car-${engine}`);
+    instance.upgrades.engine = engine;
+    const vehicle = effectiveVehicle(instance);
+    const world = { ...base.world, entities: [], nextHazard: 1e9, nextSpecial: 1e9,
+      nextScore: 1e9, nextFuel: 1e9, nextRepair: 1e9, nextPassenger: 1e9, nextShopDistance: 1e9 };
+    const run: Run = { ...base, phase: 'running', vehicleInstances: [instance], activeVehicleId: instance.id,
+      speed: vehicle.maxSpeed, fuel: vehicle.fuelCapacity, durability: vehicle.durabilityCapacity, world };
+    const next = stepRun(run, { ...noInput(), accelerate: true });
+    return { scoreRate: next.score / next.distance,
+      moneyRate: (next.money - run.money) / next.distance };
+  };
+  const stock = runAtMax(0), tuned = runAtMax(3);
+  expect(stock.scoreRate).toBeCloseTo(.4);
+  expect(tuned.scoreRate).toBeGreaterThan(stock.scoreRate);
+  expect(tuned.moneyRate).toBeCloseTo(stock.moneyRate);
 });
 
 it('plays one pickup cue per packet, with no eight-station combo', () => {
