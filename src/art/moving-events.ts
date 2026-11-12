@@ -57,6 +57,20 @@ function disposeTree(root: THREE.Object3D) {
   geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
 }
 
+/** Fixed crossing furniture, kept separate from the moving train body. */
+export function createTrainTrackArt(): THREE.Group {
+  const track = new THREE.Group(); track.name = 'train_crossing_track';
+  const sleeper = mat('#594b42'), steel = mat('#8d9693'), edge = mat('#3b4546');
+  for (let x = -6; x <= 6; x += 1)
+    box(track, `sleeper_${x}`, [.22, .045, 2.55], [x, .025, 0], sleeper);
+  for (const side of [-1, 1]) {
+    box(track, `rail_bed_${side}`, [13.1, .045, .18], [0, .056, side * .91], edge);
+    box(track, `rail_${side}`, [13.1, .065, .085], [0, .103, side * .91], steel);
+  }
+  track.userData.collisionRole = 'decorative-only';
+  return track;
+}
+
 /** The train is finite and rotated onto the world X crossing axis; root bounds match 24 × 2.8 m. */
 export function createTrainArt(direction: -1 | 1 = 1, lod: 'near' | 'far' = 'near'): MovingArt {
   const root = new THREE.Group(); root.name = `haz_train_${direction}_${lod}`;
