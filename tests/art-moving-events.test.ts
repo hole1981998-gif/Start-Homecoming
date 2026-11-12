@@ -1,12 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { movingBalance } from '../src/config';
-import { createAmbulanceArt, createOfficerArt, createTrainArt, createVendorArt,
+import { createAmbulanceArt, createOfficerArt, createTrainArt, createTrainTrackArt, createVendorArt,
   crossingVisualYaw } from '../src/art/moving-events';
 import { attachAmbulanceService } from '../src/art/ambulance-service';
 import { createVehicleArt } from '../src/art/vehicle-catalog';
 
 describe('moving event art uses prototype contracts', () => {
+  it('keeps the crossing rails fixed and visible while the train waits and clears', () => {
+    const crossing = new THREE.Group();
+    const train = createTrainArt();
+    const track = createTrainTrackArt();
+    crossing.add(train.root, track);
+    expect(track.getObjectByName('rail_-1')).toBeDefined();
+    expect(track.getObjectByName('rail_1')).toBeDefined();
+    expect(track.children.filter(child => child.name.startsWith('sleeper_'))).toHaveLength(13);
+    for (const lateralX of [-15, 0, 15]) {
+      crossing.position.x = lateralX;
+      track.position.x = -lateralX;
+      train.root.visible = lateralX === 0;
+      crossing.updateMatrixWorld(true);
+      expect(track.getWorldPosition(new THREE.Vector3()).x).toBeCloseTo(0);
+      expect(track.visible).toBe(true);
+    }
+    const footprint = new THREE.Box3().setFromObject(track).getSize(new THREE.Vector3());
+    expect(footprint.x).toBeGreaterThan(9.6);
+    expect(footprint.z).toBeLessThan(movingBalance.trainDepth);
+    train.dispose();
+  });
   it('keeps a finite crossing train within the existing world-space footprint in either direction', () => {
     for (const lod of ['near', 'far'] as const) for (const direction of [-1, 1] as const) {
       const asset = createTrainArt(direction, lod);

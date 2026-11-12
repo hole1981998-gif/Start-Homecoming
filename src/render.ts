@@ -16,7 +16,7 @@ import { attachAmbulanceService } from './art/ambulance-service';
 import { bikeLiftSeconds, trafficBikeWreckPose, trafficDriverFallPose, twoWheelCrashPose } from './art/vehicle-recovery';
 import { openTraffic } from './traffic-recovery';
 import { createPropHazardArt, createSurfaceHazardArt, type HazardArt } from './art/hazards';
-import { createOfficerArt, createTrainArt, createVendorArt, crossingVisualYaw,
+import { createOfficerArt, createTrainArt, createTrainTrackArt, createVendorArt, crossingVisualYaw,
   type MovingArt } from './art/moving-events';
 import { createAccidentArt, createShopArt } from './art/special-hazards';
 import { createRoadTileArt } from './art/road-kit';
@@ -363,6 +363,7 @@ export class RoadRenderer {
     if (kind === 'train') {
       const art = createTrainArt(1, 'far');
       g.add(art.root); g.userData.movingArt = art;
+      const track = createTrainTrackArt(); g.add(track); g.userData.trainTrack = track;
     } else if (kind === 'police' || kind === 'militia') {
       const art = createOfficerArt(kind);
       g.add(art.root); g.userData.movingArt = art;
@@ -805,7 +806,7 @@ export class RoadRenderer {
     const live = new Set<string>();
     const visibleEntities = [...s.world.entities.map(entity => ({ entity, route: s.route })), ...s.world.retired];
     for (const { entity: e, route } of visibleEntities) {
-      if (e.consumed || e.motionWaiting) continue;
+      if (e.consumed || e.motionWaiting && e.kind !== 'train') continue;
       const key = visualEntityKey(e);
       live.add(key);
       let entry = this.entityMeshes.get(key);
@@ -874,8 +875,10 @@ export class RoadRenderer {
         art.root.position.y = wreckPose.height;
       }
       if (e.kind === 'train') {
-        entry.mesh.visible = !!e.crossMotion || trainClosed(e, s.activeSeconds);
         const trainArt = entry.mesh.userData.movingArt as MovingArt;
+        // The crossing stays fixed on the road while the train moves sideways.
+        (entry.mesh.userData.trainTrack as THREE.Group).position.x = -e.x;
+        trainArt.root.visible = !e.motionWaiting && (!!e.crossMotion || trainClosed(e, s.activeSeconds));
         trainArt.root.scale.x = (e.crossMotion?.velocity ?? 1) < 0 ? -1 : 1;
         trainArt.setVisualTime?.(s.activeSeconds, !!e.crossMotion && !e.motionWaiting);
       }

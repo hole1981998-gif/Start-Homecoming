@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { balance } from '../src/config';
 import { noInput } from '../src/simulation';
 import { dropPassenger, initialRun, passengerDrive, pickUpPassenger, stepRun, type Run } from '../src/survival';
-import { advancePassengers, entity, fillWorld, initialWorld } from '../src/world';
+import { roadsidePose } from '../src/art/runtime-people';
+import { advancePassengers, entity, fillWorld, initialWorld, passengerPose } from '../src/world';
 
 function clearRun(): Run {
   const run = initialRun(17);
@@ -39,6 +40,21 @@ describe('P4A passenger loop', () => {
       kind: 'passenger', consumed: false, lastHit: near.activeSeconds + balance.passengerReboardDelaySeconds,
     });
     const kicked = dropped.world.entities.find(e => e.id.startsWith('dropped-'))!;
+    const fallEnd = near.activeSeconds + balance.passengerKickSeconds;
+    const standStart = fallEnd + balance.passengerDownSeconds;
+    const standEnd = standStart + balance.passengerStandSeconds;
+    expect(roadsidePose(kicked, fallEnd - .01).pose).toBe('ejected');
+    expect(roadsidePose(kicked, fallEnd).pose).toBe('grounded');
+    expect(roadsidePose(kicked, standStart - .01).pose).toBe('grounded');
+    expect(roadsidePose(kicked, standStart).pose).toBe('recover');
+    expect(roadsidePose(kicked, standEnd).pose).toBe('stand');
+    expect(passengerPose(kicked, fallEnd).roll).not.toBe(0);
+    expect(passengerPose(kicked, standEnd).roll).toBe(0);
+    expect(kicked.passengerMotion!.startedAt).toBe(standEnd);
+    const grounded = { ...kicked };
+    advancePassengers([grounded], standStart);
+    expect(grounded.x).toBe(kicked.passengerMotion!.homeX);
+    expect(grounded.distance).toBe(kicked.passengerMotion!.homeDistance);
     const otherRun = dropPassenger({ ...boarded, runId: 'different-local-save-id' });
     expect(otherRun.world.entities.find(e => e.id.startsWith('dropped-'))!.passengerMotion)
       .toEqual(kicked.passengerMotion);
