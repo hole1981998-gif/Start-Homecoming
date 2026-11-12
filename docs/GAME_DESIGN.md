@@ -1,5 +1,7 @@
 # Đường Về Nhà — Game Design
 
+> **Thử shading 12/11/2026 — TẠM, cần duyệt hình:** làm mượt góc dưới 35° trên model xe, người và asset 3D nhập vào game; giữ cạnh lớn sắc để còn đọc được silhouette low-poly. Không đổi hình khối, vật liệu màu, collider hay bản `ver.noforce` backup. Đây là thử visual, cần so ảnh và kiểm tra hiệu năng trước khi chốt.
+
 > **Feedback onboarding 12/11/2026 — ĐÃ CHỐT hướng:** thẻ giải thích lần đầu ưu tiên thao tác quan trọng nhất: phím lớn, câu hành động ngắn và một câu hệ quả. Giải thích đầy đủ mở theo nhu cầu và vẫn có trong Hướng dẫn; các thẻ không nguy hiểm (khách, điểm, tiếp tế) có thể đợi cuộc gặp an toàn sau nếu vừa hiện một thẻ trong 12 giây chạy. Thẻ tàu, chốt, giao lộ, cửa hàng, gió và chướng ngại không bị trì hoãn vì phải dạy trước quyết định nguy hiểm. Mốc 12 giây là TẠM để chơi thử.
 
 > **Feedback kết ván và điểm 12/11/2026 — ĐÃ CHỐT hướng, số TẠM:** sau khi ghi kết quả, cảnh vẫn chuyển động thêm 2 giây rồi mới mở bảng kết ván; traffic, người, đồ rơi, tàu, thời tiết và VFX tiếp tục biểu diễn. Kết quả, tiền, điểm và trạng thái gameplay đã chốt tại đúng va chạm, không phát sinh va chạm hay thưởng mới trong đoạn chuyển tiếp. Điểm di chuyển ở tốc độ trung vị gần 0; giữ W và nâng cấp động cơ để đạt tốc độ cao hơn sẽ cho nhiều điểm hơn. Gói điểm +50 và economy tiền giữ nguyên. Bảng điểm dùng phiên bản mới vì thang điểm đã thay đổi; xem BALANCE_CONFIG.md.

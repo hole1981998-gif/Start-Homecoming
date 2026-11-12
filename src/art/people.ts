@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { smoothGameModelByAngle } from './crease-smoothing';
 import { addDriverBackHair } from './driver-hair';
 
 export type PersonArchetype = 'driver' | 'commuter' | 'student' | 'child' | 'senior' | 'worker' |
@@ -402,6 +403,7 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   setPose('stand');
   root.userData = { id: `chr_${archetype}_A`, heightM: spec.height, hipHeightM: hipHeight,
     lod, axes: '+Y up, +Z forward', collisionRole: 'reference-only', visualRootMotion: false };
+  smoothGameModelByAngle(root);
   const dispose = () => {
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>();
     root.traverse(obj => { if (obj instanceof THREE.Mesh) {

@@ -3,6 +3,7 @@ import { roadCuePose } from './cue-scale';
 import { isSpecial, trainClosed } from './special-events';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { smoothGameModelByAngle } from './art/crease-smoothing';
 import { balance, movingBalance } from './config';
 import { jumpHeight, hasStar, hasBoost } from './items';
 import { activeVehicle, type Run } from './survival';
@@ -133,6 +134,7 @@ export class RoadRenderer {
     new GLTFLoader().load(new URL('../assets/art/driver-adjusted-delivery.glb', import.meta.url).href,
       gltf => {
         if (this.disposed) return;
+        smoothGameModelByAngle(gltf.scene);
         this.driverTemplate = gltf.scene;
         colorPlayerHelmet(this.driverTemplate);
         colorPlayerJacket(this.driverTemplate);
@@ -147,6 +149,7 @@ export class RoadRenderer {
       new URL('../assets/art/roadside-midrise.glb', import.meta.url).href,
       gltf => {
         if (this.disposed) return;
+        smoothGameModelByAngle(gltf.scene);
         gradeStormCityBuilding(gltf.scene);
         this.cityMidriseTemplate = gltf.scene;
         this.refreshNearCityScenery();
@@ -155,6 +158,7 @@ export class RoadRenderer {
       new URL('../assets/art/skyline-shophouse.glb', import.meta.url).href,
       gltf => {
         if (this.disposed) return;
+        smoothGameModelByAngle(gltf.scene);
         gradeStormCityBuilding(gltf.scene);
         this.citySkylineTemplate = gltf.scene;
         this.refreshNearCityScenery();
@@ -163,6 +167,7 @@ export class RoadRenderer {
       new URL('../assets/art/roadside-shop.glb', import.meta.url).href,
       gltf => {
         if (this.disposed) return;
+        smoothGameModelByAngle(gltf.scene);
         gradeStormCityBuilding(gltf.scene);
         this.cityShopTemplate = gltf.scene;
         this.refreshNearCityScenery();
@@ -171,6 +176,7 @@ export class RoadRenderer {
       new URL('../assets/art/corner-market.glb', import.meta.url).href,
       gltf => {
         if (this.disposed) return;
+        smoothGameModelByAngle(gltf.scene);
         gradeStormCityBuilding(gltf.scene);
         this.cityMarketTemplate = gltf.scene;
         this.refreshNearCityScenery();
@@ -179,6 +185,7 @@ export class RoadRenderer {
       new URL('../assets/art/coastal-fishing-boat.glb', import.meta.url).href,
       gltf => {
         if (this.disposed) return;
+        smoothGameModelByAngle(gltf.scene);
         this.coastalBoatTemplate = gltf.scene;
         this.refreshNearSeaScenery();
       });

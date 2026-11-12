@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { smoothGameModelByAngle } from './crease-smoothing';
 import type { VehicleCondition } from './condition';
 
 export interface Car7Art {
@@ -219,5 +220,6 @@ export function createCar7Art(lod: 'near' | 'far' = 'near'): Car7Art {
     } });
     geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
   };
+  smoothGameModelByAngle(root);
   return { root, body, wheels, seats, sockets, setPaint, setCondition, dispose };
 }

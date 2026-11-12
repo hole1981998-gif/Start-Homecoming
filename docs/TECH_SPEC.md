@@ -1,5 +1,7 @@
 # Đường Về Nhà — Technical Specification
 
+> **Model shading 12/11/2026:** dùng `toCreasedNormals` của Three.js ở ngưỡng 35° một lần khi dựng xe/người hoặc nạp GLB tài xế, nhà và thuyền; tắt `flatShading` trên material tương ứng. Geometry/material được dispose theo vòng đời art sẵn có. Collider, route, physics và visual mặt đường không đổi; áp dụng trên bản chính, `ver.noforce` là backup.
+
 > **Chuyển tiếp kết ván 12/11/2026:** RunResult được chốt idempotent tại thời điểm va chạm. Renderer nhận bản sao chỉ để biểu diễn trong 2 giây tiếp: đồng hồ hình ảnh và vị trí traffic, người, tàu, đồ rơi tiếp tục; world/simulation gốc không bước thêm, không tạo pickup, damage, tiền hay điểm mới. Âm môi trường giữ tới khi hiện bảng kết quả; âm kết ván phát khi bảng mở. Thời gian chỉ đếm khi tab đang hiển thị và được giới hạn mỗi frame để không bỏ qua cảnh sau khi quay lại tab.
 
 > **Quyết định 20/10/2026:** `/` và `/index.html` chạy `ForceIntegration.step` như `ver.force.html`; chỉ `ver.noforce.html` giữ `stepRun` nguyên bản làm backup. Quy tắc event/HP/secret vẫn do simulation arcade xử lý một lần; Cannon bổ sung phản lực và vị trí. Đoạn mô tả “chưa thay index.html” bên dưới là lịch sử thử nghiệm.
