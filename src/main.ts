@@ -4,7 +4,7 @@ import { approachCueScale, roadCueDistance } from './cue-scale';
 import './ui-flat.css';
 import { prepareContentIcons, renderItemSlots } from './ui-icons';
 import { prepareUiShell } from './ui-shell';
-import { discoveryCards, discoveryCopy, discoveryCategory, readDiscoveries, saveDiscoveries, discoveryIllustration, type Discovery } from './discovery';
+import { discoveryCards, discoveryCopy, discoveryCategory, discoveryPrimary, deferOptionalDiscovery, readDiscoveries, saveDiscoveries, discoveryIllustration, type Discovery } from './discovery';
 import { balance } from './config';
 import { FixedClock, noInput } from './simulation';
 import { activeVehicle, dropPassenger, initialRun, passengerDrive, pickUpPassenger, selectTurn, stepRun, switchVehicle } from './survival';
@@ -22,6 +22,7 @@ import { ShopView } from './shop-view';
 import type { ForceIntegration } from './force-integration';
 import { runtimeMode } from './runtime-mode';
 import { AudioDirector, type UiCue } from './audio-director';
+import { terminalElapsed, terminalSceneSeconds, terminalVisualRun } from './terminal-visuals';
 prepareUiShell();
 prepareContentIcons();
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound, Menu } });
@@ -71,6 +72,7 @@ const audio = new AudioDirector();
 type Screen = 'start' | 'pause' | 'help' | 'card' | 'result' | 'shop' | null;
 let screen: Screen = 'start';
 let discovery: Discovery | null = null;
+let lastDiscoveryAt = -Infinity;
 let secondVehicleGuidePending=false;
 let savedRunId = '';
 const seen = readDiscoveries(), clock = new FixedClock(), listeners = new AbortController();
@@ -135,7 +137,19 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   modalVersionLink.hidden = view === 'help' || view === 'card';
   testHome.hidden = !state.world.prototype || state.world.prototype.version.startsWith('force-');
   modal.querySelector('.panel')!.scrollTop = 0;
-  text('modal-title', title); text('modal-description', description);
+  text('modal-title', title);
+  const focus = el('discovery-focus'), more = el<HTMLDetailsElement>('discovery-more');
+  focus.hidden = more.hidden = view !== 'card' || !discovery;
+  more.open = false;
+  if (view === 'card' && discovery) {
+    const primary = discoveryPrimary(discovery, state.world.directorVersion === 'backup');
+    const keys = document.createElement('span'); keys.className = 'discovery-keys';
+    for (const key of primary.keys) { const kbd = document.createElement('kbd'); kbd.textContent = key; keys.append(kbd); }
+    const action = document.createElement('strong'); action.textContent = primary.action;
+    focus.replaceChildren(keys, action);
+    text('modal-description', primary.summary);
+    text('discovery-full-copy', description);
+  } else { focus.replaceChildren(); text('modal-description', description); }
   text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('force-tail-') ? `ver.${version} · THỬ ĐIỀU KHIỂN XE LỚN` : state.world.prototype.version.startsWith('force-npc-') ? `ver.${version} · THỬ VA CHẠM NPC` : state.world.prototype.version.startsWith('force-car-') ? `ver.${version} · THỬ VA CHẠM XE` : state.world.prototype.version.startsWith('handling-') ? 'THỬ ĐỘ BÁM VÀ QUÁN TÍNH' : state.world.prototype.version.startsWith('p8-') ? 'P8 · THỬ CÂN BẰNG' : state.world.prototype.version.startsWith('p7-') ? 'P7 · THỬ KẾT VÁN' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · THỬ ĐỒ RƠI' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'CHUYẾN ĐI CỦA BẠN');
   if(document.getElementById('result-money-detail'))el('result-money-detail').hidden=view!=='result';
   if(document.getElementById('result-reason-art'))el('result-reason-art').hidden=view!=='result';
@@ -175,8 +189,8 @@ function resume(cue?: UiCue | null): void {
     'menu_back' : previousScreen === 'start' ? 'menu_select' : 'resume'));
 }
 function reset(): void {
-  discovery = null;secondVehicleGuidePending=false;
-  endedAt = null;
+  discovery = null;lastDiscoveryAt=-Infinity;secondVehicleGuidePending=false;
+  endingSeconds = 0;
   audio.reset();
   force = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
   state = newRun(); previous = state;
@@ -192,7 +206,7 @@ function reset(): void {
     return;
   }
   document.title = isMainGame ? 'Đường Về Nhà' : `ver.${version} · Đường Về Nhà`;
-  show('start', 'Đường về nhà', `${isMainGame ? 'Đi nhanh hơn trung vị để tăng điểm theo quãng đường; ở tốc độ tối thiểu không cộng điểm di chuyển. Gói điểm thưa trên đường cho thêm điểm khi chạm, có thể nằm trên chướng ngại. Tiền vẫn kiếm từ quãng đường và khách. Đón người đi nhờ, tìm xăng và chọn lối về nhà.' : `ver.${version}: bản đối chiếu điều khiển, chọn cùng seed để so sánh.`}${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
+  show('start', 'Đường về nhà', `${isMainGame ? 'Giữ W để chạy nhanh và lấy nhiều điểm hơn; ở tốc độ trung vị chỉ được rất ít điểm di chuyển. Nâng cấp động cơ giúp kiếm điểm nhanh hơn. Gói điểm thưa trên đường cho thêm điểm khi chạm, có thể nằm trên chướng ngại. Tiền mua đồ vẫn kiếm từ quãng đường và khách.' : `ver.${version}: bản đối chiếu điều khiển, chọn cùng seed để so sánh.`}${state.vehicleInstances.length > 1 ? ` Bản thử có thêm ${vehicles[state.vehicleInstances[1].kind].name}.` : ''}`);
 }
 function resultView(): void {
   const result = state.result; if (!result) return;
@@ -212,7 +226,7 @@ function resultView(): void {
   reasonArt.src='/ui/event-popups/'+reasonImage+'.png';reasonArt.alt=el('modal-title').textContent??'';
   const list = el<HTMLOListElement>('leaderboard-list'); list.replaceChildren();
   const boardVersion = result.scoreVersion ?? 'legacy-v1';
-  text('leaderboard-title', boardVersion === 'hybrid-v1' ? 'Bảng điểm tốc độ và gói nhặt · trên máy này' : boardVersion.startsWith('road-') ? 'Bảng điểm nhặt trên đường · trên máy này' : boardVersion === 'speed-v1' ? 'Bảng điểm tốc độ · trên máy này' : 'Bảng điểm cũ · trên máy này');
+  text('leaderboard-title', boardVersion.startsWith('hybrid-') ? 'Bảng điểm tốc độ và gói nhặt · trên máy này' : boardVersion.startsWith('road-') ? 'Bảng điểm nhặt trên đường · trên máy này' : boardVersion === 'speed-v1' ? 'Bảng điểm tốc độ · trên máy này' : 'Bảng điểm cũ · trên máy này');
   for (const [index, entry] of leaderboard(boardVersion).slice(0, 5).entries()) {
     const row = document.createElement('li');
     row.textContent = `${index + 1}. ${Math.floor(entry.score)} điểm · ${Math.floor(entry.distance)} m${entry.reason === 'secret' ? ' · ⌂' : ''}`;
@@ -220,9 +234,9 @@ function resultView(): void {
   }
   const resultPanel=modal.querySelector<HTMLElement>('.panel')!;
   for(const node of [el('modal-label'),el('modal-title'),el('result-summary'),el('leaderboard'),play,reasonArt,el('modal-description'),moneyDetail,el('result-badge'),el('legacy-board'),el('panel-help').parentElement!,audioOptions,el('feedback-options')])resultPanel.append(node);
-  const legacy = boardVersion === 'hybrid-v1' ? leaderboard('road-v2').slice(0, 3) : boardVersion === 'road-v2' ? leaderboard('road-v1').slice(0, 3) : boardVersion === 'road-v1' ? leaderboard('speed-v1').slice(0, 3) : boardVersion === 'speed-v1' ? leaderboard('legacy-v1').slice(0, 3) : [];
+  const legacy = boardVersion === 'hybrid-v2' ? leaderboard('hybrid-v1').slice(0, 3) : boardVersion === 'hybrid-v1' ? leaderboard('road-v2').slice(0, 3) : boardVersion === 'road-v2' ? leaderboard('road-v1').slice(0, 3) : boardVersion === 'road-v1' ? leaderboard('speed-v1').slice(0, 3) : boardVersion === 'speed-v1' ? leaderboard('legacy-v1').slice(0, 3) : [];
   el('legacy-board').hidden = legacy.length === 0;
-  text('legacy-board-title', boardVersion === 'hybrid-v1' ? 'Thành tích điểm rải bản trước' : boardVersion === 'road-v2' ? 'Thành tích điểm rải bản trước' : boardVersion === 'road-v1' ? 'Thành tích luật điểm tốc độ' : 'Thành tích luật điểm ban đầu');
+  text('legacy-board-title', boardVersion === 'hybrid-v2' ? 'Thành tích luật điểm tốc độ trước' : boardVersion === 'hybrid-v1' || boardVersion === 'road-v2' ? 'Thành tích điểm rải bản trước' : boardVersion === 'road-v1' ? 'Thành tích luật điểm tốc độ' : 'Thành tích luật điểm ban đầu');
   const oldList = el<HTMLOListElement>('legacy-list'); oldList.replaceChildren();
   for (const entry of legacy) {
     const row = document.createElement('li');
@@ -277,7 +291,8 @@ function discover(): void {
     e.distance - state.distance <= warningDistance(state.speed, e, activeVehicle(state).length)).sort((a, b) => a.distance - b.distance)[0];
   const approachingTurn=!seen.has('junction') && next.distance>state.distance && next.distance-state.distance<=Math.max(110,state.speed*6);
   const key = item ?? (candidate ? discoveryCategory(candidate.kind) : null) ?? (approachingTurn?'junction':null);
-  if (!key) return;
+  if (!key || deferOptionalDiscovery(key, state.activeSeconds - lastDiscoveryAt)) return;
+  lastDiscoveryAt = state.activeSeconds;
   discovery = key; state = { ...state, phase: 'paused' };
   audio.pause();
   show('card', discoveryCards[key].title, discoveryCopy(key,state.world.directorVersion==='backup'));
@@ -297,7 +312,7 @@ el('help').addEventListener('click', openHelp, { signal: listeners.signal });
 el('panel-help').addEventListener('click', openHelp, { signal: listeners.signal });
 closeHelp.addEventListener('click', () => {
   if (state.phase === 'ended') {
-    if (endedAt !== null && performance.now() - endedAt < 2000) { screen = null; modal.hidden = true; }
+    if (endingSeconds < terminalSceneSeconds) { screen = null; modal.hidden = true; }
     else resultView();
   } else if (state.phase === 'ready') reset(); else show('pause', 'Nghỉ một nhịp', 'Chọn tiếp tục khi bạn sẵn sàng.');
 }, { signal: listeners.signal });
@@ -427,7 +442,7 @@ function updateHud(): void {
   pause.title = state.phase === 'paused' ? 'Tiếp tục · Esc' : 'Tạm dừng · Esc';
 }
 let last = performance.now(), animation = 0;
-let endedAt: number | null = null;
+let endingSeconds = 0;
 const diagnostics = new URLSearchParams(location.search).has('diagnostics');
 const frameTimes: number[] = [], renderTimes: number[] = []; let measuredFrames = 0;
 let diagnosticRunId = '';
@@ -435,13 +450,14 @@ const diagnosticSamples: unknown[] = [];
 function frame(now: number): void {
   const elapsed = (now - last) / 1000; last = now; const start = performance.now();
   const alpha = state.phase === 'running' ? clock.advance(elapsed, () => { previous = state; state = force ? force.step(state, input) : stepRun(state, input); }) : 1;
-  void audio.update(state, input);
   if (state.phase === 'ended') {
-    endedAt ??= now;
-    if (now - endedAt >= 2000 && screen !== 'result' && screen !== 'help') resultView();
-  } else { endedAt = null; discover(); }
-  graphics.draw(state, previous, state.phase === 'running' ? alpha : 1, input,
-    state.phase === 'ended' && endedAt !== null ? Math.min(2, (now - endedAt) / 1000) : 0);
+    endingSeconds = terminalElapsed(endingSeconds, elapsed, !document.hidden && screen !== 'help');
+    if (endingSeconds >= terminalSceneSeconds && screen !== 'result' && screen !== 'help') resultView();
+  } else { endingSeconds = 0; discover(); }
+  const visualState = state.phase === 'ended' && endingSeconds < terminalSceneSeconds ?
+    terminalVisualRun(state, endingSeconds) : state;
+  void audio.update(visualState, input);
+  graphics.draw(visualState, previous, state.phase === 'running' ? alpha : 1, input);
   if (diagnostics && diagnosticRunId !== state.runId) {
     diagnosticRunId = state.runId; measuredFrames = 0;
     frameTimes.length = renderTimes.length = diagnosticSamples.length = 0;

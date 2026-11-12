@@ -38,17 +38,20 @@ it('keeps legacy and speed results while ranking road pickups separately', () =>
   const road: RunResult = { ...legacy, runId: 'road', scoreVersion: 'road-v1', score: 12 };
   const dense: RunResult = { ...legacy, runId: 'dense', scoreVersion: 'road-v2', score: 3 };
   const hybrid: RunResult = { ...legacy, runId: 'hybrid', scoreVersion: 'hybrid-v1', score: 400 };
+  const tuned: RunResult = { ...legacy, runId: 'tuned', scoreVersion: 'hybrid-v2', score: 100 };
   expect(recordResult(legacy)).toBe(true);
   expect(recordResult(speed)).toBe(true);
   expect(recordResult(road)).toBe(true);
   expect(recordResult(dense)).toBe(true);
   expect(recordResult(hybrid)).toBe(true);
-  expect(results()).toHaveLength(5);
+  expect(recordResult(tuned)).toBe(true);
+  expect(results()).toHaveLength(6);
   expect(leaderboard('legacy-v1').map(r => r.runId)).toEqual(['legacy']);
   expect(leaderboard('speed-v1').map(r => r.runId)).toEqual(['speed']);
   expect(leaderboard('road-v1').map(r => r.runId)).toEqual(['road']);
   expect(leaderboard('road-v2').map(r => r.runId)).toEqual(['dense']);
   expect(leaderboard('hybrid-v1').map(r => r.runId)).toEqual(['hybrid']);
+  expect(leaderboard('hybrid-v2').map(r => r.runId)).toEqual(['tuned']);
 });
 
 it('persists audio mute separately and continues safely when browser storage is blocked', () => {

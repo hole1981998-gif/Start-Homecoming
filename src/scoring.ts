@@ -1,7 +1,7 @@
-import type { VehicleDefinition } from './vehicles';
+import { vehicleDefinition, type VehicleDefinition } from './vehicles';
 
-export const scoreVersion = 'hybrid-v1' as const;
-export const baseScorePerMeter = 0.20;
+export const scoreVersion = 'hybrid-v2' as const;
+export const movementScore = Object.freeze({ cruise: 0.01, catalogMax: 0.40, aboveMaxGain: 0.39 });
 export const roadScore = Object.freeze({ firstDistance: 450, gaps: [[600, 900], [750, 1050], [900, 1200]] as const,
   value: 50, width: 1, length: 1, maxCombo: 8 });
 export const scoreAudio = Object.freeze({ sliceSeconds: .65, fadeAtSeconds: .42, volume: .14,
@@ -24,16 +24,18 @@ export function scoreIndexAtOrAfter(distance: number, seed: number): number {
   return index;
 }
 
-/** Hybrid movement rule. Base catalogue stats keep upgrades, water and nitro from moving the reference speed. */
+/** Reward holding W and buying engine upgrades without moving the speed reference. */
 export function scorePerMeter(speed: number, riders: number, vehicle: VehicleDefinition): number {
   if (speed <= vehicle.minSpeed) return 0;
   const validRiders = Math.min(Math.max(0, riders), vehicle.capacity - 1);
   const cruise = Math.min(vehicle.maxSpeed, Math.max(vehicle.cruiseFloor,
     vehicle.cruiseSpeed - validRiders * vehicle.cruiseLoss));
+  const catalogMax = vehicleDefinition(vehicle.kind).maxSpeed;
   const u = Math.min(1, Math.max(0, (speed - vehicle.minSpeed) /
     Math.max(1e-9, cruise - vehicle.minSpeed)));
-  const h = Math.min(1, Math.max(0, (speed - cruise) /
-    Math.max(1e-9, vehicle.maxSpeed - cruise)));
-  const multiplier = speed <= cruise ? u ** 1.2 : 1 + 0.5 * h;
-  return baseScorePerMeter * multiplier * (1 + 0.02 * Math.min(Math.max(0, riders), 4));
+  const h = Math.max(0, (speed - cruise) / Math.max(1e-9, catalogMax - cruise));
+  const rate = speed <= cruise ? movementScore.cruise * u ** 2 : h <= 1 ?
+    movementScore.cruise + (movementScore.catalogMax - movementScore.cruise) * h ** 1.5 :
+    movementScore.catalogMax + movementScore.aboveMaxGain * Math.log1p(h - 1);
+  return rate * (1 + 0.02 * Math.min(Math.max(0, riders), 4));
 }

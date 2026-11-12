@@ -1,0 +1,7 @@
+# Tự đánh giá thẻ hướng dẫn lần đầu — 12/11/2026
+
+- Base: PR #34, commit `0cb541f`; bản thử tại `http://127.0.0.1:5182/?seed=17`.
+- Kiểm tra tự động trên bản cuối: `pnpm lint`, `pnpm typecheck`, `pnpm build` exit 0; Vitest 88 files/503 tests exit 0. Build còn cảnh báo bundle Three.js >500 kB.
+- Thử tay bằng in-app browser, seed 17: bắt đầu ván, tới thẻ khách đầu tiên ở 0 m. Thẻ dừng game an toàn, hiển thị một ô **F**, “Đón khách”, một câu hệ quả và mục “Đọc thêm khi cần”. Mục mở rộng cho thấy cách dùng G và luật quá tải. Đã thử Esc tạm dừng, Hướng dẫn, bật lại thẻ, chơi lại và thẻ xuất hiện đúng ở ván mới. [Ảnh thẻ đầu tiên](evidence/onboarding-focus-2026-11-12/first-card.png).
+- Game designer (tự nhận định): hoãn tối đa 12 giây chạy chỉ với thẻ khách, điểm và tiếp tế sau một thẻ vừa hiện. Thẻ nguy hiểm, giao lộ và shop vẫn xuất hiện trước quyết định tương ứng. Không đổi spawn, damage, tiền hay nhịp hazard. Cần người chơi thử tiếp để biết 12 giây có đủ giảm cảm giác bị ngắt quãng không.
+- UI/UX (tự nhận định): thứ tự đọc mới là phím → hành động → một câu hệ quả → chi tiết tùy chọn. Ô phím tương phản rõ trong ảnh; phần chi tiết vẫn vào được không cần mở menu Help. Ưu tiên tiếp theo là kiểm tra các thẻ nhiều phím (nitro, Q/E) trên màn hình thấp; ảnh một thẻ không chứng minh các thẻ khác đều dễ đọc. Không có Product Design audit tool đang kết nối trong lượt này, nên đây là review thủ công từ browser và test DOM.

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { expect, it } from 'vitest';
-import { discoveryCategory, readDiscoveries, saveDiscoveries } from '../src/discovery';
+import { deferOptionalDiscovery, discoveryCategory, readDiscoveries, saveDiscoveries } from '../src/discovery';
 
 it('coalesces variants and migrates old read cards and keeps new shop/supply introductions explicit', () => {
   localStorage.clear();
@@ -28,4 +28,13 @@ it('keeps an explicit replay reset across reloads even when old legacy acknowled
  saveDiscoveries(new Set());expect([...readDiscoveries()]).toEqual([]);
  const seen=readDiscoveries();seen.add('passenger');saveDiscoveries(seen);
  expect([...readDiscoveries()]).toEqual(['passenger']);expect(readDiscoveries().has('shop')).toBe(false);
+});
+
+it('spaces optional first-encounter cards without delaying urgent hazard or shop guidance', () => {
+  for (const key of ['passenger', 'score', 'supplies'] as const) {
+    expect(deferOptionalDiscovery(key, 3)).toBe(true);
+    expect(deferOptionalDiscovery(key, 12)).toBe(false);
+  }
+  for (const key of ['train', 'obstacles', 'officers', 'junction', 'shop', 'wind'] as const)
+    expect(deferOptionalDiscovery(key, 0)).toBe(false);
 });
