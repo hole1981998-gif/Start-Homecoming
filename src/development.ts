@@ -239,6 +239,8 @@ export function developmentScenario(run: Run, scenario: string | null, checkpoin
   }
   if (scenario?.startsWith('p61-')) return movingScenario(run, scenario);
   if (scenario) run = { ...run, world: { ...run.world, integrated: false, experimentalMotion: false, experimentalTraffic: false, experimentalCargo: false } };
+  if (scenario === 'score-pickup') return { ...run, world: { ...run.world,
+    entities: [entity('score', 'qa-score-pickup', 30, 0)] } };
   if (scenario?.startsWith('events')) {
     const requested = scenario.slice('events-'.length);
     const kind = ['police', 'militia', 'jam', 'accident', 'train', 'broken'].includes(requested) ? requested as import('./special-events').SpecialKind : 'police';

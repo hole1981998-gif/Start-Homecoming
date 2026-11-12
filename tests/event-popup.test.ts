@@ -49,3 +49,16 @@ it('shows the actual fine beneath the art and clears it for subsequent unrelated
  view.update(run,0);expect(view.root.querySelector('.popup-money-loss')!.textContent).toBe('−37,5 tiền');
  view.update(withPopup(run,'pickup'),10);expect((view.root.querySelector('.popup-money-loss') as HTMLElement).hidden).toBe(true);view.dispose();
 });
+it('shows the illustrated score pickup and keeps the terminal popup on the road until results appear',()=>{
+ document.body.innerHTML='<div id="game"></div><div id="modal" hidden><div id="result"></div></div>';
+ const game=document.getElementById('game')!,modal=document.getElementById('modal')!,result=document.getElementById('result')!;
+ const view=new EventPopup(game,result);
+ const score=withPopup({...initialRun(17),phase:'running' as const},'score');
+ view.update(score,100);
+ expect(view.root.textContent).toContain('+50 ĐIỂM');
+ expect((view.root.querySelector('img') as HTMLImageElement).src).toContain('/ui/event-popups/score.png');
+ const ended=withPopup({...score,phase:'ended' as const},'train');
+ view.update(ended,200);expect(view.root.parentElement).toBe(game);
+ modal.hidden=false;view.update(ended,2100);expect(view.root.parentElement).toBe(result);
+ view.dispose();
+});

@@ -6,7 +6,6 @@ import { entity } from '../src/world';
 import { developmentScenario } from '../src/development';
 import { noInput } from '../src/simulation';
 import { newVehicle } from '../src/vehicles';
-import { scoreComboPitch } from '../src/scoring';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -81,11 +80,11 @@ it('makes a roadside call grow louder on approach and fade after passing', () =>
 
 it('spaces storm strikes across a run and keeps each seed reproducible', () => {
   const first = stormStrikeDelay(17, 0);
-  expect(first).toBeGreaterThanOrEqual(14);
-  expect(first).toBeLessThanOrEqual(22);
+  expect(first).toBeGreaterThanOrEqual(8);
+  expect(first).toBeLessThanOrEqual(14);
   expect(stormStrikeDelay(17, 0)).toBe(first);
-  expect(stormStrikeDelay(17, 1)).toBeGreaterThanOrEqual(27);
-  expect(stormStrikeDelay(17, 1)).toBeLessThanOrEqual(43);
+  expect(stormStrikeDelay(17, 1)).toBeGreaterThanOrEqual(16);
+  expect(stormStrikeDelay(17, 1)).toBeLessThanOrEqual(26);
 });
 
 it('routes puddle loops by vehicle weight', () => {
@@ -201,7 +200,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   await director.update({ ...base, scorePickupSequence: 1, scorePickupLevel: 1 });
   await vi.waitFor(() => expect(sources.some(source => source.started &&
     source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3') &&
-    source.playbackRate.targets.at(-1) === scoreComboPitch(1))).toBe(true));
+    source.playbackRate.targets.length === 0)).toBe(true));
   expect(sources.find(source => source.started && source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3'))?.startArgs).toEqual([0, 0, .65]);
   expect(filters.some(filter => filter.type === 'lowshelf' && filter.frequency.value === 700 && filter.gain.value === 5)).toBe(true);
   expect(filters.some(filter => filter.type === 'lowpass' && filter.frequency.value === 3200)).toBe(true);
@@ -209,7 +208,7 @@ it('routes driving, impact, indicator and train cues to their actual events', as
   await director.update({ ...base, scorePickupSequence: 2, scorePickupLevel: 1 });
   await vi.waitFor(() => expect(sources.some(source => source.started &&
     source.buffer?.path.includes('owner-score-chime-2026-11-08/score_chime.mp3') &&
-    source.playbackRate.targets.at(-1) === scoreComboPitch(1))).toBe(true));
+    source.playbackRate.targets.length === 0)).toBe(true));
 
   const water = { ...entity('water', 'test-water', 0, 0), touching: true };
   await director.update({ ...base, eventSequence: 1, feedbackKind: 'water', world: { ...base.world, entities: [water] } });
@@ -540,6 +539,8 @@ it('routes driving, impact, indicator and train cues to their actual events', as
 
   await director.update({ ...base, activeSeconds: 80 });
   await vi.waitFor(() => expect(fetched.some(path => path.includes('lightning_distant_a.mp3'))).toBe(true));
+  expect(thunderSource.stopped).toBe(false);
+  await vi.waitFor(() => expect(sources.some(source => source.started && source.buffer?.path.includes('lightning_distant_a.mp3'))).toBe(true));
   const firstStrikeCount = fetched.filter(path => path.includes('lightning_distant_')).length;
   await director.update({ ...base, activeSeconds: 80 });
   expect(fetched.filter(path => path.includes('lightning_distant_'))).toHaveLength(firstStrikeCount);

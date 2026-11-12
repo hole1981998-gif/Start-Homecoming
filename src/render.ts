@@ -416,10 +416,14 @@ export class RoadRenderer {
         g.add(driver.root); g.userData.trafficFallenDriver = driver;
       }
     } else if (kind === 'score') {
-      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(.27),
-        new THREE.MeshStandardMaterial({ color: '#dcc27d', emissive: '#9f7930', emissiveIntensity: .22,
-          metalness: .12, roughness: .65 }));
-      gem.position.y = .62; gem.rotation.y = Math.PI / 4; g.add(gem);
+      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(.48),
+        new THREE.MeshStandardMaterial({ color: '#ffe3a0', emissive: '#ffc85c', emissiveIntensity: 1.4,
+          metalness: .05, roughness: .38 }));
+      gem.position.y = .82; gem.rotation.y = Math.PI / 4; g.add(gem);
+      const halo = new THREE.Mesh(new THREE.OctahedronGeometry(.55),
+        new THREE.MeshBasicMaterial({ color: '#ffd574', transparent: true, opacity: .22, depthWrite: false }));
+      halo.position.copy(gem.position); g.add(halo);
+      g.userData.scoreHalo = halo;
       g.userData.scoreGem = gem;
     } else if (kind === 'passenger') {
       const person = createPersonArt(passengerCast ?? 'commuter', 'far');
@@ -441,11 +445,11 @@ export class RoadRenderer {
     this.cloudShadows?.applyTo(g);
     this.scene.add(g); return g;
   }
-  draw(s: Run, previous: Run, alpha: number, steering = { left: false, right: false }): void {
+  draw(s: Run, previous: Run, alpha: number, steering = { left: false, right: false }, terminalVisualSeconds = 0): void {
     this.viewState = s;
     // Character gestures communicate movement and pickup state; they stay
     // visible even when optional screen motion is reduced by the OS.
-    const visualTime = s.activeSeconds;
+    const visualTime = s.activeSeconds + terminalVisualSeconds;
     const lowFx = this.lowEffects || !!this.reducedMotion?.matches;
     // Density is reduced, never the clock: static rain looks like suspended scratches.
     const weatherTime = visualTime;
@@ -822,7 +826,10 @@ export class RoadRenderer {
         entityPose.z + Math.sin(entityPose.heading) * entityX);
       entry.mesh.rotation.set(0, -entityPose.heading + (e.kind === 'traffic' && (e.baseSpeed ?? e.speed) < 0 ? Math.PI : 0),
         pose.roll, 'YXZ');
-      if (e.kind === 'score') (entry.mesh.userData.scoreGem as THREE.Mesh).rotation.y = Math.PI / 4 + visualTime * .7;
+      if (e.kind === 'score') {
+        (entry.mesh.userData.scoreGem as THREE.Mesh).rotation.y = Math.PI / 4 + visualTime * .95;
+        (entry.mesh.userData.scoreHalo as THREE.Mesh).rotation.y = -visualTime * .45;
+      }
       const contactShadow = entry.mesh.userData.roadContactShadow as THREE.Mesh | undefined;
       if (contactShadow) this.contactShadows.place(contactShadow, entry.mesh.position.x,
         entry.mesh.position.z, entry.mesh.rotation.y, e.width * 1.5, e.length * 1.4);

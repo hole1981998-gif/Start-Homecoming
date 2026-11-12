@@ -20,9 +20,12 @@ it('grants points only for a swept on-road pickup, once, without changing money 
   expect(driven.score - empty.score).toBeCloseTo(roadScore.value);
   const firstSecondMovementScore = empty.score;
   expect(driven.world.entities[0].consumed).toBe(true);
+  expect(driven.popupEvent?.kind).toBe('score');
+  const popupSequence = driven.popupEvent?.sequence;
   expect(driven.money).toBeCloseTo(balance.initialMoney + driven.distance * balance.moneyPerMeter);
   for (let i = 0; i < 60; i++) { driven = stepRun(driven, noInput()); empty = stepRun(empty, noInput()); }
   expect(driven.score - empty.score).toBeCloseTo(roadScore.value);
+  expect(driven.popupEvent?.sequence).toBe(popupSequence);
   let missed: Run = { ...fixture, x: balance.laneWidth };
   for (let i = 0; i < 60; i++) missed = stepRun(missed, noInput());
   expect(missed.score).toBeCloseTo(firstSecondMovementScore);

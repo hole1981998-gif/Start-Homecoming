@@ -1,1 +1,3 @@
 Owner-provided corrected event illustrations, replaced 2026-11-09 in the same event order. Original PNG bytes preserved, filenames normalized. Render complete images at their intrinsic aspect ratios, including baked captions and borders. No extra frame, background or crop; live caption retained for assistive technology. Popup width is 62.5% of the previous integration in gameplay, QTE and results.
+
+`score.png` was generated 2026-11-11 from the owner's popup reference as a separate score card. It deliberately leaves the lower green band blank; the runtime overlays `+50 ĐIỂM` as live text so the caption stays crisp and accessible.
