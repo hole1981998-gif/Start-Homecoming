@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createPersonArt, type EssentialPose, type PersonArchetype } from '../src/art/people';
+import { addDriverBackHair } from '../src/art/driver-hair';
 
 let adjustedDriver: THREE.Group | null = null;
 const driverRest = new WeakMap<THREE.Group,
@@ -155,5 +156,11 @@ function animate(now: number) {
 }
 requestAnimationFrame(animate);
 new GLTFLoader().load(new URL('../assets/art/driver-adjusted-delivery.glb', import.meta.url).href,
-  gltf => { adjustedDriver = gltf.scene; refreshSelection(); }, undefined,
+  gltf => {
+    gltf.scene.traverse(node => {
+      if (node.name.startsWith('head_pivot')) addDriverBackHair(node, .093);
+    });
+    adjustedDriver = gltf.scene;
+    refreshSelection();
+  }, undefined,
   () => { (document.getElementById('source-note') as HTMLElement).textContent = 'Không tải được mesh Blender'; });

@@ -1,10 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { movingBalance } from '../src/config';
-import { createAmbulanceArt, createOfficerArt, createTrainArt, createVendorArt,
+import { createAmbulanceArt, createOfficerArt, createTrainArt, createTrainTrackArt, createVendorArt,
   crossingVisualYaw } from '../src/art/moving-events';
+import { attachAmbulanceService } from '../src/art/ambulance-service';
+import { createVehicleArt } from '../src/art/vehicle-catalog';
 
 describe('moving event art uses prototype contracts', () => {
+  it('keeps the crossing rails fixed and visible while the train waits and clears', () => {
+    const crossing = new THREE.Group();
+    const train = createTrainArt();
+    const track = createTrainTrackArt();
+    crossing.add(train.root, track);
+    expect(track.getObjectByName('rail_-1')).toBeDefined();
+    expect(track.getObjectByName('rail_1')).toBeDefined();
+    expect(track.children.filter(child => child.name.startsWith('sleeper_'))).toHaveLength(13);
+    for (const lateralX of [-15, 0, 15]) {
+      crossing.position.x = lateralX;
+      track.position.x = -lateralX;
+      train.root.visible = lateralX === 0;
+      crossing.updateMatrixWorld(true);
+      expect(track.getWorldPosition(new THREE.Vector3()).x).toBeCloseTo(0);
+      expect(track.visible).toBe(true);
+    }
+    const footprint = new THREE.Box3().setFromObject(track).getSize(new THREE.Vector3());
+    expect(footprint.x).toBeGreaterThan(9.6);
+    expect(footprint.z).toBeLessThan(movingBalance.trainDepth);
+    train.dispose();
+  });
   it('keeps a finite crossing train within the existing world-space footprint in either direction', () => {
     for (const lod of ['near', 'far'] as const) for (const direction of [-1, 1] as const) {
       const asset = createTrainArt(direction, lod);
@@ -38,6 +61,39 @@ describe('moving event art uses prototype contracts', () => {
     asset.setState('damaged');
     expect(asset.root.getObjectByName('service_damage')?.visible).toBe(true);
     asset.dispose();
+  });
+  it('alternates the bright roof beacon from simulation time on the real traffic car7', () => {
+    const traffic = createVehicleArt('car7', 'traffic', 'far');
+    const service = attachAmbulanceService(traffic.body);
+    const red = service.root.getObjectByName('beacon_red') as THREE.Mesh;
+    const blue = service.root.getObjectByName('beacon_blue') as THREE.Mesh;
+    const redMaterial = red.material as THREE.MeshStandardMaterial;
+    const blueMaterial = blue.material as THREE.MeshStandardMaterial;
+    const wash = service.root.getObjectByName('ambulance_beacon_wash') as THREE.PointLight;
+    expect(new THREE.Box3().setFromObject(red).min.y).toBeGreaterThan(1.9);
+    service.setVisualTime(.05);
+    expect(redMaterial.emissiveIntensity).toBeGreaterThan(blueMaterial.emissiveIntensity);
+    expect(wash.position.x).toBeLessThan(0);
+    service.setVisualTime(.25);
+    expect(blueMaterial.emissiveIntensity).toBeGreaterThan(redMaterial.emissiveIntensity);
+    expect(wash.position.x).toBeGreaterThan(0);
+    const flash = blueMaterial.emissiveIntensity;
+    service.setVisualTime(.25);
+    expect(blueMaterial.emissiveIntensity).toBe(flash);
+    traffic.dispose();
+  });
+  it('puts distinct, raised hats above both officers instead of flat head plates', () => {
+    for (const kind of ['police', 'militia'] as const) {
+      const asset = createOfficerArt(kind, 'far');
+      const head = asset.root.getObjectByName('head')!;
+      const hat = asset.root.getObjectByName(kind === 'police' ? 'police_cap' : 'militia_wide_hat')!;
+      asset.root.updateMatrixWorld(true);
+      const headTop = new THREE.Box3().setFromObject(head).max.y;
+      const hatTop = new THREE.Box3().setFromObject(hat).max.y;
+      expect(hatTop).toBeGreaterThan(headTop);
+      expect(asset.root.getObjectByName(kind === 'police' ? 'police_cap_visor' : 'militia_hat_crown')).toBeDefined();
+      asset.dispose();
+    }
   });
   it('provides readable officer/vendor states without owning NPC motion time', () => {
     for (const kind of ['police', 'militia'] as const) {

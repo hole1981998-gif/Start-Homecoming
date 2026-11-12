@@ -129,8 +129,11 @@ export function dropPassenger(run: Run): Run {
   passenger.riderId = riderId;
   if (run.grabRiderIds.includes(riderId)) passenger.passengerType = 'grab';
   passenger.lastHit = run.activeSeconds + balance.passengerReboardDelaySeconds;
-  passenger.passengerMotion = { ...passengerMotion(passenger, run.activeSeconds + balance.passengerKickSeconds),
-    ejectedAt: run.activeSeconds, fromX: run.x, fromDistance: run.distance };
+  const recoverySeconds = balance.passengerKickSeconds + balance.passengerDownSeconds +
+    balance.passengerStandSeconds;
+  passenger.passengerMotion = { ...passengerMotion(passenger, run.activeSeconds + recoverySeconds),
+    ejectedAt: run.activeSeconds, fromX: run.x, fromDistance: run.distance,
+    crashRecovery: true };
   passenger.x = run.x; passenger.distance = run.distance;
   const remaining = run.riderIds.slice(0, -1);
   const activeKind = run.vehicleInstances.find(v => v.id === run.activeVehicleId)?.kind ?? 'motorcycle';

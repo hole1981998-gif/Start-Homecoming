@@ -148,9 +148,11 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 .power-effects:empty{display:none}
 .world-cue .supply-badge{display:grid;place-items:center;width:64px;height:64px;padding:0;margin:0;border-radius:50%;background:#fff;border:0;box-shadow:0 2px 6px #10202940}
 .world-cue .supply-badge .volume-icon{width:52px;height:41.6px;padding:0;margin:0;border:0;border-radius:0;background-image:url('/ui/flat-icons-v2.png');background-color:transparent;background-repeat:no-repeat}
-.world-cue.shop{width:144px;min-height:44px;padding:8px 10px;gap:3px;background:#b53b35;color:#fff;border:0;border-radius:20px;text-shadow:none;filter:drop-shadow(0 2px 3px #10202955)}
-.world-cue.shop .shop-label{display:block;padding:0;margin:0;background:transparent;color:#fff;font-size:13px;letter-spacing:.5px;font-weight:850}
-.world-cue.shop>span:not(.shop-label){padding:0;margin:0;background:transparent;color:#fff;font-size:10px}
+.world-cue.shop{width:170px;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px;padding:0;background:transparent;color:#fff;border:0;text-shadow:none;filter:drop-shadow(0 2px 3px #10202955)}
+.world-cue.shop .shop-label{display:block;padding:9px 12px;margin:0;background:#b53b35;border-radius:18px;color:#fff;font-size:13px;letter-spacing:.5px;font-weight:850;white-space:nowrap}
+.world-cue.shop .shop-key{display:grid;place-items:center;width:32px;height:32px;margin:0;background:#fff0d6;border:2px solid #b53b35;border-radius:9px;color:#743029;font-size:17px;font-weight:900;line-height:1}
+.world-cue.shop .shop-key[hidden]{display:none}
+.world-cue.shop .shop-distance{flex-basis:100%;width:max-content;padding:2px 6px;margin:0;background:#192e33df;border-radius:6px;color:#fff;font-size:10px;text-align:center}
 .world-cue.shop .pointer{position:absolute;top:100%;color:#fff;left:calc(50% - 8px)}
 #junction-branches span{width:64px;height:64px;min-width:64px;min-height:64px;padding:0;border-radius:50%;background:#fff;color:#1b353b;border:0;text-shadow:none;box-shadow:0 2px 6px #10202940}
 #junction-branches kbd{font-size:22px;line-height:1;margin:0;color:inherit}
@@ -225,7 +227,6 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 .shop-confirm-actions button{min-height:48px;font-weight:800}.shop-confirm-actions [data-cancel]{border-color:#c78b83!important;color:#f0b7ac!important}
 .shop-confirm-actions [data-confirm]{background:#7cc7ad!important;color:#16362e!important}
 #shop-panel:has(.confirming) .shop-wallet{margin-bottom:8px}
-.world-cue.shop>span:not(.shop-label){font-size:19px;font-weight:900;line-height:1.1}
 .popup-money-loss{display:block;margin:6px auto 0;width:max-content;max-width:160%;padding:0;border:0;background:none;color:#ffd7a4;font-size:14px;font-weight:500;white-space:nowrap;text-shadow:0 1px 2px #0008}
 #modal[data-view=result] .panel{display:flex;flex-direction:column;gap:12px}
 #modal[data-view=result] #modal-label{order:0}#modal[data-view=result] #modal-title{order:1;margin:0;font-size:24px}
