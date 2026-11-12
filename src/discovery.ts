@@ -4,6 +4,31 @@ import type { EntityKind } from './world';
 import type { PowerItem } from './items';
 
 export type Discovery = 'passenger' | 'score' | 'wind' | 'train' | 'officers' | 'obstacles' | 'shop' | 'supplies' | 'junction' | 'switching' | PowerItem;
+export interface DiscoveryFocus { keys: readonly string[]; action: string; summary: string }
+export const discoveryFocus: Record<Discovery, DiscoveryFocus> = {
+  score: { keys: ['W'], action: 'Giữ để kiếm thêm điểm', summary: 'Chạy nhanh và nâng cấp động cơ để tăng điểm; viên sáng cho thêm 50 điểm.' },
+  switching: { keys: ['Tab'], action: 'Đổi xe đang lái', summary: 'Khách đi theo xe mới; mỗi xe giữ riêng xăng, độ bền và nâng cấp.' },
+  passenger: { keys: ['F'], action: 'Đón khách', summary: 'Lại gần khách rồi bấm F. Chở khách giúp kiếm thêm tiền.' },
+  obstacles: { keys: ['S'], action: 'Giảm tốc trước chướng ngại', summary: 'Phanh rồi lái A/D để né; nước hao xăng, ổ gà mất độ bền và tiền.' },
+  officers: { keys: ['1', '2'], action: 'Dùng chuối khi đến gần chốt', summary: 'Né công an và dân phòng; nếu có chuối, bấm phím của ô chứa chuối.' },
+  shop: { keys: ['R'], action: 'Ghé cửa hàng', summary: 'Đến gần cửa hàng rồi bấm R để mua, tiếp tế hoặc nâng cấp.' },
+  supplies: { keys: [], action: 'Lái qua để nhặt', summary: 'Bình xăng và bộ sửa dùng ngay khi xe chạm vào; không cần bấm F.' },
+  junction: { keys: ['Q', 'E'], action: 'Chọn trái hoặc phải', summary: 'Bấm Q/E khi tag sáng; nhìn đường và quyết định trước khi cửa rẽ đóng.' },
+  wind: { keys: ['A', 'D'], action: 'Giữ lái ngược chiều gió', summary: 'Gió đẩy xe ngang; dùng A/D để giữ đường, S để giảm tốc nếu cần.' },
+  train: { keys: ['S'], action: 'Phanh và chờ tàu qua', summary: 'Đụng tàu sẽ kết thúc chuyến đi, kể cả khi còn xe dự phòng.' },
+  nitro: { keys: ['1', '2', 'Space'], action: 'Bật nitro, rồi bấm Space để nhảy', summary: 'Phím 1/2 dùng ô nitro; Space chỉ nhảy khi nitro đang bật.' },
+  star: { keys: ['1', '2'], action: 'Dùng ngôi sao trong ô đồ', summary: 'Miễn sát thương thường trong thời gian ngắn; tàu và chốt vẫn nguy hiểm.' },
+  banana: { keys: ['1', '2'], action: 'Dùng chuối khi đến gần chốt', summary: 'Chuối vô hiệu cả nhóm công an/dân phòng; canh khoảng cách trước khi bấm.' },
+  grab: { keys: ['1', '2', 'F'], action: 'Gọi khách rồi đón lên xe', summary: 'Bấm 1/2 để gọi khách phía trước, tới gần khách và bấm F.' },
+};
+export function discoveryPrimary(key: Discovery, backup = false): DiscoveryFocus {
+  return key === 'score' && backup ? { keys: [], action: 'Lái xe để tích điểm',
+    summary: 'Bản backup tính điểm theo quãng đường và khách; tiền vẫn là tài nguyên riêng.' } : discoveryFocus[key];
+}
+/** Optional teaching can wait for another safe encounter; danger and action windows cannot. */
+export function deferOptionalDiscovery(key: Discovery, secondsSinceLastCard: number): boolean {
+  return (key === 'score' || key === 'supplies' || key === 'passenger') && secondsSinceLastCard < 12;
+}
 export const discoveryCards: Record<Discovery, { title: string; copy: string; icon: UiIcon }> = {
   score: { title: 'Điểm được tính thế nào?', copy: 'Ở tốc độ trung vị, xe gần như không kiếm điểm di chuyển. Giữ W để chạy nhanh hơn: càng nhanh càng được nhiều điểm trên mỗi mét. Nâng cấp động cơ giúp xe đạt tốc độ cao hơn và kiếm điểm nhanh hơn; chở khách tăng điểm một chút.\n\nViên sáng trên đường cho thêm 50 điểm khi xe chạm vào. Bạn có thể bỏ qua nếu đường nguy hiểm. Điểm và tiền mua đồ là hai thứ riêng.', icon: 'star' },
   switching: {title:'Có hai xe rồi, đổi bằng Tab nhé!',copy:'Bạn đã có xe dự phòng. Khi đang lái, bấm Tab để đổi qua lại giữa hai xe còn chạy được. Khách sẽ đi theo bạn sang xe kia.\n\nMỗi xe giữ riêng xăng, độ bền và nâng cấp; đổi xe không được nạp lại miễn phí. Nhớ xem sức chứa để tránh quá tải nhé.',icon:'car'},

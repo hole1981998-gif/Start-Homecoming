@@ -252,3 +252,12 @@ footer{justify-content:flex-end;pointer-events:none;bottom:max(12px,env(safe-are
 #modal[data-view=card] #discovery-art{height:90px;margin:12px 0}
 #modal[data-view=card] #discovery-art .volume-icon{width:90px;height:72px}
 #modal[data-view=card] #discovery-hint{color:#a9d8c4!important}
+#modal[data-view=card] #discovery-focus{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid #88bdb0;border-radius:11px;background:#274d4e;color:#effff5}
+#modal[data-view=card] #discovery-focus[hidden],#modal[data-view=card] #discovery-more[hidden]{display:none}
+.discovery-keys{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;max-width:135px}
+#modal[data-view=card] .discovery-keys kbd{display:grid;place-items:center;min-width:31px;min-height:32px;padding:2px 5px;border:2px solid #dcf3e6;border-radius:7px;background:#e7f4ec;color:#193a3a;font-size:14px;font-weight:900;box-shadow:0 3px 0 #132f30}
+#modal[data-view=card] #discovery-focus strong{font-size:17px;line-height:1.2;font-weight:850}
+#modal[data-view=card] #modal-description{margin:12px 0 6px;font-size:14px;line-height:1.4}
+#modal[data-view=card] #discovery-more{margin:4px 0 8px;color:#bdd7ce;font-size:12px}
+#modal[data-view=card] #discovery-more summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+#modal[data-view=card] #discovery-more p{white-space:pre-line;margin:8px 0 0;font-size:12px;line-height:1.45}

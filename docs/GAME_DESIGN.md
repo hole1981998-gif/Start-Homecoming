@@ -1,5 +1,7 @@
 # Đường Về Nhà — Game Design
 
+> **Feedback onboarding 12/11/2026 — ĐÃ CHỐT hướng:** thẻ giải thích lần đầu ưu tiên thao tác quan trọng nhất: phím lớn, câu hành động ngắn và một câu hệ quả. Giải thích đầy đủ mở theo nhu cầu và vẫn có trong Hướng dẫn; các thẻ không nguy hiểm (khách, điểm, tiếp tế) có thể đợi cuộc gặp an toàn sau nếu vừa hiện một thẻ trong 12 giây chạy. Thẻ tàu, chốt, giao lộ, cửa hàng, gió và chướng ngại không bị trì hoãn vì phải dạy trước quyết định nguy hiểm. Mốc 12 giây là TẠM để chơi thử.
+
 > **Feedback kết ván và điểm 12/11/2026 — ĐÃ CHỐT hướng, số TẠM:** sau khi ghi kết quả, cảnh vẫn chuyển động thêm 2 giây rồi mới mở bảng kết ván; traffic, người, đồ rơi, tàu, thời tiết và VFX tiếp tục biểu diễn. Kết quả, tiền, điểm và trạng thái gameplay đã chốt tại đúng va chạm, không phát sinh va chạm hay thưởng mới trong đoạn chuyển tiếp. Điểm di chuyển ở tốc độ trung vị gần 0; giữ W và nâng cấp động cơ để đạt tốc độ cao hơn sẽ cho nhiều điểm hơn. Gói điểm +50 và economy tiền giữ nguyên. Bảng điểm dùng phiên bản mới vì thang điểm đã thay đổi; xem BALANCE_CONFIG.md.
 
 > **Yêu cầu cân bằng B 10/11/2026 — hướng ĐÃ CHỐT, số TẠM:** điểm trở lại theo quãng đường/tốc độ, min không có điểm di chuyển; gói +50 thưa thay dải điểm 8 m. Tăng nhảy nitro qua xe cao, tăng nhẹ gió, giảm nhẹ tiền khách; sau 8/12/15 km tăng áp lực bằng gió/nhóm officer/template/mật độ có giới hạn. WORLD-LIGHT và cửa shop ±16 m toàn ván giữ. Bản `ver.noforce` là backup. Xem [BALANCE_CONFIG.md](BALANCE_CONFIG.md) và [báo cáo B](LATE_ROUND_B_REVIEW_2026-11-10.md).

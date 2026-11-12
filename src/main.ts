@@ -4,7 +4,7 @@ import { approachCueScale, roadCueDistance } from './cue-scale';
 import './ui-flat.css';
 import { prepareContentIcons, renderItemSlots } from './ui-icons';
 import { prepareUiShell } from './ui-shell';
-import { discoveryCards, discoveryCopy, discoveryCategory, readDiscoveries, saveDiscoveries, discoveryIllustration, type Discovery } from './discovery';
+import { discoveryCards, discoveryCopy, discoveryCategory, discoveryPrimary, deferOptionalDiscovery, readDiscoveries, saveDiscoveries, discoveryIllustration, type Discovery } from './discovery';
 import { balance } from './config';
 import { FixedClock, noInput } from './simulation';
 import { activeVehicle, dropPassenger, initialRun, passengerDrive, pickUpPassenger, selectTurn, stepRun, switchVehicle } from './survival';
@@ -72,6 +72,7 @@ const audio = new AudioDirector();
 type Screen = 'start' | 'pause' | 'help' | 'card' | 'result' | 'shop' | null;
 let screen: Screen = 'start';
 let discovery: Discovery | null = null;
+let lastDiscoveryAt = -Infinity;
 let secondVehicleGuidePending=false;
 let savedRunId = '';
 const seen = readDiscoveries(), clock = new FixedClock(), listeners = new AbortController();
@@ -136,7 +137,19 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   modalVersionLink.hidden = view === 'help' || view === 'card';
   testHome.hidden = !state.world.prototype || state.world.prototype.version.startsWith('force-');
   modal.querySelector('.panel')!.scrollTop = 0;
-  text('modal-title', title); text('modal-description', description);
+  text('modal-title', title);
+  const focus = el('discovery-focus'), more = el<HTMLDetailsElement>('discovery-more');
+  focus.hidden = more.hidden = view !== 'card' || !discovery;
+  more.open = false;
+  if (view === 'card' && discovery) {
+    const primary = discoveryPrimary(discovery, state.world.directorVersion === 'backup');
+    const keys = document.createElement('span'); keys.className = 'discovery-keys';
+    for (const key of primary.keys) { const kbd = document.createElement('kbd'); kbd.textContent = key; keys.append(kbd); }
+    const action = document.createElement('strong'); action.textContent = primary.action;
+    focus.replaceChildren(keys, action);
+    text('modal-description', primary.summary);
+    text('discovery-full-copy', description);
+  } else { focus.replaceChildren(); text('modal-description', description); }
   text('modal-label', view === 'card' ? 'DỪNG AN TOÀN · LẦN ĐẦU GẶP' : view === 'result' ? 'KẾT THÚC CHUYẾN ĐI' : state.world.stress ? 'P6.1 · STRESS TEST · KHÔNG CÂN BẰNG' : state.world.prototype ? state.world.prototype.version.startsWith('force-tail-') ? `ver.${version} · THỬ ĐIỀU KHIỂN XE LỚN` : state.world.prototype.version.startsWith('force-npc-') ? `ver.${version} · THỬ VA CHẠM NPC` : state.world.prototype.version.startsWith('force-car-') ? `ver.${version} · THỬ VA CHẠM XE` : state.world.prototype.version.startsWith('handling-') ? 'THỬ ĐỘ BÁM VÀ QUÁN TÍNH' : state.world.prototype.version.startsWith('p8-') ? 'P8 · THỬ CÂN BẰNG' : state.world.prototype.version.startsWith('p7-') ? 'P7 · THỬ KẾT VÁN' : state.world.prototype.version.startsWith('p63-') ? 'P6.3 · THỬ ĐỒ RƠI' : state.world.prototype.version.startsWith('p62-') ? 'P6.2 · THỬ LỰC NGANG' : 'P6.1 · THỬ TÌNH HUỐNG RIÊNG' : 'CHUYẾN ĐI CỦA BẠN');
   if(document.getElementById('result-money-detail'))el('result-money-detail').hidden=view!=='result';
   if(document.getElementById('result-reason-art'))el('result-reason-art').hidden=view!=='result';
@@ -176,7 +189,7 @@ function resume(cue?: UiCue | null): void {
     'menu_back' : previousScreen === 'start' ? 'menu_select' : 'resume'));
 }
 function reset(): void {
-  discovery = null;secondVehicleGuidePending=false;
+  discovery = null;lastDiscoveryAt=-Infinity;secondVehicleGuidePending=false;
   endingSeconds = 0;
   audio.reset();
   force = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
@@ -278,7 +291,8 @@ function discover(): void {
     e.distance - state.distance <= warningDistance(state.speed, e, activeVehicle(state).length)).sort((a, b) => a.distance - b.distance)[0];
   const approachingTurn=!seen.has('junction') && next.distance>state.distance && next.distance-state.distance<=Math.max(110,state.speed*6);
   const key = item ?? (candidate ? discoveryCategory(candidate.kind) : null) ?? (approachingTurn?'junction':null);
-  if (!key) return;
+  if (!key || deferOptionalDiscovery(key, state.activeSeconds - lastDiscoveryAt)) return;
+  lastDiscoveryAt = state.activeSeconds;
   discovery = key; state = { ...state, phase: 'paused' };
   audio.pause();
   show('card', discoveryCards[key].title, discoveryCopy(key,state.world.directorVersion==='backup'));
