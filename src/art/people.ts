@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { addDriverBackHair } from './driver-hair';
 
 export type PersonArchetype = 'driver' | 'commuter' | 'student' | 'child' | 'senior' | 'worker' |
   'childRain' | 'teenHood' | 'office' | 'active' | 'parent' | 'caretaker' | 'elderPoncho';
@@ -124,6 +125,7 @@ export function createPersonArt(archetype: PersonArchetype, lod: 'near' | 'far' 
   const headMesh = new THREE.Mesh(new THREE.SphereGeometry(headRadius,
     lod === 'near' ? 16 : 10, lod === 'near' ? 12 : 8), skin);
   headMesh.name = 'head'; headMesh.scale.set(1, 1.02, .95); head.add(headMesh);
+  if (archetype === 'driver') addDriverBackHair(head, 0, scale);
   const hairMat = mat(archetype === 'senior' ? '#aeb1a7' : archetype === 'elderPoncho' ? '#8c938e' :
     archetype === 'office' || archetype === 'teenHood' ? '#302d38' : '#3d3231', .67, true);
   if (spec.accessory !== 'helmet' && spec.accessory !== 'poncho' && spec.accessory !== 'cap') {
