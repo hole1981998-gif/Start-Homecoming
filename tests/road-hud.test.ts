@@ -19,12 +19,31 @@ it('renders only supply tags and leaves hazards in the world without mutating si
   expect(document.querySelector('[data-kind="traffic"]')).toBeNull();
   expect(document.querySelector('[data-kind="fuel"] .supply-badge [data-icon="fuel"]')).not.toBeNull();
   expect(document.querySelector('[data-kind="shop"] .shop-label')!.textContent).toBe('CỬA HÀNG');
+  expect(document.querySelector<HTMLElement>('[data-kind="shop"] .shop-key')!.hidden).toBe(true);
   expect(document.querySelector('[data-kind="shop"] [data-icon]')).toBeNull();
   const fuel=document.querySelector<HTMLElement>('[data-kind="fuel"]')!;
   expect(fuel.hidden).toBe(false);expect(fuel.style.left).toBe('120%');expect(fuel.style.top).toBe('-20%');
   expect([...document.querySelectorAll<HTMLElement>('.world-cue')].map(n=>n.dataset.kind)).toEqual(['fuel','repair','shop']);
   expect(run).toEqual(before);
   hud.update({...run,phase:'paused'},{project:()=>({x:50,y:40})});expect(fuel.hidden).toBe(true);
+});
+it('shows a separate R key only when the shop can actually be entered', () => {
+  const hud = setup(), projection = { project: () => ({ x: 50, y: 40 }) };
+  const shop = entity('shop', 'shop-near', 20, 0);
+  shop.shopStock = { vehicles: [], items: { nitro: 0, star: 0, grab: 0, banana: 0 } };
+  const run: Run = { ...initialRun(), phase: 'running', distance: 10,
+    world: { ...initialRun().world, entities: [shop] } };
+  const cue = document.querySelector<HTMLElement>('[data-kind="shop"]')!;
+  const key = cue.querySelector<HTMLElement>('.shop-key')!;
+  hud.update(run, projection);
+  expect(key.hidden).toBe(false);
+  expect(key.textContent).toBe('R');
+  expect(cue.querySelector('.shop-label')!.textContent).toBe('CỬA HÀNG');
+  expect(cue.querySelector('.shop-distance')!.textContent).toBe('10 m');
+  expect(cue.getAttribute('aria-label')).toContain('bấm R để ghé');
+  hud.update({ ...run, x: 3.2 }, projection);
+  expect(key.hidden).toBe(true);
+  expect(cue.getAttribute('aria-label')).not.toContain('bấm R');
 });
 it('never shows floating action prompts for passengers, officers, trains or cargo', () => {
  const hud=setup(),projection={project:()=>({x:50,y:40})};
