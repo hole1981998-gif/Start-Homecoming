@@ -19,7 +19,7 @@ import { canSecretEnd, guardedSecret, initialSecret, secretLanding, secretPickup
 
 import { jumpDuration, jumpHeight, hasBoost, hasStar, newPowers, powerBoundaries, type PowerItem, type Powers } from './items';
 
-export interface RunResult { runId: string; seed: number; config: string; scoreVersion?: 'legacy-v1' | 'speed-v1' | 'road-v1' | 'road-v2' | typeof scoreVersion; reason: 'fuel' | 'damage' | 'train' | 'police' | 'secret'; distance: number; score: number; money: number; seconds: number }
+export interface RunResult { runId: string; seed: number; config: string; scoreVersion?: 'legacy-v1' | 'speed-v1' | 'road-v1' | 'road-v2' | 'hybrid-v1' | typeof scoreVersion; reason: 'fuel' | 'damage' | 'train' | 'police' | 'secret'; distance: number; score: number; money: number; seconds: number }
 export interface CrashState { elapsed: number; side: -1 | 1; originDistance: number; originX: number; impactSpeed: number;
   returningRiderIds: string[]; strandedRiderIds: string[] }
 export interface Run extends State {
@@ -450,7 +450,7 @@ function stepRunSegment(before: Run, input: Input, dt: number, forceMode: boolea
       const scoringRate = r.world.directorVersion === 'backup' ?
         balance.scorePerMeter * (1 + r.riderIds.length * balance.riderScoreBonus) :
         scorePerMeter(before.speed + (driven.speed - before.speed) * (fraction + segment / 2),
-          r.riderIds.length, vehicleDefinition(vehicle.kind));
+          r.riderIds.length, vehicle);
       r.score += ds * segment * scoringRate;
       const riderIncome = r.world.directorVersion === 'backup' ? balance.backupRiderMoneyPerMeter : balance.riderMoneyPerMeter;
       r.money += ds * segment * (balance.moneyPerMeter + r.riderIds.length * riderIncome +

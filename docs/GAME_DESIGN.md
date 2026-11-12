@@ -1,5 +1,7 @@
 # Đường Về Nhà — Game Design
 
+> **Feedback kết ván và điểm 12/11/2026 — ĐÃ CHỐT hướng, số TẠM:** sau khi ghi kết quả, cảnh vẫn chuyển động thêm 2 giây rồi mới mở bảng kết ván; traffic, người, đồ rơi, tàu, thời tiết và VFX tiếp tục biểu diễn. Kết quả, tiền, điểm và trạng thái gameplay đã chốt tại đúng va chạm, không phát sinh va chạm hay thưởng mới trong đoạn chuyển tiếp. Điểm di chuyển ở tốc độ trung vị gần 0; giữ W và nâng cấp động cơ để đạt tốc độ cao hơn sẽ cho nhiều điểm hơn. Gói điểm +50 và economy tiền giữ nguyên. Bảng điểm dùng phiên bản mới vì thang điểm đã thay đổi; xem BALANCE_CONFIG.md.
+
 > **Yêu cầu cân bằng B 10/11/2026 — hướng ĐÃ CHỐT, số TẠM:** điểm trở lại theo quãng đường/tốc độ, min không có điểm di chuyển; gói +50 thưa thay dải điểm 8 m. Tăng nhảy nitro qua xe cao, tăng nhẹ gió, giảm nhẹ tiền khách; sau 8/12/15 km tăng áp lực bằng gió/nhóm officer/template/mật độ có giới hạn. WORLD-LIGHT và cửa shop ±16 m toàn ván giữ. Bản `ver.noforce` là backup. Xem [BALANCE_CONFIG.md](BALANCE_CONFIG.md) và [báo cáo B](LATE_ROUND_B_REVIEW_2026-11-10.md).
 
 > **Thử cân bằng sau 5 km ngày 10/11/2026 — số TẠM:** tăng áp lực bằng nhóm chướng ngại và đoạn nước dài nhìn thấy được, cùng lịch tiếp tế/shop thưa hơn; tăng cơ hội tàu và thu cửa bấm R. Giữ nguyên công thức hao xăng theo mét/nước, lượng hồi từng món, thu nhập, sát thương từng loại và giá. Không có phí chạy chậm hay hao xăng theo thời gian mới. Xem [BALANCE_CONFIG.md](BALANCE_CONFIG.md) và [LATE_WORLD_LIGHT_REVIEW_2026-11-10.md](LATE_WORLD_LIGHT_REVIEW_2026-11-10.md).

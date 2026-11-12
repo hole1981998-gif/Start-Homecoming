@@ -1,5 +1,7 @@
 # Đường Về Nhà — Roadmap
 
+> **Feedback 12/11/2026 — đang thử:** chuyển tiếp kết ván 2 giây với cảnh còn chuyển động; tinh chỉnh điểm di chuyển gần 0 tại cruise, thưởng rõ hơn ở tốc độ cao và sau nâng cấp động cơ, cập nhật card giải thích. Số mới và điểm version `hybrid-v2` là TẠM, cần simulation/playtest và nhận xét của chủ dự án; `ver.noforce` tiếp tục là backup.
+
 > **Bản thử cân bằng B 10/11/2026:** khôi phục điểm di chuyển và dùng gói điểm thưa, tăng nhảy nitro và thêm các nấc sức ép 8/12/15 km trên nền WORLD-LIGHT. Các số là TẠM, cần chủ dự án chơi thử trước khi khóa; [báo cáo B](LATE_ROUND_B_REVIEW_2026-11-10.md). Các dòng 08/11 về `road-v2` phía dưới là lịch sử.
 
 > **Bản thử mới 08/11/2026:** trên `main` mới nhất, mở lại tuning special và đổi điểm ván chính thành vật nhặt trên đường. Mức phạt dân phòng đổi theo ví; tiền kiếm và giá hàng giữ nguyên. Bản đối chiếu `ver.noforce` giữ luật cũ. Thông số và công thức cũ xem [BALANCE_CONFIG.md](BALANCE_CONFIG.md); chưa coi số thử là đã cân bằng.
