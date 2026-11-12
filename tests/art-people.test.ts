@@ -7,6 +7,14 @@ import { createCar4Art } from '../src/art/car4';
 const cast = ['driver', ...passengerArchetypes] as const;
 
 describe('essential people art', () => {
+  it('keeps the fallback driver hair under the helmet and attached to the head', () => {
+    const driver = createPersonArt('driver');
+    const hair = driver.root.getObjectByName('driver_back_hair')!;
+    expect(hair.parent?.name).toBe('head_pivot');
+    expect(hair.getObjectByName('back_hair_crown')?.position.z).toBeLessThan(0);
+    expect(hair.children.filter(child => child.name.startsWith('back_hair_lock_'))).toHaveLength(3);
+    driver.dispose();
+  });
   it('provides ground roots, distinct named silhouettes and attachment sockets', () => {
     expect(new Set(passengerArchetypes).size).toBe(12);
     for (const archetype of cast) {

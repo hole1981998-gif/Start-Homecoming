@@ -70,9 +70,17 @@ describe('runtime people visuals', () => {
     };
     const original = torso(template).quaternion.clone();
     const driver = createRidingBlenderDriver(template);
+    let head: THREE.Object3D | undefined;
+    driver.traverse(node => { if (node.name.startsWith('head_pivot')) head = node; });
+    const hair = driver.getObjectByName('driver_back_hair')!;
+    expect(hair.parent).toBe(head);
+    expect(hair.getObjectByName('back_hair_crown')?.position.z).toBeLessThan(0);
+    expect(template.getObjectByName('driver_back_hair')).toBeUndefined();
+    const hairBeforeTurn = hair.getWorldPosition(new THREE.Vector3());
     const bounds = new THREE.Box3().setFromObject(driver);
     const seated = torso(driver).quaternion.clone();
     driver.setVisualTime(.625);
+    expect(hair.getWorldPosition(new THREE.Vector3()).distanceTo(hairBeforeTurn)).toBeGreaterThan(.001);
     expect(torso(driver).quaternion.equals(seated)).toBe(false);
     driver.setVisualTime(0);
     expect(torso(driver).quaternion.equals(seated)).toBe(true);
@@ -87,6 +95,7 @@ describe('runtime people visuals', () => {
     const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     const template = (await new GLTFLoader().parseAsync(buffer, '')).scene;
     const driver = createCrashBlenderDriver(template);
+    expect(driver.getObjectByName('driver_back_hair')?.parent?.name).toMatch(/^head_pivot/);
     const hip = (root: THREE.Object3D) => {
       let result: THREE.Object3D | undefined;
       root.traverse(node => { if (node.name.startsWith('hip_pivot')) result = node; });
