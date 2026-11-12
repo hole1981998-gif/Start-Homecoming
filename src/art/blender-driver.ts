@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { TimedPose } from './timing';
+import { addDriverBackHair } from './driver-hair';
 
 export type AnimatedBlenderDriver = THREE.Group & { setVisualTime: (activeSeconds: number) => void };
 export type CrashBlenderDriver = THREE.Group & { setTimedPose: (pose: TimedPose) => void };
@@ -25,6 +26,7 @@ export function createRidingBlenderDriver(template: THREE.Group): AnimatedBlende
   arms.forEach(arm => turn(arm, -.92));
   elbows.forEach(elbow => turn(elbow!, -.35));
   const head = nodes.find(node => node.name.startsWith('head_pivot'));
+  if (head) addDriverBackHair(head, .093);
   const animated = driver as AnimatedBlenderDriver;
   const torsoRest = torso.quaternion.clone();
   const torsoRestY = torso.position.y;
@@ -57,6 +59,8 @@ export function createCrashBlenderDriver(template: THREE.Group): CrashBlenderDri
   const pair = (prefix: string) => nodes.filter(node => node.name.startsWith(prefix))
     .sort((a, b) => a.position.x - b.position.x);
   const hips = find('hip_pivot'), torso = find('torso_pivot');
+  const head = find('head_pivot');
+  if (head) addDriverBackHair(head, .093);
   const legs = pair('hip_leg_'), arms = pair('shoulder_');
   const knees = legs.map(leg => leg.children.find(node => node.name.startsWith('knee_')));
   const elbows = arms.map(arm => arm.children.find(node => node.name.startsWith('elbow_')));
