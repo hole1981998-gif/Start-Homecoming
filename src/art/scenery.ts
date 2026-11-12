@@ -101,9 +101,22 @@ const facadeMat = (color: string) => {
   material.userData.stormCodeFacade = true;
   return material;
 };
+// Closed box geometry already has outward-facing walls. Cull its reverse faces
+// while retaining two-sided materials for thin hand-built roofs and foliage.
+const frontFaceMaterials = new WeakMap<THREE.Material, THREE.Material>();
+function frontFaceMaterial(material: THREE.Material): THREE.Material {
+  if (material.side === THREE.FrontSide) return material;
+  let front = frontFaceMaterials.get(material);
+  if (!front) {
+    front = material.clone();
+    front.side = THREE.FrontSide;
+    frontFaceMaterials.set(material, front);
+  }
+  return front;
+}
 function box(parent: THREE.Object3D, name: string, size: [number, number, number],
   pos: [number, number, number], material: THREE.Material) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), frontFaceMaterial(material));
   if (material.userData.stormCodeFacade) mesh.userData.stormPlacedOwned = true;
   mesh.name = name; mesh.position.set(...pos); parent.add(mesh); return mesh;
 }
@@ -460,11 +473,11 @@ function backlotBlock(parent: THREE.Object3D, x: number, z: number,
   const floors = style === 1 ? 5 : style === 0 ? 2 : 3;
   const windowCount = floors * 2;
   const recesses = new THREE.InstancedMesh(new THREE.BoxGeometry(1.12, 1.25, .035),
-    shade, windowCount);
+    frontFaceMaterial(shade), windowCount);
   const windows = new THREE.InstancedMesh(new THREE.BoxGeometry(.91, 1.03, .045),
     new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .38 }), windowCount);
   const rearRecesses = new THREE.InstancedMesh(new THREE.BoxGeometry(1.02, 1.13, .035),
-    shade, windowCount);
+    frontFaceMaterial(shade), windowCount);
   const rearWindows = new THREE.InstancedMesh(new THREE.BoxGeometry(.81, .92, .045),
     new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: .45 }), windowCount);
   recesses.name = 'backlot_window_recesses'; windows.name = 'backlot_windows';
