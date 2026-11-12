@@ -4,6 +4,7 @@ import { movingBalance } from '../config';
 import { createCar7Art } from './car7';
 import { createPersonArt, type PersonArt } from './people';
 import { markGameplayAccentTarget } from './storm-lighting';
+import { attachAmbulanceService } from './ambulance-service';
 
 export interface MovingArt {
   root: THREE.Group;
@@ -192,25 +193,10 @@ export function createTrainArt(direction: -1 | 1 = 1, lod: 'near' | 'far' = 'nea
 export function createAmbulanceArt(lod: 'near' | 'far' = 'near'): MovingArt {
   const base = createCar7Art(lod); base.setPaint('#e7eee3');
   const root = base.root; root.name = `veh_ambulance_${lod}`;
-  const red = mat('#e0524d'), white = mat('#f1ede0'), dark = mat('#34515d');
-  const service = new THREE.Group(); service.name = 'ambulance_service'; base.body.add(service);
-  box(service, 'roof_beacon_base', [.78, .09, .36], [0, 1.86, .24], dark);
-  for (const side of [-1, 1]) box(service, `beacon_${side}`,
-    [.28, .15, .29], [side * .21, 1.98, .24], red);
-  for (const side of [-1, 1]) {
-    box(service, `medical_side_bar_${side}`, [.025, .13, 1.17],
-      [side * 1.042, 1.02, -.48], red);
-    box(service, `cross_side_vertical_${side}`, [.026, .36, .13],
-      [side * 1.049, 1.12, -.95], red);
-    box(service, `cross_side_horizontal_${side}`, [.026, .11, .36],
-      [side * 1.052, 1.12, -.95], red);
-  }
-  box(service, 'rear_medical_vertical', [.12, .32, .027], [0, 1.02, -2.39], red);
-  box(service, 'rear_medical_horizontal', [.31, .10, .028], [0, 1.02, -2.395], red);
-  box(service, 'rear_light_strip', [.45, .065, .02], [0, 1.60, -2.39], white);
-  const damage = new THREE.Group(); damage.name = 'service_damage'; service.add(damage);
-  box(damage, 'darkened_panel', [.31, .23, .02], [.45, 1.14, -2.4], dark);
-  const sockets = { ...base.sockets, beacon: point(service, 'beacon_socket', [0, 2.04, .24]) };
+  const service = attachAmbulanceService(base.body);
+  const damage = new THREE.Group(); damage.name = 'service_damage'; service.root.add(damage);
+  box(damage, 'darkened_panel', [.31, .23, .02], [.45, 1.14, -2.4], mat('#34515d'));
+  const sockets = { ...base.sockets, beacon: point(service.root, 'beacon_socket', [0, 2.18, .24]) };
   const setState = (state: 'normal' | 'stunned' | 'damaged') => {
     damage.visible = state === 'damaged';
     base.setPaint(state === 'damaged' ? '#929b99' : '#e7eee3');
@@ -220,7 +206,8 @@ export function createAmbulanceArt(lod: 'near' | 'far' = 'near'): MovingArt {
   root.userData = { ...root.userData, id: 'veh_ambulance_A', serviceRole: 'ambulance',
     widthM: 2.08, lengthM: 4.8, collisionRole: 'reference-only' };
   markGameplayAccentTarget(root);
-  return { root, sockets, setState, dispose: () => base.dispose() };
+  return { root, sockets, setState, setVisualTime: service.setVisualTime,
+    dispose: () => base.dispose() };
 }
 
 export function createOfficerArt(kind: 'police' | 'militia', lod: 'near' | 'far' = 'near'): MovingArt {
@@ -239,9 +226,22 @@ export function createOfficerArt(kind: 'police' | 'militia', lod: 'near' | 'far'
     const trousers = root.getObjectByName('pants_pelvis') as THREE.Mesh;
     (trousers.material as THREE.MeshStandardMaterial).color.set('#cfaa63');
   }
-  const cap = mat(kind === 'police' ? '#ad8c4a' : '#64734d');
-  box(person.sockets.head.parent!, kind === 'police' ? 'police_cap' : 'militia_wide_hat',
-    kind === 'police' ? [.43, .08, .29] : [.58, .055, .47], [0, .07, .08], cap);
+  const hatAnchor = person.sockets.head.parent!;
+  const cap = mat(kind === 'police' ? '#a7854b' : '#66774d');
+  const band = mat(kind === 'police' ? '#383e3b' : '#9b8b5c');
+  if (kind === 'police') {
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(.22, .25, .16, lod === 'near' ? 12 : 8), cap);
+    crown.name = 'police_cap'; crown.position.y = .34; hatAnchor.add(crown);
+    box(hatAnchor, 'police_cap_band', [.46, .05, .39], [0, .25, 0], band);
+    box(hatAnchor, 'police_cap_visor', [.46, .045, .27], [0, .245, .26], band);
+    box(hatAnchor, 'police_cap_badge', [.10, .09, .025], [0, .37, .236], mat('#e7d4a0'));
+  } else {
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(.40, .40, .035, lod === 'near' ? 16 : 10), cap);
+    brim.name = 'militia_wide_hat'; brim.position.y = .30; hatAnchor.add(brim);
+    const crown = new THREE.Mesh(new THREE.ConeGeometry(.27, .25, lod === 'near' ? 12 : 8), cap);
+    crown.name = 'militia_hat_crown'; crown.position.y = .44; hatAnchor.add(crown);
+    box(hatAnchor, 'militia_hat_band', [.40, .04, .39], [0, .34, 0], band);
+  }
   if (kind === 'police') {
     box(root.getObjectByName('torso_pivot')!, 'police_chest_badge', [.11, .07, .027],
       [.12, .44, .18], mat('#a44d43'));
