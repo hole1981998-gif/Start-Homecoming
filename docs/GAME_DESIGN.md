@@ -166,6 +166,8 @@ Một bản chơi được cần đủ vòng chạy–tương tác–mua–thay 
 
 **ĐỀ XUẤT art direction:** nền xanh xám, slate và tím xám; điểm nhấn ấm nhỏ ở đèn xe/cửa hàng để giữ thân thiện. Dùng tương phản sáng tối và silhouette trước, màu sau. Mưa, mặt đường ướt, nước ngập và mây giông gợi gian khó; biểu cảm hình khối, cây/công trình và hoạt họa vẫn ngộ nghĩnh. Tránh phủ một lớp tối làm chìm xe, NPC, QTE hoặc hazard. Các màu cụ thể là gợi ý, chưa chốt palette.
 
+**ĐÃ CHỐT cho lượt thử postprocessing:** kéo màu cảnh về hai cực xanh lá/cyan và cam/đỏ. Giữ màu sơn xe tươi, dễ phân biệt; không để lớp màu hậu kỳ làm xỉn xe hoặc giảm độ rõ của đường, người và chướng ngại. Đây là hướng grade cho bản chơi thử, chưa thay thế bước đánh giá art direction cuối.
+
 ## Art direction gate — đánh giá như art director
 
 Trước khi xin duyệt bước tạo/ghép art cuối, chuẩn bị một cảnh đại diện trong build và bảng đánh giá riêng cho từng tiêu chí dưới đây, thang 1–10, kèm ảnh/build, nhận xét cụ thể và ít nhất một đề xuất sửa cho điểm dưới 8. Đây là review có người xem hiện vật; Codex có thể tự chấm sơ bộ nhưng phải ghi rõ đó là tự đánh giá, không giả lập ý kiến của art director độc lập.
