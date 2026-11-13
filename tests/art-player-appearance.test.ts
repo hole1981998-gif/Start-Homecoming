@@ -1,6 +1,8 @@
 import { expect, it } from 'vitest';
 import * as THREE from 'three';
-import { colorPlayerHelmet, colorPlayerJacket, playerHelmetColor, playerJacketColor } from '../src/art/player-appearance';
+import { colorPlayerHelmet, colorPlayerJacket, playerHelmetColor, playerJacketColor,
+  playerPantsColor } from '../src/art/player-appearance';
+import { createPersonArt } from '../src/art/people';
 
 it('tints only the player helmet shell/brim without changing shared skin or NPC materials', () => {
   const root = new THREE.Group(), shared = new THREE.MeshStandardMaterial({ color: '#e5d9ba' });
@@ -35,4 +37,27 @@ it('colors only the player jacket body and sleeves without changing shared NPC c
   colorPlayerJacket(root);
   expect(parts[0].material).toBe(first);
   parts.forEach(part => part.geometry.dispose()); first.dispose(); shared.dispose();
+});
+
+it('keeps the player suit on the torso through poses without recoloring other people', () => {
+  const driver = createPersonArt('driver');
+  const commuter = createPersonArt('commuter');
+  const originalCommuter = (commuter.root.getObjectByName('coat_torso') as THREE.Mesh)
+    .material as THREE.MeshStandardMaterial;
+  const commuterColor = originalCommuter.color.getHex();
+  colorPlayerJacket(driver.root);
+  const torso = driver.root.getObjectByName('torso_pivot')!;
+  const coat = driver.root.getObjectByName('coat_torso') as THREE.Mesh;
+  const pants = driver.root.getObjectByName('thigh_1') as THREE.Mesh;
+  expect((coat.material as THREE.MeshStandardMaterial).color.getHexString()).toBe(playerJacketColor.slice(1));
+  expect((pants.material as THREE.MeshStandardMaterial).color.getHexString()).toBe(playerPantsColor.slice(1));
+  for (const name of ['suit_shirt_front', 'suit_lapel_-1', 'suit_lapel_1', 'suit_tie'])
+    expect(torso.getObjectByName(name)?.parent).toBe(torso);
+  driver.setPose('riding');
+  driver.setPose('ejected', .5);
+  expect(torso.getObjectByName('suit_tie')?.parent).toBe(torso);
+  colorPlayerJacket(driver.root);
+  expect(torso.children.filter(child => child.name === 'suit_tie')).toHaveLength(1);
+  expect(originalCommuter.color.getHex()).toBe(commuterColor);
+  driver.dispose(); commuter.dispose();
 });
