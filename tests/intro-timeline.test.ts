@@ -20,6 +20,7 @@ describe('static intro shotlist', () => {
     expect(jacket.officeVolume).toBe(watch.officeVolume);
     expect(logo.rainVolume).toBe(watch.rainVolume);
     expect(introFrameAt(16.9).watchZoom).toBeGreaterThan(introFrameAt(12).watchZoom);
+    expect(introFrameAt(17).watchZoom).toBeCloseTo(1.07);
     expect(introFrameAt(24.9).titleScale).toBeLessThan(introFrameAt(21).titleScale);
     expect(introFrameAt(23).titleScale).toBeCloseTo((introFrameAt(21).titleScale + introFrameAt(25).titleScale) / 2);
     expect(introFrameAt(21).titleOpacity).toBe(0);

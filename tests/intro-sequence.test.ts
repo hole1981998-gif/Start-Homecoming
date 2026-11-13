@@ -34,7 +34,7 @@ it('plays continuous beds once, starts steps on the first footfall, and opens th
   fire(1); fire(4); fire(6); fire(8); fire(10.5); fire(15);
   expect(sounds.get('/intro/footsteps.mp3')?.currentTime).toBe(.48);
   fire(16);
-  expect((document.querySelector('.intro-portrait') as HTMLElement).style.transform).toContain('scale(4.6)');
+  expect((document.querySelector('.intro-portrait') as HTMLElement).style.transform).toContain('scale(1.056)');
   fire(18); fire(21); fire(23);
   expect(sounds.get('/intro/office.mp3')?.plays).toBe(1);
   expect(sounds.get('/intro/rain.mp3')?.plays).toBe(1);

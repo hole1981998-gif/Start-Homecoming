@@ -7,7 +7,6 @@ export interface IntroFrame {
   image: IntroImage;
   sceneOpacity: number;
   watchZoom: number;
-  watchProgress: number;
   titleScale: number;
   titleOpacity: number;
   officeVolume: number;
@@ -46,8 +45,7 @@ export function introFrameAt(seconds: number): IntroFrame {
   return {
     image,
     sceneOpacity,
-    watchProgress,
-    watchZoom: 1 + 4.5 * watchProgress,
+    watchZoom: 1 + .07 * watchProgress,
     titleScale: 1.2 - .28 * titleProgress,
     titleOpacity: Math.min(clamp01((time - 21) / 1.2), clamp01((25 - time) / 1)),
     officeVolume: time < 7.5 ? .34 : time < 12 ? .17 : .34,

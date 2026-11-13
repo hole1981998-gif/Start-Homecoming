@@ -145,7 +145,7 @@ export class IntroSequence {
     this.portrait.style.opacity = String(frame.sceneOpacity);
     this.backdrop.style.opacity = String(frame.sceneOpacity);
     this.portrait.style.transform = frame.image === 'watch' ?
-      `translateX(${-50 + 13 * frame.watchProgress}%) translateY(${-16 * frame.watchProgress}%) scale(${frame.watchZoom})` :
+      `translateX(-50%) scale(${frame.watchZoom})` :
       'translateX(-50%)';
     this.logo.style.transform = `translate(-50%, -50%) scale(${frame.titleScale})`;
     this.logo.style.opacity = String(frame.titleOpacity);
