@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { balance } from '../src/config';
 import { createCrashBlenderDriver, createRidingBlenderDriver } from '../src/art/blender-driver';
+import { colorPlayerHelmet, colorPlayerJacket, playerJacketColor } from '../src/art/player-appearance';
 import { roadsideArchetype, roadsidePose, roadsideWalkingYaw } from '../src/art/runtime-people';
 import { driverCrashPose } from '../src/art/timing';
 import { advancePassengers, entity, passengerMotion } from '../src/world';
@@ -63,6 +64,8 @@ describe('runtime people visuals', () => {
     const bytes = readFileSync(new URL('../assets/art/driver-adjusted-delivery.glb', import.meta.url));
     const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     const template = (await new GLTFLoader().parseAsync(buffer, '')).scene;
+    colorPlayerHelmet(template);
+    colorPlayerJacket(template);
     const torso = (root: THREE.Object3D) => {
       let result: THREE.Object3D | undefined;
       root.traverse(node => { if (node.name.startsWith('torso_pivot')) result = node; });
@@ -70,11 +73,27 @@ describe('runtime people visuals', () => {
     };
     const original = torso(template).quaternion.clone();
     const driver = createRidingBlenderDriver(template);
+    const findMesh = (prefix: string) => {
+      let result: THREE.Mesh | undefined;
+      driver.traverse(node => { if (node instanceof THREE.Mesh && node.name.startsWith(prefix)) result = node; });
+      return result!;
+    };
+    const coat = findMesh('coat_torso');
+    expect((coat.material as THREE.MeshStandardMaterial).color.getHexString())
+      .toBe(playerJacketColor.slice(1));
+    expect(driver.getObjectByName('suit_tie')?.parent?.name).toMatch(/^torso_pivot/);
     let head: THREE.Object3D | undefined;
     driver.traverse(node => { if (node.name.startsWith('head_pivot')) head = node; });
     const hair = driver.getObjectByName('driver_back_hair')!;
     expect(hair.parent).toBe(head);
-    expect(hair.getObjectByName('back_hair_crown')?.position.z).toBeLessThan(0);
+    expect(hair.children.filter(child => child.name.startsWith('back_hair_sideburn_'))).toHaveLength(2);
+    const crownBounds = new THREE.Box3().setFromObject(hair.getObjectByName('back_hair_crown')!);
+    const helmetBounds = new THREE.Box3().setFromObject(findMesh('rain_helmet'));
+    expect(crownBounds.min.z).toBeGreaterThan(helmetBounds.min.z);
+    expect(crownBounds.max.y).toBeLessThan(helmetBounds.max.y);
+    const headBounds = new THREE.Box3().setFromObject(findMesh('head'));
+    expect(crownBounds.min.z).toBeLessThan(headBounds.min.z);
+    expect(crownBounds.min.x).toBeLessThan(headBounds.min.x);
     expect(template.getObjectByName('driver_back_hair')).toBeUndefined();
     const hairBeforeTurn = hair.getWorldPosition(new THREE.Vector3());
     const bounds = new THREE.Box3().setFromObject(driver);
@@ -94,7 +113,9 @@ describe('runtime people visuals', () => {
     const bytes = readFileSync(new URL('../assets/art/driver-adjusted-delivery.glb', import.meta.url));
     const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     const template = (await new GLTFLoader().parseAsync(buffer, '')).scene;
+    colorPlayerJacket(template);
     const driver = createCrashBlenderDriver(template);
+    expect(driver.getObjectByName('suit_tie')?.parent?.name).toMatch(/^torso_pivot/);
     expect(driver.getObjectByName('driver_back_hair')?.parent?.name).toMatch(/^head_pivot/);
     const hip = (root: THREE.Object3D) => {
       let result: THREE.Object3D | undefined;
