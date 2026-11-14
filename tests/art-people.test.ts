@@ -3,16 +3,24 @@ import * as THREE from 'three';
 import { createPersonArt, mountPersonOnSeat, passengerArchetypes } from '../src/art/people';
 import { createTwoWheelerArt } from '../src/art/two-wheelers';
 import { createCar4Art } from '../src/art/car4';
+import { colorPlayerHelmet } from '../src/art/player-appearance';
 
 const cast = ['driver', ...passengerArchetypes] as const;
 
 describe('essential people art', () => {
   it('keeps the fallback driver hair under the helmet and attached to the head', () => {
     const driver = createPersonArt('driver');
+    colorPlayerHelmet(driver.root);
     const hair = driver.root.getObjectByName('driver_back_hair')!;
     expect(hair.parent?.name).toBe('head_pivot');
-    expect(hair.getObjectByName('back_hair_crown')?.position.z).toBeLessThan(0);
-    expect(hair.children.filter(child => child.name.startsWith('back_hair_lock_'))).toHaveLength(3);
+    expect(hair.children.filter(child => child.name.startsWith('back_hair_sideburn_'))).toHaveLength(2);
+    const crown = new THREE.Box3().setFromObject(hair.getObjectByName('back_hair_crown')!);
+    const helmet = new THREE.Box3().setFromObject(driver.root.getObjectByName('rain_helmet')!);
+    expect(crown.min.z).toBeGreaterThan(helmet.min.z);
+    expect(crown.max.y).toBeLessThan(helmet.max.y);
+    const head = new THREE.Box3().setFromObject(driver.root.getObjectByName('head')!);
+    expect(crown.min.z).toBeLessThan(head.min.z);
+    expect(crown.min.x).toBeLessThan(head.min.x);
     driver.dispose();
   });
   it('provides ground roots, distinct named silhouettes and attachment sockets', () => {
