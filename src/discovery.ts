@@ -8,7 +8,7 @@ export interface DiscoveryFocus { keys: readonly string[]; action: string; summa
 export const discoveryFocus: Record<Discovery, DiscoveryFocus> = {
   score: { keys: ['W'], action: 'Giữ để kiếm thêm điểm', summary: 'Chạy nhanh và nâng cấp động cơ để tăng điểm; viên sáng cho thêm 50 điểm.' },
   switching: { keys: ['Tab'], action: 'Đổi xe đang lái', summary: 'Khách đi theo xe mới; mỗi xe giữ riêng xăng, độ bền và nâng cấp.' },
-  passenger: { keys: ['F'], action: 'Đón khách', summary: 'Lại gần khách rồi bấm F. Chở khách giúp kiếm thêm tiền.' },
+  passenger: { keys: ['F', 'G'], action: 'F đón · G đá khách', summary: 'Lại gần khách rồi bấm F để đón. Bấm G để đá một khách ra, chừa chỗ cho người khác.' },
   obstacles: { keys: ['S'], action: 'Giảm tốc trước chướng ngại', summary: 'Phanh rồi lái A/D để né; nước hao xăng, ổ gà mất độ bền và tiền.' },
   officers: { keys: ['1', '2'], action: 'Dùng chuối khi đến gần chốt', summary: 'Né công an và dân phòng; nếu có chuối, bấm phím của ô chứa chuối.' },
   shop: { keys: ['R'], action: 'Ghé cửa hàng', summary: 'Đến gần cửa hàng rồi bấm R để mua, tiếp tế hoặc nâng cấp.' },
