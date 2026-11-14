@@ -20,9 +20,10 @@ it('first discovery pauses before danger, closes safely, and result/restart cann
   const tick = (seconds: number) => { for (let i = 0; i < seconds * 60; i++) { now += 1000 / 60; nextFrame(now); } };
   el('play').click(); tick(6);
   expect(el('modal-title').textContent).toBe('Cho đi nhờ nhé?'); expect(el('modal').hidden).toBe(false);
-  expect([...el('discovery-focus').querySelectorAll('kbd')].map(key => key.textContent)).toEqual(['F']);
-  expect(el('discovery-focus').textContent).toContain('Đón khách');
+  expect([...el('discovery-focus').querySelectorAll('kbd')].map(key => key.textContent)).toEqual(['F', 'G']);
+  expect(el('discovery-focus').textContent).toContain('F đón · G đá khách');
   expect(el('modal-description').textContent).toContain('Lại gần khách');
+  expect(el('modal-description').textContent).toContain('chừa chỗ');
   expect((el('discovery-more') as HTMLDetailsElement).open).toBe(false);
   expect(el('discovery-full-copy').textContent).toContain('quá tải');
   const atCard = el('distance').textContent, fuelAtCard = el('fuel-value').textContent;
