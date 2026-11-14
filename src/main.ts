@@ -23,12 +23,16 @@ import type { ForceIntegration } from './force-integration';
 import { runtimeMode } from './runtime-mode';
 import { AudioDirector, type UiCue } from './audio-director';
 import { terminalElapsed, terminalSceneSeconds, terminalVisualRun } from './terminal-visuals';
+import { IntroSequence } from './intro-sequence';
 prepareUiShell();
 prepareContentIcons();
 createIcons({ icons: { Fuel, Wrench, Trophy, Coins, Pause, CircleHelp, RotateCcw, CircleAlert, UsersRound, Menu } });
 
 const version = runtimeMode(location.pathname);
 const isMainGame = version === 'force' && !location.pathname.endsWith('/ver.force.html');
+const introParams = new URLSearchParams(location.search);
+const introEligible = isMainGame && import.meta.env.MODE !== 'test' &&
+  introParams.get('intro') !== '0' && !introParams.has('scenario');
 const ForceIntegrationCtor = version === 'force' ? (await import('./force-integration')).ForceIntegration : null;
 let force: ForceIntegration | null = ForceIntegrationCtor ? new ForceIntegrationCtor() : null;
 
@@ -71,6 +75,12 @@ let state = newRun(), previous = state, input = noInput();
 const audio = new AudioDirector();
 type Screen = 'start' | 'pause' | 'help' | 'card' | 'result' | 'shop' | null;
 let screen: Screen = 'start';
+const intro = introEligible ? new IntroSequence(() => { if (screen === 'start') play.focus({ preventScroll: true }); },
+  () => audioLevel('ambience'), () => audioLevel('sfx')) : null;
+const introReplay = document.createElement('button');
+introReplay.textContent = 'Xem intro lại'; introReplay.id = 'intro-replay';
+introReplay.addEventListener('click', () => intro?.show());
+el('quick-start').after(introReplay);
 let discovery: Discovery | null = null;
 let lastDiscoveryAt = -Infinity;
 let secondVehicleGuidePending=false;
@@ -133,6 +143,7 @@ function show(view: Exclude<Screen, null>, title: string, description: string): 
   screen = view; modal.hidden = false; modal.setAttribute('data-view', view); setMenu(false); clearInput();
   el('discovery-art').hidden = view !== 'card';
   el('quick-start').hidden = view !== 'start';
+  introReplay.hidden = view !== 'start' || !introEligible;
   versionLink.hidden = true;
   modalVersionLink.hidden = view === 'help' || view === 'card';
   testHome.hidden = !state.world.prototype || state.world.prototype.version.startsWith('force-');
@@ -482,4 +493,5 @@ function frame(now: number): void {
   canvas.dataset.forceContacts = `${force?.contactPairs ?? 0}`;
 }
 reset(); updateHud(); animation = requestAnimationFrame(frame);
-if (import.meta.hot) import.meta.hot.dispose(() => { cancelAnimationFrame(animation); listeners.abort(); graphics.dispose(); audio.dispose(); eventPopup.dispose(); });
+intro?.show();
+if (import.meta.hot) import.meta.hot.dispose(() => { cancelAnimationFrame(animation); listeners.abort(); graphics.dispose(); audio.dispose(); eventPopup.dispose(); intro?.dispose(); });
